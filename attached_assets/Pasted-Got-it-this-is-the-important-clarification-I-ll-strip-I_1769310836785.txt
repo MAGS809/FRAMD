@@ -1,0 +1,183 @@
+Got it — this is the important clarification.
+I’ll strip Israel / Palestine out as content, and keep it only as a worked example of how the system thinks.
+
+Below is the clean, generic app idea, where any ideology / social topic can be plugged in — Israel/Palestine just happens to be one use case you care about.
+
+You can paste this directly to Replit or any builder.
+
+⸻
+
+App Idea: Context Engine
+
+One-Line Description
+
+An AI system that turns long-form content and public discourse into short, precise social videos by writing the argument first, then cutting only the footage that supports it — eliminating random clips, rage bait, and shallow edits.
+
+⸻
+
+Core Principle (This Is the Whole Point)
+
+No clip exists without a script.
+No script exists without reasoning.
+
+The app does not “find viral moments.”
+It constructs meaning, then visualizes it.
+
+⸻
+
+What Problem This Solves
+
+Most AI clip tools:
+	•	cut based on loud moments
+	•	chase engagement signals
+	•	produce shallow, repetitive content
+	•	disconnect visuals from meaning
+
+This app instead:
+	•	starts with ideas
+	•	respects complexity
+	•	creates clarity without oversimplifying
+	•	scales thought, not noise
+
+⸻
+
+What the App Actually Does
+
+1. Inputs (Flexible)
+	•	Long-form video (podcasts, lectures, debates, interviews)
+	•	Optional user notes / outline / philosophy
+	•	Optional external clips (news, hearings, archives)
+
+No AI-generated imagery.
+Only real footage, used intentionally.
+
+⸻
+
+2. Transcript + Idea Mapping
+
+The AI:
+	•	transcribes the entire source
+	•	identifies claims, assumptions, incentives, contradictions
+	•	maps ideas, not just keywords
+
+This produces an Idea Graph, not a highlight reel.
+
+⸻
+
+3. Script-First Intelligence (Non-Negotiable)
+
+For each viable idea, the AI:
+	1.	Writes a short script (15–60 seconds)
+	2.	Script must contain:
+	•	a hook (clarity, not shock)
+	•	a core claim
+	•	a grounding explanation
+	•	a closing line that reinforces meaning
+	3.	Outputs:
+	•	exact timestamps required
+	•	tone (calm, dry, ironic, reflective, etc.)
+	•	visual intent (supportive, neutral, contextual)
+
+Pipeline logic (locked):
+Script → Timestamps → Clips
+
+⸻
+
+4. Clip Selection & Editing
+	•	Clips are pulled only if they support the script
+	•	Visuals never contradict the argument
+	•	No filler B-roll
+	•	No random jump cuts
+	•	Pacing is deliberate, not frantic
+
+Formats supported:
+	•	9:16 (Shorts / Reels / TikTok)
+	•	1:1 (carousel video)
+	•	4:5 (feed)
+
+⸻
+
+5. Caption & Context Layer
+
+For each output, AI generates:
+	•	one restrained caption
+	•	one clarifying sentence
+	•	one reflective question
+
+No slogans.
+No rage bait.
+No hashtags spam.
+
+⸻
+
+6. Identity Layer (Optional)
+
+Each project can define:
+	•	a closing badge
+	•	a recurring phrase
+	•	a consistent tonal signature
+
+This is identity, not branding.
+
+⸻
+
+Guardrails (System-Level Rules)
+
+The AI must NEVER:
+	•	chase outrage
+	•	generalize groups
+	•	argue theology
+	•	oversimplify structural issues
+	•	cut footage before reasoning
+
+The AI must ALWAYS:
+	•	distinguish ideas from people
+	•	prioritize clarity over virality
+	•	explain incentives, not assign blame
+	•	remain calm even when discussing conflict
+
+⸻
+
+Why This Works
+	•	Appeals to people tired of noise
+	•	Makes complex topics accessible without flattening them
+	•	Produces repeatable quality
+	•	Scales across any domain:
+	•	politics
+	•	culture
+	•	philosophy
+	•	economics
+	•	social analysis
+	•	media criticism
+
+Israel/Palestine is one example, not the product.
+
+⸻
+
+Technical Direction (High Level)
+	•	Python-based orchestration (terminal-driven)
+	•	FFmpeg for precise cutting
+	•	OpenAI for:
+	•	transcript reasoning
+	•	script generation
+	•	idea ranking
+	•	No UI dependency required
+	•	Can later plug into n8n, Replit, or cloud runners
+
+⸻
+
+End Goal
+
+Not to “go viral.”
+
+To raise the average level of thought in public spaces — one clip at a time.
+
+⸻
+
+If you want next, I can:
+	•	turn this into a Replit build plan
+	•	write the system prompt that enforces this philosophy
+	•	design the CLI interface (what you type in terminal)
+	•	or map how any topic gets plugged in cleanly
+
+Just say which one.
