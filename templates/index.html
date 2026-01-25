@@ -118,7 +118,7 @@
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             border-radius: 8px;
-            color: var(--text-primary);
+            color: #ffd60a;
             font-size: 1rem;
             resize: vertical;
             font-family: inherit;
@@ -131,6 +131,11 @@
         
         textarea {
             min-height: 120px;
+        }
+        
+        textarea::placeholder, input::placeholder {
+            color: var(--text-secondary);
+            opacity: 1;
         }
         
         /* Buttons */
@@ -342,7 +347,10 @@
 <body>
     <div class="container">
         <header>
-            <h1>Echo Engine</h1>
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;">
+                <img src="/static/logo.png" alt="Echo Engine" style="width: 60px; height: 60px;">
+                <h1>Echo Engine</h1>
+            </div>
             <p class="tagline">From idea to ready-to-post video. Script-first, always.</p>
         </header>
         
@@ -354,19 +362,16 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
-            <h2>What's your content idea?</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Describe your idea, paste a video link to clip, or share any content you want to transform.
-            </p>
+            <h2>Create or Clip</h2>
             
             <div class="chat-container" id="script-chat">
                 <div class="message ai">
-                    What do you want to create? Describe an idea, paste a video link to clip, or share any content you want to transform. I'll help turn it into something sharp.
+                    Paste a video link or describe what you want to make.
                 </div>
             </div>
             
             <div style="display: flex; gap: 0.75rem;">
-                <textarea id="user-input" placeholder="Describe an idea, paste a YouTube/TikTok link to clip, or say 'clip this: [url]'..." rows="3"></textarea>
+                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3" style="color: var(--text-primary);"></textarea>
                 <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">Send</button>
             </div>
             
