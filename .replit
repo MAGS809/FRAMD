@@ -18,10 +18,10 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Context Engine"
+args = "Echo Engine"
 
 [[workflows.workflow]]
-name = "Context Engine"
+name = "Echo Engine"
 author = "agent"
 
 [[workflows.workflow.tasks]]

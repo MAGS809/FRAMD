@@ -397,6 +397,107 @@ Output as JSON:
     })
 
 
+@app.route('/generate-video', methods=['POST'])
+def generate_video():
+    """Generate a video mockup combining stock footage with voiceover."""
+    import os
+    import uuid
+    import subprocess
+    import requests
+    
+    data = request.get_json()
+    voiceover_url = data.get('voiceover_url')
+    stock_videos = data.get('stock_videos', [])
+    script = data.get('script', '')
+    format_type = data.get('format', 'reel')
+    
+    if not voiceover_url and not script:
+        return jsonify({'error': 'Need voiceover or script'}), 400
+    
+    try:
+        output_id = uuid.uuid4().hex[:8]
+        output_dir = app.config['OUTPUT_FOLDER']
+        
+        if format_type == 'reel':
+            width, height = 1080, 1920
+            aspect = '9:16'
+        else:
+            width, height = 1080, 1080
+            aspect = '1:1'
+        
+        temp_files = []
+        
+        if stock_videos and len(stock_videos) > 0:
+            for i, video in enumerate(stock_videos[:3]):
+                video_url = video.get('video_url') or video.get('pexels_url')
+                if video_url and 'pexels.com' not in video_url:
+                    try:
+                        resp = requests.get(video_url, timeout=30)
+                        if resp.status_code == 200:
+                            temp_path = os.path.join(output_dir, f'temp_{output_id}_{i}.mp4')
+                            with open(temp_path, 'wb') as f:
+                                f.write(resp.content)
+                            temp_files.append(temp_path)
+                    except:
+                        pass
+        
+        final_video = os.path.join(output_dir, f'echo_video_{output_id}.mp4')
+        
+        if temp_files:
+            concat_file = os.path.join(output_dir, f'concat_{output_id}.txt')
+            with open(concat_file, 'w') as f:
+                for tf in temp_files:
+                    f.write(f"file '{tf}'\n")
+            
+            cmd = [
+                'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file,
+                '-vf', f'scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2',
+                '-c:v', 'libx264', '-preset', 'fast', '-t', '30',
+                final_video
+            ]
+            subprocess.run(cmd, capture_output=True, timeout=120)
+            
+            for tf in temp_files:
+                if os.path.exists(tf):
+                    os.unlink(tf)
+            if os.path.exists(concat_file):
+                os.unlink(concat_file)
+        else:
+            cmd = [
+                'ffmpeg', '-y', '-f', 'lavfi', '-i', f'color=c=black:s={width}x{height}:d=30',
+                '-vf', f"drawtext=fontsize=40:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:text='Echo Engine':font=sans",
+                '-c:v', 'libx264', '-preset', 'fast', '-t', '30',
+                final_video
+            ]
+            subprocess.run(cmd, capture_output=True, timeout=60)
+        
+        if voiceover_url:
+            audio_path = os.path.join(output_dir, voiceover_url.split('/')[-1])
+            if os.path.exists(audio_path):
+                final_with_audio = os.path.join(output_dir, f'echo_final_{output_id}.mp4')
+                cmd = [
+                    'ffmpeg', '-y', '-i', final_video, '-i', audio_path,
+                    '-c:v', 'copy', '-c:a', 'aac', '-shortest',
+                    final_with_audio
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=60)
+                if os.path.exists(final_with_audio):
+                    os.unlink(final_video)
+                    final_video = final_with_audio
+        
+        if os.path.exists(final_video):
+            return jsonify({
+                'success': True,
+                'video_url': f'/output/{os.path.basename(final_video)}',
+                'format': format_type
+            })
+        else:
+            return jsonify({'error': 'Video generation failed'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/generate-voiceover', methods=['POST'])
 def generate_voiceover():
     """Generate voiceover audio from script text."""

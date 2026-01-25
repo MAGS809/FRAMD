@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Context Engine</title>
+    <title>Echo Engine</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
         :root {
@@ -342,14 +342,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>Context Engine</h1>
-            <p class="tagline">From idea to ready-to-post content. Script-first, always.</p>
+            <h1>Echo Engine</h1>
+            <p class="tagline">From idea to ready-to-post video. Script-first, always.</p>
         </header>
         
         <div class="steps">
             <div class="step-indicator active" id="step1-indicator">1. Develop Script</div>
             <div class="step-indicator" id="step2-indicator">2. Timeline Developer</div>
-            <div class="step-indicator" id="step3-indicator">3. Final Content</div>
+            <div class="step-indicator" id="step3-indicator">3. Export Video</div>
         </div>
         
         <!-- STEP 1: Script Development -->
@@ -470,20 +470,28 @@
             </div>
         </div>
         
-        <!-- STEP 3: Generated Content -->
+        <!-- STEP 3: Export Video -->
         <div class="panel" id="panel-results">
-            <h2>Your Content is Ready</h2>
+            <h2>Your Video is Ready</h2>
+            
+            <div id="video-result" style="display: none; margin-bottom: 1.5rem;">
+                <div class="result-section">
+                    <h3>🎬 Final Video</h3>
+                    <video id="final-video" controls style="width: 100%; max-height: 400px; border-radius: 8px; margin-top: 1rem;"></video>
+                    <a id="download-video" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;" download>Download Video</a>
+                </div>
+            </div>
             
             <div id="results-container"></div>
             
             <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button class="btn btn-secondary" onclick="goToFormats()">Back to Formats</button>
+                <button class="btn btn-secondary" onclick="goToFormats()">Back to Timeline</button>
                 <button class="btn btn-secondary" onclick="startOver()">Start New</button>
             </div>
         </div>
         
         <footer>
-            <p>Context Engine — No clip exists without a script. No script exists without reasoning.</p>
+            <p>Echo Engine — No clip exists without a script. No script exists without reasoning.</p>
         </footer>
     </div>
     
@@ -693,6 +701,37 @@
                 
                 if (data.success) {
                     displayResults(data.results);
+                    
+                    generateBtn.textContent = 'Creating Video...';
+                    const voiceoverAudio = document.getElementById('voiceover-audio');
+                    const voiceoverUrl = voiceoverAudio.src ? voiceoverAudio.src.replace(window.location.origin, '') : null;
+                    
+                    let stockVideos = [];
+                    for (const result of Object.values(data.results)) {
+                        if (result.stock_footage) {
+                            stockVideos = stockVideos.concat(result.stock_footage);
+                        }
+                    }
+                    
+                    const videoResponse = await fetch('/generate-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            voiceover_url: voiceoverUrl,
+                            stock_videos: stockVideos,
+                            script: refinedScript,
+                            format: selectedFormats.includes('reel') ? 'reel' : 'post'
+                        })
+                    });
+                    
+                    const videoData = await videoResponse.json();
+                    
+                    if (videoData.success) {
+                        document.getElementById('video-result').style.display = 'block';
+                        document.getElementById('final-video').src = videoData.video_url;
+                        document.getElementById('download-video').href = videoData.video_url;
+                    }
+                    
                     goToResults();
                 } else {
                     alert('Error generating content: ' + (data.error || 'Unknown error'));

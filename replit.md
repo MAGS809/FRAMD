@@ -1,7 +1,7 @@
-# Context Engine
+# Echo Engine
 
 ## Overview
-Context Engine is an AI-powered tool that transforms long-form video content (podcasts, lectures, debates, interviews) into thoughtful, script-first short video clips. Unlike typical clip tools that chase viral moments, Context Engine constructs meaning first, then visualizes it.
+Echo Engine is an AI-powered content creation tool that turns ideas into ready-to-post videos. It takes your script concept, asks clarifying questions, generates voiceovers, finds matching stock footage, and produces final videos for Reels, Carousels, Posts, and Threads. Script-first, always.
 
 ## Core Principle
 - **No clip exists without a script.**
