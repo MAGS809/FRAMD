@@ -102,6 +102,56 @@ def download_reference():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/cut-clip', methods=['POST'])
+def cut_clip():
+    """Cut a clip from a video file based on timestamps."""
+    import subprocess
+    
+    data = request.get_json()
+    video_path = data.get('video_path', '')
+    start_time = data.get('start_time', '00:00')
+    end_time = data.get('end_time', '00:30')
+    
+    if not video_path:
+        return jsonify({'error': 'No video path provided'}), 400
+    
+    video_path = video_path.replace('/uploads/', '')
+    full_path = os.path.join(app.config['UPLOAD_FOLDER'], video_path)
+    
+    if not os.path.exists(full_path):
+        return jsonify({'error': 'Video file not found'}), 404
+    
+    try:
+        clip_id = str(uuid.uuid4())[:8]
+        output_path = os.path.join(app.config['OUTPUT_FOLDER'], f'clip_{clip_id}.mp4')
+        
+        cmd = [
+            'ffmpeg', '-y',
+            '-ss', start_time,
+            '-to', end_time,
+            '-i', full_path,
+            '-c:v', 'libx264',
+            '-c:a', 'aac',
+            '-preset', 'fast',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        if os.path.exists(output_path):
+            return jsonify({
+                'success': True,
+                'clip_url': f'/output/clip_{clip_id}.mp4',
+                'start_time': start_time,
+                'end_time': end_time
+            })
+        else:
+            return jsonify({'error': 'Failed to cut clip'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -230,36 +280,6 @@ def generate_captions_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/cut-clip', methods=['POST'])
-def cut_clip():
-    data = request.get_json()
-    file_path = data.get('file_path')
-    start = data.get('start')
-    end = data.get('end')
-    aspect_ratio = data.get('aspect_ratio', '9:16')
-    
-    if not all([file_path, start is not None, end is not None]):
-        return jsonify({'error': 'Missing required parameters'}), 400
-    
-    if not os.path.exists(file_path):
-        return jsonify({'error': 'Source file not found'}), 404
-    
-    output_filename = f"clip_{uuid.uuid4().hex[:8]}.mp4"
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], output_filename)
-    
-    try:
-        if cut_video_clip(file_path, output_path, start, end, aspect_ratio):
-            return jsonify({
-                'success': True,
-                'output_path': output_path,
-                'filename': output_filename
-            })
-        else:
-            return jsonify({'error': 'Failed to cut clip'}), 500
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-
 @app.route('/output/<filename>')
 def serve_output(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
@@ -338,13 +358,16 @@ YOUR JOB:
 
 WHEN USER SHARES A VIDEO:
 - If transcript is provided, analyze it for the most compelling moments
-- Suggest specific clips or quotes that would make great content
+- Identify specific timestamps for clips (format: [CLIP: start_time-end_time] "quote or description")
+- Example: [CLIP: 00:30-01:15] "The part where they explain the main insight"
+- Suggest 2-5 clips based on the most engaging moments
 - Ask what angle/spin they want on the material
 
 RULES:
 - Ask ONE question at a time
 - Be direct, not flowery
 - When you have enough info (after 1-3 questions), say "SCRIPT READY:" followed by a summary
+- When suggesting clips, include timestamps in the format [CLIP: MM:SS-MM:SS]
 - Make their idea sharper, not generic
 
 If they give a rich, detailed idea upfront, you might only need 1 question.
