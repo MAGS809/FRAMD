@@ -177,6 +177,36 @@
             cursor: not-allowed;
         }
         
+        /* Feature statement */
+        .feature-statement {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            font-style: italic;
+        }
+        
+        /* Input hero - centered prominent input */
+        .input-hero {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 600px;
+            margin: 0 auto 2rem auto;
+        }
+        
+        .input-hero textarea {
+            flex: 1;
+            min-height: 80px;
+            font-size: 1.1rem;
+            color: #ffd60a;
+        }
+        
+        .btn-send {
+            width: 60px;
+            height: auto;
+            min-height: 80px;
+        }
+        
         /* Chat messages */
         .chat-container {
             max-height: 400px;
@@ -364,18 +394,19 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
-            <h2>Create or Clip</h2>
+            <h2 style="text-align: center;">Create or Clip</h2>
+            <p class="feature-statement">Links become clips. Ideas become scripts.</p>
             
-            <div class="chat-container" id="script-chat">
-                <div class="message ai">
-                    Links become clips. Ideas become scripts.
-                </div>
+            <div class="input-hero">
+                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3"></textarea>
+                <button class="btn btn-primary btn-send" id="send-btn" onclick="sendMessage()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                </button>
             </div>
             
-            <div style="display: flex; gap: 0.75rem;">
-                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3" style="color: var(--text-primary);"></textarea>
-                <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">Send</button>
-            </div>
+            <div class="chat-container" id="script-chat"></div>
             
             <div id="script-ready" class="hidden" style="margin-top: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
                 <p style="color: var(--success); font-weight: 600;">Script refined and ready!</p>
