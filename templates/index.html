@@ -562,6 +562,22 @@
             <div id="results-container"></div>
         </div>
         
+        <div class="chat-section" id="script-builder-section">
+            <div class="chat-header">
+                <span style="font-size: 1.5rem;">✍️</span>
+                <h3>Script Builder</h3>
+                <span class="grok-badge" style="background: linear-gradient(135deg, #22c55e, #3b82f6);">+ Stock Footage</span>
+            </div>
+            <div style="padding: 1.5rem;">
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    Describe your video idea. The AI will extract nuanced keywords and find copyright-free stock footage to match.
+                </p>
+                <textarea id="script-input" class="chat-input" style="width: 100%; height: 120px; margin-bottom: 1rem; resize: vertical;" placeholder="Example: A funny take on how everyone pretends to understand crypto but nobody actually does. The joke is in the confident nodding while being completely lost."></textarea>
+                <button class="btn btn-primary" id="build-post-btn" onclick="buildPost()">Build Post with Stock Footage</button>
+            </div>
+            <div id="script-results" style="display: none; padding: 0 1.5rem 1.5rem;"></div>
+        </div>
+        
         <div class="chat-section">
             <div class="chat-header">
                 <span style="font-size: 1.5rem;">🤖</span>
@@ -722,6 +738,116 @@
             }
             
             processBtn.disabled = false;
+        }
+        
+        // Script Builder functionality
+        async function buildPost() {
+            const scriptInput = document.getElementById('script-input');
+            const buildBtn = document.getElementById('build-post-btn');
+            const resultsDiv = document.getElementById('script-results');
+            
+            const script = scriptInput.value.trim();
+            if (!script) return;
+            
+            buildBtn.disabled = true;
+            buildBtn.textContent = 'Analyzing...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<p style="color: var(--text-secondary);">Extracting keywords and finding stock footage...</p>';
+            
+            try {
+                const response = await fetch('/build-post', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: script })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = data.result;
+                    const keywords = result.keywords || {};
+                    const refined = result.refined_script || {};
+                    const videos = result.stock_videos || [];
+                    
+                    let html = `
+                        <div class="result-card" style="margin-top: 1rem;">
+                            <h3 style="margin-bottom: 1rem;">Keywords Extracted</h3>
+                            <p><strong>Tone:</strong> ${keywords.tone || 'N/A'}</p>
+                            <p><strong>Hook:</strong> ${keywords.hook_summary || 'N/A'}</p>
+                            <p style="margin-top: 0.5rem;"><strong>Primary:</strong> ${(keywords.primary_keywords || []).join(', ') || 'None'}</p>
+                            <p><strong>Mood:</strong> ${(keywords.mood_keywords || []).join(', ') || 'None'}</p>
+                            <p><strong>Visual Ideas:</strong> ${(keywords.visual_suggestions || []).join(', ') || 'None'}</p>
+                        </div>
+                        
+                        <div class="result-card">
+                            <h3 style="margin-bottom: 1rem;">Refined Script</h3>
+                            <div class="script-section">
+                                <h4>Hook</h4>
+                                <p>${refined.hook || 'N/A'}</p>
+                            </div>
+                            <div class="script-section">
+                                <h4>Setup</h4>
+                                <p>${refined.setup || 'N/A'}</p>
+                            </div>
+                            <div class="script-section">
+                                <h4>Payoff</h4>
+                                <p>${refined.payoff || 'N/A'}</p>
+                            </div>
+                            <div class="script-section">
+                                <h4>Call to Action</h4>
+                                <p>${refined.cta || 'N/A'}</p>
+                            </div>
+                            <p style="margin-top: 1rem; color: var(--text-secondary);">
+                                <strong>Suggested Duration:</strong> ${refined.suggested_duration || '30 seconds'}
+                            </p>
+                        </div>
+                    `;
+                    
+                    if (videos.length > 0) {
+                        html += `
+                            <div class="result-card">
+                                <h3 style="margin-bottom: 1rem;">Stock Footage Found (Copyright-Free)</h3>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                        `;
+                        
+                        videos.forEach(video => {
+                            html += `
+                                <div style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden;">
+                                    <img src="${video.preview_url}" alt="${video.keyword}" style="width: 100%; height: 120px; object-fit: cover;">
+                                    <div style="padding: 0.75rem;">
+                                        <p style="font-size: 0.85rem; margin-bottom: 0.25rem;"><strong>${video.keyword}</strong></p>
+                                        <p style="font-size: 0.75rem; color: var(--text-secondary);">${video.duration}s</p>
+                                        <a href="${video.pexels_url}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem; font-size: 0.75rem; margin-top: 0.5rem; display: block; text-align: center;">View on Pexels</a>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                </div>
+                                <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                                    Attribution required: ${(result.attribution_required || []).slice(0, 3).join(' | ')}
+                                </p>
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="result-card">
+                                <p style="color: var(--text-secondary);">No stock footage found. Add a Pexels API key to enable stock video search.</p>
+                            </div>
+                        `;
+                    }
+                    
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<p style="color: var(--error);">Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
+            }
+            
+            buildBtn.disabled = false;
+            buildBtn.textContent = 'Build Post with Stock Footage';
         }
         
         // Chat functionality

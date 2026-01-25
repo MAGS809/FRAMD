@@ -197,6 +197,27 @@ def serve_output(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
 
 
+@app.route('/build-post', methods=['POST'])
+def build_post():
+    """Build a complete post from a user's script/pitch idea."""
+    from context_engine import build_post_from_script
+    
+    data = request.get_json()
+    user_script = data.get('script')
+    
+    if not user_script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    try:
+        result = build_post_from_script(user_script)
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/chat', methods=['POST'])
 def chat():
     """Direct chat with the Grok-style AI."""

@@ -2,11 +2,13 @@ import os
 import json
 import subprocess
 import tempfile
+import requests
 from typing import Optional
 from openai import OpenAI
 
 AI_INTEGRATIONS_OPENAI_API_KEY = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
 AI_INTEGRATIONS_OPENAI_BASE_URL = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
 client = OpenAI(
     api_key=AI_INTEGRATIONS_OPENAI_API_KEY,
@@ -376,6 +378,173 @@ def process_video(
         os.unlink(audio_path)
     
     return results
+
+
+def extract_keywords_from_script(script: str) -> dict:
+    """Extract nuanced keywords from a user's script/pitch that capture humor, tone, and message."""
+    prompt = f"""Analyze this script/pitch and extract keywords that capture the NUANCE of what they're trying to say.
+
+SCRIPT/PITCH:
+{script}
+
+Extract keywords that would help find supporting video footage. Think about:
+- The TONE (funny, serious, dramatic, absurd, ironic)
+- The VISUAL MOOD (dark, bright, chaotic, calm, intimate)
+- KEY CONCEPTS (the actual subjects being discussed)
+- EMOTIONAL BEATS (tension, relief, surprise, realization)
+- METAPHORS or ANALOGIES implied
+
+Output JSON with:
+{{
+    "primary_keywords": ["list of 3-5 main search terms for stock footage"],
+    "mood_keywords": ["list of 2-3 mood/atmosphere words"],
+    "visual_suggestions": ["list of 2-3 specific visual ideas that would support this script"],
+    "tone": "one word describing overall tone",
+    "hook_summary": "one sentence capturing the core message"
+}}"""
+
+    response = client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        max_completion_tokens=1024
+    )
+    
+    content = response.choices[0].message.content or "{}"
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("```")[1]
+        if content.startswith("json"):
+            content = content[4:]
+    
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {
+            "primary_keywords": [],
+            "mood_keywords": [],
+            "visual_suggestions": [],
+            "tone": "neutral",
+            "hook_summary": script[:100]
+        }
+
+
+def search_stock_videos(keywords: list[str], per_page: int = 5) -> list[dict]:
+    """Search Pexels for copyright-free stock videos matching keywords."""
+    if not PEXELS_API_KEY:
+        return []
+    
+    all_videos = []
+    headers = {"Authorization": PEXELS_API_KEY}
+    
+    for keyword in keywords[:3]:
+        url = "https://api.pexels.com/videos/search"
+        params = {
+            "query": keyword,
+            "per_page": per_page,
+            "orientation": "landscape"
+        }
+        
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                for video in data.get("videos", []):
+                    video_files = video.get("video_files", [])
+                    best_file = None
+                    for vf in video_files:
+                        if vf.get("quality") == "hd" or not best_file:
+                            best_file = vf
+                    
+                    all_videos.append({
+                        "id": video.get("id"),
+                        "keyword": keyword,
+                        "duration": video.get("duration"),
+                        "preview_url": video.get("image"),
+                        "video_url": best_file.get("link") if best_file else None,
+                        "pexels_url": video.get("url"),
+                        "photographer": video.get("user", {}).get("name", "Unknown"),
+                        "attribution": f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
+                    })
+        except Exception as e:
+            print(f"Error searching Pexels for '{keyword}': {e}")
+    
+    return all_videos
+
+
+def build_post_from_script(user_script: str) -> dict:
+    """Full pipeline: take user's script idea, extract keywords, find stock footage, build post."""
+    keywords_data = extract_keywords_from_script(user_script)
+    
+    all_keywords = (
+        keywords_data.get("primary_keywords", []) + 
+        keywords_data.get("mood_keywords", [])
+    )
+    
+    stock_videos = search_stock_videos(all_keywords)
+    
+    refined_script_prompt = f"""Based on this pitch/idea, write a polished short-form video script.
+
+ORIGINAL PITCH:
+{user_script}
+
+EXTRACTED TONE: {keywords_data.get('tone', 'neutral')}
+HOOK SUMMARY: {keywords_data.get('hook_summary', '')}
+VISUAL SUGGESTIONS: {', '.join(keywords_data.get('visual_suggestions', []))}
+
+Write a complete script with:
+- HOOK (first 3 seconds - grab attention)
+- SETUP (10 seconds - establish the context)
+- PAYOFF (the insight, joke, or revelation)
+- CALL TO ACTION (what should viewer think/do)
+
+Keep it punchy. Match the tone. Make every word count.
+
+Output as JSON:
+{{
+    "hook": "opening line",
+    "setup": "context paragraph",
+    "payoff": "the main point",
+    "cta": "closing thought or question",
+    "suggested_duration": "15/30/60 seconds"
+}}"""
+
+    response = client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": refined_script_prompt}
+        ],
+        max_completion_tokens=1024
+    )
+    
+    content = response.choices[0].message.content or "{}"
+    content = content.strip()
+    if content.startswith("```"):
+        content = content.split("```")[1]
+        if content.startswith("json"):
+            content = content[4:]
+    
+    try:
+        refined_script = json.loads(content)
+    except json.JSONDecodeError:
+        refined_script = {
+            "hook": "",
+            "setup": user_script,
+            "payoff": "",
+            "cta": "",
+            "suggested_duration": "30 seconds"
+        }
+    
+    return {
+        "original_pitch": user_script,
+        "keywords": keywords_data,
+        "refined_script": refined_script,
+        "stock_videos": stock_videos,
+        "attribution_required": [v.get("attribution") for v in stock_videos if v.get("attribution")]
+    }
 
 
 if __name__ == "__main__":
