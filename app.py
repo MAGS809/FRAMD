@@ -197,6 +197,206 @@ def serve_output(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
 
 
+@app.route('/refine-script', methods=['POST'])
+def refine_script():
+    """Conversational script refinement - asks clarifying questions."""
+    from openai import OpenAI
+    import os
+    
+    data = request.get_json()
+    message = data.get('message', '')
+    conversation = data.get('conversation', [])
+    question_count = data.get('question_count', 0)
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    system_prompt = """You are the Context Engine - a sharp, witty AI that helps creators develop unique content.
+
+YOUR JOB:
+1. Listen to their content idea
+2. Ask 1-3 clarifying questions (one at a time) to understand:
+   - The TONE they want (funny, serious, provocative, thoughtful)
+   - The UNIQUE ANGLE that makes this different
+   - The TARGET AUDIENCE and what reaction they want
+3. After enough clarity, summarize the refined script concept
+
+RULES:
+- Ask ONE question at a time
+- Be direct, not flowery
+- When you have enough info (after 1-3 questions), say "SCRIPT READY:" followed by a summary
+- Make their idea sharper, not generic
+
+If they give a rich, detailed idea upfront, you might only need 1 question.
+If it's vague, ask up to 3 questions total."""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.extend(conversation)
+    messages.append({"role": "user", "content": message})
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            max_completion_tokens=1024
+        )
+        
+        reply = response.choices[0].message.content or ""
+        
+        script_ready = "SCRIPT READY:" in reply.upper() or question_count >= 2
+        has_question = "?" in reply and not script_ready
+        
+        refined_script = None
+        if script_ready:
+            refined_script = reply
+            if "SCRIPT READY:" in reply.upper():
+                parts = reply.upper().split("SCRIPT READY:")
+                if len(parts) > 1:
+                    refined_script = reply[reply.upper().find("SCRIPT READY:") + 13:].strip()
+        
+        return jsonify({
+            'success': True,
+            'reply': reply,
+            'has_question': has_question,
+            'script_ready': script_ready,
+            'refined_script': refined_script or reply
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-formats', methods=['POST'])
+def generate_formats():
+    """Generate content for multiple formats from a refined script."""
+    from openai import OpenAI
+    from context_engine import search_stock_videos
+    import os
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    formats = data.get('formats', [])
+    conversation = data.get('conversation', [])
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    context = "\n".join([f"{m['role']}: {m['content']}" for m in conversation[-6:]])
+    
+    results = {}
+    
+    for fmt in formats:
+        try:
+            if fmt == 'reel':
+                prompt = f"""Based on this script concept:
+{script}
+
+Context from conversation:
+{context}
+
+Write a 30-60 second Reel/TikTok script with:
+- HOOK: First 3-5 seconds to grab attention (punchy, provocative, or surprising)
+- BODY: The main content (20-40 seconds)
+- PAYOFF: The ending that makes them think/share (5-10 seconds)
+
+Output as JSON:
+{{"hook": "...", "body": "...", "payoff": "...", "duration": "30 seconds", "keywords": ["keyword1", "keyword2", "keyword3"]}}"""
+
+            elif fmt == 'carousel':
+                prompt = f"""Based on this script concept:
+{script}
+
+Context from conversation:
+{context}
+
+Create an Instagram carousel post with 5-7 slides:
+- Slide 1: Hook/title that stops scrolling
+- Slides 2-5: Key points, claims, or evidence
+- Final slide: Call to action
+
+Also write a caption.
+
+Output as JSON:
+{{"slides": ["Slide 1 text", "Slide 2 text", ...], "caption": "...", "keywords": ["keyword1", "keyword2"]}}"""
+
+            elif fmt == 'post':
+                prompt = f"""Based on this script concept:
+{script}
+
+Context from conversation:
+{context}
+
+Write an Instagram/social media post caption that:
+- Hooks in the first line
+- Delivers the key insight
+- Ends with a question or CTA
+
+Also suggest relevant hashtags.
+
+Output as JSON:
+{{"caption": "...", "hashtags": "#tag1 #tag2 #tag3", "keywords": ["keyword1", "keyword2"]}}"""
+
+            elif fmt == 'thread':
+                prompt = f"""Based on this script concept:
+{script}
+
+Context from conversation:
+{context}
+
+Write a Twitter/X thread with 5-8 tweets:
+- Tweet 1: Hook that makes people want to read more
+- Middle tweets: Build the argument/story
+- Final tweet: Payoff + CTA
+
+Each tweet must be under 280 characters.
+
+Output as JSON:
+{{"tweets": ["Tweet 1", "Tweet 2", ...], "keywords": ["keyword1", "keyword2"]}}"""
+
+            else:
+                continue
+            
+            response = client.chat.completions.create(
+                model="gpt-5",
+                messages=[
+                    {"role": "system", "content": "You are a content creation expert. Output valid JSON only."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_completion_tokens=2048
+            )
+            
+            content = response.choices[0].message.content or "{}"
+            content = content.strip()
+            if content.startswith("```"):
+                content = content.split("```")[1]
+                if content.startswith("json"):
+                    content = content[4:]
+            
+            import json
+            try:
+                result = json.loads(content)
+            except:
+                result = {"error": "Failed to parse", "raw": content[:500]}
+            
+            keywords = result.get('keywords', [])
+            if keywords:
+                stock = search_stock_videos(keywords, per_page=3)
+                result['stock_footage'] = stock
+            
+            results[fmt] = result
+            
+        except Exception as e:
+            results[fmt] = {"error": str(e)}
+    
+    return jsonify({
+        'success': True,
+        'results': results
+    })
+
+
 @app.route('/build-post', methods=['POST'])
 def build_post():
     """Build a complete post from a user's script/pitch idea."""

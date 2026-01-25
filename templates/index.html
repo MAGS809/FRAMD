@@ -18,6 +18,7 @@
             --warning: #f59e0b;
             --error: #ef4444;
             --border: #2a2a2a;
+            --purple: #8b5cf6;
         }
         
         * {
@@ -35,16 +36,14 @@
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 2rem;
         }
         
         header {
             text-align: center;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 2rem;
         }
         
         h1 {
@@ -60,117 +59,94 @@
         .tagline {
             color: var(--text-secondary);
             font-size: 1.1rem;
-            max-width: 600px;
-            margin: 0 auto;
         }
         
-        .principle {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            text-align: center;
-        }
-        
-        .principle p {
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        
-        .principle strong {
-            color: var(--accent);
-        }
-        
-        .upload-zone {
-            background: var(--bg-secondary);
-            border: 2px dashed var(--border);
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 2rem;
-        }
-        
-        .upload-zone:hover {
-            border-color: var(--accent);
-            background: var(--bg-tertiary);
-        }
-        
-        .upload-zone.dragover {
-            border-color: var(--accent);
-            background: rgba(59, 130, 246, 0.1);
-        }
-        
-        .upload-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
-        .upload-zone h3 {
-            margin-bottom: 0.5rem;
-        }
-        
-        .upload-zone p {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-        
-        #file-input {
-            display: none;
-        }
-        
-        .settings {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        /* Step indicator */
+        .steps {
+            display: flex;
+            justify-content: center;
             gap: 1rem;
             margin-bottom: 2rem;
         }
         
-        .setting-group {
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 1rem;
-        }
-        
-        .setting-group label {
-            display: block;
-            font-size: 0.85rem;
             color: var(--text-secondary);
-            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
         }
         
-        .setting-group select,
-        .setting-group input {
+        .step-indicator.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+        
+        .step-indicator.completed {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        /* Panels */
+        .panel {
+            display: none;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .panel.active {
+            display: block;
+        }
+        
+        .panel h2 {
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        /* Input styles */
+        textarea, input[type="text"] {
             width: 100%;
-            padding: 0.75rem;
+            padding: 1rem;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--text-primary);
             font-size: 1rem;
+            resize: vertical;
+            font-family: inherit;
         }
         
-        .setting-group select:focus,
-        .setting-group input:focus {
+        textarea:focus, input[type="text"]:focus {
             outline: none;
             border-color: var(--accent);
         }
         
+        textarea {
+            min-height: 120px;
+        }
+        
+        /* Buttons */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 1rem 2rem;
+            padding: 0.875rem 1.5rem;
             border: none;
             border-radius: 8px;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
         
         .btn-primary {
@@ -182,11 +158,6 @@
             background: var(--accent-hover);
         }
         
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
         .btn-secondary {
             background: var(--bg-tertiary);
             color: var(--text-primary);
@@ -194,268 +165,168 @@
         }
         
         .btn-secondary:hover {
-            background: var(--bg-secondary);
             border-color: var(--accent);
         }
         
-        .progress-section {
-            display: none;
-            margin-top: 2rem;
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
-        .progress-section.active {
-            display: block;
-        }
-        
-        .progress-bar {
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            height: 8px;
-            overflow: hidden;
+        /* Chat messages */
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
             margin-bottom: 1rem;
         }
         
-        .progress-fill {
-            background: linear-gradient(90deg, var(--accent), var(--success));
-            height: 100%;
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-        
-        .status {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-        
-        .step {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .message {
             padding: 1rem;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            max-width: 90%;
+        }
+        
+        .message.ai {
+            background: var(--bg-tertiary);
+            align-self: flex-start;
+        }
+        
+        .message.user {
+            background: var(--accent);
+            margin-left: auto;
+        }
+        
+        .message.typing {
+            color: var(--text-secondary);
+        }
+        
+        /* Format selector */
+        .format-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .format-card {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .format-card:hover {
+            border-color: var(--accent);
+        }
+        
+        .format-card.selected {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .format-card .icon {
+            font-size: 2rem;
             margin-bottom: 0.5rem;
         }
         
-        .step-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .format-card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .format-card p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Results */
+        .result-section {
             background: var(--bg-tertiary);
-            font-size: 0.9rem;
-        }
-        
-        .step.completed .step-icon {
-            background: var(--success);
-        }
-        
-        .step.active .step-icon {
-            background: var(--accent);
-            animation: pulse 1.5s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .results-section {
-            display: none;
-            margin-top: 2rem;
-        }
-        
-        .results-section.active {
-            display: block;
-        }
-        
-        .result-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            border-radius: 8px;
             padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         
-        .result-card h3 {
+        .result-section h3 {
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
         
-        .idea-type {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            background: var(--accent);
-            color: white;
-            text-transform: uppercase;
-        }
-        
-        .script-section {
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .script-section h4 {
+        .result-section h4 {
             color: var(--text-secondary);
             font-size: 0.85rem;
-            margin-bottom: 0.5rem;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
         }
         
-        .script-section p {
-            font-size: 0.95rem;
+        .result-section p {
+            margin-bottom: 0.75rem;
         }
         
-        .caption-box {
-            background: var(--bg-tertiary);
-            border-left: 3px solid var(--accent);
-            padding: 1rem;
-            margin: 1rem 0;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .video-preview {
-            width: 100%;
-            max-width: 400px;
-            border-radius: 8px;
+        /* Stock footage grid */
+        .footage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
             margin-top: 1rem;
         }
         
-        .download-btn {
-            margin-top: 1rem;
-        }
-        
-        .error-message {
-            background: rgba(239, 68, 68, 0.1);
-            border: 1px solid var(--error);
-            color: var(--error);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
-            display: none;
-        }
-        
-        .error-message.active {
-            display: block;
-        }
-        
-        /* Chat Section */
-        .chat-section {
+        .footage-card {
             background: var(--bg-secondary);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            margin-top: 2rem;
+            border-radius: 8px;
             overflow: hidden;
         }
         
-        .chat-header {
-            background: var(--bg-tertiary);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+        .footage-card img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
         }
         
-        .chat-header h3 {
+        .footage-card .info {
+            padding: 0.75rem;
+        }
+        
+        .footage-card .info p {
+            font-size: 0.8rem;
             margin: 0;
-            font-size: 1.1rem;
         }
         
-        .chat-header .grok-badge {
-            background: linear-gradient(135deg, #8b5cf6, #ec4899);
+        .footage-card a {
+            display: block;
+            padding: 0.5rem;
+            background: var(--accent);
             color: white;
-            font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            text-transform: uppercase;
-            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            font-size: 0.8rem;
         }
         
-        .chat-messages {
-            height: 400px;
-            overflow-y: auto;
-            padding: 1.5rem;
+        /* Carousel preview */
+        .carousel-preview {
             display: flex;
-            flex-direction: column;
             gap: 1rem;
+            overflow-x: auto;
+            padding: 1rem 0;
         }
         
-        .chat-message {
-            max-width: 85%;
-            padding: 1rem;
-            border-radius: 12px;
-            line-height: 1.5;
-        }
-        
-        .chat-message.user {
-            background: var(--accent);
-            color: white;
-            align-self: flex-end;
-            border-bottom-right-radius: 4px;
-        }
-        
-        .chat-message.assistant {
-            background: var(--bg-tertiary);
-            align-self: flex-start;
-            border-bottom-left-radius: 4px;
-        }
-        
-        .chat-message.assistant.typing {
-            color: var(--text-secondary);
-        }
-        
-        .chat-input-container {
-            padding: 1rem 1.5rem;
-            border-top: 1px solid var(--border);
-            display: flex;
-            gap: 0.75rem;
-        }
-        
-        .chat-input {
-            flex: 1;
-            padding: 0.875rem 1rem;
-            background: var(--bg-tertiary);
+        .carousel-slide {
+            min-width: 250px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1.5rem;
             border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-primary);
-            font-size: 1rem;
-            resize: none;
         }
         
-        .chat-input:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-        
-        .chat-send-btn {
-            padding: 0.875rem 1.5rem;
-            background: var(--accent);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .chat-send-btn:hover:not(:disabled) {
-            background: var(--accent-hover);
-        }
-        
-        .chat-send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .carousel-slide h4 {
+            color: var(--accent);
+            margin-bottom: 0.5rem;
         }
         
         footer {
@@ -463,544 +334,354 @@
             padding: 2rem;
             color: var(--text-secondary);
             font-size: 0.9rem;
-            margin-top: 3rem;
-            border-top: 1px solid var(--border);
         }
+        
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Context Engine</h1>
-            <p class="tagline">Turn long-form content into thoughtful, script-first video clips. Clarity over virality.</p>
+            <p class="tagline">From idea to ready-to-post content. Script-first, always.</p>
         </header>
         
-        <div class="principle">
-            <p><strong>No clip exists without a script.</strong><br>
-            <strong>No script exists without reasoning.</strong></p>
+        <div class="steps">
+            <div class="step-indicator active" id="step1-indicator">1. Develop Script</div>
+            <div class="step-indicator" id="step2-indicator">2. Choose Format</div>
+            <div class="step-indicator" id="step3-indicator">3. Get Content</div>
         </div>
         
-        <div class="upload-zone" id="upload-zone">
-            <div class="upload-icon">📹</div>
-            <h3>Drop your video here</h3>
-            <p>or click to browse (MP4, MOV, AVI, MKV, WebM)</p>
-            <input type="file" id="file-input" accept=".mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.m4a">
-        </div>
-        
-        <div id="file-info" style="display: none; margin-bottom: 1rem;">
-            <p style="color: var(--success);">Selected: <span id="file-name"></span></p>
-        </div>
-        
-        <div class="settings">
-            <div class="setting-group">
-                <label>Max Clips to Generate</label>
-                <select id="max-clips">
-                    <option value="1">1 clip</option>
-                    <option value="2">2 clips</option>
-                    <option value="3" selected>3 clips</option>
-                    <option value="5">5 clips</option>
-                </select>
-            </div>
-            <div class="setting-group">
-                <label>Target Clip Duration</label>
-                <select id="clip-duration">
-                    <option value="15">15 seconds</option>
-                    <option value="30" selected>30 seconds</option>
-                    <option value="45">45 seconds</option>
-                    <option value="60">60 seconds</option>
-                </select>
-            </div>
-            <div class="setting-group">
-                <label>Aspect Ratio</label>
-                <select id="aspect-ratio">
-                    <option value="9:16" selected>9:16 (Shorts/Reels/TikTok)</option>
-                    <option value="1:1">1:1 (Square)</option>
-                    <option value="4:5">4:5 (Feed)</option>
-                    <option value="16:9">16:9 (Landscape)</option>
-                </select>
-            </div>
-        </div>
-        
-        <div style="text-align: center;">
-            <button class="btn btn-primary" id="process-btn" disabled>
-                Process Video
-            </button>
-        </div>
-        
-        <div class="error-message" id="error-message"></div>
-        
-        <div class="progress-section" id="progress-section">
-            <div class="progress-bar">
-                <div class="progress-fill" id="progress-fill"></div>
-            </div>
-            <p class="status" id="status-text">Initializing...</p>
+        <!-- STEP 1: Script Development -->
+        <div class="panel active" id="panel-script">
+            <h2>What's your content idea?</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Describe your video, podcast, or post idea. I'll ask a few questions to sharpen the message.
+            </p>
             
-            <div class="step" id="step-upload">
-                <div class="step-icon">1</div>
-                <span>Upload & Extract Audio</span>
-            </div>
-            <div class="step" id="step-transcribe">
-                <div class="step-icon">2</div>
-                <span>Transcribe Content</span>
-            </div>
-            <div class="step" id="step-analyze">
-                <div class="step-icon">3</div>
-                <span>Analyze Ideas</span>
-            </div>
-            <div class="step" id="step-script">
-                <div class="step-icon">4</div>
-                <span>Generate Scripts</span>
-            </div>
-            <div class="step" id="step-cut">
-                <div class="step-icon">5</div>
-                <span>Cut & Export Clips</span>
-            </div>
-        </div>
-        
-        <div class="results-section" id="results-section">
-            <h2 style="margin-bottom: 1.5rem;">Generated Clips</h2>
-            <div id="results-container"></div>
-        </div>
-        
-        <div class="chat-section" id="script-builder-section">
-            <div class="chat-header">
-                <span style="font-size: 1.5rem;">✍️</span>
-                <h3>Script Builder</h3>
-                <span class="grok-badge" style="background: linear-gradient(135deg, #22c55e, #3b82f6);">+ Stock Footage</span>
-            </div>
-            <div style="padding: 1.5rem;">
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                    Describe your video idea. The AI will extract nuanced keywords and find copyright-free stock footage to match.
-                </p>
-                <textarea id="script-input" class="chat-input" style="width: 100%; height: 120px; margin-bottom: 1rem; resize: vertical;" placeholder="Example: A funny take on how everyone pretends to understand crypto but nobody actually does. The joke is in the confident nodding while being completely lost."></textarea>
-                <button class="btn btn-primary" id="build-post-btn" onclick="buildPost()">Build Post with Stock Footage</button>
-            </div>
-            <div id="script-results" style="display: none; padding: 0 1.5rem 1.5rem;"></div>
-        </div>
-        
-        <div class="chat-section">
-            <div class="chat-header">
-                <span style="font-size: 1.5rem;">🤖</span>
-                <h3>Chat with the AI</h3>
-            </div>
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-message assistant">
-                    Hey. I'm the Context Engine AI - think of me as a sharp friend who doesn't do corporate speak. Ask me anything about ideas, arguments, or whatever's on your mind. I'll give you a straight answer.
+            <div class="chat-container" id="script-chat">
+                <div class="message ai">
+                    Tell me your idea. What's the core message you want to communicate? I'll help you refine it into something sharp and unique.
                 </div>
             </div>
-            <div class="chat-input-container">
-                <input type="text" class="chat-input" id="chat-input" placeholder="Ask me anything..." onkeypress="if(event.key==='Enter')sendMessage()">
-                <button class="chat-send-btn" id="chat-send-btn" onclick="sendMessage()">Send</button>
+            
+            <div style="display: flex; gap: 0.75rem;">
+                <textarea id="user-input" placeholder="Example: A podcast debate where I flip superhero logic to show why endless security doesn't create peace..." rows="3"></textarea>
+                <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">Send</button>
+            </div>
+            
+            <div id="script-ready" class="hidden" style="margin-top: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
+                <p style="color: var(--success); font-weight: 600;">Script refined and ready!</p>
+                <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="goToFormats()">Continue to Format Selection</button>
+            </div>
+        </div>
+        
+        <!-- STEP 2: Format Selection -->
+        <div class="panel" id="panel-format">
+            <h2>Choose your content format</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                Select one or more formats. We'll generate content optimized for each.
+            </p>
+            
+            <div class="format-grid">
+                <div class="format-card" data-format="reel" onclick="toggleFormat(this)">
+                    <div class="icon">🎬</div>
+                    <h3>Reel / TikTok</h3>
+                    <p>15-60 sec vertical video with hook + payoff</p>
+                </div>
+                <div class="format-card" data-format="carousel" onclick="toggleFormat(this)">
+                    <div class="icon">📑</div>
+                    <h3>Carousel Post</h3>
+                    <p>Swipeable slides for claims, evidence, CTA</p>
+                </div>
+                <div class="format-card" data-format="post" onclick="toggleFormat(this)">
+                    <div class="icon">📝</div>
+                    <h3>Regular Post</h3>
+                    <p>Single image + caption for feed</p>
+                </div>
+                <div class="format-card" data-format="thread" onclick="toggleFormat(this)">
+                    <div class="icon">🧵</div>
+                    <h3>Thread</h3>
+                    <p>Multi-part text thread (X/Twitter style)</p>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="goToScript()">Back</button>
+                <button class="btn btn-primary" id="generate-btn" onclick="generateContent()" disabled>Generate Content</button>
+            </div>
+        </div>
+        
+        <!-- STEP 3: Generated Content -->
+        <div class="panel" id="panel-results">
+            <h2>Your Content is Ready</h2>
+            
+            <div id="results-container"></div>
+            
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button class="btn btn-secondary" onclick="goToFormats()">Back to Formats</button>
+                <button class="btn btn-secondary" onclick="startOver()">Start New</button>
             </div>
         </div>
         
         <footer>
-            <p>Context Engine — Raise the average level of thought, one clip at a time.</p>
+            <p>Context Engine — No clip exists without a script. No script exists without reasoning.</p>
         </footer>
     </div>
     
     <script>
-        const uploadZone = document.getElementById('upload-zone');
-        const fileInput = document.getElementById('file-input');
-        const fileInfo = document.getElementById('file-info');
-        const fileName = document.getElementById('file-name');
-        const processBtn = document.getElementById('process-btn');
-        const progressSection = document.getElementById('progress-section');
-        const progressFill = document.getElementById('progress-fill');
-        const statusText = document.getElementById('status-text');
-        const resultsSection = document.getElementById('results-section');
-        const resultsContainer = document.getElementById('results-container');
-        const errorMessage = document.getElementById('error-message');
-        
-        let uploadedFilePath = null;
-        
-        uploadZone.addEventListener('click', () => fileInput.click());
-        
-        uploadZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('dragover');
-        });
-        
-        uploadZone.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('dragover');
-        });
-        
-        uploadZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        });
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                handleFile(e.target.files[0]);
-            }
-        });
-        
-        async function handleFile(file) {
-            fileName.textContent = file.name;
-            fileInfo.style.display = 'block';
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                statusText.textContent = 'Uploading file...';
-                progressSection.classList.add('active');
-                
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    uploadedFilePath = data.file_path;
-                    processBtn.disabled = false;
-                    progressSection.classList.remove('active');
-                } else {
-                    showError(data.error || 'Upload failed');
-                }
-            } catch (error) {
-                showError('Upload failed: ' + error.message);
-            }
-        }
-        
-        processBtn.addEventListener('click', processVideo);
-        
-        async function processVideo() {
-            if (!uploadedFilePath) return;
-            
-            processBtn.disabled = true;
-            errorMessage.classList.remove('active');
-            progressSection.classList.add('active');
-            resultsSection.classList.remove('active');
-            
-            const maxClips = document.getElementById('max-clips').value;
-            const clipDuration = document.getElementById('clip-duration').value;
-            const aspectRatio = document.getElementById('aspect-ratio').value;
-            
-            try {
-                updateStep('step-upload', 'active');
-                updateProgress(10, 'Processing video...');
-                
-                updateStep('step-upload', 'completed');
-                updateStep('step-transcribe', 'active');
-                updateProgress(20, 'Running full pipeline (this may take a few minutes)...');
-                
-                const response = await fetch('/process-full', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        file_path: uploadedFilePath,
-                        max_clips: parseInt(maxClips),
-                        clip_duration: parseInt(clipDuration),
-                        aspect_ratio: aspectRatio
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (!data.success) {
-                    throw new Error(data.error || 'Processing failed');
-                }
-                
-                const results = data.results;
-                
-                if (!results || results.length === 0) {
-                    throw new Error('No ideas could be extracted from the video');
-                }
-                
-                let validResults = results.filter(r => {
-                    const hasScript = r.script && (r.script.hook || r.script.full_script);
-                    const hasClips = r.clips && r.clips.clips && r.clips.clips.length > 0;
-                    return hasScript && hasClips;
-                });
-                
-                if (validResults.length === 0) {
-                    throw new Error('No valid scripts could be generated. The video may be too short or lack clear ideas.');
-                }
-                
-                updateStep('step-transcribe', 'completed');
-                updateStep('step-analyze', 'completed');
-                updateStep('step-script', 'completed');
-                updateStep('step-cut', 'completed');
-                updateProgress(100, 'Complete!');
-                
-                displayResults(validResults);
-                
-            } catch (error) {
-                showError(error.message);
-            }
-            
-            processBtn.disabled = false;
-        }
-        
-        // Script Builder functionality
-        async function buildPost() {
-            const scriptInput = document.getElementById('script-input');
-            const buildBtn = document.getElementById('build-post-btn');
-            const resultsDiv = document.getElementById('script-results');
-            
-            const script = scriptInput.value.trim();
-            if (!script) return;
-            
-            buildBtn.disabled = true;
-            buildBtn.textContent = 'Analyzing...';
-            resultsDiv.style.display = 'block';
-            resultsDiv.innerHTML = '<p style="color: var(--text-secondary);">Extracting keywords and finding stock footage...</p>';
-            
-            try {
-                const response = await fetch('/build-post', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ script: script })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    const result = data.result;
-                    const keywords = result.keywords || {};
-                    const refined = result.refined_script || {};
-                    const videos = result.stock_videos || [];
-                    
-                    let html = `
-                        <div class="result-card" style="margin-top: 1rem;">
-                            <h3 style="margin-bottom: 1rem;">Keywords Extracted</h3>
-                            <p><strong>Tone:</strong> ${keywords.tone || 'N/A'}</p>
-                            <p><strong>Hook:</strong> ${keywords.hook_summary || 'N/A'}</p>
-                            <p style="margin-top: 0.5rem;"><strong>Primary:</strong> ${(keywords.primary_keywords || []).join(', ') || 'None'}</p>
-                            <p><strong>Mood:</strong> ${(keywords.mood_keywords || []).join(', ') || 'None'}</p>
-                            <p><strong>Visual Ideas:</strong> ${(keywords.visual_suggestions || []).join(', ') || 'None'}</p>
-                        </div>
-                        
-                        <div class="result-card">
-                            <h3 style="margin-bottom: 1rem;">Refined Script</h3>
-                            <div class="script-section">
-                                <h4>Hook</h4>
-                                <p>${refined.hook || 'N/A'}</p>
-                            </div>
-                            <div class="script-section">
-                                <h4>Setup</h4>
-                                <p>${refined.setup || 'N/A'}</p>
-                            </div>
-                            <div class="script-section">
-                                <h4>Payoff</h4>
-                                <p>${refined.payoff || 'N/A'}</p>
-                            </div>
-                            <div class="script-section">
-                                <h4>Call to Action</h4>
-                                <p>${refined.cta || 'N/A'}</p>
-                            </div>
-                            <p style="margin-top: 1rem; color: var(--text-secondary);">
-                                <strong>Suggested Duration:</strong> ${refined.suggested_duration || '30 seconds'}
-                            </p>
-                        </div>
-                    `;
-                    
-                    if (videos.length > 0) {
-                        html += `
-                            <div class="result-card">
-                                <h3 style="margin-bottom: 1rem;">Stock Footage Found (Copyright-Free)</h3>
-                                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-                        `;
-                        
-                        videos.forEach(video => {
-                            html += `
-                                <div style="background: var(--bg-tertiary); border-radius: 8px; overflow: hidden;">
-                                    <img src="${video.preview_url}" alt="${video.keyword}" style="width: 100%; height: 120px; object-fit: cover;">
-                                    <div style="padding: 0.75rem;">
-                                        <p style="font-size: 0.85rem; margin-bottom: 0.25rem;"><strong>${video.keyword}</strong></p>
-                                        <p style="font-size: 0.75rem; color: var(--text-secondary);">${video.duration}s</p>
-                                        <a href="${video.pexels_url}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem; font-size: 0.75rem; margin-top: 0.5rem; display: block; text-align: center;">View on Pexels</a>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        
-                        html += `
-                                </div>
-                                <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
-                                    Attribution required: ${(result.attribution_required || []).slice(0, 3).join(' | ')}
-                                </p>
-                            </div>
-                        `;
-                    } else {
-                        html += `
-                            <div class="result-card">
-                                <p style="color: var(--text-secondary);">No stock footage found. Add a Pexels API key to enable stock video search.</p>
-                            </div>
-                        `;
-                    }
-                    
-                    resultsDiv.innerHTML = html;
-                } else {
-                    resultsDiv.innerHTML = `<p style="color: var(--error);">Error: ${data.error}</p>`;
-                }
-            } catch (error) {
-                resultsDiv.innerHTML = `<p style="color: var(--error);">Error: ${error.message}</p>`;
-            }
-            
-            buildBtn.disabled = false;
-            buildBtn.textContent = 'Build Post with Stock Footage';
-        }
-        
-        // Chat functionality
-        let chatConversation = [];
+        let conversationHistory = [];
+        let refinedScript = null;
+        let questionCount = 0;
+        let selectedFormats = [];
         
         async function sendMessage() {
-            const chatInput = document.getElementById('chat-input');
-            const chatMessages = document.getElementById('chat-messages');
-            const sendBtn = document.getElementById('chat-send-btn');
+            const input = document.getElementById('user-input');
+            const chatContainer = document.getElementById('script-chat');
+            const sendBtn = document.getElementById('send-btn');
             
-            const message = chatInput.value.trim();
+            const message = input.value.trim();
             if (!message) return;
             
             // Add user message
-            const userMsg = document.createElement('div');
-            userMsg.className = 'chat-message user';
-            userMsg.textContent = message;
-            chatMessages.appendChild(userMsg);
-            
-            chatInput.value = '';
+            chatContainer.innerHTML += `<div class="message user">${escapeHtml(message)}</div>`;
+            input.value = '';
             sendBtn.disabled = true;
             
             // Add typing indicator
-            const typingMsg = document.createElement('div');
-            typingMsg.className = 'chat-message assistant typing';
-            typingMsg.textContent = 'Thinking...';
-            chatMessages.appendChild(typingMsg);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            chatContainer.innerHTML += `<div class="message ai typing" id="typing">Thinking...</div>`;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            
+            conversationHistory.push({ role: 'user', content: message });
             
             try {
-                const response = await fetch('/chat', {
+                const response = await fetch('/refine-script', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: message,
-                        conversation: chatConversation
+                        conversation: conversationHistory,
+                        question_count: questionCount
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('typing')?.remove();
+                
+                if (data.success) {
+                    chatContainer.innerHTML += `<div class="message ai">${escapeHtml(data.reply)}</div>`;
+                    conversationHistory.push({ role: 'assistant', content: data.reply });
+                    
+                    if (data.has_question) {
+                        questionCount++;
+                    }
+                    
+                    if (data.script_ready) {
+                        refinedScript = data.refined_script;
+                        document.getElementById('script-ready').classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                document.getElementById('typing')?.remove();
+                chatContainer.innerHTML += `<div class="message ai">Something went wrong. Try again.</div>`;
+            }
+            
+            sendBtn.disabled = false;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function toggleFormat(card) {
+            card.classList.toggle('selected');
+            const format = card.dataset.format;
+            
+            if (card.classList.contains('selected')) {
+                selectedFormats.push(format);
+            } else {
+                selectedFormats = selectedFormats.filter(f => f !== format);
+            }
+            
+            document.getElementById('generate-btn').disabled = selectedFormats.length === 0;
+        }
+        
+        function goToScript() {
+            document.getElementById('panel-format').classList.remove('active');
+            document.getElementById('panel-script').classList.add('active');
+            document.getElementById('step1-indicator').classList.add('active');
+            document.getElementById('step1-indicator').classList.remove('completed');
+            document.getElementById('step2-indicator').classList.remove('active');
+        }
+        
+        function goToFormats() {
+            document.getElementById('panel-script').classList.remove('active');
+            document.getElementById('panel-results').classList.remove('active');
+            document.getElementById('panel-format').classList.add('active');
+            document.getElementById('step1-indicator').classList.remove('active');
+            document.getElementById('step1-indicator').classList.add('completed');
+            document.getElementById('step2-indicator').classList.add('active');
+            document.getElementById('step3-indicator').classList.remove('active');
+        }
+        
+        function goToResults() {
+            document.getElementById('panel-format').classList.remove('active');
+            document.getElementById('panel-results').classList.add('active');
+            document.getElementById('step2-indicator').classList.remove('active');
+            document.getElementById('step2-indicator').classList.add('completed');
+            document.getElementById('step3-indicator').classList.add('active');
+        }
+        
+        function startOver() {
+            conversationHistory = [];
+            refinedScript = null;
+            questionCount = 0;
+            selectedFormats = [];
+            
+            document.getElementById('script-chat').innerHTML = `
+                <div class="message ai">
+                    Tell me your idea. What's the core message you want to communicate? I'll help you refine it into something sharp and unique.
+                </div>
+            `;
+            document.getElementById('script-ready').classList.add('hidden');
+            document.getElementById('results-container').innerHTML = '';
+            document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+            document.getElementById('generate-btn').disabled = true;
+            
+            document.getElementById('panel-results').classList.remove('active');
+            document.getElementById('panel-format').classList.remove('active');
+            document.getElementById('panel-script').classList.add('active');
+            
+            document.getElementById('step1-indicator').classList.add('active');
+            document.getElementById('step1-indicator').classList.remove('completed');
+            document.getElementById('step2-indicator').classList.remove('active', 'completed');
+            document.getElementById('step3-indicator').classList.remove('active', 'completed');
+        }
+        
+        async function generateContent() {
+            const generateBtn = document.getElementById('generate-btn');
+            generateBtn.disabled = true;
+            generateBtn.textContent = 'Generating...';
+            
+            try {
+                const response = await fetch('/generate-formats', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        script: refinedScript,
+                        formats: selectedFormats,
+                        conversation: conversationHistory
                     })
                 });
                 
                 const data = await response.json();
                 
-                // Remove typing indicator
-                typingMsg.remove();
-                
                 if (data.success) {
-                    const assistantMsg = document.createElement('div');
-                    assistantMsg.className = 'chat-message assistant';
-                    assistantMsg.textContent = data.reply;
-                    chatMessages.appendChild(assistantMsg);
-                    
-                    // Update conversation history (without system prompt)
-                    chatConversation.push({ role: 'user', content: message });
-                    chatConversation.push({ role: 'assistant', content: data.reply });
+                    displayResults(data.results);
+                    goToResults();
                 } else {
-                    const errorMsg = document.createElement('div');
-                    errorMsg.className = 'chat-message assistant';
-                    errorMsg.textContent = 'Sorry, something went wrong. Try again.';
-                    chatMessages.appendChild(errorMsg);
+                    alert('Error generating content: ' + (data.error || 'Unknown error'));
                 }
             } catch (error) {
-                typingMsg.remove();
-                const errorMsg = document.createElement('div');
-                errorMsg.className = 'chat-message assistant';
-                errorMsg.textContent = 'Connection error. Please try again.';
-                chatMessages.appendChild(errorMsg);
+                alert('Error: ' + error.message);
             }
             
-            sendBtn.disabled = false;
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        function updateProgress(percent, text) {
-            progressFill.style.width = percent + '%';
-            statusText.textContent = text;
-        }
-        
-        function updateStep(stepId, status) {
-            const step = document.getElementById(stepId);
-            step.classList.remove('active', 'completed');
-            if (status) {
-                step.classList.add(status);
-            }
-        }
-        
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.add('active');
-            progressSection.classList.remove('active');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate Content';
         }
         
         function displayResults(results) {
-            resultsSection.classList.add('active');
-            resultsContainer.innerHTML = '';
+            const container = document.getElementById('results-container');
+            container.innerHTML = '';
             
-            results.forEach((result, index) => {
-                const card = document.createElement('div');
-                card.className = 'result-card';
+            for (const [format, content] of Object.entries(results)) {
+                let html = `<div class="result-section">`;
                 
-                const script = result.script || {};
-                const captions = result.captions || {};
+                if (format === 'reel') {
+                    html += `
+                        <h3>🎬 Reel / TikTok Script</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Hook (0-5 sec)</h4>
+                            <p>${escapeHtml(content.hook || '')}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Body</h4>
+                            <p>${escapeHtml(content.body || '')}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Payoff</h4>
+                            <p>${escapeHtml(content.payoff || '')}</p>
+                        </div>
+                        <p><strong>Duration:</strong> ${content.duration || '30 seconds'}</p>
+                    `;
+                } else if (format === 'carousel') {
+                    html += `<h3>📑 Carousel Post</h3><div class="carousel-preview">`;
+                    (content.slides || []).forEach((slide, i) => {
+                        html += `
+                            <div class="carousel-slide">
+                                <h4>Slide ${i + 1}</h4>
+                                <p>${escapeHtml(slide)}</p>
+                            </div>
+                        `;
+                    });
+                    html += `</div><p style="margin-top: 1rem;"><strong>Caption:</strong> ${escapeHtml(content.caption || '')}</p>`;
+                } else if (format === 'post') {
+                    html += `
+                        <h3>📝 Regular Post</h3>
+                        <div style="margin-bottom: 1rem;">
+                            <h4>Caption</h4>
+                            <p>${escapeHtml(content.caption || '')}</p>
+                        </div>
+                        <div>
+                            <h4>Hashtags</h4>
+                            <p style="color: var(--accent);">${escapeHtml(content.hashtags || '')}</p>
+                        </div>
+                    `;
+                } else if (format === 'thread') {
+                    html += `<h3>🧵 Thread</h3>`;
+                    (content.tweets || []).forEach((tweet, i) => {
+                        html += `
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; border-left: 3px solid var(--accent);">
+                                <span style="color: var(--text-secondary); font-size: 0.8rem;">${i + 1}/${content.tweets.length}</span>
+                                <p style="margin-top: 0.5rem;">${escapeHtml(tweet)}</p>
+                            </div>
+                        `;
+                    });
+                }
                 
-                card.innerHTML = `
-                    <h3>
-                        <span class="idea-type">${result.idea?.type || 'insight'}</span>
-                        Clip ${index + 1}
-                    </h3>
-                    <p><strong>Core Idea:</strong> ${result.idea?.idea || 'N/A'}</p>
-                    
-                    <div class="script-section">
-                        <h4>Hook</h4>
-                        <p>${script.hook || 'N/A'}</p>
-                    </div>
-                    
-                    <div class="script-section">
-                        <h4>Core Claim</h4>
-                        <p>${script.core_claim || 'N/A'}</p>
-                    </div>
-                    
-                    <div class="script-section">
-                        <h4>Grounding</h4>
-                        <p>${script.grounding || 'N/A'}</p>
-                    </div>
-                    
-                    <div class="script-section">
-                        <h4>Closing</h4>
-                        <p>${script.closing || 'N/A'}</p>
-                    </div>
-                    
-                    <p style="margin-top: 1rem; color: var(--text-secondary);">
-                        <strong>Tone:</strong> ${script.tone || 'calm'} | 
-                        <strong>Visual Intent:</strong> ${script.visual_intent || 'supportive'}
-                    </p>
-                    
-                    <div class="caption-box">
-                        <p><strong>Caption:</strong> ${captions.caption || captions.CAPTION || 'N/A'}</p>
-                        <p style="margin-top: 0.5rem;"><strong>Context:</strong> ${captions.clarifying || captions.CLARIFYING || 'N/A'}</p>
-                        <p style="margin-top: 0.5rem; font-style: italic;"><strong>Question:</strong> ${captions.question || captions.QUESTION || 'N/A'}</p>
-                    </div>
-                    
-                    ${result.output_file ? `
-                        <video class="video-preview" controls>
-                            <source src="/output/${result.output_file.split('/').pop()}" type="video/mp4">
-                        </video>
-                        <br>
-                        <a href="/output/${result.output_file.split('/').pop()}" download class="btn btn-secondary download-btn">
-                            Download Clip
-                        </a>
-                    ` : '<p style="color: var(--warning);">Video clip generation pending</p>'}
-                `;
+                // Stock footage
+                if (content.stock_footage && content.stock_footage.length > 0) {
+                    html += `<h4 style="margin-top: 1.5rem;">Suggested Stock Footage</h4><div class="footage-grid">`;
+                    content.stock_footage.forEach(video => {
+                        html += `
+                            <div class="footage-card">
+                                <img src="${video.preview_url}" alt="${video.keyword}">
+                                <div class="info">
+                                    <p><strong>${video.keyword}</strong></p>
+                                    <p>${video.duration}s</p>
+                                </div>
+                                <a href="${video.pexels_url}" target="_blank">View on Pexels</a>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                }
                 
-                resultsContainer.appendChild(card);
-            });
+                html += `</div>`;
+                container.innerHTML += html;
+            }
         }
+        
+        // Enter key to send
+        document.getElementById('user-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
 </body>
 </html>
