@@ -34,6 +34,74 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/download-reference', methods=['POST'])
+def download_reference():
+    """Download a video from URL and optionally analyze it as a reference."""
+    import subprocess
+    
+    data = request.get_json()
+    url = data.get('url', '').strip()
+    
+    if not url:
+        return jsonify({'error': 'No URL provided'}), 400
+    
+    try:
+        job_id = str(uuid.uuid4())[:8]
+        output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'reference_{job_id}.mp4')
+        
+        cmd = [
+            'yt-dlp',
+            '-f', 'best[ext=mp4]/best',
+            '--no-playlist',
+            '--max-filesize', '100M',
+            '-o', output_path,
+            url
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        
+        if result.returncode != 0:
+            direct_path = os.path.join(app.config['UPLOAD_FOLDER'], f'reference_{job_id}_direct.mp4')
+            try:
+                import requests as req
+                resp = req.get(url, timeout=60, stream=True)
+                if resp.status_code == 200 and 'video' in resp.headers.get('content-type', ''):
+                    with open(direct_path, 'wb') as f:
+                        for chunk in resp.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    output_path = direct_path
+                else:
+                    return jsonify({'error': 'Could not download video from URL'}), 400
+            except Exception as e:
+                return jsonify({'error': f'Download failed: {str(e)}'}), 400
+        
+        if os.path.exists(output_path):
+            file_size = os.path.getsize(output_path)
+            
+            transcript = None
+            try:
+                audio_path = extract_audio(output_path)
+                if audio_path:
+                    transcript = transcribe_audio(audio_path)
+            except:
+                pass
+            
+            return jsonify({
+                'success': True,
+                'video_path': f'/uploads/{os.path.basename(output_path)}',
+                'file_size': file_size,
+                'transcript': transcript,
+                'job_id': job_id
+            })
+        else:
+            return jsonify({'error': 'Download failed - no output file'}), 400
+            
+    except subprocess.TimeoutExpired:
+        return jsonify({'error': 'Download timed out'}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -195,6 +263,11 @@ def cut_clip():
 @app.route('/output/<filename>')
 def serve_output(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
+
+
+@app.route('/uploads/<filename>')
+def serve_uploads(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
 @app.route('/refine-script', methods=['POST'])
