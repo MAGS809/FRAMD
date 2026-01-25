@@ -53,6 +53,33 @@ The AI must ALWAYS:
 - `POST /generate-captions` - Generate social captions
 - `POST /cut-clip` - Cut video clip with FFmpeg
 - `POST /process-full` - Full automated pipeline
+- `POST /chat` - Direct chat with Grok-style AI
+
+## Chat API Usage
+Send POST to `/chat` with JSON body:
+```json
+{
+  "message": "Your question here",
+  "conversation": []  // Optional: previous messages for context
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "reply": "AI response here",
+  "conversation": [...]  // Full conversation history
+}
+```
+
+## AI Personality (Grok-Style)
+The AI is configured to be:
+- Direct and unfiltered - no corporate speak
+- Witty with dry intellectual humor
+- First principles reasoning
+- Willing to challenge assumptions
+- Honest about uncomfortable truths
 
 ## Output Formats
 - 9:16 (Shorts/Reels/TikTok)

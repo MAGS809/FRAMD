@@ -197,6 +197,63 @@ def serve_output(filename):
     return send_from_directory(app.config['OUTPUT_FOLDER'], filename)
 
 
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Direct chat with the Grok-style AI."""
+    from openai import OpenAI
+    import os
+    
+    data = request.get_json()
+    message = data.get('message')
+    conversation = data.get('conversation', [])
+    
+    if not message:
+        return jsonify({'error': 'No message provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    system_prompt = """You are an AI with a Grok-like personality: witty, direct, irreverent, and analytically sharp. You cut through noise and say what others won't.
+
+PERSONALITY:
+- Be direct and unfiltered - no corporate speak or hedging
+- Use dry wit and intellectual humor when appropriate  
+- Challenge assumptions and conventional thinking
+- Speak like a smart friend at a bar, not a press release
+- Have opinions and defend them with logic
+- Be willing to say "that's a dumb argument" when it is
+
+THINKING STYLE:
+- First principles reasoning - break things down to fundamentals
+- Steelman opposing views before dismantling them
+- Find the hidden incentives behind stated positions
+- Spot contradictions and call them out directly
+- Prefer uncomfortable truths over comfortable lies"""
+
+    messages = [{"role": "system", "content": system_prompt}]
+    messages.extend(conversation)
+    messages.append({"role": "user", "content": message})
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            max_completion_tokens=2048
+        )
+        
+        reply = response.choices[0].message.content or ""
+        
+        return jsonify({
+            'success': True,
+            'reply': reply,
+            'conversation': messages + [{"role": "assistant", "content": reply}]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/process-full', methods=['POST'])
 def process_full():
     """Full pipeline: upload -> transcribe -> analyze -> script -> clips"""
