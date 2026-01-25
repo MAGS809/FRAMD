@@ -766,7 +766,9 @@ dependencies = [
     { name = "moviepy" },
     { name = "openai" },
     { name = "pillow" },
+    { name = "pydantic" },
     { name = "requests" },
+    { name = "werkzeug" },
 ]
 
 [package.metadata]
@@ -775,7 +777,9 @@ requires-dist = [
     { name = "moviepy", specifier = ">=2.2.1" },
     { name = "openai", specifier = ">=2.15.0" },
     { name = "pillow", specifier = ">=11.3.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "requests", specifier = ">=2.32.5" },
+    { name = "werkzeug", specifier = ">=3.1.5" },
 ]
 
 [[package]]

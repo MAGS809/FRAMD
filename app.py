@@ -275,26 +275,71 @@ def refine_script():
     """Conversational script refinement - asks clarifying questions."""
     from openai import OpenAI
     import os
+    import subprocess
+    import re
     
     data = request.get_json()
     message = data.get('message', '')
     conversation = data.get('conversation', [])
     question_count = data.get('question_count', 0)
+    reference = data.get('reference')
+    
+    url_pattern = r'(https?://[^\s]+(?:youtube|youtu\.be|tiktok|vimeo|twitter|x\.com|instagram|facebook|twitch)[^\s]*)'
+    urls = re.findall(url_pattern, message, re.IGNORECASE)
+    
+    video_transcript = None
+    video_path = None
+    
+    if urls:
+        url = urls[0]
+        try:
+            job_id = str(uuid.uuid4())[:8]
+            output_path = os.path.join(app.config['UPLOAD_FOLDER'], f'chat_video_{job_id}.mp4')
+            
+            cmd = [
+                'yt-dlp',
+                '-f', 'best[ext=mp4]/best',
+                '--no-playlist',
+                '--max-filesize', '100M',
+                '-o', output_path,
+                url
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            
+            if os.path.exists(output_path):
+                video_path = f'/uploads/{os.path.basename(output_path)}'
+                try:
+                    audio_path = extract_audio(output_path)
+                    if audio_path:
+                        video_transcript = transcribe_audio(audio_path)
+                except:
+                    pass
+        except:
+            pass
+    
+    if reference and reference.get('transcript'):
+        video_transcript = reference.get('transcript')
     
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
     )
     
-    system_prompt = """You are the Context Engine - a sharp, witty AI that helps creators develop unique content.
+    system_prompt = """You are Echo Engine - a sharp, witty AI that helps creators develop unique content.
 
 YOUR JOB:
-1. Listen to their content idea
-2. Ask 1-3 clarifying questions (one at a time) to understand:
+1. Listen to their content idea OR analyze a video they share
+2. If they paste a video URL with "clip this" or similar, analyze the transcript and identify the best clip-worthy moments
+3. Ask 1-3 clarifying questions (one at a time) to understand:
    - The TONE they want (funny, serious, provocative, thoughtful)
    - The UNIQUE ANGLE that makes this different
    - The TARGET AUDIENCE and what reaction they want
-3. After enough clarity, summarize the refined script concept
+4. After enough clarity, summarize the refined script concept
+
+WHEN USER SHARES A VIDEO:
+- If transcript is provided, analyze it for the most compelling moments
+- Suggest specific clips or quotes that would make great content
+- Ask what angle/spin they want on the material
 
 RULES:
 - Ask ONE question at a time
@@ -307,7 +352,12 @@ If it's vague, ask up to 3 questions total."""
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation)
-    messages.append({"role": "user", "content": message})
+    
+    user_content = message
+    if video_transcript:
+        user_content = f"{message}\n\n[VIDEO TRANSCRIPT]:\n{video_transcript[:4000]}"
+    
+    messages.append({"role": "user", "content": user_content})
     
     try:
         response = client.chat.completions.create(
@@ -334,7 +384,9 @@ If it's vague, ask up to 3 questions total."""
             'reply': reply,
             'has_question': has_question,
             'script_ready': script_ready,
-            'refined_script': refined_script or reply
+            'refined_script': refined_script or reply,
+            'video_path': video_path,
+            'video_downloaded': video_path is not None
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

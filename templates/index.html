@@ -658,6 +658,10 @@
                         questionCount++;
                     }
                     
+                    if (data.video_downloaded) {
+                        chatContainer.innerHTML += `<div class="message ai" style="background: rgba(59, 130, 246, 0.2); border: 1px solid var(--primary);">📹 Video downloaded and analyzed!</div>`;
+                    }
+                    
                     if (data.script_ready) {
                         refinedScript = data.refined_script;
                         document.getElementById('script-ready').classList.remove('hidden');

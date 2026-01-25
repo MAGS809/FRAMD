@@ -6,7 +6,7 @@ integrations = ["python_openai_ai_integrations:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg-full", "freetype", "imagemagickBig", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "zlib", "ffmpeg", "imagemagick", "yt-dlp"]
+packages = ["ffmpeg", "ffmpeg-full", "freetype", "imagemagick", "imagemagickBig", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "tcl", "tk", "yt-dlp", "zlib"]
 
 [workflows]
 runButton = "Project"
