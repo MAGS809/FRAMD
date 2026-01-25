@@ -348,8 +348,8 @@
         
         <div class="steps">
             <div class="step-indicator active" id="step1-indicator">1. Develop Script</div>
-            <div class="step-indicator" id="step2-indicator">2. Choose Format</div>
-            <div class="step-indicator" id="step3-indicator">3. Get Content</div>
+            <div class="step-indicator" id="step2-indicator">2. Timeline Developer</div>
+            <div class="step-indicator" id="step3-indicator">3. Final Content</div>
         </div>
         
         <!-- STEP 1: Script Development -->
@@ -376,33 +376,91 @@
             </div>
         </div>
         
-        <!-- STEP 2: Format Selection -->
+        <!-- STEP 2: Timeline Developer -->
         <div class="panel" id="panel-format">
-            <h2>Choose your content format</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Select one or more formats. We'll generate content optimized for each.
+            <h2>Timeline Developer</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
+                Build your video timeline with voiceover and visuals.
             </p>
             
-            <div class="format-grid">
-                <div class="format-card" data-format="reel" onclick="toggleFormat(this)">
-                    <div class="icon">🎬</div>
-                    <h3>Reel / TikTok</h3>
-                    <p>15-60 sec vertical video with hook + payoff</p>
+            <!-- Script Preview -->
+            <div class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>Your Script</h3>
+                <p id="script-preview" style="white-space: pre-wrap;"></p>
+            </div>
+            
+            <!-- Voiceover Section -->
+            <div class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>🎙️ Voiceover</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Choose a voice for your narration:</p>
+                
+                <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                    <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)">
+                        <div class="icon">🎭</div>
+                        <h3>Alloy</h3>
+                        <p>Neutral, versatile</p>
+                    </div>
+                    <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)">
+                        <div class="icon">🎤</div>
+                        <h3>Echo</h3>
+                        <p>Male, deep</p>
+                    </div>
+                    <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)">
+                        <div class="icon">📖</div>
+                        <h3>Fable</h3>
+                        <p>British, expressive</p>
+                    </div>
+                    <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)">
+                        <div class="icon">🎬</div>
+                        <h3>Onyx</h3>
+                        <p>Male, authoritative</p>
+                    </div>
+                    <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)">
+                        <div class="icon">✨</div>
+                        <h3>Nova</h3>
+                        <p>Female, warm</p>
+                    </div>
+                    <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)">
+                        <div class="icon">💫</div>
+                        <h3>Shimmer</h3>
+                        <p>Female, clear</p>
+                    </div>
                 </div>
-                <div class="format-card" data-format="carousel" onclick="toggleFormat(this)">
-                    <div class="icon">📑</div>
-                    <h3>Carousel Post</h3>
-                    <p>Swipeable slides for claims, evidence, CTA</p>
+                
+                <button class="btn btn-secondary" style="margin-top: 1rem;" id="generate-voice-btn" onclick="generateVoiceover()">
+                    Generate Voiceover
+                </button>
+                <div id="voiceover-result" style="margin-top: 1rem; display: none;">
+                    <audio id="voiceover-audio" controls style="width: 100%;"></audio>
                 </div>
-                <div class="format-card" data-format="post" onclick="toggleFormat(this)">
-                    <div class="icon">📝</div>
-                    <h3>Regular Post</h3>
-                    <p>Single image + caption for feed</p>
-                </div>
-                <div class="format-card" data-format="thread" onclick="toggleFormat(this)">
-                    <div class="icon">🧵</div>
-                    <h3>Thread</h3>
-                    <p>Multi-part text thread (X/Twitter style)</p>
+            </div>
+            
+            <!-- Output Format Section -->
+            <div class="result-section">
+                <h3>📱 Output Formats</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Select formats to generate:</p>
+                
+                <div class="format-grid">
+                    <div class="format-card" data-format="reel" onclick="toggleFormat(this)">
+                        <div class="icon">🎬</div>
+                        <h3>Reel / TikTok</h3>
+                        <p>15-60 sec vertical video</p>
+                    </div>
+                    <div class="format-card" data-format="carousel" onclick="toggleFormat(this)">
+                        <div class="icon">📑</div>
+                        <h3>Carousel Post</h3>
+                        <p>Swipeable slides</p>
+                    </div>
+                    <div class="format-card" data-format="post" onclick="toggleFormat(this)">
+                        <div class="icon">📝</div>
+                        <h3>Regular Post</h3>
+                        <p>Single image + caption</p>
+                    </div>
+                    <div class="format-card" data-format="thread" onclick="toggleFormat(this)">
+                        <div class="icon">🧵</div>
+                        <h3>Thread</h3>
+                        <p>Multi-part text thread</p>
+                    </div>
                 </div>
             </div>
             
@@ -434,6 +492,52 @@
         let refinedScript = null;
         let questionCount = 0;
         let selectedFormats = [];
+        let selectedVoice = 'alloy';
+        
+        function selectVoice(card) {
+            document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedVoice = card.dataset.voice;
+        }
+        
+        async function generateVoiceover() {
+            const btn = document.getElementById('generate-voice-btn');
+            const resultDiv = document.getElementById('voiceover-result');
+            const audio = document.getElementById('voiceover-audio');
+            
+            if (!refinedScript) {
+                alert('No script to generate voiceover from');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            
+            try {
+                const response = await fetch('/generate-voiceover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: refinedScript,
+                        voice: selectedVoice
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    audio.src = data.audio_url;
+                    resultDiv.style.display = 'block';
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to generate voiceover'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Generate Voiceover';
+        }
         
         async function sendMessage() {
             const input = document.getElementById('user-input');
@@ -525,6 +629,10 @@
             document.getElementById('step1-indicator').classList.add('completed');
             document.getElementById('step2-indicator').classList.add('active');
             document.getElementById('step3-indicator').classList.remove('active');
+            
+            if (refinedScript) {
+                document.getElementById('script-preview').textContent = refinedScript;
+            }
         }
         
         function goToResults() {
@@ -540,6 +648,7 @@
             refinedScript = null;
             questionCount = 0;
             selectedFormats = [];
+            selectedVoice = 'alloy';
             
             document.getElementById('script-chat').innerHTML = `
                 <div class="message ai">
@@ -549,7 +658,10 @@
             document.getElementById('script-ready').classList.add('hidden');
             document.getElementById('results-container').innerHTML = '';
             document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
+            document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector('.voice-card[data-voice="alloy"]')?.classList.add('selected');
             document.getElementById('generate-btn').disabled = true;
+            document.getElementById('voiceover-result').style.display = 'none';
             
             document.getElementById('panel-results').classList.remove('active');
             document.getElementById('panel-format').classList.remove('active');

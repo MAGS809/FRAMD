@@ -397,6 +397,58 @@ Output as JSON:
     })
 
 
+@app.route('/generate-voiceover', methods=['POST'])
+def generate_voiceover():
+    """Generate voiceover audio from script text."""
+    from openai import OpenAI
+    import base64
+    import os
+    import uuid
+    
+    data = request.get_json()
+    text = data.get('text', '')
+    voice = data.get('voice', 'alloy')
+    
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-audio",
+            modalities=["text", "audio"],
+            audio={"voice": voice, "format": "mp3"},
+            messages=[
+                {"role": "system", "content": "You are a professional voiceover artist. Read the following script naturally and engagingly."},
+                {"role": "user", "content": f"Read this script: {text}"},
+            ],
+        )
+        
+        audio_data = getattr(response.choices[0].message, "audio", None)
+        if audio_data and hasattr(audio_data, "data"):
+            audio_bytes = base64.b64decode(audio_data.data)
+            
+            filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
+            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            with open(filepath, 'wb') as f:
+                f.write(audio_bytes)
+            
+            return jsonify({
+                'success': True,
+                'audio_url': f'/output/{filename}',
+                'duration_estimate': len(text.split()) / 2.5
+            })
+        else:
+            return jsonify({'error': 'No audio generated'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/build-post', methods=['POST'])
 def build_post():
     """Build a complete post from a user's script/pitch idea."""
