@@ -347,7 +347,7 @@
         </header>
         
         <div class="steps">
-            <div class="step-indicator active" id="step1-indicator">1. Develop Script</div>
+            <div class="step-indicator active" id="step1-indicator">1. Main Interface</div>
             <div class="step-indicator" id="step2-indicator">2. Timeline Developer</div>
             <div class="step-indicator" id="step3-indicator">3. Export Video</div>
         </div>
@@ -356,32 +356,17 @@
         <div class="panel active" id="panel-script">
             <h2>What's your content idea?</h2>
             <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                Describe your video, podcast, or post idea. I'll ask a few questions to sharpen the message.
+                Describe your idea, paste a video link to clip, or share any content you want to transform.
             </p>
-            
-            <!-- Reference Video URL Input -->
-            <div class="result-section" style="margin-bottom: 1.5rem; padding: 1rem;">
-                <h3 style="margin-bottom: 0.75rem;">📎 Reference Video (Optional)</h3>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">
-                    Paste a video URL to use as inspiration. AI will analyze it and match the style.
-                </p>
-                <div style="display: flex; gap: 0.75rem;">
-                    <input type="text" id="reference-url" placeholder="Paste YouTube, TikTok, or any video URL..." style="flex: 1; padding: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary);">
-                    <button class="btn btn-secondary" id="download-ref-btn" onclick="downloadReference()">Analyze</button>
-                </div>
-                <div id="reference-status" style="display: none; margin-top: 0.75rem; padding: 0.75rem; background: rgba(34, 197, 94, 0.1); border-radius: 6px;">
-                    <span id="reference-status-text" style="color: var(--success);"></span>
-                </div>
-            </div>
             
             <div class="chat-container" id="script-chat">
                 <div class="message ai">
-                    Tell me your idea. What's the core message you want to communicate? I'll help you refine it into something sharp and unique.
+                    What do you want to create? Describe an idea, paste a video link to clip, or share any content you want to transform. I'll help turn it into something sharp.
                 </div>
             </div>
             
             <div style="display: flex; gap: 0.75rem;">
-                <textarea id="user-input" placeholder="Example: A podcast debate where I flip superhero logic to show why endless security doesn't create peace..." rows="3"></textarea>
+                <textarea id="user-input" placeholder="Describe an idea, paste a YouTube/TikTok link to clip, or say 'clip this: [url]'..." rows="3"></textarea>
                 <button class="btn btn-primary" id="send-btn" onclick="sendMessage()">Send</button>
             </div>
             
