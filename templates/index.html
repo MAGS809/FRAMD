@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Engine</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a0a0a0;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --border: #2a2a2a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .tagline {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .principle {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .principle p {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .principle strong {
+            color: var(--accent);
+        }
+        
+        .upload-zone {
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--accent);
+            background: var(--bg-tertiary);
+        }
+        
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-zone h3 {
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-zone p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .settings {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .setting-group {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .setting-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .setting-group select,
+        .setting-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .setting-group select:focus,
+        .setting-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+        
+        .progress-section {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .progress-section.active {
+            display: block;
+        }
+        
+        .progress-bar {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            height: 8px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-fill {
+            background: linear-gradient(90deg, var(--accent), var(--success));
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .status {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            font-size: 0.9rem;
+        }
+        
+        .step.completed .step-icon {
+            background: var(--success);
+        }
+        
+        .step.active .step-icon {
+            background: var(--accent);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .results-section {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .results-section.active {
+            display: block;
+        }
+        
+        .result-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .result-card h3 {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .idea-type {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: var(--accent);
+            color: white;
+            text-transform: uppercase;
+        }
+        
+        .script-section {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .script-section h4 {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .script-section p {
+            font-size: 0.95rem;
+        }
+        
+        .caption-box {
+            background: var(--bg-tertiary);
+            border-left: 3px solid var(--accent);
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .video-preview {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .download-btn {
+            margin-top: 1rem;
+        }
+        
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+        
+        .error-message.active {
+            display: block;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 3rem;
+            border-top: 1px solid var(--border);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Context Engine</h1>
+            <p class="tagline">Turn long-form content into thoughtful, script-first video clips. Clarity over virality.</p>
+        </header>
+        
+        <div class="principle">
+            <p><strong>No clip exists without a script.</strong><br>
+            <strong>No script exists without reasoning.</strong></p>
+        </div>
+        
+        <div class="upload-zone" id="upload-zone">
+            <div class="upload-icon">📹</div>
+            <h3>Drop your video here</h3>
+            <p>or click to browse (MP4, MOV, AVI, MKV, WebM)</p>
+            <input type="file" id="file-input" accept=".mp4,.mov,.avi,.mkv,.webm,.mp3,.wav,.m4a">
+        </div>
+        
+        <div id="file-info" style="display: none; margin-bottom: 1rem;">
+            <p style="color: var(--success);">Selected: <span id="file-name"></span></p>
+        </div>
+        
+        <div class="settings">
+            <div class="setting-group">
+                <label>Max Clips to Generate</label>
+                <select id="max-clips">
+                    <option value="1">1 clip</option>
+                    <option value="2">2 clips</option>
+                    <option value="3" selected>3 clips</option>
+                    <option value="5">5 clips</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Target Clip Duration</label>
+                <select id="clip-duration">
+                    <option value="15">15 seconds</option>
+                    <option value="30" selected>30 seconds</option>
+                    <option value="45">45 seconds</option>
+                    <option value="60">60 seconds</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Aspect Ratio</label>
+                <select id="aspect-ratio">
+                    <option value="9:16" selected>9:16 (Shorts/Reels/TikTok)</option>
+                    <option value="1:1">1:1 (Square)</option>
+                    <option value="4:5">4:5 (Feed)</option>
+                    <option value="16:9">16:9 (Landscape)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div style="text-align: center;">
+            <button class="btn btn-primary" id="process-btn" disabled>
+                Process Video
+            </button>
+        </div>
+        
+        <div class="error-message" id="error-message"></div>
+        
+        <div class="progress-section" id="progress-section">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <p class="status" id="status-text">Initializing...</p>
+            
+            <div class="step" id="step-upload">
+                <div class="step-icon">1</div>
+                <span>Upload & Extract Audio</span>
+            </div>
+            <div class="step" id="step-transcribe">
+                <div class="step-icon">2</div>
+                <span>Transcribe Content</span>
+            </div>
+            <div class="step" id="step-analyze">
+                <div class="step-icon">3</div>
+                <span>Analyze Ideas</span>
+            </div>
+            <div class="step" id="step-script">
+                <div class="step-icon">4</div>
+                <span>Generate Scripts</span>
+            </div>
+            <div class="step" id="step-cut">
+                <div class="step-icon">5</div>
+                <span>Cut & Export Clips</span>
+            </div>
+        </div>
+        
+        <div class="results-section" id="results-section">
+            <h2 style="margin-bottom: 1.5rem;">Generated Clips</h2>
+            <div id="results-container"></div>
+        </div>
+        
+        <footer>
+            <p>Context Engine — Raise the average level of thought, one clip at a time.</p>
+        </footer>
+    </div>
+    
+    <script>
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const processBtn = document.getElementById('process-btn');
+        const progressSection = document.getElementById('progress-section');
+        const progressFill = document.getElementById('progress-fill');
+        const statusText = document.getElementById('status-text');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContainer = document.getElementById('results-container');
+        const errorMessage = document.getElementById('error-message');
+        
+        let uploadedFilePath = null;
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+        
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+        
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        async function handleFile(file) {
+            fileName.textContent = file.name;
+            fileInfo.style.display = 'block';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                statusText.textContent = 'Uploading file...';
+                progressSection.classList.add('active');
+                
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    uploadedFilePath = data.file_path;
+                    processBtn.disabled = false;
+                    progressSection.classList.remove('active');
+                } else {
+                    showError(data.error || 'Upload failed');
+                }
+            } catch (error) {
+                showError('Upload failed: ' + error.message);
+            }
+        }
+        
+        processBtn.addEventListener('click', processVideo);
+        
+        async function processVideo() {
+            if (!uploadedFilePath) return;
+            
+            processBtn.disabled = true;
+            errorMessage.classList.remove('active');
+            progressSection.classList.add('active');
+            resultsSection.classList.remove('active');
+            
+            const maxClips = document.getElementById('max-clips').value;
+            const clipDuration = document.getElementById('clip-duration').value;
+            const aspectRatio = document.getElementById('aspect-ratio').value;
+            
+            try {
+                updateStep('step-upload', 'active');
+                updateProgress(10, 'Processing video...');
+                
+                updateStep('step-upload', 'completed');
+                updateStep('step-transcribe', 'active');
+                updateProgress(20, 'Running full pipeline (this may take a few minutes)...');
+                
+                const response = await fetch('/process-full', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        file_path: uploadedFilePath,
+                        max_clips: parseInt(maxClips),
+                        clip_duration: parseInt(clipDuration),
+                        aspect_ratio: aspectRatio
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'Processing failed');
+                }
+                
+                const results = data.results;
+                
+                if (!results || results.length === 0) {
+                    throw new Error('No ideas could be extracted from the video');
+                }
+                
+                let validResults = results.filter(r => {
+                    const hasScript = r.script && (r.script.hook || r.script.full_script);
+                    const hasClips = r.clips && r.clips.clips && r.clips.clips.length > 0;
+                    return hasScript && hasClips;
+                });
+                
+                if (validResults.length === 0) {
+                    throw new Error('No valid scripts could be generated. The video may be too short or lack clear ideas.');
+                }
+                
+                updateStep('step-transcribe', 'completed');
+                updateStep('step-analyze', 'completed');
+                updateStep('step-script', 'completed');
+                updateStep('step-cut', 'completed');
+                updateProgress(100, 'Complete!');
+                
+                displayResults(validResults);
+                
+            } catch (error) {
+                showError(error.message);
+            }
+            
+            processBtn.disabled = false;
+        }
+        
+        function updateProgress(percent, text) {
+            progressFill.style.width = percent + '%';
+            statusText.textContent = text;
+        }
+        
+        function updateStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('active', 'completed');
+            if (status) {
+                step.classList.add(status);
+            }
+        }
+        
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('active');
+            progressSection.classList.remove('active');
+        }
+        
+        function displayResults(results) {
+            resultsSection.classList.add('active');
+            resultsContainer.innerHTML = '';
+            
+            results.forEach((result, index) => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                
+                const script = result.script || {};
+                const captions = result.captions || {};
+                
+                card.innerHTML = `
+                    <h3>
+                        <span class="idea-type">${result.idea?.type || 'insight'}</span>
+                        Clip ${index + 1}
+                    </h3>
+                    <p><strong>Core Idea:</strong> ${result.idea?.idea || 'N/A'}</p>
+                    
+                    <div class="script-section">
+                        <h4>Hook</h4>
+                        <p>${script.hook || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="script-section">
+                        <h4>Core Claim</h4>
+                        <p>${script.core_claim || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="script-section">
+                        <h4>Grounding</h4>
+                        <p>${script.grounding || 'N/A'}</p>
+                    </div>
+                    
+                    <div class="script-section">
+                        <h4>Closing</h4>
+                        <p>${script.closing || 'N/A'}</p>
+                    </div>
+                    
+                    <p style="margin-top: 1rem; color: var(--text-secondary);">
+                        <strong>Tone:</strong> ${script.tone || 'calm'} | 
+                        <strong>Visual Intent:</strong> ${script.visual_intent || 'supportive'}
+                    </p>
+                    
+                    <div class="caption-box">
+                        <p><strong>Caption:</strong> ${captions.caption || captions.CAPTION || 'N/A'}</p>
+                        <p style="margin-top: 0.5rem;"><strong>Context:</strong> ${captions.clarifying || captions.CLARIFYING || 'N/A'}</p>
+                        <p style="margin-top: 0.5rem; font-style: italic;"><strong>Question:</strong> ${captions.question || captions.QUESTION || 'N/A'}</p>
+                    </div>
+                    
+                    ${result.output_file ? `
+                        <video class="video-preview" controls>
+                            <source src="/output/${result.output_file.split('/').pop()}" type="video/mp4">
+                        </video>
+                        <br>
+                        <a href="/output/${result.output_file.split('/').pop()}" download class="btn btn-secondary download-btn">
+                            Download Clip
+                        </a>
+                    ` : '<p style="color: var(--warning);">Video clip generation pending</p>'}
+                `;
+                
+                resultsContainer.appendChild(card);
+            });
+        }
+    </script>
+</body>
+</html>
