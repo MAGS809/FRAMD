@@ -72,7 +72,7 @@ def transcribe_audio(audio_path: str) -> dict:
     }
 
 
-def analyze_ideas(transcript: str) -> list:
+def analyze_ideas(transcript: str) -> list[dict]:
     """Analyze transcript to identify key ideas, claims, and contradictions."""
     prompt = f"""Analyze this transcript and identify the key ideas, claims, assumptions, and potential contradictions.
 
@@ -101,7 +101,8 @@ Focus on substance, not viral moments. Identify ideas worth exploring, not sound
     )
     
     try:
-        result = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
         return result.get('ideas', result) if isinstance(result, dict) else result
     except json.JSONDecodeError:
         return []
@@ -143,7 +144,8 @@ Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_int
     )
     
     try:
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
     except json.JSONDecodeError:
         return {}
 
@@ -191,7 +193,8 @@ Only select clips that genuinely support the script. No filler."""
     )
     
     try:
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
     except json.JSONDecodeError:
         return {"clips": [], "total_duration": 0, "notes": ""}
 
@@ -223,7 +226,8 @@ Keep it thoughtful, not clickbait. Output as JSON."""
     )
     
     try:
-        return json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
     except json.JSONDecodeError:
         return {}
 
