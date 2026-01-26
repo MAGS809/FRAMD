@@ -1,7 +1,15 @@
 # Calligra
 
 ## Overview
-Calligra is a high-end post-assembler utilizing the Framd™ workflow. The core AI, **Framd**, transforms raw links into cinematic clips and abstract ideas into structured posts.
+Calligra is a high-end post-assembler utilizing the Framd workflow. The core AI, **Framd**, transforms raw links into cinematic clips and abstract ideas into structured posts.
+
+## UI Design (Apple-Inspired)
+- **Typography**: Inter font family with refined weights (300-700)
+- **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents
+- **Glassmorphism**: Panels use backdrop-filter blur with subtle transparency
+- **Animations**: Smooth cubic-bezier transitions (0.4, 0, 0.2, 1)
+- **Components**: Apple-style segmented controls, floating token panel
+- **Layout**: Centered 720px max-width container with generous spacing
 
 ## Core Principle
 - **Framd™** - No clip exists without a script.
