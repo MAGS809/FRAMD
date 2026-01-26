@@ -2,7 +2,7 @@ modules = ["python-3.11", "postgresql-16"]
 
 [agent]
 expertMode = true
-integrations = ["python_openai_ai_integrations:1.0.0", "python_database:1.0.0", "stripe:2.0.0"]
+integrations = ["python_openai_ai_integrations:1.0.0", "python_database:1.0.0", "stripe:2.0.0", "python_xai:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
