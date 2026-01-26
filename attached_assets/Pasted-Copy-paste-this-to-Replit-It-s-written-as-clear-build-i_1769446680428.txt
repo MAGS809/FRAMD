@@ -1,0 +1,180 @@
+Copy/paste this to Replit. It’s written as clear build instructions with acceptance criteria.
+
+⸻
+
+Message to Replit: Build the “Legal Scraper + Asset Library” (Option 2)
+
+Hi — please implement Option 2: a legal media scraper that only downloads assets when reuse rights are explicit and stored as proof.
+
+Goal
+
+Build a media ingestion pipeline that:
+	1.	searches approved sources
+	2.	validates license + reuse rights
+	3.	stores full license metadata + attribution proof
+	4.	saves assets + tags into a database
+	5.	exposes a simple API to query assets by tags for video generation
+
+This is a core feature.
+
+⸻
+
+HARD RULE (must enforce)
+
+Download media ONLY if ALL of the following are stored:
+	1.	source_page URL
+	2.	exact license name
+	3.	license_url (or page section that states it)
+	4.	commercial_use_allowed boolean
+	5.	attribution_required boolean + attribution_text if required
+
+If any are missing → reject the asset (do not download).
+
+⸻
+
+Allowed Sources (scrape ONLY these categories)
+
+A) Public domain archives
+
+Only if rights status is stated per item (item must say public domain / reusable).
+
+B) Wikimedia Commons
+
+Only if the item license is permissive and on our whitelist.
+
+C) Government media portals
+
+Only if the portal explicitly allows reuse and we store the reuse statement/link.
+
+D) Any site with API/ToS explicitly allowing download + reuse
+
+Only if ToS allows commercial reuse + derivatives.
+
+⸻
+
+License Whitelist
+
+✅ Accept:
+	•	Public Domain / CC0
+	•	CC BY
+	•	CC BY-SA
+
+❌ Reject:
+	•	CC BY-NC (non-commercial)
+	•	CC BY-ND (no derivatives)
+	•	Editorial use only
+	•	All Rights Reserved
+	•	Unknown/unclear
+
+⸻
+
+Database record format (exact fields)
+
+Store every accepted asset as:
+
+{
+  "id": "commons_File:Example.webm",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Example.webm",
+  "download_url": "https://upload.wikimedia.org/.../Example.webm",
+  "source": "wikimedia_commons",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "commercial_use_allowed": true,
+  "derivatives_allowed": true,
+  "attribution_required": true,
+  "attribution_text": "Author Name / Wikimedia Commons / CC BY 4.0",
+  "content_type": "video",
+  "duration_sec": 6.2,
+  "resolution": "1080x1920",
+  "description": "A fully clothed person walking alone on a city sidewalk at night.",
+  "tags": ["person_walking","city_night","quiet","observational","tension_building"],
+  "safe_flags": {
+    "no_sexual": true,
+    "no_cleavage": true,
+    "no_bikini": true,
+    "no_brands": true,
+    "no_celeb": true
+  },
+  "status": "safe"
+}
+
+
+⸻
+
+Scraper Pipeline (implementation steps)
+
+Step A — Search
+
+Search approved sources by keyword queries (examples):
+	•	person walking
+	•	crowd reaction
+	•	empty room
+	•	typing laptop
+
+Step B — Parse item page
+
+Extract:
+	•	download_url
+	•	license label
+	•	license_url or a verifiable license statement link
+	•	creator/author (for attribution)
+	•	any restrictions
+
+Step C — Validate
+
+Reject unless:
+	•	license is on whitelist
+	•	commercial use allowed
+	•	derivatives allowed
+	•	passes safe content filters
+
+Step D — Save + Tag
+
+Generate:
+	•	description
+	•	descriptive tags + intent/tone tags
+Store record in DB.
+
+⸻
+
+API Endpoints required
+
+1) Ingest / crawl
+
+POST /ingest
+Body:
+
+{ "query": "person walking", "limit": 20, "source": "wikimedia_commons" }
+
+Returns:
+	•	how many saved
+	•	how many rejected + why
+
+2) Query assets for the AI
+
+GET /assets?tags=quiet,city_night&content_type=video&limit=10
+
+3) Health
+
+GET /health
+
+⸻
+
+Acceptance Criteria (must pass)
+	•	The system never downloads an asset without storing license proof fields.
+	•	CC BY-NC / CC BY-ND assets are rejected automatically.
+	•	Every stored asset contains correct attribution metadata if required.
+	•	You can ingest 20 results and see saved vs rejected counts with reasons.
+	•	Asset query returns only status="safe" items.
+
+⸻
+
+Compliance statement (include in app)
+
+“This app only downloads media from sources with explicit reuse permissions. Each asset is stored with license metadata and attribution requirements. If licensing is unclear, the asset is rejected.”
+
+⸻
+
+If you want me to specify exactly which public-domain archive to support first, start with Wikimedia Commons implementation and make the ingest modular so we can plug in additional sources next.
+
+⸻

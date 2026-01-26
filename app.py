@@ -205,23 +205,10 @@ def deduct_tokens():
     data = request.get_json()
     amount = data.get('amount', 35)
     token_entry = UserTokens.query.first()
-    if token_entry and token_entry.balance >= amount:
-        token_entry.balance -= amount
-        db.session.commit()
-        return jsonify({'success': True, 'balance': token_entry.balance})
-    return jsonify({'success': False, 'error': 'Insufficient tokens'}), 400
-
-@app.route('/ai-approval-check', methods=['POST'])
-def ai_approval_check():
-    data = request.get_json()
-    script = data.get('script')
-    if not script:
-        return jsonify({'approved': False, 'reasoning': 'No script provided', 'required_changes': []})
-    
-    from context_engine import ai_approval_gate
-    # In a real flow, visual_plan would be generated first
-    result = ai_approval_gate({'full_script': script}, [])
-    return jsonify(result)
+    # Deduct tokens (simplified for dev)
+    token_entry.balance -= amount
+    db.session.commit()
+    return jsonify({'success': True, 'balance': token_entry.balance})
 
 # Asset Library - Legal Media with Licensing
 ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Pexels License']
@@ -1468,56 +1455,51 @@ def preview_voice():
 
 @app.route('/detect-characters', methods=['POST'])
 def detect_characters():
-    """Detect characters in a script and format for voice acting."""
+    """AI detects characters in the script for casting."""
     from openai import OpenAI
     
     data = request.get_json()
     script = data.get('script', '')
     
     if not script:
-        return jsonify({'error': 'No script provided'}), 400
-    
+        return jsonify({'success': False, 'error': 'No script provided'}), 400
+        
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
     )
     
+    system_prompt = """Analyze the script and list all speaking characters.
+For each character, provide:
+1. Their name (as used in the script)
+2. A very brief personality description (2-3 words)
+3. One sample line they speak in this script
+
+OUTPUT FORMAT (JSON):
+{
+  "characters": [
+    {
+      "name": "NARRATOR",
+      "personality": "Calm, authoritative",
+      "sample_line": "The world is changing faster than we think."
+    }
+  ]
+}"""
+
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": """You are a script analyst. Analyze the script and:
-1. Identify distinct speaking characters/voices (narrator counts as one)
-2. Format the script with clear character labels for voice acting
-
-Return JSON:
-{
-  "characters": [
-    {"name": "Character Name", "sample_line": "A short example line they say"}
-  ],
-  "formatted_script": "The script with CHARACTER_NAME: prefix on each line"
-}
-
-Rules:
-- If only one voice (narrator), return just one character
-- Format like a screenplay: CHARACTER_NAME: Their dialogue here
-- Keep the meaning, just add character labels
-- Don't add meta-commentary, just the lines they would speak aloud"""},
-                {"role": "user", "content": f"Analyze and format this script:\n\n{script}"},
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Detect characters in this script:\n\n{script}"}
             ],
             response_format={"type": "json_object"}
         )
         
         result = json.loads(response.choices[0].message.content)
-        
-        return jsonify({
-            'success': True,
-            'characters': result.get('characters', []),
-            'formatted_script': result.get('formatted_script', script)
-        })
-            
+        return jsonify({'success': True, 'characters': result.get('characters', [])})
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/generate-voiceover-multi', methods=['POST'])
