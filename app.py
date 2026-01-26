@@ -224,7 +224,177 @@ def ai_approval_check():
     return jsonify(result)
 
 # Asset Library - Legal Media with Licensing
-ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'Pexels License']
+ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Pexels License']
+
+# License whitelist for Wikimedia Commons
+WIKIMEDIA_ALLOWED_LICENSES = [
+    'cc0', 'cc-zero', 'public domain', 'pd',
+    'cc-by', 'cc-by-4.0', 'cc-by-3.0', 'cc-by-2.5',
+    'cc-by-sa', 'cc-by-sa-4.0', 'cc-by-sa-3.0', 'cc-by-sa-2.5'
+]
+
+@app.route('/search-wikimedia-videos', methods=['POST'])
+def search_wikimedia_videos():
+    """Search Wikimedia Commons for videos with proper licensing."""
+    data = request.get_json()
+    query = data.get('query', '')
+    limit = data.get('limit', 10)
+    
+    try:
+        # Search Wikimedia Commons API for video files
+        search_url = 'https://commons.wikimedia.org/w/api.php'
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'generator': 'search',
+            'gsrsearch': f'{query} filetype:video',
+            'gsrlimit': limit,
+            'prop': 'imageinfo|categories',
+            'iiprop': 'url|extmetadata|size|mime',
+            'iiurlwidth': 640
+        }
+        
+        response = requests.get(search_url, params=params, timeout=15)
+        data = response.json()
+        
+        videos = []
+        pages = data.get('query', {}).get('pages', {})
+        
+        for page_id, page in pages.items():
+            if page_id == '-1':
+                continue
+                
+            imageinfo = page.get('imageinfo', [{}])[0]
+            extmeta = imageinfo.get('extmetadata', {})
+            
+            # Get license info
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+            license_url = extmeta.get('LicenseUrl', {}).get('value', '')
+            
+            # Check if license is on whitelist
+            is_allowed = any(allowed in license_short for allowed in WIKIMEDIA_ALLOWED_LICENSES)
+            if not is_allowed:
+                continue
+            
+            # Get attribution
+            artist = extmeta.get('Artist', {}).get('value', 'Unknown')
+            # Strip HTML from artist
+            import re
+            artist = re.sub('<[^<]+?>', '', artist).strip()
+            
+            # Determine license type for our system
+            if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
+                our_license = 'CC0'
+                attribution_required = False
+            elif 'cc-by-sa' in license_short:
+                our_license = 'CC BY-SA'
+                attribution_required = True
+            elif 'cc-by' in license_short:
+                our_license = 'CC BY'
+                attribution_required = True
+            else:
+                continue
+            
+            videos.append({
+                'id': f"wikimedia_{page.get('pageid')}",
+                'source': 'wikimedia_commons',
+                'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
+                'download_url': imageinfo.get('url'),
+                'thumbnail': imageinfo.get('thumburl'),
+                'title': page.get('title', '').replace('File:', ''),
+                'resolution': f"{imageinfo.get('width', 0)}x{imageinfo.get('height', 0)}",
+                'license': our_license,
+                'license_url': license_url or 'https://creativecommons.org/licenses/',
+                'commercial_use_allowed': True,
+                'derivatives_allowed': True,
+                'attribution_required': attribution_required,
+                'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
+            })
+        
+        return jsonify({'success': True, 'videos': videos})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/search-all-sources', methods=['POST'])
+def search_all_sources():
+    """Search both Pexels and Wikimedia Commons for legal videos."""
+    data = request.get_json()
+    query = data.get('query', '')
+    
+    all_videos = []
+    
+    # Search Pexels
+    pexels_key = os.environ.get('PEXELS_API_KEY')
+    if pexels_key:
+        try:
+            response = requests.get(
+                'https://api.pexels.com/videos/search',
+                headers={'Authorization': pexels_key},
+                params={'query': query, 'per_page': 5, 'orientation': 'portrait'},
+                timeout=10
+            )
+            for video in response.json().get('videos', []):
+                video_files = video.get('video_files', [])
+                best_file = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
+                if best_file:
+                    all_videos.append({
+                        'id': f"pexels_{video['id']}",
+                        'source': 'pexels',
+                        'source_page': video.get('url'),
+                        'download_url': best_file.get('link'),
+                        'thumbnail': video.get('image'),
+                        'duration': video.get('duration'),
+                        'license': 'Pexels License',
+                        'license_url': 'https://www.pexels.com/license/',
+                        'attribution_required': False,
+                        'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
+                    })
+        except:
+            pass
+    
+    # Search Wikimedia Commons
+    try:
+        search_url = 'https://commons.wikimedia.org/w/api.php'
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'generator': 'search',
+            'gsrsearch': f'{query} filetype:video',
+            'gsrlimit': 5,
+            'prop': 'imageinfo',
+            'iiprop': 'url|extmetadata',
+            'iiurlwidth': 640
+        }
+        response = requests.get(search_url, params=params, timeout=10)
+        pages = response.json().get('query', {}).get('pages', {})
+        
+        for page_id, page in pages.items():
+            if page_id == '-1':
+                continue
+            imageinfo = page.get('imageinfo', [{}])[0]
+            extmeta = imageinfo.get('extmetadata', {})
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+            
+            # Only include allowed licenses
+            if any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain']):
+                import re
+                artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
+                all_videos.append({
+                    'id': f"wikimedia_{page.get('pageid')}",
+                    'source': 'wikimedia_commons',
+                    'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
+                    'download_url': imageinfo.get('url'),
+                    'thumbnail': imageinfo.get('thumburl'),
+                    'license': 'CC BY' if 'cc-by' in license_short else 'CC0',
+                    'attribution_required': 'cc-by' in license_short,
+                    'attribution_text': f"{artist} / Wikimedia Commons"
+                })
+    except:
+        pass
+    
+    return jsonify({'success': True, 'videos': all_videos, 'sources': ['pexels', 'wikimedia_commons']})
+
 
 @app.route('/search-pexels-videos', methods=['POST'])
 def search_pexels_videos():
@@ -412,17 +582,21 @@ OUTPUT FORMAT (JSON):
         
         visual_board = json.loads(response.choices[0].message.content or '{}')
         
-        # For each section, search Pexels for matching videos
+        # For each section, search both Pexels and Wikimedia Commons
         pexels_key = os.environ.get('PEXELS_API_KEY')
-        if pexels_key:
-            for section in visual_board.get('sections', []):
-                section['suggested_videos'] = []
-                for query in section.get('search_queries', [])[:1]:  # Just first query
+        
+        for section in visual_board.get('sections', []):
+            section['suggested_videos'] = []
+            
+            for query in section.get('search_queries', [])[:2]:  # Up to 2 queries per section
+                # Search Pexels
+                if pexels_key:
                     try:
                         resp = requests.get(
                             'https://api.pexels.com/videos/search',
                             headers={'Authorization': pexels_key},
-                            params={'query': query, 'per_page': 3, 'orientation': 'portrait'}
+                            params={'query': query, 'per_page': 3, 'orientation': 'portrait'},
+                            timeout=10
                         )
                         videos = resp.json().get('videos', [])
                         for v in videos[:2]:
@@ -431,13 +605,55 @@ OUTPUT FORMAT (JSON):
                             if best:
                                 section['suggested_videos'].append({
                                     'id': f"pexels_{v['id']}",
+                                    'source': 'pexels',
                                     'thumbnail': v.get('image'),
                                     'download_url': best.get('link'),
                                     'duration': v.get('duration'),
+                                    'license': 'Pexels License',
                                     'attribution': f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels"
                                 })
                     except:
                         pass
+                
+                # Search Wikimedia Commons
+                try:
+                    import re as regex
+                    search_url = 'https://commons.wikimedia.org/w/api.php'
+                    params = {
+                        'action': 'query',
+                        'format': 'json',
+                        'generator': 'search',
+                        'gsrsearch': f'{query} filetype:video',
+                        'gsrlimit': 3,
+                        'prop': 'imageinfo',
+                        'iiprop': 'url|extmetadata',
+                        'iiurlwidth': 320
+                    }
+                    resp = requests.get(search_url, params=params, timeout=10)
+                    pages = resp.json().get('query', {}).get('pages', {})
+                    
+                    for page_id, page in pages.items():
+                        if page_id == '-1':
+                            continue
+                        imageinfo = page.get('imageinfo', [{}])[0]
+                        extmeta = imageinfo.get('extmetadata', {})
+                        license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                        
+                        # Only include CC0, CC BY, or CC BY-SA
+                        if any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain']):
+                            artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
+                            our_license = 'CC0' if ('cc0' in license_short or 'public domain' in license_short) else 'CC BY'
+                            
+                            section['suggested_videos'].append({
+                                'id': f"wikimedia_{page.get('pageid')}",
+                                'source': 'wikimedia',
+                                'thumbnail': imageinfo.get('thumburl'),
+                                'download_url': imageinfo.get('url'),
+                                'license': our_license,
+                                'attribution': f"{artist} / Wikimedia Commons / {our_license}"
+                            })
+                except:
+                    pass
         
         return jsonify({'success': True, 'visual_board': visual_board})
     except Exception as e:
@@ -1052,7 +1268,7 @@ def generate_video():
         temp_files = []
         
         # Allowed domains for video downloads (security: prevent SSRF)
-        allowed_domains = ['pexels.com', 'videos.pexels.com', 'player.vimeo.com', 'pixabay.com']
+        allowed_domains = ['pexels.com', 'videos.pexels.com', 'player.vimeo.com', 'pixabay.com', 'wikimedia.org', 'upload.wikimedia.org']
         
         if stock_videos and len(stock_videos) > 0:
             for i, video in enumerate(stock_videos[:5]):

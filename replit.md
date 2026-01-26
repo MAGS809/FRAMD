@@ -91,10 +91,11 @@ The AI must ALWAYS:
 
 ## Legal Media Asset Library
 Assets are stored with full licensing metadata:
-- **Allowed Licenses**: CC0, Public Domain, CC BY, CC BY-SA, Pexels License
+- **Allowed Licenses**: CC0, Public Domain, CC BY, CC BY-SA, CC BY 4.0, CC BY-SA 4.0, Pexels License
 - **Required Fields**: source_page, download_url, license, license_url
 - **Safe Flags**: no_sexual, no_brands, no_celeb
-- **Sources**: Pexels (integrated), Wikimedia Commons (planned)
+- **Sources**: Pexels (integrated), Wikimedia Commons (integrated)
+- **License Validation**: Only downloads from whitelisted licenses; rejects CC BY-NC, CC BY-ND, and unclear licenses
 
 ## Chat API Usage
 Send POST to `/chat` with JSON body:
