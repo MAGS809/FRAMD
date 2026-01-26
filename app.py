@@ -807,8 +807,15 @@ When ready, say "SCRIPT READY:" then write a PROPER SCREENPLAY FORMAT:
 - Character names in CAPS before dialogue
 - Dialogue indented under character name
 - Action/description in normal case
+- VISUAL NOTES in brackets [VISUAL: description] for B-roll/cutaway suggestions
 - NO markdown, NO asterisks, NO bullet points
 - NO meta-commentary like "The vibe would be..." - just the script
+
+VISUAL DIRECTION:
+For each scene or beat, include [VISUAL: description] to suggest B-roll or imagery:
+- Describe the mood, setting, or abstract visuals that would complement the dialogue
+- Think cinematically - what would a viewer SEE while hearing this?
+- Be specific: "city lights at night" not just "city"
 
 EXAMPLE FORMAT:
 SCRIPT READY:
@@ -817,13 +824,19 @@ TREES HAVE HAD ENOUGH
 
 EXT. CITY PARK - NIGHT
 
+[VISUAL: Dark silhouettes of trees against orange streetlight glow. Moody, cinematic.]
+
 Two oak trees stand side by side under dim streetlights.
 
 TREE 1 (GRUMPY)
 You know what, Barry? I'm DONE. Every night, some human comes waddling over and just—pee. On. Me.
 
+[VISUAL: Close-up of tree bark, water droplets running down. Dramatic lighting.]
+
 TREE 2 (CHILL)
 Eh, it's not so bad. Kind of warm.
+
+[VISUAL: Wide shot of peaceful park at night. Contrast to the drama.]
 
 RULES:
 - Ask ONE question at a time
