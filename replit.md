@@ -90,12 +90,20 @@ The AI must ALWAYS:
 - `POST /add-tokens` - Add tokens after successful payment
 
 ## Legal Media Asset Library
-Assets are stored with full licensing metadata:
+Assets are stored with full licensing metadata (LINKS ONLY - downloaded on-demand):
 - **Allowed Licenses**: CC0, Public Domain, CC BY, CC BY-SA, CC BY 4.0, CC BY-SA 4.0, Pexels License
-- **Required Fields**: source_page, download_url, license, license_url
+- **Required Fields**: source_page, download_url, license, license_url, commercial_use_allowed, attribution_text
 - **Safe Flags**: no_sexual, no_brands, no_celeb
 - **Sources**: Pexels (integrated), Wikimedia Commons (integrated)
-- **License Validation**: Only downloads from whitelisted licenses; rejects CC BY-NC, CC BY-ND, and unclear licenses
+- **License Validation**: HARD REJECT NC/ND/Editorial FIRST, then whitelist check. Uses `validate_license()` function.
+- **Keyword Cache**: Stores keyword → asset associations for faster future curation
+- **Compliance Statement**: "This app only downloads media from sources with explicit reuse permissions. Each asset is stored with license metadata and attribution requirements. If licensing is unclear, the asset is rejected."
+
+### Asset Library Endpoints
+- `POST /ingest` - Crawl and save verified legal asset LINKS with rejection logging
+- `GET /assets` - Query cached assets by tags and content type
+- `POST /save-to-cache` - Save selected asset to cache with keywords
+- `POST /download-asset` - Download asset on-demand for final render (SSRF-protected)
 
 ## Chat API Usage
 Send POST to `/chat` with JSON body:
@@ -131,13 +139,19 @@ The AI is configured to be:
 
 ## Visual Curation Flow
 1. **Content Type Selection**: Educational (B-roll) or Skit/Podcast (characters + scenes)
-2. **Scene-by-Scene Picker**: Each scene shows:
+2. **Visual Guidance**: Optional input to direct visual search (e.g., "dark moody visuals", "warm natural lighting")
+3. **Context Extraction**: AI analyzes script for setting, mood, and visual intent
+4. **Cache-First Search**: Checks cached keyword→asset associations before external APIs
+5. **Scene-by-Scene Picker**: Each scene shows:
+   - Visual Context banner with setting/mood tags
    - Scene description with script segment
    - Rationale explaining why this visual matters
    - 4 video options with yellow border on selection
    - Source badge (Pexels/Wikimedia) and license badge
-3. **Character Picker** (Skits only): Voice-only or assign visual models per character
-4. **Auto-Selection**: First option auto-selected per scene for minimal-input flow
+   - CACHED badge for previously-used assets
+6. **Character Picker** (Skits only): Voice-only or assign visual models per character
+7. **Auto-Selection**: First option auto-selected per scene for minimal-input flow
+8. **Cache Learning**: Selected assets saved to cache with keywords for faster future curation
 
 ## Voice System
 - **6 Voice Options**: Alloy (neutral), Echo (deep male), Fable (British), Onyx (authoritative male), Nova (warm female), Shimmer (clear female)

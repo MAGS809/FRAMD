@@ -224,12 +224,42 @@ def deduct_tokens():
 # Asset Library - Legal Media with Licensing
 ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Pexels License']
 
+# License validation - HARD REJECT list (checked FIRST)
+REJECTED_LICENSE_PATTERNS = ['nc', 'nd', 'editorial', 'all rights reserved', 'getty', 'shutterstock']
+
 # License whitelist for Wikimedia Commons
 WIKIMEDIA_ALLOWED_LICENSES = [
     'cc0', 'cc-zero', 'public domain', 'pd',
     'cc-by', 'cc-by-4.0', 'cc-by-3.0', 'cc-by-2.5',
     'cc-by-sa', 'cc-by-sa-4.0', 'cc-by-sa-3.0', 'cc-by-sa-2.5'
 ]
+
+def validate_license(license_short):
+    """
+    Validate a license string. Returns (is_valid, license_type, rejection_reason).
+    CRITICAL: Check rejection patterns FIRST before allowing.
+    """
+    license_lower = license_short.lower().strip()
+    
+    # STEP 1: HARD REJECT - Check for disallowed patterns FIRST
+    for pattern in REJECTED_LICENSE_PATTERNS:
+        if pattern in license_lower:
+            return False, None, f'Rejected: contains "{pattern}"'
+    
+    # STEP 2: Check for allowed licenses
+    if 'cc0' in license_lower or 'cc-zero' in license_lower or license_lower == 'cc0':
+        return True, 'CC0', None
+    if 'public domain' in license_lower or license_lower == 'pd':
+        return True, 'CC0', None
+    if 'cc-by-sa' in license_lower or 'cc by-sa' in license_lower:
+        return True, 'CC BY-SA', None
+    if 'cc-by' in license_lower or 'cc by' in license_lower:
+        return True, 'CC BY', None
+    if 'pexels' in license_lower:
+        return True, 'Pexels License', None
+    
+    # Unknown license - reject
+    return False, None, f'Unknown/unclear license: {license_short}'
 
 @app.route('/search-wikimedia-videos', methods=['POST'])
 def search_wikimedia_videos():
@@ -266,32 +296,20 @@ def search_wikimedia_videos():
             extmeta = imageinfo.get('extmetadata', {})
             
             # Get license info
-            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
             license_url = extmeta.get('LicenseUrl', {}).get('value', '')
             
-            # Check if license is on whitelist
-            is_allowed = any(allowed in license_short for allowed in WIKIMEDIA_ALLOWED_LICENSES)
-            if not is_allowed:
+            # Validate license using safe function (rejects NC/ND first)
+            is_valid, our_license, rejection_reason = validate_license(license_short)
+            if not is_valid:
                 continue
             
             # Get attribution
             artist = extmeta.get('Artist', {}).get('value', 'Unknown')
-            # Strip HTML from artist
             import re
             artist = re.sub('<[^<]+?>', '', artist).strip()
             
-            # Determine license type for our system
-            if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
-                our_license = 'CC0'
-                attribution_required = False
-            elif 'cc-by-sa' in license_short:
-                our_license = 'CC BY-SA'
-                attribution_required = True
-            elif 'cc-by' in license_short:
-                our_license = 'CC BY'
-                attribution_required = True
-            else:
-                continue
+            attribution_required = our_license not in ['CC0', 'Public Domain']
             
             videos.append({
                 'id': f"wikimedia_{page.get('pageid')}",
@@ -372,10 +390,11 @@ def search_all_sources():
                 continue
             imageinfo = page.get('imageinfo', [{}])[0]
             extmeta = imageinfo.get('extmetadata', {})
-            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
             
-            # Only include allowed licenses
-            if any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain']):
+            # Validate license using safe function (rejects NC/ND first)
+            is_valid, our_license, _ = validate_license(license_short)
+            if is_valid:
                 import re
                 artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
                 all_videos.append({
@@ -384,9 +403,10 @@ def search_all_sources():
                     'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
                     'download_url': imageinfo.get('url'),
                     'thumbnail': imageinfo.get('thumburl'),
-                    'license': 'CC BY' if 'cc-by' in license_short else 'CC0',
-                    'attribution_required': 'cc-by' in license_short,
-                    'attribution_text': f"{artist} / Wikimedia Commons"
+                    'license': our_license,
+                    'license_url': extmeta.get('LicenseUrl', {}).get('value', ''),
+                    'attribution_required': our_license not in ['CC0', 'Public Domain'],
+                    'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
                 })
     except:
         pass
@@ -700,23 +720,15 @@ CRITICAL:
                                 
                             imageinfo = page.get('imageinfo', [{}])[0]
                             extmeta = imageinfo.get('extmetadata', {})
-                            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
                             license_url = extmeta.get('LicenseUrl', {}).get('value', '')
                             
-                            # License validation - REJECT NC/ND
-                            if 'nc' in license_short or 'nd' in license_short:
-                                continue
-                            if not any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain', 'pd']):
+                            # Validate license using safe function (rejects NC/ND first)
+                            is_valid, our_license, _ = validate_license(license_short)
+                            if not is_valid:
                                 continue
                             
                             artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
-                            
-                            if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
-                                our_license = 'CC0'
-                            elif 'cc-by-sa' in license_short:
-                                our_license = 'CC BY-SA'
-                            else:
-                                our_license = 'CC BY'
                             
                             source_page = f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}"
                             
@@ -890,31 +902,17 @@ def ingest_assets():
                 
                 imageinfo = page.get('imageinfo', [{}])[0]
                 extmeta = imageinfo.get('extmetadata', {})
-                license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                license_short = extmeta.get('LicenseShortName', {}).get('value', '')
                 license_url = extmeta.get('LicenseUrl', {}).get('value', '')
                 
-                # HARD REJECT: NC, ND, Editorial, Unknown
-                if 'nc' in license_short:
-                    rejected.append({'id': asset_id, 'reason': 'CC BY-NC - non-commercial'})
-                    continue
-                if 'nd' in license_short:
-                    rejected.append({'id': asset_id, 'reason': 'CC BY-ND - no derivatives'})
-                    continue
-                if not any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain', 'pd']):
-                    rejected.append({'id': asset_id, 'reason': f'Unknown/rejected license: {license_short}'})
+                # Validate license using safe function (rejects NC/ND first)
+                is_valid, our_license, rejection_reason = validate_license(license_short)
+                if not is_valid:
+                    rejected.append({'id': asset_id, 'reason': rejection_reason})
                     continue
                 
                 artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
-                
-                if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
-                    our_license = 'CC0'
-                    attribution_required = False
-                elif 'cc-by-sa' in license_short:
-                    our_license = 'CC BY-SA'
-                    attribution_required = True
-                else:
-                    our_license = 'CC BY'
-                    attribution_required = True
+                attribution_required = our_license not in ['CC0', 'Public Domain']
                 
                 source_page = f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}"
                 
