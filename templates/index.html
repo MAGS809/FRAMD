@@ -671,13 +671,10 @@
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border-light);
             border-radius: 12px;
-            padding: 0.875rem 1.25rem;
-            margin-bottom: 0;
-            text-align: right;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
             font-size: 0.85rem;
-            position: absolute;
-            top: 1.5rem;
-            right: 1.5rem;
         }
         .token-balance {
             color: var(--text-primary);
@@ -837,11 +834,6 @@
     </style>
 </head>
 <body>
-    <div class="token-panel">
-        <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
-        <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
-    </div>
-    
     <!-- Credits Purchase Modal -->
     <div class="modal" id="credits-modal">
         <div class="modal-content" style="max-width: 480px;">
@@ -896,6 +888,11 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
+            <div class="token-panel">
+                <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
+                <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
+            </div>
+            
             <div class="input-hero">
                 <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3"></textarea>
                 <button type="button" class="btn btn-primary btn-send" id="send-btn" style="font-size: 1.25rem;">
