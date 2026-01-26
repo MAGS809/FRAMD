@@ -2338,23 +2338,22 @@
                     
                     // Collect curated visuals from selected videos
                     let curatedVideos = [];
-                    for (const [section, videos] of Object.entries(selectedVideos)) {
-                        for (const video of videos) {
-                            // Get the best quality download URL from Pexels video
-                            let downloadUrl = video.download_url || video.url;
-                            if (video.video_files && video.video_files.length > 0) {
-                                // Find HD quality (720p or higher)
-                                const hdFile = video.video_files.find(f => f.height >= 720) || video.video_files[0];
-                                downloadUrl = hdFile.link;
-                            }
-                            
-                            curatedVideos.push({
-                                section: section,
-                                download_url: downloadUrl,
-                                source: 'pexels',
-                                license: 'Pexels License'
-                            });
+                    for (const [section, video] of Object.entries(selectedVideos)) {
+                        if (!video || !video.url) continue;
+                        
+                        // Get the best quality download URL
+                        let downloadUrl = video.download_url || video.url;
+                        if (video.video_files && video.video_files.length > 0) {
+                            const hdFile = video.video_files.find(f => f.height >= 720) || video.video_files[0];
+                            downloadUrl = hdFile.link;
                         }
+                        
+                        curatedVideos.push({
+                            section: section,
+                            download_url: downloadUrl,
+                            source: video.id?.split('_')[0] || 'pexels',
+                            license: video.license || 'Pexels License'
+                        });
                     }
                     
                     // Fallback to stock_footage from generate-formats if no curated visuals

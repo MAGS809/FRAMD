@@ -36,7 +36,7 @@ class UserTokens(db.Model):
 class MediaAsset(db.Model):
     """Legal media assets with licensing metadata - stores LINKS only, not files."""
     id = db.Column(db.String(255), primary_key=True)  # e.g., pexels_12345, wikimedia_67890
-    source_page = db.Column(db.Text, nullable=False)
+    source_page = db.Column(db.Text)  # Made nullable to handle missing source pages
     download_url = db.Column(db.Text, nullable=False)
     thumbnail_url = db.Column(db.Text)  # Preview image
     source = db.Column(db.String(50), nullable=False)  # wikimedia_commons, pexels
@@ -709,7 +709,9 @@ CRITICAL:
                             'iiurlwidth': 320
                         }
                         resp = requests.get(search_url, params=params, timeout=10)
-                        pages = resp.json().get('query', {}).get('pages', {})
+                        wiki_data = resp.json()
+                        pages = wiki_data.get('query', {}).get('pages', {})
+                        print(f"[Wikimedia] Query: {query}, Found {len(pages)} pages")
                         
                         for page_id, page in pages.items():
                             if page_id == '-1':
@@ -724,8 +726,9 @@ CRITICAL:
                             license_url = extmeta.get('LicenseUrl', {}).get('value', '')
                             
                             # Validate license using safe function (rejects NC/ND first)
-                            is_valid, our_license, _ = validate_license(license_short)
+                            is_valid, our_license, rejection = validate_license(license_short)
                             if not is_valid:
+                                print(f"[Wikimedia] Rejected {asset_id}: {rejection}")
                                 continue
                             
                             artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
@@ -745,8 +748,9 @@ CRITICAL:
                             }
                             section['suggested_videos'].append(video_data)
                             seen_ids.add(asset_id)
-                    except:
-                        pass
+                            print(f"[Wikimedia] Added: {asset_id} ({our_license})")
+                    except Exception as wiki_err:
+                        print(f"[Wikimedia] Error searching: {wiki_err}")
         
         return jsonify({'success': True, 'visual_board': visual_board})
     except Exception as e:
