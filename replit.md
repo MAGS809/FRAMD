@@ -129,6 +129,16 @@ The AI is configured to be:
 - 4:5 (Feed)
 - 16:9 (Landscape)
 
+## Visual Curation Flow
+1. **Content Type Selection**: Educational (B-roll) or Skit/Podcast (characters + scenes)
+2. **Scene-by-Scene Picker**: Each scene shows:
+   - Scene description with script segment
+   - Rationale explaining why this visual matters
+   - 4 video options with yellow border on selection
+   - Source badge (Pexels/Wikimedia) and license badge
+3. **Character Picker** (Skits only): Voice-only or assign visual models per character
+4. **Auto-Selection**: First option auto-selected per scene for minimal-input flow
+
 ## Voice System
 - **6 Voice Options**: Alloy (neutral), Echo (deep male), Fable (British), Onyx (authoritative male), Nova (warm female), Shimmer (clear female)
 - **Voice Previews**: Click "Preview" on any voice card to hear a sample
