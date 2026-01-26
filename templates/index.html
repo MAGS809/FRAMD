@@ -264,15 +264,56 @@
             border-radius: 12px;
         }
         
+        /* Chat input area */
+        .chat-input-area {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+        }
+        
+        .chat-input-area textarea {
+            flex: 1;
+            min-height: 48px;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            resize: none;
+        }
+        
+        .chat-input-area textarea:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 214, 10, 0.1);
+        }
+        
+        .chat-input-area .btn-send {
+            width: 48px;
+            height: 48px;
+            min-height: 48px;
+            border-radius: 8px;
+            font-size: 1.25rem;
+        }
+        
         /* Chat messages */
         .chat-container {
-            max-height: 360px;
+            max-height: 400px;
+            min-height: 200px;
             overflow-y: auto;
             margin-bottom: 1rem;
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
-            padding: 0.5rem 0;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
         }
         
         .chat-container::-webkit-scrollbar {
@@ -888,31 +929,25 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
-            <div class="token-panel">
-                <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
-                <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
-            </div>
-            
-            <div class="input-hero">
-                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3"></textarea>
-                <button type="button" class="btn btn-primary btn-send" id="send-btn" style="font-size: 1.25rem;">
-                    &#8594;
-                </button>
-            </div>
-            <p style="text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-top: -0.5rem; margin-bottom: 2rem;">
-                Video links will be downloaded for assembly
-            </p>
-            
             <div class="chat-container" id="script-chat">
                 <div class="message ai">
                     What would you like to create today?
                 </div>
             </div>
-            <p style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 1.5rem;">
-                Powered by Calligra
-            </p>
             
-            <div id="script-ready" class="hidden" style="margin-top: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
+            <div class="chat-input-area">
+                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="2"></textarea>
+                <button type="button" class="btn btn-primary btn-send" id="send-btn">
+                    &#8594;
+                </button>
+            </div>
+            
+            <div class="token-panel">
+                <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
+                <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
+            </div>
+            
+            <div id="script-ready" class="hidden" style="margin-top: 1rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
                 <p style="color: var(--success); font-weight: 600;">Script refined and ready!</p>
                 <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="goToFormats()">Continue to Format Selection</button>
             </div>
