@@ -271,12 +271,14 @@
         }
         
         .format-card .icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
+            display: none;
         }
         
         .format-card h3 {
-            font-size: 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 0.25rem;
         }
         
@@ -291,6 +293,7 @@
             border-radius: 8px;
             padding: 1.5rem;
             margin-bottom: 1rem;
+            border: 1px solid var(--border);
         }
         
         .result-section h3 {
@@ -298,6 +301,10 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .result-section h4 {
@@ -443,37 +450,37 @@
             
             <!-- Voiceover Section -->
             <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>🎙️ Voiceover</h3>
+                <h3>Voiceover</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Choose a voice for your narration:</p>
                 
                 <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
                     <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)">
-                        <div class="icon">🎭</div>
+                        <div class="icon"></div>
                         <h3>Alloy</h3>
                         <p>Neutral, versatile</p>
                     </div>
                     <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)">
-                        <div class="icon">🎤</div>
+                        <div class="icon"></div>
                         <h3>Echo</h3>
                         <p>Male, deep</p>
                     </div>
                     <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)">
-                        <div class="icon">📖</div>
+                        <div class="icon"></div>
                         <h3>Fable</h3>
                         <p>British, expressive</p>
                     </div>
                     <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)">
-                        <div class="icon">🎬</div>
+                        <div class="icon"></div>
                         <h3>Onyx</h3>
                         <p>Male, authoritative</p>
                     </div>
                     <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)">
-                        <div class="icon">✨</div>
+                        <div class="icon"></div>
                         <h3>Nova</h3>
                         <p>Female, warm</p>
                     </div>
                     <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)">
-                        <div class="icon">💫</div>
+                        <div class="icon"></div>
                         <h3>Shimmer</h3>
                         <p>Female, clear</p>
                     </div>
@@ -488,28 +495,28 @@
             </div>
             
             <!-- Output Format Section -->
-            <div class="result-section">
-                <h3>📱 Output Formats</h3>
+            <div class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>Output Formats</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Select formats to generate:</p>
                 
                 <div class="format-grid">
                     <div class="format-card" data-format="reel" onclick="toggleFormat(this)">
-                        <div class="icon">🎬</div>
+                        <div class="icon"></div>
                         <h3>Reel / TikTok</h3>
                         <p>15-60 sec vertical video</p>
                     </div>
                     <div class="format-card" data-format="carousel" onclick="toggleFormat(this)">
-                        <div class="icon">📑</div>
+                        <div class="icon"></div>
                         <h3>Carousel Post</h3>
                         <p>Swipeable slides</p>
                     </div>
                     <div class="format-card" data-format="post" onclick="toggleFormat(this)">
-                        <div class="icon">📝</div>
+                        <div class="icon"></div>
                         <h3>Regular Post</h3>
                         <p>Single image + caption</p>
                     </div>
                     <div class="format-card" data-format="thread" onclick="toggleFormat(this)">
-                        <div class="icon">🧵</div>
+                        <div class="icon"></div>
                         <h3>Thread</h3>
                         <p>Multi-part text thread</p>
                     </div>
@@ -528,7 +535,7 @@
             
             <div id="video-result" style="display: none; margin-bottom: 1.5rem;">
                 <div class="result-section">
-                    <h3>🎬 Final Video</h3>
+                    <h3>Final Video</h3>
                     <video id="final-video" controls style="width: 100%; max-height: 400px; border-radius: 8px; margin-top: 1rem;"></video>
                     <a id="download-video" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;" download>Download Video</a>
                 </div>
