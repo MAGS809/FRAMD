@@ -1,7 +1,7 @@
 # Calligra
 
 ## Overview
-Calligra is a high-end post-assembler utilizing the Framd™ workflow and FRMC™ engine. It transforms raw links into cinematic clips and abstract ideas into structured posts.
+Calligra is a high-end post-assembler utilizing the Framd™ workflow and FRMC™ engine. The core AI, **Framd**, transforms raw links into cinematic clips and abstract ideas into structured posts.
 
 ## Core Principle
 - **Framd™** - No clip exists without a script.
