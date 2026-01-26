@@ -1,7 +1,7 @@
-# Echo Engine
+# Krakd Studio
 
 ## Overview
-Echo Engine is an AI-powered content creation tool that turns ideas into ready-to-post videos. It takes your script concept, asks clarifying questions, generates voiceovers, finds matching stock footage, and produces final videos for Reels, Carousels, Posts, and Threads. Script-first, always.
+Krakd Studio is an AI-powered content creation tool that turns ideas into ready-to-post videos. It takes your script concept, asks clarifying questions, generates voiceovers, finds matching stock footage, and produces final videos for Reels, Carousels, Posts, and Threads. Script-first, always.
 
 ## Core Principle
 - **No clip exists without a script.**
