@@ -413,6 +413,9 @@ Output JSON:
         return json.loads(content)
     except json.JSONDecodeError:
         return {"approved": False, "reasoning": "Approval engine error", "required_changes": []}
+
+
+def extract_keywords_from_script(script: str) -> dict:
     """Extract nuanced keywords from a user's script/pitch that capture humor, tone, and message."""
     prompt = f"""Analyze this script/pitch and extract keywords that capture the NUANCE of what they're trying to say.
 
