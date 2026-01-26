@@ -282,7 +282,8 @@ def search_wikimedia_videos():
             'iiurlwidth': 640
         }
         
-        response = requests.get(search_url, params=params, timeout=15)
+        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+        response = requests.get(search_url, params=params, headers=wiki_headers, timeout=15)
         data = response.json()
         
         videos = []
@@ -382,7 +383,8 @@ def search_all_sources():
             'iiprop': 'url|extmetadata',
             'iiurlwidth': 640
         }
-        response = requests.get(search_url, params=params, timeout=10)
+        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+        response = requests.get(search_url, params=params, headers=wiki_headers, timeout=10)
         pages = response.json().get('query', {}).get('pages', {})
         
         for page_id, page in pages.items():
@@ -708,7 +710,8 @@ CRITICAL:
                             'iiprop': 'url|extmetadata',
                             'iiurlwidth': 320
                         }
-                        resp = requests.get(search_url, params=params, timeout=10)
+                        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+                        resp = requests.get(search_url, params=params, headers=wiki_headers, timeout=10)
                         wiki_data = resp.json()
                         pages = wiki_data.get('query', {}).get('pages', {})
                         print(f"[Wikimedia] Query: {query}, Found {len(pages)} pages")
@@ -769,21 +772,21 @@ def save_to_cache():
         return jsonify({'success': False, 'error': 'Missing asset data'}), 400
     
     try:
-        # Save or update the asset
-        existing = MediaAsset.query.get(asset['id'])
+        # Save or update the asset - must commit asset first due to foreign key
+        existing = db.session.get(MediaAsset, asset['id'])
         if not existing:
             new_asset = MediaAsset(
                 id=asset['id'],
-                source_page=asset.get('source_page', ''),
+                source_page=asset.get('source_page') or '',
                 download_url=asset['download_url'],
                 thumbnail_url=asset.get('thumbnail'),
                 source=asset.get('source', 'unknown'),
                 license=asset.get('license', 'Unknown'),
-                license_url=asset.get('license_url', ''),
+                license_url=asset.get('license_url') or '',
                 commercial_use_allowed=True,
                 derivatives_allowed=True,
                 attribution_required=asset.get('license', '') not in ['CC0', 'Public Domain'],
-                attribution_text=asset.get('attribution', ''),
+                attribution_text=asset.get('attribution') or '',
                 content_type='video',
                 duration_sec=asset.get('duration'),
                 tags=keywords,
@@ -791,11 +794,14 @@ def save_to_cache():
                 status='safe'
             )
             db.session.add(new_asset)
+            db.session.commit()  # Commit asset first before adding keyword associations
         
         # Create keyword associations
         for keyword in keywords:
+            if not keyword or not keyword.strip():
+                continue
             cache_entry = KeywordAssetCache.query.filter_by(
-                keyword=keyword.lower(),
+                keyword=keyword.lower().strip(),
                 asset_id=asset['id']
             ).first()
             
@@ -803,7 +809,7 @@ def save_to_cache():
                 cache_entry.use_count += 1
             else:
                 cache_entry = KeywordAssetCache(
-                    keyword=keyword.lower(),
+                    keyword=keyword.lower().strip(),
                     context=context,
                     asset_id=asset['id'],
                     relevance_score=1.0,
@@ -815,6 +821,7 @@ def save_to_cache():
         return jsonify({'success': True, 'message': 'Asset cached for future use'})
     except Exception as e:
         db.session.rollback()
+        print(f"[save-to-cache] Error: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -893,7 +900,8 @@ def ingest_assets():
                 'iiprop': 'url|extmetadata|size',
                 'iiurlwidth': 320
             }
-            resp = requests.get(search_url, params=params, timeout=15)
+            wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+            resp = requests.get(search_url, params=params, headers=wiki_headers, timeout=15)
             pages = resp.json().get('query', {}).get('pages', {})
             
             for page_id, page in pages.items():
@@ -1656,7 +1664,9 @@ def generate_video():
                 '-c:v', 'libx264', '-preset', 'fast', '-t', '30',
                 final_video
             ]
-            subprocess.run(cmd, capture_output=True, timeout=120)
+            result = subprocess.run(cmd, capture_output=True, timeout=120)
+            if result.returncode != 0:
+                print(f"[FFmpeg concat] Error: {result.stderr.decode()}")
             
             for tf in temp_files:
                 if os.path.exists(tf):
@@ -1664,13 +1674,16 @@ def generate_video():
             if os.path.exists(concat_file):
                 os.unlink(concat_file)
         else:
+            print(f"[generate-video] No temp files downloaded, creating placeholder")
             cmd = [
                 'ffmpeg', '-y', '-f', 'lavfi', '-i', f'color=c=black:s={width}x{height}:d=30',
                 '-vf', f"drawtext=fontsize=40:fontcolor=white:x=(w-text_w)/2:y=(h-text_h)/2:text='Echo Engine':font=sans",
                 '-c:v', 'libx264', '-preset', 'fast', '-t', '30',
                 final_video
             ]
-            subprocess.run(cmd, capture_output=True, timeout=60)
+            result = subprocess.run(cmd, capture_output=True, timeout=60)
+            if result.returncode != 0:
+                print(f"[FFmpeg placeholder] Error: {result.stderr.decode()}")
         
         # Add captions if enabled
         if captions.get('enabled') and script:
@@ -1738,9 +1751,13 @@ def generate_video():
                 'format': format_type
             })
         else:
-            return jsonify({'error': 'Video generation failed'}), 500
+            print(f"[generate-video] Final video not created: {final_video}")
+            return jsonify({'error': 'Video generation failed - no output file created'}), 500
             
     except Exception as e:
+        import traceback
+        print(f"[generate-video] Error: {e}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 
