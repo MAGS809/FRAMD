@@ -557,12 +557,149 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Token link */
+        .token-link {
+            color: var(--text-primary);
+            text-decoration: none;
+            border-bottom: 1px dashed var(--text-muted);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .token-link:hover {
+            color: var(--accent-hover);
+            border-bottom-color: var(--accent);
+        }
+        
+        /* Credits modal */
+        .credits-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .credit-option {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 1.25rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .credit-option:hover {
+            border-color: rgba(255, 214, 10, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        .credit-option.selected {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.08);
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        
+        .credit-option.popular {
+            border-color: rgba(255, 214, 10, 0.3);
+        }
+        
+        .credit-badge {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: #0a1f14;
+            font-size: 0.6rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+        
+        .credit-amount {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.125rem;
+        }
+        
+        .credit-label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .credit-price {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .credit-per {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+        
+        @media (max-width: 500px) {
+            .credits-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="token-panel">
-        <span class="token-balance"><span id="balance-amount">120</span> tokens</span>
+        <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
         <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
+    </div>
+    
+    <!-- Credits Purchase Modal -->
+    <div class="modal" id="credits-modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <h3 style="margin-bottom: 0.5rem;">Get More Tokens</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Tokens never expire. Use them whenever you're ready.</p>
+            
+            <div class="credits-grid">
+                <div class="credit-option" onclick="selectCreditOption(this, 100, 5)">
+                    <span class="credit-amount">100</span>
+                    <span class="credit-label">tokens</span>
+                    <span class="credit-price">$5</span>
+                    <span class="credit-per">$0.05/token</span>
+                </div>
+                <div class="credit-option popular" onclick="selectCreditOption(this, 500, 20)">
+                    <span class="credit-badge">Most Popular</span>
+                    <span class="credit-amount">500</span>
+                    <span class="credit-label">tokens</span>
+                    <span class="credit-price">$20</span>
+                    <span class="credit-per">$0.04/token</span>
+                </div>
+                <div class="credit-option" onclick="selectCreditOption(this, 2000, 60)">
+                    <span class="credit-badge">Best Value</span>
+                    <span class="credit-amount">2,000</span>
+                    <span class="credit-label">tokens</span>
+                    <span class="credit-price">$60</span>
+                    <span class="credit-per">$0.03/token</span>
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;" onclick="purchaseCredits()">
+                Purchase Tokens
+            </button>
+            <button class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem;" onclick="closeCreditsModal()">
+                Cancel
+            </button>
+        </div>
     </div>
     
     <div class="container">
@@ -1275,6 +1412,45 @@
         }
 
         window.onload = updateBalance;
+        
+        // Credits Modal Functions
+        let selectedCredits = { amount: 500, price: 20 };
+        
+        function openCreditsModal() {
+            document.getElementById('credits-modal').style.display = 'flex';
+            // Pre-select the popular option
+            const popularOption = document.querySelector('.credit-option.popular');
+            if (popularOption) {
+                selectCreditOption(popularOption, 500, 20);
+            }
+        }
+        
+        function closeCreditsModal() {
+            document.getElementById('credits-modal').style.display = 'none';
+        }
+        
+        function selectCreditOption(element, amount, price) {
+            // Remove selected from all options
+            document.querySelectorAll('.credit-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            // Add selected to clicked option
+            element.classList.add('selected');
+            selectedCredits = { amount, price };
+        }
+        
+        function purchaseCredits() {
+            // For now, show a message - in production this would integrate with Stripe
+            alert(`Payment integration coming soon! You selected ${selectedCredits.amount} tokens for $${selectedCredits.price}.`);
+            closeCreditsModal();
+        }
+        
+        // Close modal on background click
+        document.getElementById('credits-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreditsModal();
+            }
+        });
     </script>
 </body>
 </html>
