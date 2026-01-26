@@ -73,6 +73,60 @@ with app.app_context():
         db.session.add(token_entry)
         db.session.commit()
 
+def extract_dialogue_only(script_text):
+    """
+    Filter script to only include spoken dialogue lines.
+    Removes visual directions, stage directions, scene headers, and parentheticals.
+    """
+    import re
+    
+    dialogue_lines = []
+    
+    for line in script_text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Skip visual directions [VISUAL: ...]
+        if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE'):
+            continue
+        
+        # Skip scene headers (INT., EXT., TITLE:, CUT TO:)
+        if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
+            continue
+        
+        # Skip lines that are just parentheticals like (quietly) or (V.O.)
+        if re.match(r'^\([^)]+\)$', line):
+            continue
+        
+        # Skip empty visual/stage directions
+        if re.match(r'^\[.*\]$', line):
+            continue
+        
+        # Remove inline parentheticals but keep the rest
+        line = re.sub(r'\([^)]*\)', '', line).strip()
+        
+        # If line has CHARACTER: format, keep the dialogue part
+        if ':' in line:
+            parts = line.split(':', 1)
+            # If first part looks like character name (1-3 words, all caps or title case)
+            char_part = parts[0].strip()
+            if len(char_part.split()) <= 3 and (char_part.isupper() or char_part.istitle()):
+                dialogue = parts[1].strip()
+                if dialogue:
+                    dialogue_lines.append(dialogue)
+            else:
+                # Not a character line, keep if it's not a direction
+                if not char_part.startswith('['):
+                    dialogue_lines.append(line)
+        else:
+            # Regular line - keep if not empty
+            if line and not line.startswith('['):
+                dialogue_lines.append(line)
+    
+    return ' '.join(dialogue_lines)
+
+
 # Stripe Integration
 def get_stripe_credentials():
     """Fetch Stripe credentials from Replit connection API."""
@@ -697,28 +751,46 @@ CRITICAL:
                         except:
                             pass
                     
-                    # Search Wikimedia Commons (use list=search with .webm extension for videos)
+                    # Search Wikimedia Commons for videos
                     try:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
                         wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
                         
-                        # First get page IDs via list search
+                        # Try multiple search strategies for better video coverage
+                        search_results = []
+                        
+                        # Strategy 1: Direct search with video extension
                         search_params = {
                             'action': 'query',
                             'format': 'json',
                             'list': 'search',
-                            'srsearch': f'{query} .webm OR .mp4 OR .ogv',
+                            'srsearch': f'{query} filemime:video',
                             'srnamespace': 6,
-                            'srlimit': 4
+                            'srlimit': 6
                         }
                         search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
                         print(f"[Wikimedia] Status: {search_resp.status_code}")
-                        if search_resp.status_code != 200:
-                            print(f"[Wikimedia] Bad response: {search_resp.text[:200]}")
-                            continue
+                        if search_resp.status_code == 200:
+                            data = search_resp.json()
+                            search_results = data.get('query', {}).get('search', [])
                         
-                        search_data = search_resp.json()
-                        search_results = search_data.get('query', {}).get('search', [])
+                        # Strategy 2: Fallback - search with file extensions if no results
+                        if not search_results:
+                            search_params['srsearch'] = f'{query} .webm'
+                            search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
+                            if search_resp.status_code == 200:
+                                data = search_resp.json()
+                                search_results = data.get('query', {}).get('search', [])
+                        
+                        # Strategy 3: Simplify query - use just first word for broader results
+                        if not search_results and ' ' in query:
+                            simple_query = query.split()[0]
+                            search_params['srsearch'] = f'{simple_query} filemime:video'
+                            search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
+                            if search_resp.status_code == 200:
+                                data = search_resp.json()
+                                search_results = data.get('query', {}).get('search', [])
+                        
                         print(f"[Wikimedia] Query: {query}, Found {len(search_results)} results")
                         
                         if not search_results:
@@ -1800,6 +1872,11 @@ def generate_voiceover():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
+    # Filter out visual directions, stage directions - only keep spoken dialogue
+    text = extract_dialogue_only(text)
+    if not text:
+        return jsonify({'error': 'No dialogue found in script'}), 400
+    
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -1958,12 +2035,31 @@ def generate_voiceover_multi():
     )
     
     try:
-        # Parse script into character lines
+        import re
+        
+        # Parse script into character lines (filtering out non-dialogue)
         lines = []
         current_char = 'NARRATOR'
         
         for line in script.split('\n'):
             line = line.strip()
+            if not line:
+                continue
+            
+            # Skip visual directions [VISUAL: ...], [CUT TO:], [FADE], etc.
+            if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE') or re.match(r'^\[.*\]$', line):
+                continue
+            
+            # Skip scene headers (INT., EXT., TITLE:, CUT TO:)
+            if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
+                continue
+            
+            # Skip pure parentheticals
+            if re.match(r'^\([^)]+\)$', line):
+                continue
+            
+            # Remove inline parentheticals
+            line = re.sub(r'\([^)]*\)', '', line).strip()
             if not line:
                 continue
             
