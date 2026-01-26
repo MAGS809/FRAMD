@@ -1,0 +1,162 @@
+Perfect — Option 2 is the “legal scraper”: you scrape only from sources where reuse rights are explicit, and you store the proof.
+
+Here’s the exact way to build it (and how your AI uses it) without drifting into risky territory.
+
+⸻
+
+1) The rule that makes it legal
+
+Download media ONLY if you can store:
+	1.	the source page URL
+	2.	the license name (exact)
+	3.	the license URL (or page section that states it)
+	4.	whether commercial use is allowed
+	5.	whether attribution is required + what to display
+
+If any of those are missing → reject the asset (don’t download it).
+
+⸻
+
+2) Where you scrape from (safe categories)
+
+A) Public domain archives
+
+Examples of what qualifies:
+	•	archives that explicitly mark items Public Domain
+	•	collections where rights status is stated per item
+
+Important: “Hosted on an archive” is not enough. The item must say public domain / reusable.
+
+B) Wikimedia Commons (only permissive)
+
+You must check the license template on each file page. Only accept licenses you approve.
+
+C) Government portals with clear reuse terms
+
+Some government media is public domain (varies by country/agency). You still must store the reuse statement.
+
+D) Any site with API/ToS allowing download + reuse
+
+Only if the ToS explicitly allows what your app does (download + transform + commercial output).
+
+⸻
+
+3) Your “Allowed License List” (the whitelist)
+
+Your scraper should only accept licenses on this whitelist (you can edit later):
+
+✅ Accept (common safe ones):
+	•	Public Domain / CC0
+	•	CC BY
+	•	CC BY-SA
+
+⚠️ Usually reject (to keep it simple):
+	•	CC BY-NC (non-commercial) → reject if you’re selling the app
+	•	CC BY-ND (no derivatives) → reject (you edit/transform)
+	•	“Editorial use only” → reject
+	•	“All Rights Reserved” → reject
+
+This whitelist is your guardrail.
+
+⸻
+
+4) What you store for each asset (database record)
+
+Use this exact structure (works for SQLite/Postgres/JSON):
+
+{
+  "id": "commons_File:Example.webm",
+  "source_page": "https://commons.wikimedia.org/wiki/File:Example.webm",
+  "download_url": "https://upload.wikimedia.org/.../Example.webm",
+  "source": "wikimedia_commons",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "commercial_use_allowed": true,
+  "derivatives_allowed": true,
+  "attribution_required": true,
+  "attribution_text": "Author Name / Wikimedia Commons / CC BY 4.0",
+  "content_type": "video",
+  "duration_sec": 6.2,
+  "resolution": "1080x1920",
+  "description": "A fully clothed person walking alone on a city sidewalk at night.",
+  "tags": [
+    "person_walking",
+    "city_night",
+    "quiet",
+    "observational",
+    "tension_building"
+  ],
+  "safe_flags": {
+    "no_sexual": true,
+    "no_cleavage": true,
+    "no_bikini": true,
+    "no_brands": true,
+    "no_celeb": true
+  },
+  "status": "safe"
+}
+
+
+⸻
+
+5) How the scraper works (simple pipeline)
+
+Step A — Search
+
+The scraper searches the allowed sources for keywords like:
+	•	“person walking”
+	•	“crowd reaction”
+	•	“empty room”
+	•	“typing laptop”
+etc.
+
+Step B — Parse item page
+
+Extract:
+	•	download URL
+	•	license label
+	•	license URL
+	•	author attribution
+	•	any restrictions
+
+Step C — Validate
+
+Reject unless:
+	•	license is on whitelist
+	•	commercial use allowed
+	•	derivatives allowed
+	•	passes your “no sexualized visuals” filters
+
+Step D — Save + tag
+
+AI generates:
+	•	description
+	•	descriptive tags
+	•	philosophy tags (tone/intention)
+Then store record.
+
+⸻
+
+6) How the AI uses it (curation, not random pulls)
+
+When building a video:
+	1.	AI creates a Visual Board (mood/pacing/themes)
+	2.	Converts that into required tags
+	3.	Queries your asset DB for:
+	•	matching tags
+	•	status="safe"
+	4.	Selects a small set (1–3 per section), not 1-per-line
+	5.	Exports video + adds attribution in description or end credits when required
+
+⸻
+
+7) The simplest compliance sentence for your app
+
+“This app only downloads media from sources with explicit reuse permissions. Each asset is stored with license metadata and attribution requirements. If licensing is unclear, the asset is rejected.”
+
+⸻
+
+If you want, I can give you next (pick one):
+	1.	Exact SQLite schema for the asset library
+	2.	Exact scraping logic for Wikimedia Commons + one public-domain archive
+	3.	A license parser that auto-rejects non-commercial / no-derivatives licenses

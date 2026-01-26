@@ -33,6 +33,27 @@ class UserTokens(db.Model):
     balance = db.Column(db.Integer, default=120)
     last_updated = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
+class MediaAsset(db.Model):
+    """Legal media assets with licensing metadata."""
+    id = db.Column(db.String(255), primary_key=True)  # e.g., commons_File:Example.webm
+    source_page = db.Column(db.Text, nullable=False)
+    download_url = db.Column(db.Text, nullable=False)
+    source = db.Column(db.String(50), nullable=False)  # wikimedia_commons, pexels, pixabay
+    license = db.Column(db.String(100), nullable=False)  # CC BY 4.0, CC0, etc.
+    license_url = db.Column(db.Text)
+    commercial_use_allowed = db.Column(db.Boolean, default=True)
+    derivatives_allowed = db.Column(db.Boolean, default=True)
+    attribution_required = db.Column(db.Boolean, default=False)
+    attribution_text = db.Column(db.Text)
+    content_type = db.Column(db.String(20), nullable=False)  # video, image
+    duration_sec = db.Column(db.Float)  # For videos
+    resolution = db.Column(db.String(20))  # e.g., 1920x1080
+    description = db.Column(db.Text)
+    tags = db.Column(db.JSON)  # List of descriptive tags
+    safe_flags = db.Column(db.JSON)  # {no_sexual: true, no_brands: true, etc.}
+    status = db.Column(db.String(20), default='safe')  # safe, pending, rejected
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
 with app.app_context():
     db.create_all()
     if not UserTokens.query.first():
@@ -201,6 +222,226 @@ def ai_approval_check():
     # In a real flow, visual_plan would be generated first
     result = ai_approval_gate({'full_script': script}, [])
     return jsonify(result)
+
+# Asset Library - Legal Media with Licensing
+ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'Pexels License']
+
+@app.route('/search-pexels-videos', methods=['POST'])
+def search_pexels_videos():
+    """Search Pexels for videos - all Pexels content is free for commercial use."""
+    data = request.get_json()
+    query = data.get('query', '')
+    per_page = data.get('per_page', 10)
+    
+    pexels_key = os.environ.get('PEXELS_API_KEY')
+    if not pexels_key:
+        return jsonify({'success': False, 'error': 'Pexels API not configured'}), 500
+    
+    try:
+        response = requests.get(
+            'https://api.pexels.com/videos/search',
+            headers={'Authorization': pexels_key},
+            params={'query': query, 'per_page': per_page, 'orientation': 'portrait'}
+        )
+        data = response.json()
+        
+        videos = []
+        for video in data.get('videos', []):
+            # Find best quality video file (prefer 1080p portrait)
+            video_files = video.get('video_files', [])
+            best_file = None
+            for vf in video_files:
+                if vf.get('height', 0) >= 1080:
+                    best_file = vf
+                    break
+            if not best_file and video_files:
+                best_file = video_files[0]
+            
+            if best_file:
+                videos.append({
+                    'id': f"pexels_{video['id']}",
+                    'source': 'pexels',
+                    'source_page': video.get('url'),
+                    'download_url': best_file.get('link'),
+                    'thumbnail': video.get('image'),
+                    'duration': video.get('duration'),
+                    'resolution': f"{best_file.get('width')}x{best_file.get('height')}",
+                    'license': 'Pexels License',
+                    'license_url': 'https://www.pexels.com/license/',
+                    'commercial_use_allowed': True,
+                    'derivatives_allowed': True,
+                    'attribution_required': False,
+                    'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
+                })
+        
+        return jsonify({'success': True, 'videos': videos})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/save-asset', methods=['POST'])
+def save_asset():
+    """Save a verified legal asset to the library."""
+    data = request.get_json()
+    
+    # Validate required fields
+    required = ['id', 'source_page', 'download_url', 'source', 'license', 'content_type']
+    for field in required:
+        if not data.get(field):
+            return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+    
+    # Validate license is allowed
+    if data['license'] not in ALLOWED_LICENSES:
+        return jsonify({'success': False, 'error': f'License not allowed: {data["license"]}'}), 400
+    
+    try:
+        asset = MediaAsset(
+            id=data['id'],
+            source_page=data['source_page'],
+            download_url=data['download_url'],
+            source=data['source'],
+            license=data['license'],
+            license_url=data.get('license_url'),
+            commercial_use_allowed=data.get('commercial_use_allowed', True),
+            derivatives_allowed=data.get('derivatives_allowed', True),
+            attribution_required=data.get('attribution_required', False),
+            attribution_text=data.get('attribution_text'),
+            content_type=data['content_type'],
+            duration_sec=data.get('duration_sec'),
+            resolution=data.get('resolution'),
+            description=data.get('description'),
+            tags=data.get('tags', []),
+            safe_flags=data.get('safe_flags', {}),
+            status='safe'
+        )
+        db.session.merge(asset)  # Use merge to update if exists
+        db.session.commit()
+        return jsonify({'success': True, 'id': asset.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/search-assets', methods=['POST'])
+def search_assets():
+    """Search the asset library by tags or description."""
+    data = request.get_json()
+    tags = data.get('tags', [])
+    content_type = data.get('content_type')  # 'video' or 'image'
+    limit = data.get('limit', 10)
+    
+    query = MediaAsset.query.filter(MediaAsset.status == 'safe')
+    
+    if content_type:
+        query = query.filter(MediaAsset.content_type == content_type)
+    
+    # Get all assets and filter by tags in Python (JSON filtering varies by DB)
+    assets = query.limit(100).all()
+    
+    results = []
+    for asset in assets:
+        asset_tags = asset.tags or []
+        # Check if any requested tags match
+        if not tags or any(tag.lower() in [t.lower() for t in asset_tags] for tag in tags):
+            results.append({
+                'id': asset.id,
+                'source': asset.source,
+                'source_page': asset.source_page,
+                'download_url': asset.download_url,
+                'thumbnail': asset.download_url,  # For Pexels, use video URL
+                'content_type': asset.content_type,
+                'duration': asset.duration_sec,
+                'resolution': asset.resolution,
+                'description': asset.description,
+                'tags': asset.tags,
+                'license': asset.license,
+                'attribution_required': asset.attribution_required,
+                'attribution_text': asset.attribution_text
+            })
+            if len(results) >= limit:
+                break
+    
+    return jsonify({'success': True, 'assets': results})
+
+@app.route('/curate-visuals', methods=['POST'])
+def curate_visuals():
+    """AI curates visuals based on the script - creates a visual board."""
+    from openai import OpenAI
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'success': False, 'error': 'No script provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    system_prompt = """You are a visual curator for short-form video content.
+Given a script, create a Visual Board that describes what footage should accompany each section.
+
+RULES:
+- Break the script into 2-5 sections based on natural beats
+- For each section, suggest 1-2 video search queries that would find appropriate B-roll
+- Focus on abstract/evocative visuals that support the message without being literal
+- NO celebrities, NO branded content, NO sexualized imagery
+- Prefer: nature, urban scenes, hands working, crowds, architecture, abstract motion
+
+OUTPUT FORMAT (JSON):
+{
+  "sections": [
+    {
+      "script_segment": "The first part of the script...",
+      "mood": "contemplative",
+      "search_queries": ["person walking alone city", "empty street night"],
+      "visual_notes": "Slow, observational footage"
+    }
+  ]
+}"""
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Create a visual board for this script:\n\n{script}"}
+            ],
+            response_format={"type": "json_object"},
+            max_tokens=1024
+        )
+        
+        visual_board = json.loads(response.choices[0].message.content or '{}')
+        
+        # For each section, search Pexels for matching videos
+        pexels_key = os.environ.get('PEXELS_API_KEY')
+        if pexels_key:
+            for section in visual_board.get('sections', []):
+                section['suggested_videos'] = []
+                for query in section.get('search_queries', [])[:1]:  # Just first query
+                    try:
+                        resp = requests.get(
+                            'https://api.pexels.com/videos/search',
+                            headers={'Authorization': pexels_key},
+                            params={'query': query, 'per_page': 3, 'orientation': 'portrait'}
+                        )
+                        videos = resp.json().get('videos', [])
+                        for v in videos[:2]:
+                            video_files = v.get('video_files', [])
+                            best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
+                            if best:
+                                section['suggested_videos'].append({
+                                    'id': f"pexels_{v['id']}",
+                                    'thumbnail': v.get('image'),
+                                    'download_url': best.get('link'),
+                                    'duration': v.get('duration'),
+                                    'attribution': f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels"
+                                })
+                    except:
+                        pass
+        
+        return jsonify({'success': True, 'visual_board': visual_board})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'

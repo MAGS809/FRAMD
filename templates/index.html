@@ -401,6 +401,74 @@
             font-size: 0.95rem;
         }
         
+        /* Visual board sections */
+        .visual-section {
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-light);
+        }
+        
+        .visual-section .section-script {
+            font-style: italic;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .visual-section .section-mood {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .visual-section .section-notes {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+        
+        .video-suggestions {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        
+        .video-suggestion {
+            flex-shrink: 0;
+            width: 120px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .video-suggestion:hover {
+            transform: scale(1.02);
+        }
+        
+        .video-suggestion.selected {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        
+        .video-suggestion img {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        
+        .video-suggestion .duration {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+        
         /* Stock footage grid */
         .footage-grid {
             display: grid;
@@ -722,7 +790,7 @@
             
             <div class="input-hero">
                 <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3"></textarea>
-                <button type="button" class="btn btn-primary btn-send" id="send-btn" onclick="sendMessage()" style="font-size: 1.25rem;">
+                <button type="button" class="btn btn-primary btn-send" id="send-btn" style="font-size: 1.25rem;">
                     &#8594;
                 </button>
             </div>
@@ -731,6 +799,9 @@
             </p>
             
             <div class="chat-container" id="script-chat">
+                <div class="message ai">
+                    Links become clips. Ideas become posts. What's your pitch?
+                </div>
             </div>
             <p style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 1.5rem;">
                 Powered by Calligra
@@ -753,6 +824,20 @@
             <div class="result-section" style="margin-bottom: 1.5rem;">
                 <h3>Your Script</h3>
                 <p id="script-preview" style="white-space: pre-wrap;"></p>
+            </div>
+            
+            <!-- Visual Board Section -->
+            <div class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>Visual Board</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI-curated footage for your script. All clips are legally licensed for commercial use.</p>
+                
+                <button type="button" class="btn btn-secondary" id="curate-visuals-btn" onclick="curateVisuals()">
+                    Curate Visuals
+                </button>
+                
+                <div id="visual-board-container" style="margin-top: 1.5rem; display: none;">
+                    <div id="visual-board-sections"></div>
+                </div>
             </div>
             
             <!-- Voiceover Section -->
@@ -987,6 +1072,94 @@
             
             btn.disabled = false;
             btn.textContent = 'Analyze';
+        }
+        
+        let visualBoard = null;
+        let selectedVideos = {};
+        
+        async function curateVisuals() {
+            const btn = document.getElementById('curate-visuals-btn');
+            const container = document.getElementById('visual-board-container');
+            const sectionsDiv = document.getElementById('visual-board-sections');
+            
+            if (!refinedScript) {
+                alert('Please create a script first in the Create tab');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = 'Curating...';
+            
+            try {
+                const response = await fetch('/curate-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: refinedScript })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.visual_board) {
+                    visualBoard = data.visual_board;
+                    container.style.display = 'block';
+                    
+                    let html = '';
+                    data.visual_board.sections.forEach((section, idx) => {
+                        html += `
+                            <div class="visual-section" data-section="${idx}">
+                                <div class="section-script">"${escapeHtml(section.script_segment)}"</div>
+                                <div class="section-mood">${escapeHtml(section.mood || '')}</div>
+                                <div class="section-notes">${escapeHtml(section.visual_notes || '')}</div>
+                                <div class="video-suggestions">
+                        `;
+                        
+                        (section.suggested_videos || []).forEach((video, vidIdx) => {
+                            html += `
+                                <div class="video-suggestion" 
+                                     data-section="${idx}" 
+                                     data-video="${vidIdx}"
+                                     data-url="${video.download_url}"
+                                     onclick="selectVideo(this, ${idx}, '${video.id}')">
+                                    <img src="${video.thumbnail}" alt="Video option" loading="lazy">
+                                    <div class="duration">${video.duration}s</div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    sectionsDiv.innerHTML = html;
+                    btn.textContent = 'Refresh Visuals';
+                } else {
+                    alert(data.error || 'Failed to curate visuals');
+                    btn.textContent = 'Curate Visuals';
+                }
+            } catch (error) {
+                console.error('Curate error:', error);
+                alert('Failed to curate visuals. Please try again.');
+                btn.textContent = 'Curate Visuals';
+            }
+            
+            btn.disabled = false;
+        }
+        
+        function selectVideo(element, sectionIdx, videoId) {
+            // Toggle selection within this section
+            const section = element.closest('.visual-section');
+            section.querySelectorAll('.video-suggestion').forEach(v => v.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // Track selected video
+            selectedVideos[sectionIdx] = {
+                id: videoId,
+                url: element.dataset.url
+            };
+            
+            console.log('Selected videos:', selectedVideos);
         }
         
         async function generateVoiceover() {
@@ -1354,11 +1527,31 @@
             }
         }
         
-        // Enter key to send
-        document.getElementById('user-input').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
+        // Initialize event listeners when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, attaching event listeners');
+            
+            // Enter key to send
+            const userInput = document.getElementById('user-input');
+            if (userInput) {
+                userInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+                console.log('Enter key listener attached');
+            }
+            
+            // Also attach click handler directly
+            const sendBtn = document.getElementById('send-btn');
+            if (sendBtn) {
+                sendBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Send button clicked via event listener');
+                    sendMessage();
+                });
+                console.log('Send button listener attached');
             }
         });
         function closeModal() {
