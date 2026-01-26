@@ -547,27 +547,32 @@ def curate_visuals():
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
     )
     
+    content_type = data.get('content_type', 'educational')
+    
     system_prompt = """You are a visual curator for short-form video content.
-Given a script, create a Visual Board that describes what footage should accompany each section.
+Given a script, create a Visual Board with footage that directly ties to the script.
 
 RULES:
 - Break the script into 2-5 sections based on natural beats
-- For each section, suggest 1-2 video search queries that would find appropriate B-roll
-- Focus on abstract/evocative visuals that support the message without being literal
+- For each section:
+  - Explain WHY this visual matters for this moment (1 sentence)
+  - Suggest 2-3 very specific search queries tied to the script content
+- Make search queries SPECIFIC to the script, not generic
 - NO celebrities, NO branded content, NO sexualized imagery
-- Prefer: nature, urban scenes, hands working, crowds, architecture, abstract motion
 
 OUTPUT FORMAT (JSON):
 {
   "sections": [
     {
-      "script_segment": "The first part of the script...",
-      "mood": "contemplative",
-      "search_queries": ["person walking alone city", "empty street night"],
-      "visual_notes": "Slow, observational footage"
+      "script_segment": "The actual dialogue or narration from this part...",
+      "mood": "tense, confrontational",
+      "visual_notes": "This moment needs tension - the visual should contrast calm setting with the aggressive subtext",
+      "search_queries": ["dark office corridor", "fluorescent lights hallway", "empty boardroom"]
     }
   ]
-}"""
+}
+
+CRITICAL: search_queries must relate to the ACTUAL CONTENT of the script_segment, not generic B-roll."""
 
     try:
         response = client.chat.completions.create(

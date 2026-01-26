@@ -620,6 +620,179 @@
             margin-top: 0.25rem;
         }
         
+        /* Scene Picker - Full Screen Style */
+        .scene-card {
+            position: relative;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 2rem;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .scene-card.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(255, 214, 10, 0.2);
+        }
+        
+        .scene-header {
+            padding: 1.5rem;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        .scene-number {
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+        
+        .scene-description {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .scene-rationale {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+        
+        .scene-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            padding: 1rem;
+        }
+        
+        .scene-option {
+            position: relative;
+            aspect-ratio: 9/16;
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .scene-option:hover {
+            transform: scale(1.02);
+            border-color: rgba(255, 214, 10, 0.3);
+        }
+        
+        .scene-option.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(255, 214, 10, 0.3);
+        }
+        
+        .scene-option img, .scene-option video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scene-option .source-badge {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 0.5rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: var(--text-secondary);
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        
+        .scene-option .license-badge {
+            position: absolute;
+            bottom: 0.5rem;
+            right: 0.5rem;
+            background: rgba(0, 100, 0, 0.8);
+            color: #90ee90;
+            font-size: 0.6rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+        }
+        
+        /* Character Model Picker */
+        .character-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-light);
+        }
+        
+        .character-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .character-line {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+        
+        .character-models {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        
+        .model-option {
+            flex-shrink: 0;
+            width: 80px;
+            text-align: center;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .model-option:hover {
+            background: rgba(255, 214, 10, 0.1);
+        }
+        
+        .model-option.selected {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        
+        .model-option img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 0.5rem;
+        }
+        
+        .model-option .model-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .model-none {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.5rem;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+        }
+        
         /* Stock footage grid */
         .footage-grid {
             display: grid;
@@ -956,28 +1129,50 @@
         <!-- STEP 2: Timeline Developer -->
         <div class="panel" id="panel-format">
             <h2>Timeline Developer</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">
-                Build your video timeline with voiceover and visuals.
-            </p>
             
-            <!-- Script Preview -->
+            <!-- Content Type Selector -->
             <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Your Script</h3>
-                <p id="script-preview" style="white-space: pre-wrap;"></p>
+                <h3>Content Type</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="format-card content-type-card selected" data-type="educational" onclick="selectContentType(this)">
+                        <h3 style="font-size: 1rem;">Educational</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">B-roll and stock footage</p>
+                    </div>
+                    <div class="format-card content-type-card" data-type="skit" onclick="selectContentType(this)">
+                        <h3 style="font-size: 1rem;">Skit / Podcast</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Characters and scenes</p>
+                    </div>
+                </div>
             </div>
             
-            <!-- Visual Board Section -->
+            <!-- Script Preview (collapsed) -->
             <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Visual Board</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI-curated footage for your script. All clips are legally licensed for commercial use.</p>
-                
-                <button type="button" class="btn btn-secondary" id="curate-visuals-btn" onclick="curateVisuals()">
-                    Curate Visuals
-                </button>
-                
-                <div id="visual-board-container" style="margin-top: 1.5rem; display: none;">
-                    <div id="visual-board-sections"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleScriptPreview()">
+                    <h3>Your Script</h3>
+                    <span id="script-toggle-icon" style="color: var(--text-secondary);">▼</span>
                 </div>
+                <div id="script-preview-container" style="display: none; margin-top: 1rem;">
+                    <p id="script-preview" style="white-space: pre-wrap; font-size: 0.9rem;"></p>
+                </div>
+            </div>
+            
+            <!-- Character Model Picker (for skits only) -->
+            <div id="character-picker-section" class="result-section" style="margin-bottom: 1.5rem; display: none;">
+                <h3>Cast Your Characters</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Pick a look for each character or leave as voice-only.</p>
+                <div id="character-models-container"></div>
+            </div>
+            
+            <!-- Scene Picker - Full Screen Style -->
+            <div id="scene-picker-section" class="result-section" style="margin-bottom: 1.5rem; display: none;">
+                <div id="scene-picker-content"></div>
+            </div>
+            
+            <!-- Start Curating Button -->
+            <div class="result-section" style="margin-bottom: 1.5rem;" id="curate-section">
+                <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%;">
+                    Build Visuals
+                </button>
             </div>
             
             <!-- Caption Options Section -->
@@ -1488,90 +1683,202 @@
         
         let visualBoard = null;
         let selectedVideos = {};
+        let contentType = 'educational';
+        let characterModels = {};
+        let currentSceneIndex = 0;
         
-        async function curateVisuals() {
-            const btn = document.getElementById('curate-visuals-btn');
-            const container = document.getElementById('visual-board-container');
-            const sectionsDiv = document.getElementById('visual-board-sections');
+        function selectContentType(element) {
+            document.querySelectorAll('.content-type-card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            contentType = element.dataset.type;
             
-            if (!refinedScript) {
-                alert('Please create a script first in the Create tab');
+            // Show/hide character picker based on content type
+            document.getElementById('character-picker-section').style.display = 
+                contentType === 'skit' ? 'block' : 'none';
+        }
+        
+        function toggleScriptPreview() {
+            const container = document.getElementById('script-preview-container');
+            const icon = document.getElementById('script-toggle-icon');
+            if (container.style.display === 'none') {
+                container.style.display = 'block';
+                icon.textContent = '▲';
+            } else {
+                container.style.display = 'none';
+                icon.textContent = '▼';
+            }
+        }
+        
+        async function startVisualCuration() {
+            const btn = document.getElementById('curate-visuals-btn');
+            const script = approvedScript || refinedScript;
+            
+            if (!script) {
+                alert('Create a script first');
                 return;
             }
             
             btn.disabled = true;
-            btn.textContent = 'Curating...';
+            btn.textContent = 'Building...';
             
             try {
+                // If skit, first detect characters
+                if (contentType === 'skit') {
+                    await detectAndShowCharacters(script);
+                }
+                
+                // Curate visuals
                 const response = await fetch('/curate-visuals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ script: refinedScript })
+                    body: JSON.stringify({ 
+                        script: script,
+                        content_type: contentType
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success && data.visual_board) {
                     visualBoard = data.visual_board;
-                    container.style.display = 'block';
-                    
-                    let html = '';
-                    data.visual_board.sections.forEach((section, idx) => {
-                        html += `
-                            <div class="visual-section" data-section="${idx}">
-                                <div class="section-script">"${escapeHtml(section.script_segment)}"</div>
-                                <div class="section-mood">${escapeHtml(section.mood || '')}</div>
-                                <div class="section-notes">${escapeHtml(section.visual_notes || '')}</div>
-                                <div class="video-suggestions">
-                        `;
-                        
-                        (section.suggested_videos || []).forEach((video, vidIdx) => {
-                            html += `
-                                <div class="video-suggestion" 
-                                     data-section="${idx}" 
-                                     data-video="${vidIdx}"
-                                     data-url="${video.download_url}"
-                                     onclick="selectVideo(this, ${idx}, '${video.id}')">
-                                    <img src="${video.thumbnail}" alt="Video option" loading="lazy">
-                                    <div class="duration">${video.duration}s</div>
-                                </div>
-                            `;
-                        });
-                        
-                        html += `
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    sectionsDiv.innerHTML = html;
-                    btn.textContent = 'Refresh Visuals';
+                    showScenePicker(data.visual_board.sections);
+                    document.getElementById('curate-section').style.display = 'none';
                 } else {
                     alert(data.error || 'Failed to curate visuals');
-                    btn.textContent = 'Curate Visuals';
                 }
             } catch (error) {
                 console.error('Curate error:', error);
-                alert('Failed to curate visuals. Please try again.');
-                btn.textContent = 'Curate Visuals';
+                alert('Failed to curate visuals');
             }
             
             btn.disabled = false;
+            btn.textContent = 'Build Visuals';
         }
         
-        function selectVideo(element, sectionIdx, videoId) {
-            // Toggle selection within this section
-            const section = element.closest('.visual-section');
-            section.querySelectorAll('.video-suggestion').forEach(v => v.classList.remove('selected'));
+        async function detectAndShowCharacters(script) {
+            try {
+                const response = await fetch('/detect-characters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: script })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.characters && data.characters.length > 0) {
+                    showCharacterPicker(data.characters);
+                }
+            } catch (error) {
+                console.error('Character detection error:', error);
+            }
+        }
+        
+        function showCharacterPicker(characters) {
+            const container = document.getElementById('character-models-container');
+            document.getElementById('character-picker-section').style.display = 'block';
+            
+            let html = '';
+            characters.forEach((char, idx) => {
+                html += `
+                    <div class="character-card">
+                        <div class="character-name">${escapeHtml(char.name)}</div>
+                        <div class="character-line">"${escapeHtml(char.sample_line || '')}"</div>
+                        <div class="character-models">
+                            <div class="model-option selected" data-char="${char.name}" data-model="none" onclick="selectCharacterModel(this)">
+                                <div class="model-none">🎤</div>
+                                <div class="model-label">Voice Only</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                characterModels[char.name] = 'none';
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function selectCharacterModel(element) {
+            const card = element.closest('.character-card');
+            card.querySelectorAll('.model-option').forEach(m => m.classList.remove('selected'));
+            element.classList.add('selected');
+            characterModels[element.dataset.char] = element.dataset.model;
+        }
+        
+        function showScenePicker(sections) {
+            const container = document.getElementById('scene-picker-content');
+            document.getElementById('scene-picker-section').style.display = 'block';
+            
+            let html = '';
+            sections.forEach((section, idx) => {
+                const videos = section.suggested_videos || [];
+                
+                html += `
+                    <div class="scene-card" id="scene-${idx}">
+                        <div class="scene-header">
+                            <div class="scene-number">Scene ${idx + 1}</div>
+                            <div class="scene-description">${escapeHtml(section.script_segment || '')}</div>
+                            <div class="scene-rationale">${escapeHtml(section.visual_notes || section.mood || 'Select visuals for this moment')}</div>
+                        </div>
+                        <div class="scene-options">
+                `;
+                
+                videos.slice(0, 4).forEach((video, vidIdx) => {
+                    const source = video.source || 'pexels';
+                    const license = video.license || 'Licensed';
+                    html += `
+                        <div class="scene-option" 
+                             data-section="${idx}" 
+                             data-video="${vidIdx}"
+                             data-url="${video.download_url || ''}"
+                             data-id="${video.id || ''}"
+                             onclick="selectSceneVideo(this, ${idx})">
+                            <img src="${video.thumbnail || ''}" alt="Option ${vidIdx + 1}" loading="lazy">
+                            <span class="source-badge">${source}</span>
+                            <span class="license-badge">${license}</span>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Add continue button
+            html += `
+                <button class="btn btn-primary" onclick="finishSceneSelection()" style="width: 100%; margin-top: 1rem;">
+                    Continue to Voiceover
+                </button>
+            `;
+            
+            container.innerHTML = html;
+            
+            // Auto-select first option for each scene
+            sections.forEach((section, idx) => {
+                const firstOption = document.querySelector(`#scene-${idx} .scene-option`);
+                if (firstOption) {
+                    selectSceneVideo(firstOption, idx);
+                }
+            });
+        }
+        
+        function selectSceneVideo(element, sectionIdx) {
+            const card = element.closest('.scene-card');
+            card.querySelectorAll('.scene-option').forEach(o => o.classList.remove('selected'));
             element.classList.add('selected');
             
-            // Track selected video
             selectedVideos[sectionIdx] = {
-                id: videoId,
+                id: element.dataset.id,
                 url: element.dataset.url
             };
-            
+        }
+        
+        function finishSceneSelection() {
+            // Hide scene picker, show voiceover section
             console.log('Selected videos:', selectedVideos);
+            // Scroll to voiceover section
+            document.querySelector('#single-narrator-section')?.scrollIntoView({ behavior: 'smooth' });
         }
         
         async function generateVoiceover() {
