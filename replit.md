@@ -81,6 +81,20 @@ The AI must ALWAYS:
 - `POST /cut-clip` - Cut video clip with FFmpeg
 - `POST /process-full` - Full automated pipeline
 - `POST /chat` - Direct chat with Grok-style AI
+- `POST /refine-script` - Conversational script refinement with AI
+- `POST /curate-visuals` - AI creates visual board with Pexels videos based on script
+- `POST /search-pexels-videos` - Search Pexels for legally licensed videos
+- `POST /save-asset` - Save verified legal asset to library
+- `POST /search-assets` - Search asset library by tags
+- `POST /create-checkout-session` - Create Stripe checkout for token purchase
+- `POST /add-tokens` - Add tokens after successful payment
+
+## Legal Media Asset Library
+Assets are stored with full licensing metadata:
+- **Allowed Licenses**: CC0, Public Domain, CC BY, CC BY-SA, Pexels License
+- **Required Fields**: source_page, download_url, license, license_url
+- **Safe Flags**: no_sexual, no_brands, no_celeb
+- **Sources**: Pexels (integrated), Wikimedia Commons (planned)
 
 ## Chat API Usage
 Send POST to `/chat` with JSON body:
