@@ -214,6 +214,9 @@
             max-height: 400px;
             overflow-y: auto;
             margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         .message {
@@ -221,11 +224,13 @@
             border-radius: 12px;
             margin-bottom: 1rem;
             max-width: 90%;
+            width: fit-content;
         }
         
         .message.ai {
             background: var(--bg-tertiary);
-            align-self: flex-start;
+            align-self: center;
+            text-align: center;
         }
         
         .message.user {
@@ -412,7 +417,11 @@
                 Disclaimer: Any video link processed will be downloaded for assembly.
             </p>
             
-            <div class="chat-container" id="script-chat"></div>
+            <div class="chat-container" id="script-chat">
+                <div class="message ai">
+                    Links become clips. Ideas become posts. Whats your pitch?
+                </div>
+            </div>
             
             <div id="script-ready" class="hidden" style="margin-top: 1.5rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
                 <p style="color: var(--success); font-weight: 600;">Script refined and ready!</p>
@@ -535,7 +544,7 @@
         </div>
         
         <footer>
-            <p>Echo Engine — No clip exists without a script. No script exists without reasoning.</p>
+            <p>Framd Post Assembler — No clip exists without a script. No script exists without reasoning.</p>
         </footer>
     </div>
     
@@ -777,7 +786,10 @@
                 selectedFormats = selectedFormats.filter(f => f !== format);
             }
             
-            document.getElementById('generate-btn').disabled = selectedFormats.length === 0;
+            const generateBtn = document.getElementById('generate-btn');
+            if (generateBtn) {
+                generateBtn.disabled = selectedFormats.length === 0;
+            }
         }
         
         function goToScript() {
@@ -819,7 +831,7 @@
             
             document.getElementById('script-chat').innerHTML = `
                 <div class="message ai">
-                    Tell me your idea. What's the core message you want to communicate? I'll help you refine it into something sharp and unique.
+                    Links become clips. Ideas become posts. Whats your pitch?
                 </div>
             `;
             document.getElementById('script-ready').classList.add('hidden');
