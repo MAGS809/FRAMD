@@ -1094,7 +1094,35 @@
 
         async function proceedWithCreation() {
             closeModal();
-            // Actual creation logic here
+            try {
+                const response = await fetch('/deduct-tokens', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: 35 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    // Update the UI balance immediately
+                    document.getElementById('balance-amount').textContent = data.balance;
+                    document.getElementById('post-estimate').textContent = Math.floor(data.balance / 35);
+                    
+                    // Show success message
+                    const chatContainer = document.getElementById('script-chat');
+                    chatContainer.innerHTML += `
+                        <div class="message ai" style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success);">
+                            Your post is ready. 35 tokens used.
+                        </div>
+                    `;
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                    
+                    // Proceed with actual generation logic
+                    generateContent();
+                } else {
+                    alert(data.error || "Insufficient tokens");
+                }
+            } catch (e) {
+                console.error("Token deduction failed", e);
+            }
         }
 
         async function updateBalance() {

@@ -1,17 +1,61 @@
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+from werkzeug.utils import secure_filename
 import os
 import json
 import uuid
 import tempfile
-from flask import Flask, render_template, request, jsonify, send_from_directory, session
-from werkzeug.utils import secure_filename
 from context_engine import (
     extract_audio, transcribe_audio, analyze_ideas,
     generate_script, find_clip_timestamps, generate_captions,
     cut_video_clip, concatenate_clips
 )
 
+class Base(DeclarativeBase):
+    pass
+
+db = SQLAlchemy(model_class=Base)
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+db.init_app(app)
+
+class UserTokens(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    balance = db.Column(db.Integer, default=120)
+    last_updated = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+with app.app_context():
+    db.create_all()
+    if not UserTokens.query.first():
+        token_entry = UserTokens(balance=120)
+        db.session.add(token_entry)
+        db.session.commit()
+
+@app.route('/get-tokens', methods=['GET'])
+def get_tokens():
+    token_entry = UserTokens.query.first()
+    return jsonify({
+        'success': True,
+        'balance': token_entry.balance if token_entry else 0
+    })
+
+@app.route('/deduct-tokens', methods=['POST'])
+def deduct_tokens():
+    data = request.get_json()
+    amount = data.get('amount', 35)
+    token_entry = UserTokens.query.first()
+    if token_entry and token_entry.balance >= amount:
+        token_entry.balance -= amount
+        db.session.commit()
+        return jsonify({'success': True, 'balance': token_entry.balance})
+    return jsonify({'success': False, 'error': 'Insufficient tokens'}), 400
 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
