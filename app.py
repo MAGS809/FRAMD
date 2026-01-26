@@ -34,7 +34,8 @@ class UserTokens(db.Model):
 with app.app_context():
     db.create_all()
     if not UserTokens.query.first():
-        token_entry = UserTokens(balance=120)
+        token_entry = UserTokens()
+        token_entry.balance = 120
         db.session.add(token_entry)
         db.session.commit()
 
@@ -564,7 +565,7 @@ Output as JSON:
                 continue
             
             response = client.chat.completions.create(
-                model="gpt-5",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a content creation expert. Output valid JSON only."},
                     {"role": "user", "content": prompt}

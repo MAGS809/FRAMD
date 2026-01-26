@@ -104,7 +104,7 @@ Focus on substance, not viral moments. Identify ideas worth exploring, not sound
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -147,7 +147,7 @@ Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_int
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -196,7 +196,7 @@ Only select clips that genuinely support the script. No filler."""
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -229,7 +229,7 @@ Keep it thoughtful, not clickbait. Output as JSON."""
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -439,7 +439,7 @@ Output JSON with:
 }}"""
 
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -547,7 +547,7 @@ Output as JSON:
 }}"""
 
     response = client.chat.completions.create(
-        model="gpt-5",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": refined_script_prompt}
