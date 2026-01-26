@@ -368,6 +368,116 @@
             font-weight: 400;
         }
         
+        /* Voice Preview Button */
+        .voice-preview-btn {
+            margin-top: 0.5rem;
+            padding: 0.35rem 0.75rem;
+            background: rgba(255, 214, 10, 0.15);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .voice-preview-btn:hover {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        
+        .voice-preview-btn.playing {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-secondary);
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+        
+        .toggle-switch input:checked + .toggle-slider {
+            background-color: rgba(255, 214, 10, 0.2);
+            border-color: var(--accent);
+        }
+        
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+            background-color: var(--accent);
+        }
+        
+        /* Character Voice Assignment */
+        .character-assignment {
+            background: rgba(0, 0, 0, 0.15);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .character-assignment h4 {
+            color: var(--accent);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .character-assignment p {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-bottom: 0.75rem;
+        }
+        
+        .character-voice-select {
+            width: 100%;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        
+        .character-voice-select option {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
         /* Results */
         .result-section {
             background: rgba(0, 0, 0, 0.15);
@@ -840,50 +950,122 @@
                 </div>
             </div>
             
+            <!-- Caption Options Section -->
+            <div class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>Caption Style</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add captions to your video:</p>
+                
+                <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="caption-toggle" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span style="color: var(--text-primary);">Enable Captions</span>
+                </div>
+                
+                <div id="caption-options" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+                    <div class="format-card caption-style-card selected" data-style="bold-center" onclick="selectCaptionStyle(this)">
+                        <h3 style="font-size: 0.9rem;">Bold Center</h3>
+                        <p style="font-size: 0.75rem;">Classic TikTok style</p>
+                    </div>
+                    <div class="format-card caption-style-card" data-style="typewriter" onclick="selectCaptionStyle(this)">
+                        <h3 style="font-size: 0.9rem;">Typewriter</h3>
+                        <p style="font-size: 0.75rem;">Word by word reveal</p>
+                    </div>
+                    <div class="format-card caption-style-card" data-style="highlight" onclick="selectCaptionStyle(this)">
+                        <h3 style="font-size: 0.9rem;">Highlight</h3>
+                        <p style="font-size: 0.75rem;">Key words pop</p>
+                    </div>
+                    <div class="format-card caption-style-card" data-style="minimal" onclick="selectCaptionStyle(this)">
+                        <h3 style="font-size: 0.9rem;">Minimal</h3>
+                        <p style="font-size: 0.75rem;">Clean subtitle look</p>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Voiceover Section -->
             <div class="result-section" style="margin-bottom: 1.5rem;">
                 <h3>Voiceover</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Choose a voice for your narration:</p>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Preview voices and select narrator(s):</p>
                 
-                <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-                    <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Alloy</h3>
-                        <p>Neutral, versatile</p>
-                    </div>
-                    <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Echo</h3>
-                        <p>Male, deep</p>
-                    </div>
-                    <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Fable</h3>
-                        <p>British, expressive</p>
-                    </div>
-                    <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Onyx</h3>
-                        <p>Male, authoritative</p>
-                    </div>
-                    <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Nova</h3>
-                        <p>Female, warm</p>
-                    </div>
-                    <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)">
-                        <div class="icon"></div>
-                        <h3>Shimmer</h3>
-                        <p>Female, clear</p>
+                <!-- Single narrator mode -->
+                <div id="single-narrator-section">
+                    <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                        <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Alloy</h3>
+                            <p>Neutral, versatile</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('alloy')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Echo</h3>
+                            <p>Male, deep</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('echo')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Fable</h3>
+                            <p>British, expressive</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('fable')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Onyx</h3>
+                            <p>Male, authoritative</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('onyx')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Nova</h3>
+                            <p>Female, warm</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('nova')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)">
+                            <div class="icon"></div>
+                            <h3>Shimmer</h3>
+                            <p>Female, clear</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('shimmer')">
+                                ▶ Preview
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
-                <button class="btn btn-secondary" style="margin-top: 1rem;" id="generate-voice-btn" onclick="generateVoiceover()">
-                    Generate Voiceover
-                </button>
+                <!-- Multi-character mode (shown when script has dialogue) -->
+                <div id="multi-character-section" style="display: none;">
+                    <div style="background: rgba(255, 214, 10, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                        <p style="color: var(--accent); font-weight: 500; margin-bottom: 0.5rem;">Multi-Character Script Detected</p>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Assign different voices to each character:</p>
+                    </div>
+                    <div id="character-voice-assignments"></div>
+                </div>
+                
+                <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" id="generate-voice-btn" onclick="generateVoiceover()">
+                        Generate Voiceover
+                    </button>
+                    <button class="btn btn-secondary" id="detect-characters-btn" onclick="detectCharacters()" style="background: transparent; border: 1px solid var(--border);">
+                        Detect Characters
+                    </button>
+                </div>
+                
                 <div id="voiceover-result" style="margin-top: 1rem; display: none;">
                     <audio id="voiceover-audio" controls style="width: 100%;"></audio>
                 </div>
+                
+                <!-- Voice preview audio element (hidden) -->
+                <audio id="voice-preview-audio" style="display: none;"></audio>
             </div>
             
             <!-- Output Format Section -->
@@ -978,6 +1160,206 @@
             document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             selectedVoice = card.dataset.voice;
+        }
+        
+        // Caption settings
+        let captionsEnabled = true;
+        let selectedCaptionStyle = 'bold-center';
+        
+        function selectCaptionStyle(card) {
+            document.querySelectorAll('.caption-style-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedCaptionStyle = card.dataset.style;
+        }
+        
+        // Caption toggle listener
+        document.addEventListener('DOMContentLoaded', function() {
+            const captionToggle = document.getElementById('caption-toggle');
+            if (captionToggle) {
+                captionToggle.addEventListener('change', function() {
+                    captionsEnabled = this.checked;
+                    document.getElementById('caption-options').style.opacity = this.checked ? '1' : '0.4';
+                    document.getElementById('caption-options').style.pointerEvents = this.checked ? 'auto' : 'none';
+                });
+            }
+        });
+        
+        // Voice preview samples
+        const voiceSamples = {
+            alloy: "Hello, I'm Alloy. I have a neutral, versatile voice perfect for any narration.",
+            echo: "Hello, I'm Echo. I have a deep, resonant male voice.",
+            fable: "Hello, I'm Fable. I have an expressive British accent.",
+            onyx: "Hello, I'm Onyx. I have a deep, authoritative male voice.",
+            nova: "Hello, I'm Nova. I have a warm, friendly female voice.",
+            shimmer: "Hello, I'm Shimmer. I have a clear, bright female voice."
+        };
+        
+        let currentPreviewAudio = null;
+        
+        async function previewVoice(voice) {
+            const btn = event.target;
+            const allBtns = document.querySelectorAll('.voice-preview-btn');
+            
+            // Stop any currently playing preview
+            if (currentPreviewAudio) {
+                currentPreviewAudio.pause();
+                currentPreviewAudio = null;
+                allBtns.forEach(b => {
+                    b.classList.remove('playing');
+                    b.textContent = '▶ Preview';
+                });
+            }
+            
+            btn.classList.add('playing');
+            btn.textContent = '⏳ Loading...';
+            
+            try {
+                const response = await fetch('/preview-voice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        voice: voice,
+                        text: voiceSamples[voice]
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const audio = document.getElementById('voice-preview-audio');
+                    audio.src = data.audio_url;
+                    currentPreviewAudio = audio;
+                    
+                    btn.textContent = '⏹ Stop';
+                    
+                    audio.play();
+                    audio.onended = () => {
+                        btn.classList.remove('playing');
+                        btn.textContent = '▶ Preview';
+                        currentPreviewAudio = null;
+                    };
+                } else {
+                    btn.classList.remove('playing');
+                    btn.textContent = '▶ Preview';
+                    alert('Could not load preview: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                btn.classList.remove('playing');
+                btn.textContent = '▶ Preview';
+                console.error('Voice preview error:', error);
+            }
+        }
+        
+        // Multi-character support
+        let detectedCharacters = [];
+        let characterVoices = {};
+        
+        async function detectCharacters() {
+            const script = approvedScript || finalScript;
+            if (!script) {
+                alert('No script to analyze. Create a script first.');
+                return;
+            }
+            
+            const btn = document.getElementById('detect-characters-btn');
+            btn.textContent = 'Analyzing...';
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch('/detect-characters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: script })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.characters && data.characters.length > 1) {
+                    detectedCharacters = data.characters;
+                    showMultiCharacterUI(data.characters, data.formatted_script);
+                } else if (data.characters && data.characters.length === 1) {
+                    alert('Script has only one speaker (narrator). Use the single voice selector above.');
+                } else {
+                    alert('No distinct characters detected. This appears to be a single-narrator script.');
+                }
+            } catch (error) {
+                console.error('Character detection error:', error);
+                alert('Error detecting characters');
+            }
+            
+            btn.textContent = 'Detect Characters';
+            btn.disabled = false;
+        }
+        
+        function showMultiCharacterUI(characters, formattedScript) {
+            document.getElementById('single-narrator-section').style.display = 'none';
+            document.getElementById('multi-character-section').style.display = 'block';
+            
+            const container = document.getElementById('character-voice-assignments');
+            container.innerHTML = '';
+            
+            const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+            const voiceDescriptions = {
+                alloy: 'Neutral, versatile',
+                echo: 'Male, deep',
+                fable: 'British, expressive',
+                onyx: 'Male, authoritative',
+                nova: 'Female, warm',
+                shimmer: 'Female, clear'
+            };
+            
+            characters.forEach((char, idx) => {
+                const defaultVoice = voices[idx % voices.length];
+                characterVoices[char.name] = defaultVoice;
+                
+                const div = document.createElement('div');
+                div.className = 'character-assignment';
+                div.innerHTML = `
+                    <h4>${char.name}</h4>
+                    <p>"${char.sample_line}"</p>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select class="character-voice-select" data-character="${char.name}" onchange="updateCharacterVoice(this)">
+                            ${voices.map(v => `<option value="${v}" ${v === defaultVoice ? 'selected' : ''}>${v.charAt(0).toUpperCase() + v.slice(1)} - ${voiceDescriptions[v]}</option>`).join('')}
+                        </select>
+                        <button class="voice-preview-btn" onclick="previewCharacterVoice('${char.name}', '${char.sample_line.replace(/'/g, "\\'")}')">▶</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Update the script with formatted version
+            if (formattedScript) {
+                approvedScript = formattedScript;
+                document.getElementById('script-preview').textContent = formattedScript;
+            }
+        }
+        
+        function updateCharacterVoice(select) {
+            characterVoices[select.dataset.character] = select.value;
+        }
+        
+        async function previewCharacterVoice(character, sampleLine) {
+            const btn = event.target;
+            btn.textContent = '⏳';
+            
+            try {
+                const voice = characterVoices[character] || 'alloy';
+                const response = await fetch('/preview-voice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voice: voice, text: sampleLine })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    const audio = new Audio(data.audio_url);
+                    audio.play();
+                    audio.onended = () => { btn.textContent = '▶'; };
+                }
+            } catch (error) {
+                console.error('Preview error:', error);
+            }
+            btn.textContent = '▶';
         }
         
         let referenceContext = null;
@@ -1167,7 +1549,8 @@
             const resultDiv = document.getElementById('voiceover-result');
             const audio = document.getElementById('voiceover-audio');
             
-            if (!refinedScript) {
+            const script = approvedScript || refinedScript || finalScript;
+            if (!script) {
                 alert('No script to generate voiceover from');
                 return;
             }
@@ -1176,14 +1559,30 @@
             btn.textContent = 'Generating...';
             
             try {
-                const response = await fetch('/generate-voiceover', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: refinedScript,
-                        voice: selectedVoice
-                    })
-                });
+                let response;
+                
+                // Check if we're in multi-character mode
+                if (detectedCharacters.length > 1 && Object.keys(characterVoices).length > 0) {
+                    // Use multi-character endpoint
+                    response = await fetch('/generate-voiceover-multi', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            script: script,
+                            character_voices: characterVoices
+                        })
+                    });
+                } else {
+                    // Use single voice endpoint
+                    response = await fetch('/generate-voiceover', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            text: script,
+                            voice: selectedVoice
+                        })
+                    });
+                }
                 
                 const data = await response.json();
                 
@@ -1388,11 +1787,13 @@
             generateBtn.textContent = 'Generating...';
             
             try {
+                const script = approvedScript || refinedScript || finalScript;
+                
                 const response = await fetch('/generate-formats', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        script: refinedScript,
+                        script: script,
                         formats: selectedFormats,
                         conversation: conversationHistory
                     })
@@ -1407,10 +1808,34 @@
                     const voiceoverAudio = document.getElementById('voiceover-audio');
                     const voiceoverUrl = voiceoverAudio.src ? voiceoverAudio.src.replace(window.location.origin, '') : null;
                     
-                    let stockVideos = [];
-                    for (const result of Object.values(data.results)) {
-                        if (result.stock_footage) {
-                            stockVideos = stockVideos.concat(result.stock_footage);
+                    // Collect curated visuals from selected videos
+                    let curatedVideos = [];
+                    for (const [section, videos] of Object.entries(selectedVideos)) {
+                        for (const video of videos) {
+                            // Get the best quality download URL from Pexels video
+                            let downloadUrl = video.download_url || video.url;
+                            if (video.video_files && video.video_files.length > 0) {
+                                // Find HD quality (720p or higher)
+                                const hdFile = video.video_files.find(f => f.height >= 720) || video.video_files[0];
+                                downloadUrl = hdFile.link;
+                            }
+                            
+                            curatedVideos.push({
+                                section: section,
+                                download_url: downloadUrl,
+                                source: 'pexels',
+                                license: 'Pexels License'
+                            });
+                        }
+                    }
+                    
+                    // Fallback to stock_footage from generate-formats if no curated visuals
+                    let stockVideos = curatedVideos;
+                    if (stockVideos.length === 0) {
+                        for (const result of Object.values(data.results)) {
+                            if (result.stock_footage) {
+                                stockVideos = stockVideos.concat(result.stock_footage);
+                            }
                         }
                     }
                     
@@ -1420,8 +1845,12 @@
                         body: JSON.stringify({
                             voiceover_url: voiceoverUrl,
                             stock_videos: stockVideos,
-                            script: refinedScript,
-                            format: selectedFormats.includes('reel') ? 'reel' : 'post'
+                            script: script,
+                            format: selectedFormats.includes('reel') ? 'reel' : 'post',
+                            captions: {
+                                enabled: captionsEnabled,
+                                style: selectedCaptionStyle
+                            }
                         })
                     });
                     

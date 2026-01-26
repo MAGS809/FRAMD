@@ -995,6 +995,7 @@ def generate_video():
     stock_videos = data.get('stock_videos', [])
     script = data.get('script', '')
     format_type = data.get('format', 'reel')
+    captions = data.get('captions', {'enabled': False, 'style': 'bold-center'})
     
     if not voiceover_url and not script:
         return jsonify({'error': 'Need voiceover or script'}), 400
@@ -1012,19 +1013,29 @@ def generate_video():
         
         temp_files = []
         
+        # Allowed domains for video downloads (security: prevent SSRF)
+        allowed_domains = ['pexels.com', 'videos.pexels.com', 'player.vimeo.com', 'pixabay.com']
+        
         if stock_videos and len(stock_videos) > 0:
-            for i, video in enumerate(stock_videos[:3]):
-                video_url = video.get('video_url') or video.get('pexels_url')
-                if video_url and 'pexels.com' not in video_url:
+            for i, video in enumerate(stock_videos[:5]):
+                video_url = video.get('download_url') or video.get('url') or video.get('video_url') or video.get('pexels_url')
+                if video_url:
+                    # Security: Only allow downloads from trusted domains
+                    from urllib.parse import urlparse
+                    parsed = urlparse(video_url)
+                    if not any(domain in parsed.netloc for domain in allowed_domains):
+                        print(f"Skipping untrusted video URL: {video_url}")
+                        continue
+                    
                     try:
-                        resp = requests.get(video_url, timeout=30)
+                        resp = requests.get(video_url, timeout=60)
                         if resp.status_code == 200:
                             temp_path = os.path.join(output_dir, f'temp_{output_id}_{i}.mp4')
                             with open(temp_path, 'wb') as f:
                                 f.write(resp.content)
                             temp_files.append(temp_path)
-                    except:
-                        pass
+                    except Exception as e:
+                        print(f"Error downloading video {i}: {e}")
         
         final_video = os.path.join(output_dir, f'echo_video_{output_id}.mp4')
         
@@ -1055,6 +1066,51 @@ def generate_video():
                 final_video
             ]
             subprocess.run(cmd, capture_output=True, timeout=60)
+        
+        # Add captions if enabled
+        if captions.get('enabled') and script:
+            caption_video = os.path.join(output_dir, f'captioned_{output_id}.mp4')
+            caption_style = captions.get('style', 'bold-center')
+            
+            # Sanitize text for ffmpeg drawtext: escape special characters and newlines
+            import re
+            safe_text = script.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
+            safe_text = re.sub(r'[\n\r]', ' ', safe_text)[:200]  # Remove newlines, limit length
+            
+            # Caption style configurations
+            if caption_style == 'bold-center':
+                font_filter = f"drawtext=text='{safe_text}':fontsize=48:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-150"
+            elif caption_style == 'typewriter':
+                font_filter = f"drawtext=text='{safe_text}':fontsize=42:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h-150"
+            elif caption_style == 'highlight':
+                font_filter = f"drawtext=text='{safe_text}':fontsize=48:fontcolor=yellow:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-150"
+            else:  # minimal
+                font_filter = f"drawtext=text='{safe_text}':fontsize=36:fontcolor=white:x=(w-text_w)/2:y=h-100"
+            
+            # Check if video has audio stream
+            probe_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', final_video]
+            probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
+            has_audio = 'audio' in probe_result.stdout
+            
+            if has_audio:
+                cmd = [
+                    'ffmpeg', '-y', '-i', final_video,
+                    '-vf', font_filter,
+                    '-c:v', 'libx264', '-preset', 'fast', '-c:a', 'copy',
+                    caption_video
+                ]
+            else:
+                cmd = [
+                    'ffmpeg', '-y', '-i', final_video,
+                    '-vf', font_filter,
+                    '-c:v', 'libx264', '-preset', 'fast', '-an',
+                    caption_video
+                ]
+            
+            result = subprocess.run(cmd, capture_output=True, timeout=120)
+            if os.path.exists(caption_video):
+                os.unlink(final_video)
+                final_video = caption_video
         
         if voiceover_url:
             audio_path = os.path.join(output_dir, voiceover_url.split('/')[-1])
@@ -1130,6 +1186,206 @@ def generate_voiceover():
             })
         else:
             return jsonify({'error': 'No audio generated'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/preview-voice', methods=['POST'])
+def preview_voice():
+    """Generate a short voice preview sample."""
+    from openai import OpenAI
+    import base64
+    import uuid
+    
+    data = request.get_json()
+    text = data.get('text', '')
+    voice = data.get('voice', 'alloy')
+    
+    if not text:
+        return jsonify({'error': 'No text provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-audio",
+            modalities=["text", "audio"],
+            audio={"voice": voice, "format": "mp3"},
+            messages=[
+                {"role": "system", "content": "You are a voice actor. Speak naturally and warmly."},
+                {"role": "user", "content": text},
+            ],
+        )
+        
+        audio_data = getattr(response.choices[0].message, "audio", None)
+        if audio_data and hasattr(audio_data, "data"):
+            audio_bytes = base64.b64decode(audio_data.data)
+            
+            filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
+            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            with open(filepath, 'wb') as f:
+                f.write(audio_bytes)
+            
+            return jsonify({
+                'success': True,
+                'audio_url': f'/output/{filename}'
+            })
+        else:
+            return jsonify({'error': 'No audio generated'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/detect-characters', methods=['POST'])
+def detect_characters():
+    """Detect characters in a script and format for voice acting."""
+    from openai import OpenAI
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": """You are a script analyst. Analyze the script and:
+1. Identify distinct speaking characters/voices (narrator counts as one)
+2. Format the script with clear character labels for voice acting
+
+Return JSON:
+{
+  "characters": [
+    {"name": "Character Name", "sample_line": "A short example line they say"}
+  ],
+  "formatted_script": "The script with CHARACTER_NAME: prefix on each line"
+}
+
+Rules:
+- If only one voice (narrator), return just one character
+- Format like a screenplay: CHARACTER_NAME: Their dialogue here
+- Keep the meaning, just add character labels
+- Don't add meta-commentary, just the lines they would speak aloud"""},
+                {"role": "user", "content": f"Analyze and format this script:\n\n{script}"},
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        return jsonify({
+            'success': True,
+            'characters': result.get('characters', []),
+            'formatted_script': result.get('formatted_script', script)
+        })
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-voiceover-multi', methods=['POST'])
+def generate_voiceover_multi():
+    """Generate voiceover with multiple character voices."""
+    from openai import OpenAI
+    import base64
+    import uuid
+    from pydub import AudioSegment
+    import io
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    character_voices = data.get('character_voices', {})
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+    )
+    
+    try:
+        # Parse script into character lines
+        lines = []
+        current_char = 'NARRATOR'
+        
+        for line in script.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Check if line starts with CHARACTER:
+            if ':' in line:
+                parts = line.split(':', 1)
+                if len(parts[0].split()) <= 3:  # Likely a character name
+                    current_char = parts[0].strip().upper()
+                    dialogue = parts[1].strip()
+                    if dialogue:
+                        lines.append({'character': current_char, 'text': dialogue})
+                else:
+                    lines.append({'character': current_char, 'text': line})
+            else:
+                lines.append({'character': current_char, 'text': line})
+        
+        # Generate audio for each segment
+        audio_segments = []
+        
+        for segment in lines:
+            char_name = segment['character']
+            text = segment['text']
+            
+            # Find voice for this character (case insensitive match)
+            voice = 'alloy'  # default
+            for key, val in character_voices.items():
+                if key.upper() == char_name or char_name in key.upper():
+                    voice = val
+                    break
+            
+            response = client.chat.completions.create(
+                model="gpt-audio",
+                modalities=["text", "audio"],
+                audio={"voice": voice, "format": "mp3"},
+                messages=[
+                    {"role": "system", "content": f"You are a voice actor playing {char_name}. Speak this line naturally and in character. Just speak the line, no explanation."},
+                    {"role": "user", "content": text},
+                ],
+            )
+            
+            audio_data = getattr(response.choices[0].message, "audio", None)
+            if audio_data and hasattr(audio_data, "data"):
+                audio_bytes = base64.b64decode(audio_data.data)
+                audio_segments.append(audio_bytes)
+        
+        # Combine all audio segments
+        if audio_segments:
+            combined = AudioSegment.empty()
+            for seg_bytes in audio_segments:
+                seg = AudioSegment.from_mp3(io.BytesIO(seg_bytes))
+                combined += seg + AudioSegment.silent(duration=300)  # 300ms pause between lines
+            
+            filename = f"voiceover_multi_{uuid.uuid4().hex[:8]}.mp3"
+            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            combined.export(filepath, format='mp3')
+            
+            return jsonify({
+                'success': True,
+                'audio_url': f'/output/{filename}',
+                'segments': len(audio_segments)
+            })
+        else:
+            return jsonify({'error': 'No audio segments generated'}), 500
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
