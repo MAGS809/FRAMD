@@ -375,7 +375,44 @@ def process_video(
     return results
 
 
-def extract_keywords_from_script(script: str) -> dict:
+def ai_approval_gate(script: dict, visual_plan: list) -> dict:
+    """AI Gatekeeper that checks for constitution violations before any asset is fetched or post is assembled."""
+    prompt = f"""As the Calligra Compliance Officer, review this proposed post against our Constitution.
+
+PROPOSED SCRIPT:
+{script.get('full_script', '')}
+
+VISUAL PLAN:
+{json.dumps(visual_plan)}
+
+CONSTITUTIONAL REQUIREMENTS:
+1. No juvenile humor (bathroom, sex, shock).
+2. No sexualized visuals (Hard Ban on bikinis, lingerie, erotic poses).
+3. No brands or celebrities.
+4. Calm, restrained tone. No internet slang or meme speak.
+5. Clarity over noise. Meaning over metrics.
+
+Output JSON:
+{{
+    "approved": true/false,
+    "reasoning": "Brief explanation of decision",
+    "required_changes": ["List of changes if rejected, otherwise empty"]
+}}"""
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"}
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {"approved": False, "reasoning": "Approval engine error", "required_changes": []}
     """Extract nuanced keywords from a user's script/pitch that capture humor, tone, and message."""
     prompt = f"""Analyze this script/pitch and extract keywords that capture the NUANCE of what they're trying to say.
 

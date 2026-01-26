@@ -1094,7 +1094,30 @@
 
         async function proceedWithCreation() {
             closeModal();
+            
+            const chatContainer = document.getElementById('script-chat');
+            chatContainer.innerHTML += `<div class="message ai" style="color: var(--text-secondary);">AI Approval Gate: Reviewing constitution compliance...</div>`;
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
             try {
+                // Mocking the approval gate check for now, connecting to backend in real flow
+                const approvalResponse = await fetch('/ai-approval-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: refinedScript })
+                });
+                const approvalData = await approvalResponse.json();
+
+                if (!approvalData.approved) {
+                    chatContainer.innerHTML += `
+                        <div class="message ai" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error);">
+                            Rejected: ${approvalData.reasoning}
+                            <br>Required changes: ${approvalData.required_changes.join(', ')}
+                        </div>
+                    `;
+                    return;
+                }
+
                 const response = await fetch('/deduct-tokens', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

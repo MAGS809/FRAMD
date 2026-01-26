@@ -57,6 +57,18 @@ def deduct_tokens():
         return jsonify({'success': True, 'balance': token_entry.balance})
     return jsonify({'success': False, 'error': 'Insufficient tokens'}), 400
 
+@app.route('/ai-approval-check', methods=['POST'])
+def ai_approval_check():
+    data = request.get_json()
+    script = data.get('script')
+    if not script:
+        return jsonify({'approved': False, 'reasoning': 'No script provided', 'required_changes': []})
+    
+    from context_engine import ai_approval_gate
+    # In a real flow, visual_plan would be generated first
+    result = ai_approval_gate({'full_script': script}, [])
+    return jsonify(result)
+
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'm4a'}
