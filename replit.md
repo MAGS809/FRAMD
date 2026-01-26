@@ -127,3 +127,18 @@ The AI is configured to be:
 - 1:1 (Square/Carousel)
 - 4:5 (Feed)
 - 16:9 (Landscape)
+
+## Voice System
+- **6 Voice Options**: Alloy (neutral), Echo (deep male), Fable (British), Onyx (authoritative male), Nova (warm female), Shimmer (clear female)
+- **Voice Previews**: Click "Preview" on any voice card to hear a sample
+- **Multi-Character Support**: Click "Detect Characters" to analyze script for multiple speakers and assign different voices to each
+
+## Caption System
+- **Toggle**: Enable/disable captions for final video
+- **Styles**: Bold Center (TikTok style), Typewriter (reveal effect), Highlight (key words pop), Minimal (clean subtitles)
+- **Rendering**: FFmpeg drawtext filter with text sanitization
+
+## Script Formatting
+- AI formats final scripts with `CHARACTER_NAME: dialogue` for voice acting
+- No meta-narration - just the lines to be spoken aloud
+- Multi-character scripts get separate voice generation and audio combining
