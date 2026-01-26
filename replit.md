@@ -1,11 +1,11 @@
-# Krakd Studio
+# Calligra
 
 ## Overview
-Krakd Studio is an AI-powered content creation tool that turns ideas into ready-to-post videos. It takes your script concept, asks clarifying questions, generates voiceovers, finds matching stock footage, and produces final videos for Reels, Carousels, Posts, and Threads. Script-first, always.
+Calligra is a high-end post-assembler utilizing the Framd™ workflow and FRMC™ engine. It transforms raw links into cinematic clips and abstract ideas into structured posts.
 
 ## Core Principle
-- **No clip exists without a script.**
-- **No script exists without reasoning.**
+- **Framd™** - No clip exists without a script.
+- **FRMC™** - No script exists without reasoning.
 
 ## Architecture
 
