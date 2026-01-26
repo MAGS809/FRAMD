@@ -385,8 +385,61 @@
             font-size: 0.9rem;
         }
         
-        .hidden { display: none !important; }
-    </style>
+        /* Token UI */
+        .token-panel {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: right;
+            font-size: 0.9rem;
+        }
+        .token-balance {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .token-estimate {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            display: block;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(13, 40, 24, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            padding: 2rem;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .modal-content h3 {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+        .modal-list {
+            text-align: left;
+            margin: 1rem 0;
+            list-style: none;
+            color: var(--text-secondary);
+        }
+        .modal-list li::before {
+            content: "• ";
+            color: var(--accent);
+        }
 </head>
 <body>
     <div class="container">
@@ -397,6 +450,10 @@
                     <text x="50%" y="45" text-anchor="middle" fill="#ffd60a" font-family="'Inter', Helvetica, sans-serif" font-size="42" font-weight="900" letter-spacing="-1" style="text-transform: uppercase;">Framd</text>
                     <text x="50%" y="85" text-anchor="middle" fill="#ffd60a" font-family="'Courier New', Courier, monospace" font-size="24" font-weight="400" letter-spacing="2" style="text-transform: lowercase; opacity: 0.9;">post assembler</text>
                 </svg>
+            </div>
+            <div class="token-panel">
+                <span class="token-balance">Your balance: <span id="balance-amount">120</span> tokens</span>
+                <span class="token-estimate">≈ <span id="post-estimate">3</span> posts remaining</span>
             </div>
         </header>
         
