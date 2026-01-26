@@ -1285,7 +1285,7 @@
         let characterVoices = {};
         
         async function detectCharacters() {
-            const script = approvedScript || finalScript;
+            const script = approvedScript || refinedScript;
             if (!script) {
                 alert('No script to analyze. Create a script first.');
                 return;
