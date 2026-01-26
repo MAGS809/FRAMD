@@ -1153,9 +1153,42 @@
                 grid-template-columns: 1fr;
             }
         }
+        
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(10, 31, 20, 0.95);
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            padding: 16px 24px;
+            color: var(--text);
+            font-size: 0.95rem;
+            z-index: 10000;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast.info {
+            border-color: var(--accent);
+        }
+        .toast.error {
+            border-color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+    
     <!-- Credits Purchase Modal -->
     <div class="modal" id="credits-modal">
         <div class="modal-content" style="max-width: 480px;">
@@ -1499,6 +1532,16 @@
         let selectedFormats = [];
         let selectedVoice = 'alloy';
         
+        function showToast(message, type = 'info', duration = 4000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, duration);
+        }
+        
         function selectVoice(card) {
             document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
@@ -1621,13 +1664,13 @@
                     detectedCharacters = data.characters;
                     showMultiCharacterUI(data.characters, data.formatted_script);
                 } else if (data.characters && data.characters.length === 1) {
-                    alert('Script has only one speaker (narrator). Use the single voice selector above.');
+                    showToast('Script has only one speaker (narrator). Use the single voice selector above.', 'info', 5000);
                 } else {
-                    alert('No distinct characters detected. This appears to be a single-narrator script.');
+                    showToast('No distinct characters detected. This appears to be a single-narrator script.', 'info', 5000);
                 }
             } catch (error) {
                 console.error('Character detection error:', error);
-                alert('Error detecting characters');
+                showToast('Error detecting characters', 'error');
             }
             
             btn.textContent = 'Detect Characters';
