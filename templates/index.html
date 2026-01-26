@@ -620,101 +620,209 @@
             margin-top: 0.25rem;
         }
         
-        /* Scene Picker - Full Screen Style */
+        /* Scene Picker - Apple-Inspired Glassmorphism */
+        .visual-context-banner {
+            background: linear-gradient(135deg, rgba(10, 31, 20, 0.9), rgba(20, 50, 35, 0.8));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 16px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .visual-context-banner h4 {
+            color: var(--accent);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .context-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .context-tag {
+            background: rgba(255, 214, 10, 0.15);
+            border: 1px solid rgba(255, 214, 10, 0.3);
+            color: var(--accent);
+            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
         .scene-card {
             position: relative;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 16px;
+            background: linear-gradient(180deg, rgba(10, 31, 20, 0.95), rgba(15, 40, 28, 0.9));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
             overflow: hidden;
-            margin-bottom: 2rem;
-            border: 3px solid transparent;
-            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 214, 10, 0.15);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scene-card:hover {
+            border-color: rgba(255, 214, 10, 0.25);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
         }
         
         .scene-card.active {
             border-color: var(--accent);
-            box-shadow: 0 0 30px rgba(255, 214, 10, 0.2);
+            box-shadow: 0 0 40px rgba(255, 214, 10, 0.15);
         }
         
         .scene-header {
-            padding: 1.5rem;
-            background: rgba(0, 0, 0, 0.4);
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
         
         .scene-number {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.15em;
             margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        
+        .scene-meta {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .scene-meta-tag {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .scene-meta-tag.setting {
+            background: rgba(100, 180, 255, 0.15);
+            color: #a0d8ff;
+            border: 1px solid rgba(100, 180, 255, 0.3);
+        }
+        
+        .scene-meta-tag.mood {
+            background: rgba(255, 150, 100, 0.15);
+            color: #ffb080;
+            border: 1px solid rgba(255, 150, 100, 0.3);
         }
         
         .scene-description {
-            font-size: 1rem;
+            font-size: 0.95rem;
             color: var(--text-primary);
             margin-bottom: 0.5rem;
+            line-height: 1.5;
+            font-weight: 400;
         }
         
         .scene-rationale {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: var(--text-secondary);
             font-style: italic;
+            line-height: 1.4;
+            padding-left: 0.75rem;
+            border-left: 2px solid rgba(255, 214, 10, 0.3);
         }
         
         .scene-options {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-            padding: 1rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            padding: 1.25rem;
+        }
+        
+        @media (max-width: 768px) {
+            .scene-options {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         
         .scene-option {
             position: relative;
             aspect-ratio: 9/16;
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
             cursor: pointer;
-            border: 3px solid transparent;
-            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(0, 0, 0, 0.3);
         }
         
         .scene-option:hover {
-            transform: scale(1.02);
-            border-color: rgba(255, 214, 10, 0.3);
+            transform: scale(1.03);
+            border-color: rgba(255, 214, 10, 0.4);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
         
         .scene-option.selected {
             border-color: var(--accent);
-            box-shadow: 0 0 20px rgba(255, 214, 10, 0.3);
+            border-width: 3px;
+            box-shadow: 0 0 24px rgba(255, 214, 10, 0.25), inset 0 0 0 1px rgba(255, 214, 10, 0.3);
         }
         
         .scene-option img, .scene-option video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .scene-option:hover img {
+            transform: scale(1.05);
         }
         
         .scene-option .source-badge {
             position: absolute;
-            bottom: 0.5rem;
+            top: 0.5rem;
             left: 0.5rem;
-            background: rgba(0, 0, 0, 0.7);
-            color: var(--text-secondary);
-            font-size: 0.65rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            color: var(--text-primary);
+            font-size: 0.6rem;
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
             text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
         }
         
         .scene-option .license-badge {
             position: absolute;
             bottom: 0.5rem;
             right: 0.5rem;
-            background: rgba(0, 100, 0, 0.8);
-            color: #90ee90;
-            font-size: 0.6rem;
+            background: rgba(34, 139, 34, 0.85);
+            backdrop-filter: blur(8px);
+            color: #ffffff;
+            font-size: 0.55rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+        
+        .scene-option .cache-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: rgba(255, 214, 10, 0.9);
+            color: #0a1f14;
+            font-size: 0.55rem;
             padding: 0.2rem 0.4rem;
             border-radius: 4px;
+            font-weight: 700;
         }
         
         /* Character Model Picker */
@@ -1168,8 +1276,16 @@
                 <div id="scene-picker-content"></div>
             </div>
             
-            <!-- Start Curating Button -->
+            <!-- Visual Curation Section -->
             <div class="result-section" style="margin-bottom: 1.5rem;" id="curate-section">
+                <h3>Build Your Visuals</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI will find legally-licensed footage that fits your script's setting and mood.</p>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Visual Guidance (optional)</label>
+                    <input type="text" id="visual-guidance-input" placeholder="e.g., 'dark moody visuals', 'warm natural lighting', 'urban street scenes'" style="width: 100%; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-light); border-radius: 10px; color: var(--text-primary); font-size: 0.9rem;">
+                </div>
+                
                 <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%;">
                     Build Visuals
                 </button>
@@ -1727,13 +1843,17 @@
                     await detectAndShowCharacters(script);
                 }
                 
+                // Get user guidance if provided
+                const userGuidance = document.getElementById('visual-guidance-input')?.value || '';
+                
                 // Curate visuals
                 const response = await fetch('/curate-visuals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         script: script,
-                        content_type: contentType
+                        content_type: contentType,
+                        user_guidance: userGuidance
                     })
                 });
                 
@@ -1741,7 +1861,7 @@
                 
                 if (data.success && data.visual_board) {
                     visualBoard = data.visual_board;
-                    showScenePicker(data.visual_board.sections);
+                    showScenePicker(data.visual_board);
                     document.getElementById('curate-section').style.display = 'none';
                 } else {
                     alert(data.error || 'Failed to curate visuals');
@@ -1804,20 +1924,46 @@
             characterModels[element.dataset.char] = element.dataset.model;
         }
         
-        function showScenePicker(sections) {
+        function showScenePicker(visualBoard) {
             const container = document.getElementById('scene-picker-content');
             document.getElementById('scene-picker-section').style.display = 'block';
             
+            const sections = visualBoard.sections || [];
+            const context = visualBoard.overall_context || {};
+            
             let html = '';
+            
+            // Show overall context banner if available
+            if (context.setting || context.mood || context.visual_intent) {
+                html += `
+                    <div class="visual-context-banner">
+                        <h4>Visual Context</h4>
+                        <div class="context-tags">
+                            ${context.setting ? `<span class="context-tag">${escapeHtml(context.setting)}</span>` : ''}
+                            ${context.mood ? `<span class="context-tag">${escapeHtml(context.mood)}</span>` : ''}
+                        </div>
+                        ${context.visual_intent ? `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.75rem; font-style: italic;">${escapeHtml(context.visual_intent)}</p>` : ''}
+                    </div>
+                `;
+            }
+            
             sections.forEach((section, idx) => {
                 const videos = section.suggested_videos || [];
+                const setting = section.setting || '';
+                const mood = section.mood || '';
                 
                 html += `
                     <div class="scene-card" id="scene-${idx}">
                         <div class="scene-header">
                             <div class="scene-number">Scene ${idx + 1}</div>
+                            ${(setting || mood) ? `
+                                <div class="scene-meta">
+                                    ${setting ? `<span class="scene-meta-tag setting">${escapeHtml(setting)}</span>` : ''}
+                                    ${mood ? `<span class="scene-meta-tag mood">${escapeHtml(mood)}</span>` : ''}
+                                </div>
+                            ` : ''}
                             <div class="scene-description">${escapeHtml(section.script_segment || '')}</div>
-                            <div class="scene-rationale">${escapeHtml(section.visual_notes || section.mood || 'Select visuals for this moment')}</div>
+                            <div class="scene-rationale">${escapeHtml(section.visual_notes || 'Select visuals for this moment')}</div>
                         </div>
                         <div class="scene-options">
                 `;
@@ -1825,16 +1971,25 @@
                 videos.slice(0, 4).forEach((video, vidIdx) => {
                     const source = video.source || 'pexels';
                     const license = video.license || 'Licensed';
+                    const fromCache = video.from_cache ? true : false;
+                    const cacheKeywords = section.cache_keywords || [];
+                    
                     html += `
                         <div class="scene-option" 
                              data-section="${idx}" 
                              data-video="${vidIdx}"
                              data-url="${video.download_url || ''}"
                              data-id="${video.id || ''}"
+                             data-source-page="${video.source_page || ''}"
+                             data-license="${license}"
+                             data-license-url="${video.license_url || ''}"
+                             data-attribution="${video.attribution || ''}"
+                             data-keywords="${cacheKeywords.join(',')}"
                              onclick="selectSceneVideo(this, ${idx})">
-                            <img src="${video.thumbnail || ''}" alt="Option ${vidIdx + 1}" loading="lazy">
+                            <img src="${video.thumbnail || ''}" alt="Option ${vidIdx + 1}" loading="lazy" onerror="this.style.display='none'">
                             <span class="source-badge">${source}</span>
                             <span class="license-badge">${license}</span>
+                            ${fromCache ? '<span class="cache-badge">CACHED</span>' : ''}
                         </div>
                     `;
                 });
@@ -1870,13 +2025,47 @@
             
             selectedVideos[sectionIdx] = {
                 id: element.dataset.id,
-                url: element.dataset.url
+                url: element.dataset.url,
+                source_page: element.dataset.sourcePage || '',
+                license: element.dataset.license || '',
+                license_url: element.dataset.licenseUrl || '',
+                attribution: element.dataset.attribution || '',
+                keywords: element.dataset.keywords || '',
+                thumbnail: element.querySelector('img')?.src || ''
             };
         }
         
-        function finishSceneSelection() {
-            // Hide scene picker, show voiceover section
+        async function finishSceneSelection() {
             console.log('Selected videos:', selectedVideos);
+            
+            // Save selected assets to cache for future use
+            for (const [idx, video] of Object.entries(selectedVideos)) {
+                if (video.id && video.url && video.keywords) {
+                    try {
+                        await fetch('/save-to-cache', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                asset: {
+                                    id: video.id,
+                                    download_url: video.url,
+                                    source_page: video.source_page,
+                                    thumbnail: video.thumbnail,
+                                    source: video.id.split('_')[0],
+                                    license: video.license,
+                                    license_url: video.license_url,
+                                    attribution: video.attribution
+                                },
+                                keywords: video.keywords.split(',').filter(k => k),
+                                context: 'visual_curation'
+                            })
+                        });
+                    } catch (e) {
+                        console.log('Cache save failed:', e);
+                    }
+                }
+            }
+            
             // Scroll to voiceover section
             document.querySelector('#single-narrator-section')?.scrollIntoView({ behavior: 'smooth' });
         }
