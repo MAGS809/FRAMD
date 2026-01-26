@@ -1029,12 +1029,23 @@
         }
         
         async function sendMessage() {
+            console.log('sendMessage called');
             const input = document.getElementById('user-input');
             const chatContainer = document.getElementById('script-chat');
             const sendBtn = document.getElementById('send-btn');
             
+            if (!input || !chatContainer || !sendBtn) {
+                console.error('Missing DOM elements:', { input, chatContainer, sendBtn });
+                return;
+            }
+            
             const message = input.value.trim();
-            if (!message) return;
+            if (!message) {
+                console.log('Empty message, returning');
+                return;
+            }
+            
+            console.log('Sending message:', message);
             
             // Add user message
             chatContainer.innerHTML += `<div class="message user">${escapeHtml(message)}</div>`;
@@ -1048,6 +1059,7 @@
             conversationHistory.push({ role: 'user', content: message });
             
             try {
+                console.log('Making fetch request...');
                 const response = await fetch('/refine-script', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1059,10 +1071,15 @@
                     })
                 });
                 
+                console.log('Response status:', response.status);
                 const data = await response.json();
-                document.getElementById('typing')?.remove();
+                console.log('Response data:', data);
+                
+                const typingEl = document.getElementById('typing');
+                if (typingEl) typingEl.remove();
                 
                 if (data.success) {
+                    console.log('Adding AI reply to chat');
                     chatContainer.innerHTML += `<div class="message ai">${escapeHtml(data.reply)}</div>`;
                     conversationHistory.push({ role: 'assistant', content: data.reply });
                     
@@ -1072,7 +1089,7 @@
                     
                     if (data.video_downloaded) {
                         currentVideoPath = data.video_path;
-                        chatContainer.innerHTML += `<div class="message ai" style="background: rgba(45, 106, 79, 0.8); border: 1px solid var(--accent);">📹 Video downloaded and analyzed! I'll suggest clips you can cut.</div>`;
+                        chatContainer.innerHTML += `<div class="message ai" style="background: rgba(45, 106, 79, 0.8); border: 1px solid var(--accent);">Video downloaded and analyzed! I'll suggest clips you can cut.</div>`;
                     }
                     
                     const clipMatches = data.reply.match(/\[CLIP:\s*(\d{1,2}:\d{2})-(\d{1,2}:\d{2})\]/gi);
@@ -1083,7 +1100,7 @@
                             if (times) {
                                 const startTime = times[1];
                                 const endTime = times[2];
-                                clipButtonsHtml += `<button class="btn btn-secondary" onclick="cutClip('${startTime}', '${endTime}')" style="font-size: 0.85rem; padding: 0.5rem 1rem;">✂️ Cut ${startTime}-${endTime}</button>`;
+                                clipButtonsHtml += `<button type="button" class="btn btn-secondary" onclick="cutClip('${startTime}', '${endTime}')" style="font-size: 0.85rem; padding: 0.5rem 1rem;">Cut ${startTime}-${endTime}</button>`;
                             }
                         });
                         clipButtonsHtml += '</div>';
@@ -1094,14 +1111,20 @@
                         refinedScript = data.refined_script;
                         document.getElementById('script-ready').classList.remove('hidden');
                     }
+                } else {
+                    console.error('Response not successful:', data);
+                    chatContainer.innerHTML += `<div class="message ai">Error: ${data.error || 'Unknown error'}</div>`;
                 }
             } catch (error) {
-                document.getElementById('typing')?.remove();
+                console.error('Fetch error:', error);
+                const typingEl = document.getElementById('typing');
+                if (typingEl) typingEl.remove();
                 chatContainer.innerHTML += `<div class="message ai">Something went wrong. Try again.</div>`;
             }
             
             sendBtn.disabled = false;
             chatContainer.scrollTop = chatContainer.scrollHeight;
+            console.log('sendMessage completed');
         }
         
         function escapeHtml(text) {
