@@ -6,6 +6,8 @@ import os
 import json
 import uuid
 import tempfile
+import stripe
+import requests
 from context_engine import (
     extract_audio, transcribe_audio, analyze_ideas,
     generate_script, find_clip_timestamps, generate_captions,
@@ -38,6 +40,136 @@ with app.app_context():
         token_entry.balance = 120
         db.session.add(token_entry)
         db.session.commit()
+
+# Stripe Integration
+def get_stripe_credentials():
+    """Fetch Stripe credentials from Replit connection API."""
+    hostname = os.environ.get('REPLIT_CONNECTORS_HOSTNAME')
+    repl_identity = os.environ.get('REPL_IDENTITY')
+    web_repl_renewal = os.environ.get('WEB_REPL_RENEWAL')
+    
+    if repl_identity:
+        x_replit_token = 'repl ' + repl_identity
+    elif web_repl_renewal:
+        x_replit_token = 'depl ' + web_repl_renewal
+    else:
+        return None, None
+    
+    is_production = os.environ.get('REPLIT_DEPLOYMENT') == '1'
+    target_env = 'production' if is_production else 'development'
+    
+    url = f"https://{hostname}/api/v2/connection?include_secrets=true&connector_names=stripe&environment={target_env}"
+    
+    response = requests.get(url, headers={
+        'Accept': 'application/json',
+        'X_REPLIT_TOKEN': x_replit_token
+    })
+    
+    data = response.json()
+    connection = data.get('items', [{}])[0]
+    settings = connection.get('settings', {})
+    
+    return settings.get('publishable'), settings.get('secret')
+
+# Token pricing
+TOKEN_PACKAGES = {
+    100: 500,    # 100 tokens = $5.00 (500 cents)
+    500: 2000,   # 500 tokens = $20.00 (2000 cents)
+    2000: 6000   # 2000 tokens = $60.00 (6000 cents)
+}
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    """Create a Stripe checkout session for token purchase."""
+    try:
+        data = request.get_json()
+        token_amount = data.get('amount', 500)
+        
+        if token_amount not in TOKEN_PACKAGES:
+            return jsonify({'error': 'Invalid token amount'}), 400
+        
+        price_cents = TOKEN_PACKAGES[token_amount]
+        
+        _, secret_key = get_stripe_credentials()
+        if not secret_key:
+            return jsonify({'error': 'Payment not configured'}), 500
+        
+        stripe.api_key = secret_key
+        
+        # Get the domain for redirect URLs
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        domain = domains.split(',')[0] if domains else 'localhost:5000'
+        protocol = 'https' if 'replit' in domain else 'http'
+        base_url = f"{protocol}://{domain}"
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'{token_amount} Tokens',
+                        'description': f'Framd Post Assembler - {token_amount} tokens for content creation',
+                    },
+                    'unit_amount': price_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{base_url}/?success=true&tokens={token_amount}',
+            cancel_url=f'{base_url}/?canceled=true',
+            metadata={
+                'token_amount': str(token_amount)
+            }
+        )
+        
+        return jsonify({'url': checkout_session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/stripe-webhook', methods=['POST'])
+def stripe_webhook():
+    """Handle Stripe webhook events."""
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    
+    _, secret_key = get_stripe_credentials()
+    if not secret_key:
+        return jsonify({'error': 'Payment not configured'}), 500
+    
+    stripe.api_key = secret_key
+    
+    try:
+        event = stripe.Event.construct_from(json.loads(payload), stripe.api_key)
+    except ValueError:
+        return jsonify({'error': 'Invalid payload'}), 400
+    
+    if event['type'] == 'checkout.session.completed':
+        session_data = event['data']['object']
+        token_amount = int(session_data.get('metadata', {}).get('token_amount', 0))
+        
+        if token_amount > 0:
+            token_entry = UserTokens.query.first()
+            if token_entry:
+                token_entry.balance += token_amount
+                db.session.commit()
+    
+    return jsonify({'received': True})
+
+@app.route('/add-tokens', methods=['POST'])
+def add_tokens():
+    """Add tokens after successful payment (called from frontend on success)."""
+    data = request.get_json()
+    amount = data.get('amount', 0)
+    
+    if amount > 0:
+        token_entry = UserTokens.query.first()
+        if token_entry:
+            token_entry.balance += amount
+            db.session.commit()
+            return jsonify({'success': True, 'balance': token_entry.balance})
+    
+    return jsonify({'success': False, 'error': 'Invalid amount'}), 400
 
 @app.route('/get-tokens', methods=['GET'])
 def get_tokens():

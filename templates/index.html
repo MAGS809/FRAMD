@@ -1411,7 +1411,46 @@
             }
         }
 
-        window.onload = updateBalance;
+        window.onload = async function() {
+            await updateBalance();
+            
+            // Check for successful payment return
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('success') === 'true') {
+                const tokens = parseInt(urlParams.get('tokens') || '0');
+                if (tokens > 0) {
+                    // Add tokens after successful payment
+                    try {
+                        const response = await fetch('/add-tokens', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ amount: tokens })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            document.getElementById('balance-amount').textContent = data.balance;
+                            document.getElementById('post-estimate').textContent = Math.floor(data.balance / 35);
+                            
+                            // Show success message
+                            const chatContainer = document.getElementById('script-chat');
+                            chatContainer.innerHTML = `
+                                <div class="message ai" style="background: rgba(52, 211, 153, 0.1); border: 1px solid var(--success); text-align: center;">
+                                    Payment successful. ${tokens} tokens added to your account.
+                                </div>
+                            `;
+                        }
+                    } catch (e) {
+                        console.error('Failed to add tokens:', e);
+                    }
+                }
+                // Clean URL
+                window.history.replaceState({}, document.title, '/');
+            }
+            
+            if (urlParams.get('canceled') === 'true') {
+                window.history.replaceState({}, document.title, '/');
+            }
+        };
         
         // Credits Modal Functions
         let selectedCredits = { amount: 500, price: 20 };
@@ -1439,10 +1478,33 @@
             selectedCredits = { amount, price };
         }
         
-        function purchaseCredits() {
-            // For now, show a message - in production this would integrate with Stripe
-            alert(`Payment integration coming soon! You selected ${selectedCredits.amount} tokens for $${selectedCredits.price}.`);
-            closeCreditsModal();
+        async function purchaseCredits() {
+            const purchaseBtn = document.querySelector('#credits-modal .btn-primary');
+            purchaseBtn.textContent = 'Processing...';
+            purchaseBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: selectedCredits.amount })
+                });
+                
+                const data = await response.json();
+                
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert(data.error || 'Failed to create checkout session');
+                    purchaseBtn.textContent = 'Purchase Tokens';
+                    purchaseBtn.disabled = false;
+                }
+            } catch (e) {
+                console.error('Checkout error:', e);
+                alert('Failed to start checkout. Please try again.');
+                purchaseBtn.textContent = 'Purchase Tokens';
+                purchaseBtn.disabled = false;
+            }
         }
         
         // Close modal on background click
