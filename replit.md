@@ -7,15 +7,32 @@ Calligra is a high-end post-assembler utilizing the Framd™ workflow and FRMC�
 - **Framd™** - No clip exists without a script.
 - **FRMC™** - No script exists without reasoning.
 
-## Architecture
+## AI Guidelines & Behavior Spec
+### Purpose
+Calligra is an editorial intelligence designed to think before creating, prioritize clarity over noise, and turn ideas/transcripts/links into intentional, human-feeling posts.
 
-### Pipeline Flow
-1. **Upload** - User uploads video/audio file
-2. **Transcribe** - Audio extracted and transcribed with timestamps
-3. **Analyze** - AI identifies key ideas, claims, assumptions, contradictions
-4. **Script** - For each viable idea, AI writes a structured script (hook, core claim, grounding, closing)
-5. **Clip Selection** - Timestamps are identified that support the script
-6. **Export** - FFmpeg cuts clips in specified aspect ratio
+### Core Operating Principle (NON-NEGOTIABLE)
+**Script → Intent → Visuals → Edit → Post**
+- Never select visuals before a script exists.
+- Every visual choice must be justified by the script.
+
+### Editorial Tone
+- Calm, experienced editor (style: Seth Green's meta-awareness, Joe Rogan's directness, Mel Brooks' humor).
+- No buzzwords, no filler, no "As an AI..." statements.
+- Respect ideological complexity; avoid oversimplified blame.
+
+### Visual Planning
+- Generic search queries ONLY (Pexels, Unsplash, Pixabay).
+- No celebrities, no brands, no copyrighted footage.
+- Every asset must be labeled with source and license.
+
+## Pipeline Flow
+1. **Upload** - User uploads video/audio file or pastes a link.
+2. **Transcribe** - Audio extracted and transcribed with timestamps.
+3. **Analyze** - AI identifies key ideas, claims, assumptions, contradictions.
+4. **Script** - Framd™ writes a structured script (hook < 2s, flow, reflection exit).
+5. **Clip Selection** - Timestamps identified that support the script.
+6. **Export** - FFmpeg cuts clips in specified aspect ratio.
 
 ### Key Files
 - `app.py` - Flask web application with REST API endpoints
