@@ -1679,7 +1679,8 @@ def generate_video():
             concat_file = os.path.join(output_dir, f'concat_{output_id}.txt')
             with open(concat_file, 'w') as f:
                 for tf in temp_files:
-                    f.write(f"file '{tf}'\n")
+                    # Use just the filename since concat file is in same directory
+                    f.write(f"file '{os.path.basename(tf)}'\n")
             
             cmd = [
                 'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', concat_file,
