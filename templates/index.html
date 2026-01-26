@@ -896,8 +896,6 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
-            <p class="feature-statement">No clip exists without a script. No script exists without reasoning.</p>
-            
             <div class="input-hero">
                 <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="3"></textarea>
                 <button type="button" class="btn btn-primary btn-send" id="send-btn" style="font-size: 1.25rem;">
@@ -910,7 +908,7 @@
             
             <div class="chat-container" id="script-chat">
                 <div class="message ai">
-                    Links become clips. Ideas become posts. What's your pitch?
+                    What would you like to create today?
                 </div>
             </div>
             <p style="text-align: center; font-size: 0.75rem; color: var(--text-muted); margin-top: 1.5rem;">
@@ -1145,7 +1143,7 @@
         </div>
         
         <footer>
-            <p>Framd Post Assembler — No clip exists without a script. No script exists without reasoning.</p>
+            <p>Framd Post Assembler</p>
         </footer>
     </div>
     
@@ -1760,7 +1758,7 @@
             
             document.getElementById('script-chat').innerHTML = `
                 <div class="message ai">
-                    Links become clips. Ideas become posts. Whats your pitch?
+                    What would you like to create today?
                 </div>
             `;
             document.getElementById('script-ready').classList.add('hidden');
