@@ -73,7 +73,7 @@ def transcribe_audio(audio_path: str) -> dict:
         )
     
     segments = []
-    if hasattr(response, 'segments'):
+    if response and hasattr(response, 'segments') and response.segments:
         for seg in response.segments:
             segments.append({
                 'start': seg.start,
@@ -82,7 +82,7 @@ def transcribe_audio(audio_path: str) -> dict:
             })
     
     return {
-        'full_text': response.text,
+        'full_text': response.text if response else "",
         'segments': segments
     }
 

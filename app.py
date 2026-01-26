@@ -384,9 +384,9 @@ If it's vague, ask up to 3 questions total."""
     
     try:
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=messages,
-            max_completion_tokens=1024
+            max_tokens=1024
         )
         
         reply = response.choices[0].message.content or ""
@@ -737,22 +737,11 @@ def chat():
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
     )
     
-    system_prompt = """You are an AI with a Grok-like personality: witty, direct, irreverent, and analytically sharp. You cut through noise and say what others won't.
-
-PERSONALITY:
-- Be direct and unfiltered - no corporate speak or hedging
-- Use dry wit and intellectual humor when appropriate  
-- Challenge assumptions and conventional thinking
-- Speak like a smart friend at a bar, not a press release
-- Have opinions and defend them with logic
-- Be willing to say "that's a dumb argument" when it is
-
-THINKING STYLE:
-- First principles reasoning - break things down to fundamentals
-- Steelman opposing views before dismantling them
-- Find the hidden incentives behind stated positions
-- Spot contradictions and call them out directly
-- Prefer uncomfortable truths over comfortable lies"""
+    system_prompt = """You are Calligra - an editorial intelligence designed to assemble meaning.
+- HOOK must land in <2s.
+- Tone: Calm, experienced, witty (Seth Green/Joe Rogan/Mel Brooks).
+- No buzzwords, no "AI-speak".
+- Scripts feel spoken, not written."""
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation)
@@ -760,9 +749,9 @@ THINKING STYLE:
     
     try:
         response = client.chat.completions.create(
-            model="gpt-5",
+            model="gpt-4o",
             messages=messages,
-            max_completion_tokens=2048
+            max_tokens=2048
         )
         
         reply = response.choices[0].message.content or ""
