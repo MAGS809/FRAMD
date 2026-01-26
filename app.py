@@ -697,22 +697,45 @@ CRITICAL:
                         except:
                             pass
                     
-                    # Search Wikimedia Commons
+                    # Search Wikimedia Commons (use list=search with .webm extension for videos)
                     try:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
-                        params = {
+                        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+                        
+                        # First get page IDs via list search
+                        search_params = {
                             'action': 'query',
                             'format': 'json',
-                            'generator': 'search',
-                            'gsrsearch': f'{query} filetype:video',
-                            'gsrlimit': 4,
+                            'list': 'search',
+                            'srsearch': f'{query} .webm OR .mp4 OR .ogv',
+                            'srnamespace': 6,
+                            'srlimit': 4
+                        }
+                        search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
+                        print(f"[Wikimedia] Status: {search_resp.status_code}")
+                        if search_resp.status_code != 200:
+                            print(f"[Wikimedia] Bad response: {search_resp.text[:200]}")
+                            continue
+                        
+                        search_data = search_resp.json()
+                        search_results = search_data.get('query', {}).get('search', [])
+                        print(f"[Wikimedia] Query: {query}, Found {len(search_results)} results")
+                        
+                        if not search_results:
+                            continue
+                        
+                        # Get imageinfo for found pages
+                        page_ids = [str(r['pageid']) for r in search_results]
+                        info_params = {
+                            'action': 'query',
+                            'format': 'json',
+                            'pageids': '|'.join(page_ids),
                             'prop': 'imageinfo',
                             'iiprop': 'url|extmetadata',
                             'iiurlwidth': 320
                         }
-                        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
-                        resp = requests.get(search_url, params=params, headers=wiki_headers, timeout=10)
-                        wiki_data = resp.json()
+                        info_resp = requests.get(search_url, params=info_params, headers=wiki_headers, timeout=10)
+                        wiki_data = info_resp.json()
                         pages = wiki_data.get('query', {}).get('pages', {})
                         print(f"[Wikimedia] Query: {query}, Found {len(pages)} pages")
                         
