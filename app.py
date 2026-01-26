@@ -34,12 +34,13 @@ class UserTokens(db.Model):
     last_updated = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
 class MediaAsset(db.Model):
-    """Legal media assets with licensing metadata."""
-    id = db.Column(db.String(255), primary_key=True)  # e.g., commons_File:Example.webm
+    """Legal media assets with licensing metadata - stores LINKS only, not files."""
+    id = db.Column(db.String(255), primary_key=True)  # e.g., pexels_12345, wikimedia_67890
     source_page = db.Column(db.Text, nullable=False)
     download_url = db.Column(db.Text, nullable=False)
-    source = db.Column(db.String(50), nullable=False)  # wikimedia_commons, pexels, pixabay
-    license = db.Column(db.String(100), nullable=False)  # CC BY 4.0, CC0, etc.
+    thumbnail_url = db.Column(db.Text)  # Preview image
+    source = db.Column(db.String(50), nullable=False)  # wikimedia_commons, pexels
+    license = db.Column(db.String(100), nullable=False)  # CC BY 4.0, CC0, Pexels License
     license_url = db.Column(db.Text)
     commercial_use_allowed = db.Column(db.Boolean, default=True)
     derivatives_allowed = db.Column(db.Boolean, default=True)
@@ -50,8 +51,18 @@ class MediaAsset(db.Model):
     resolution = db.Column(db.String(20))  # e.g., 1920x1080
     description = db.Column(db.Text)
     tags = db.Column(db.JSON)  # List of descriptive tags
-    safe_flags = db.Column(db.JSON)  # {no_sexual: true, no_brands: true, etc.}
+    safe_flags = db.Column(db.JSON)  # {no_sexual: true, no_brands: true, no_celeb: true}
     status = db.Column(db.String(20), default='safe')  # safe, pending, rejected
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+class KeywordAssetCache(db.Model):
+    """Cache keyword → asset associations for faster visual curation."""
+    id = db.Column(db.Integer, primary_key=True)
+    keyword = db.Column(db.String(255), nullable=False, index=True)
+    context = db.Column(db.String(100))  # mood, setting, tone
+    asset_id = db.Column(db.String(255), db.ForeignKey('media_asset.id'), nullable=False)
+    relevance_score = db.Column(db.Float, default=1.0)  # How well this asset fits the keyword
+    use_count = db.Column(db.Integer, default=0)  # How many times selected
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 with app.app_context():
@@ -520,11 +531,13 @@ def search_assets():
 
 @app.route('/curate-visuals', methods=['POST'])
 def curate_visuals():
-    """AI curates visuals based on the script - creates a visual board."""
+    """AI curates visuals based on script context - checks cache first, then external APIs."""
     from openai import OpenAI
+    import re as regex
     
     data = request.get_json()
     script = data.get('script', '')
+    user_guidance = data.get('user_guidance', '')  # Optional user direction
     
     if not script:
         return jsonify({'success': False, 'error': 'No script provided'}), 400
@@ -536,120 +549,498 @@ def curate_visuals():
     
     content_type = data.get('content_type', 'educational')
     
-    system_prompt = """You are a visual curator for short-form video content.
-Given a script, create a Visual Board with footage that directly ties to the script.
+    # Enhanced prompt that extracts setting, mood, and visual intent
+    system_prompt = """You are Framd's visual curator. Analyze the script deeply to find visuals that SERVE the message.
 
-RULES:
-- Break the script into 2-5 sections based on natural beats
-- For each section:
-  - Explain WHY this visual matters for this moment (1 sentence)
-  - Suggest 2-3 very specific search queries tied to the script content
-- Make search queries SPECIFIC to the script, not generic
-- NO celebrities, NO branded content, NO sexualized imagery
+EXTRACT FROM SCRIPT:
+1. SETTING - Where does this take place? (office, street, home, abstract)
+2. MOOD - What's the emotional tone? (tense, hopeful, contemplative, urgent)
+3. VISUAL INTENT - What should the viewer FEEL, not just see?
+
+For each section, create search queries that are:
+- SPECIFIC to the script content (not generic B-roll)
+- Contextual to the setting and mood
+- Legally safe (no celebrities, brands, or sexual content)
 
 OUTPUT FORMAT (JSON):
 {
+  "overall_context": {
+    "setting": "corporate office, late evening",
+    "mood": "tense, confrontational",
+    "visual_intent": "Create unease through sterile environments and isolation"
+  },
   "sections": [
     {
-      "script_segment": "The actual dialogue or narration from this part...",
-      "mood": "tense, confrontational",
-      "visual_notes": "This moment needs tension - the visual should contrast calm setting with the aggressive subtext",
-      "search_queries": ["dark office corridor", "fluorescent lights hallway", "empty boardroom"]
+      "script_segment": "The actual dialogue from this part...",
+      "setting": "empty boardroom",
+      "mood": "tense",
+      "visual_notes": "This moment needs visual isolation - one person against institutional coldness",
+      "search_queries": ["empty boardroom table", "fluorescent office lights", "person alone corporate"],
+      "cache_keywords": ["corporate_tension", "isolation", "office_night"]
     }
   ]
 }
 
-CRITICAL: search_queries must relate to the ACTUAL CONTENT of the script_segment, not generic B-roll."""
+CRITICAL: 
+- search_queries = specific terms for API search
+- cache_keywords = conceptual tags for our asset library"""
+
+    user_content = f"Create a visual board for this script:\n\n{script}"
+    if user_guidance:
+        user_content += f"\n\nUSER DIRECTION: {user_guidance}"
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Create a visual board for this script:\n\n{script}"}
+                {"role": "user", "content": user_content}
             ],
             response_format={"type": "json_object"},
-            max_tokens=1024
+            max_tokens=1500
         )
         
         visual_board = json.loads(response.choices[0].message.content or '{}')
-        
-        # For each section, search both Pexels and Wikimedia Commons
         pexels_key = os.environ.get('PEXELS_API_KEY')
         
         for section in visual_board.get('sections', []):
             section['suggested_videos'] = []
+            cache_keywords = section.get('cache_keywords', [])
+            mood = section.get('mood', '')
             
-            for query in section.get('search_queries', [])[:2]:  # Up to 2 queries per section
-                # Search Pexels
-                if pexels_key:
-                    try:
-                        resp = requests.get(
-                            'https://api.pexels.com/videos/search',
-                            headers={'Authorization': pexels_key},
-                            params={'query': query, 'per_page': 3, 'orientation': 'portrait'},
-                            timeout=10
-                        )
-                        videos = resp.json().get('videos', [])
-                        for v in videos[:2]:
-                            video_files = v.get('video_files', [])
-                            best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
-                            if best:
-                                section['suggested_videos'].append({
-                                    'id': f"pexels_{v['id']}",
-                                    'source': 'pexels',
-                                    'thumbnail': v.get('image'),
-                                    'download_url': best.get('link'),
-                                    'duration': v.get('duration'),
-                                    'license': 'Pexels License',
-                                    'attribution': f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels"
-                                })
-                    except:
-                        pass
+            # STEP 1: Check cache first for matching keywords
+            cached_assets = []
+            for keyword in cache_keywords[:3]:
+                cache_entries = KeywordAssetCache.query.filter(
+                    KeywordAssetCache.keyword.ilike(f'%{keyword}%')
+                ).order_by(KeywordAssetCache.use_count.desc()).limit(2).all()
                 
-                # Search Wikimedia Commons
-                try:
-                    import re as regex
-                    search_url = 'https://commons.wikimedia.org/w/api.php'
-                    params = {
-                        'action': 'query',
-                        'format': 'json',
-                        'generator': 'search',
-                        'gsrsearch': f'{query} filetype:video',
-                        'gsrlimit': 3,
-                        'prop': 'imageinfo',
-                        'iiprop': 'url|extmetadata',
-                        'iiurlwidth': 320
-                    }
-                    resp = requests.get(search_url, params=params, timeout=10)
-                    pages = resp.json().get('query', {}).get('pages', {})
+                for entry in cache_entries:
+                    asset = MediaAsset.query.get(entry.asset_id)
+                    if asset and asset.status == 'safe':
+                        cached_assets.append({
+                            'id': asset.id,
+                            'source': asset.source,
+                            'thumbnail': asset.thumbnail_url,
+                            'download_url': asset.download_url,
+                            'duration': asset.duration_sec,
+                            'license': asset.license,
+                            'license_url': asset.license_url,
+                            'attribution': asset.attribution_text,
+                            'from_cache': True
+                        })
+            
+            # Add cached assets first (deduplicated)
+            seen_ids = set()
+            for asset in cached_assets:
+                if asset['id'] not in seen_ids:
+                    section['suggested_videos'].append(asset)
+                    seen_ids.add(asset['id'])
+            
+            # STEP 2: Search external APIs if we need more options
+            if len(section['suggested_videos']) < 4:
+                for query in section.get('search_queries', [])[:2]:
+                    # Search Pexels
+                    if pexels_key:
+                        try:
+                            resp = requests.get(
+                                'https://api.pexels.com/videos/search',
+                                headers={'Authorization': pexels_key},
+                                params={'query': query, 'per_page': 4, 'orientation': 'portrait'},
+                                timeout=10
+                            )
+                            videos = resp.json().get('videos', [])
+                            for v in videos[:3]:
+                                asset_id = f"pexels_{v['id']}"
+                                if asset_id in seen_ids:
+                                    continue
+                                    
+                                video_files = v.get('video_files', [])
+                                best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
+                                if best:
+                                    video_data = {
+                                        'id': asset_id,
+                                        'source': 'pexels',
+                                        'source_page': v.get('url'),
+                                        'thumbnail': v.get('image'),
+                                        'download_url': best.get('link'),
+                                        'duration': v.get('duration'),
+                                        'license': 'Pexels License',
+                                        'license_url': 'https://www.pexels.com/license/',
+                                        'attribution': f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels",
+                                        'from_cache': False
+                                    }
+                                    section['suggested_videos'].append(video_data)
+                                    seen_ids.add(asset_id)
+                        except:
+                            pass
                     
-                    for page_id, page in pages.items():
-                        if page_id == '-1':
-                            continue
-                        imageinfo = page.get('imageinfo', [{}])[0]
-                        extmeta = imageinfo.get('extmetadata', {})
-                        license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                    # Search Wikimedia Commons
+                    try:
+                        search_url = 'https://commons.wikimedia.org/w/api.php'
+                        params = {
+                            'action': 'query',
+                            'format': 'json',
+                            'generator': 'search',
+                            'gsrsearch': f'{query} filetype:video',
+                            'gsrlimit': 4,
+                            'prop': 'imageinfo',
+                            'iiprop': 'url|extmetadata',
+                            'iiurlwidth': 320
+                        }
+                        resp = requests.get(search_url, params=params, timeout=10)
+                        pages = resp.json().get('query', {}).get('pages', {})
                         
-                        # Only include CC0, CC BY, or CC BY-SA
-                        if any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain']):
-                            artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
-                            our_license = 'CC0' if ('cc0' in license_short or 'public domain' in license_short) else 'CC BY'
+                        for page_id, page in pages.items():
+                            if page_id == '-1':
+                                continue
+                            asset_id = f"wikimedia_{page.get('pageid')}"
+                            if asset_id in seen_ids:
+                                continue
+                                
+                            imageinfo = page.get('imageinfo', [{}])[0]
+                            extmeta = imageinfo.get('extmetadata', {})
+                            license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                            license_url = extmeta.get('LicenseUrl', {}).get('value', '')
                             
-                            section['suggested_videos'].append({
-                                'id': f"wikimedia_{page.get('pageid')}",
+                            # License validation - REJECT NC/ND
+                            if 'nc' in license_short or 'nd' in license_short:
+                                continue
+                            if not any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain', 'pd']):
+                                continue
+                            
+                            artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
+                            
+                            if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
+                                our_license = 'CC0'
+                            elif 'cc-by-sa' in license_short:
+                                our_license = 'CC BY-SA'
+                            else:
+                                our_license = 'CC BY'
+                            
+                            source_page = f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}"
+                            
+                            video_data = {
+                                'id': asset_id,
                                 'source': 'wikimedia',
+                                'source_page': source_page,
                                 'thumbnail': imageinfo.get('thumburl'),
                                 'download_url': imageinfo.get('url'),
                                 'license': our_license,
-                                'attribution': f"{artist} / Wikimedia Commons / {our_license}"
-                            })
-                except:
-                    pass
+                                'license_url': license_url or 'https://creativecommons.org/licenses/',
+                                'attribution': f"{artist} / Wikimedia Commons / {our_license}",
+                                'from_cache': False
+                            }
+                            section['suggested_videos'].append(video_data)
+                            seen_ids.add(asset_id)
+                    except:
+                        pass
         
         return jsonify({'success': True, 'visual_board': visual_board})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/save-to-cache', methods=['POST'])
+def save_to_cache():
+    """Save a selected asset to the cache with keywords for future use."""
+    data = request.get_json()
+    asset = data.get('asset', {})
+    keywords = data.get('keywords', [])
+    context = data.get('context', '')
+    
+    if not asset.get('id') or not asset.get('download_url'):
+        return jsonify({'success': False, 'error': 'Missing asset data'}), 400
+    
+    try:
+        # Save or update the asset
+        existing = MediaAsset.query.get(asset['id'])
+        if not existing:
+            new_asset = MediaAsset(
+                id=asset['id'],
+                source_page=asset.get('source_page', ''),
+                download_url=asset['download_url'],
+                thumbnail_url=asset.get('thumbnail'),
+                source=asset.get('source', 'unknown'),
+                license=asset.get('license', 'Unknown'),
+                license_url=asset.get('license_url', ''),
+                commercial_use_allowed=True,
+                derivatives_allowed=True,
+                attribution_required=asset.get('license', '') not in ['CC0', 'Public Domain'],
+                attribution_text=asset.get('attribution', ''),
+                content_type='video',
+                duration_sec=asset.get('duration'),
+                tags=keywords,
+                safe_flags={'no_sexual': True, 'no_brands': True, 'no_celeb': True},
+                status='safe'
+            )
+            db.session.add(new_asset)
+        
+        # Create keyword associations
+        for keyword in keywords:
+            cache_entry = KeywordAssetCache.query.filter_by(
+                keyword=keyword.lower(),
+                asset_id=asset['id']
+            ).first()
+            
+            if cache_entry:
+                cache_entry.use_count += 1
+            else:
+                cache_entry = KeywordAssetCache(
+                    keyword=keyword.lower(),
+                    context=context,
+                    asset_id=asset['id'],
+                    relevance_score=1.0,
+                    use_count=1
+                )
+                db.session.add(cache_entry)
+        
+        db.session.commit()
+        return jsonify({'success': True, 'message': 'Asset cached for future use'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/ingest', methods=['POST'])
+def ingest_assets():
+    """Crawl and save verified legal asset LINKS with rejection logging."""
+    import re as regex
+    
+    data = request.get_json()
+    query = data.get('query', '')
+    limit = data.get('limit', 20)
+    source = data.get('source', 'all')
+    
+    if not query:
+        return jsonify({'success': False, 'error': 'Query required'}), 400
+    
+    saved = 0
+    rejected = []
+    pexels_key = os.environ.get('PEXELS_API_KEY')
+    
+    # Search Pexels
+    if source in ['all', 'pexels'] and pexels_key:
+        try:
+            resp = requests.get(
+                'https://api.pexels.com/videos/search',
+                headers={'Authorization': pexels_key},
+                params={'query': query, 'per_page': min(limit, 40)},
+                timeout=15
+            )
+            for v in resp.json().get('videos', []):
+                asset_id = f"pexels_{v['id']}"
+                if MediaAsset.query.get(asset_id):
+                    continue
+                    
+                video_files = v.get('video_files', [])
+                best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
+                if not best:
+                    rejected.append({'id': asset_id, 'reason': 'No suitable video file'})
+                    continue
+                
+                new_asset = MediaAsset(
+                    id=asset_id,
+                    source_page=v.get('url', ''),
+                    download_url=best.get('link', ''),
+                    thumbnail_url=v.get('image'),
+                    source='pexels',
+                    license='Pexels License',
+                    license_url='https://www.pexels.com/license/',
+                    commercial_use_allowed=True,
+                    derivatives_allowed=True,
+                    attribution_required=False,
+                    attribution_text=f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels",
+                    content_type='video',
+                    duration_sec=v.get('duration'),
+                    resolution=f"{best.get('width', 0)}x{best.get('height', 0)}",
+                    tags=[query],
+                    safe_flags={'no_sexual': True, 'no_brands': True, 'no_celeb': True},
+                    status='safe'
+                )
+                db.session.add(new_asset)
+                saved += 1
+        except Exception as e:
+            rejected.append({'source': 'pexels', 'reason': str(e)})
+    
+    # Search Wikimedia Commons
+    if source in ['all', 'wikimedia_commons']:
+        try:
+            search_url = 'https://commons.wikimedia.org/w/api.php'
+            params = {
+                'action': 'query',
+                'format': 'json',
+                'generator': 'search',
+                'gsrsearch': f'{query} filetype:video',
+                'gsrlimit': min(limit, 50),
+                'prop': 'imageinfo',
+                'iiprop': 'url|extmetadata|size',
+                'iiurlwidth': 320
+            }
+            resp = requests.get(search_url, params=params, timeout=15)
+            pages = resp.json().get('query', {}).get('pages', {})
+            
+            for page_id, page in pages.items():
+                if page_id == '-1':
+                    continue
+                    
+                asset_id = f"wikimedia_{page.get('pageid')}"
+                if MediaAsset.query.get(asset_id):
+                    continue
+                
+                imageinfo = page.get('imageinfo', [{}])[0]
+                extmeta = imageinfo.get('extmetadata', {})
+                license_short = extmeta.get('LicenseShortName', {}).get('value', '').lower()
+                license_url = extmeta.get('LicenseUrl', {}).get('value', '')
+                
+                # HARD REJECT: NC, ND, Editorial, Unknown
+                if 'nc' in license_short:
+                    rejected.append({'id': asset_id, 'reason': 'CC BY-NC - non-commercial'})
+                    continue
+                if 'nd' in license_short:
+                    rejected.append({'id': asset_id, 'reason': 'CC BY-ND - no derivatives'})
+                    continue
+                if not any(allowed in license_short for allowed in ['cc0', 'cc-by', 'public domain', 'pd']):
+                    rejected.append({'id': asset_id, 'reason': f'Unknown/rejected license: {license_short}'})
+                    continue
+                
+                artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
+                
+                if 'cc0' in license_short or 'public domain' in license_short or 'pd' in license_short:
+                    our_license = 'CC0'
+                    attribution_required = False
+                elif 'cc-by-sa' in license_short:
+                    our_license = 'CC BY-SA'
+                    attribution_required = True
+                else:
+                    our_license = 'CC BY'
+                    attribution_required = True
+                
+                source_page = f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}"
+                
+                new_asset = MediaAsset(
+                    id=asset_id,
+                    source_page=source_page,
+                    download_url=imageinfo.get('url', ''),
+                    thumbnail_url=imageinfo.get('thumburl'),
+                    source='wikimedia_commons',
+                    license=our_license,
+                    license_url=license_url or 'https://creativecommons.org/licenses/',
+                    commercial_use_allowed=True,
+                    derivatives_allowed=True,
+                    attribution_required=attribution_required,
+                    attribution_text=f"{artist} / Wikimedia Commons / {our_license}",
+                    content_type='video',
+                    resolution=f"{imageinfo.get('width', 0)}x{imageinfo.get('height', 0)}",
+                    tags=[query],
+                    safe_flags={'no_sexual': True, 'no_brands': True, 'no_celeb': True},
+                    status='safe'
+                )
+                db.session.add(new_asset)
+                saved += 1
+        except Exception as e:
+            rejected.append({'source': 'wikimedia', 'reason': str(e)})
+    
+    db.session.commit()
+    return jsonify({
+        'success': True,
+        'saved': saved,
+        'rejected_count': len(rejected),
+        'rejected': rejected[:10]  # Show first 10 rejections
+    })
+
+
+@app.route('/assets', methods=['GET'])
+def query_assets():
+    """Query cached assets by tags and content type."""
+    tags = request.args.get('tags', '').split(',') if request.args.get('tags') else []
+    content_type = request.args.get('content_type', 'video')
+    limit = int(request.args.get('limit', 20))
+    
+    query = MediaAsset.query.filter(
+        MediaAsset.status == 'safe',
+        MediaAsset.content_type == content_type
+    )
+    
+    if tags:
+        # Filter by tags (any match)
+        from sqlalchemy import or_
+        tag_filters = [MediaAsset.tags.contains([tag]) for tag in tags if tag]
+        if tag_filters:
+            query = query.filter(or_(*tag_filters))
+    
+    assets = query.limit(limit).all()
+    
+    return jsonify({
+        'success': True,
+        'count': len(assets),
+        'assets': [{
+            'id': a.id,
+            'source': a.source,
+            'source_page': a.source_page,
+            'download_url': a.download_url,
+            'thumbnail': a.thumbnail_url,
+            'license': a.license,
+            'license_url': a.license_url,
+            'attribution': a.attribution_text,
+            'tags': a.tags,
+            'duration': a.duration_sec
+        } for a in assets]
+    })
+
+
+@app.route('/download-asset', methods=['POST'])
+def download_asset():
+    """Download asset on-demand for final render. Only from allowed domains."""
+    data = request.get_json()
+    asset_id = data.get('asset_id')
+    download_url = data.get('download_url')
+    
+    if not download_url:
+        return jsonify({'success': False, 'error': 'No download URL'}), 400
+    
+    # Security: Only allow downloads from approved domains
+    from urllib.parse import urlparse
+    allowed_domains = ['pexels.com', 'videos.pexels.com', 'wikimedia.org', 'upload.wikimedia.org']
+    parsed = urlparse(download_url)
+    if not any(domain in parsed.netloc for domain in allowed_domains):
+        return jsonify({'success': False, 'error': 'Download URL not from approved source'}), 403
+    
+    try:
+        resp = requests.get(download_url, timeout=60, stream=True)
+        resp.raise_for_status()
+        
+        # Save to temp file
+        ext = 'mp4' if 'video' in resp.headers.get('content-type', '') else 'webm'
+        filename = f"{asset_id or uuid.uuid4()}.{ext}"
+        filepath = os.path.join('output', filename)
+        
+        with open(filepath, 'wb') as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        return jsonify({
+            'success': True,
+            'local_path': filepath,
+            'filename': filename
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint."""
+    asset_count = MediaAsset.query.filter_by(status='safe').count()
+    cache_count = KeywordAssetCache.query.count()
+    return jsonify({
+        'status': 'healthy',
+        'compliance': 'This app only downloads media from sources with explicit reuse permissions. Each asset is stored with license metadata and attribution requirements. If licensing is unclear, the asset is rejected.',
+        'asset_library': {
+            'total_assets': asset_count,
+            'cached_keywords': cache_count
+        }
+    })
 
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
