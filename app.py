@@ -1493,8 +1493,7 @@ REACT FAST:
 - 1 question max. If clear, write NOW.
 
 THINK IN VISUALS:
-Every line = a shot. Tag with searchable keywords:
-[VISUAL: drone city night traffic] [VISUAL: hands typing laptop closeup] [VISUAL: crowd protest signs]
+Every line = a shot. Tag with searchable keywords.
 Specific, searchable, stockable.
 
 VIDEO DROPS:
@@ -1502,17 +1501,49 @@ Pull the gold. Skip the filler.
 - [CLIP: 00:30-01:15] "money quote here"
 - Max 4 clips. State the angle.
 
-SCRIPT OUTPUT:
+SCRIPT FORMAT (CLEAN DOC STYLE):
+
 SCRIPT READY:
 
-TITLE IN CAPS
+---
 
-INT./EXT. LOCATION - TIME
+**TITLE**
 
-CHARACTER: Line.
-[VISUAL: keywords keywords keywords]
+---
 
-End: "Characters: [X, Y]. Voices?"
+**SCENE 1**
+*EXT. LOCATION - TIME*
+
+**CHARACTER NAME:**
+"Dialogue line here."
+
+> VISUAL: keyword keyword keyword
+
+---
+
+**SCENE 2**
+*INT. LOCATION - TIME*
+
+**CHARACTER NAME:**
+"Next line."
+
+> VISUAL: keyword keyword keyword
+
+---
+
+**CHARACTERS:** Name1, Name2, Name3
+**VOICES?** [end with this question]
+
+---
+
+RULES:
+- Use --- dividers between scenes
+- Bold character names with **
+- Italics for scene headers with *
+- Quote marks around dialogue
+- Visual tags on their own line with >
+- Clean vertical spacing
+- No walls of text
 
 VOICE:
 Tight. Pro. Zero preamble.
@@ -1520,7 +1551,7 @@ Comedy = state the style (deadpan/absurd/satirical).
 Never narrate yourself. Just write.
 
 WRONG: "Here's a script capturing the vibe..."
-RIGHT: SCRIPT READY: [script]"""
+RIGHT: SCRIPT READY: [clean formatted script]"""
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation)
