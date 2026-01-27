@@ -128,14 +128,16 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Flask Web Application**: `app.py` handles REST API endpoints
 - **Context Engine**: `context_engine.py` manages the core processing pipeline with conversation memory
 - **AI Reasoning**: 4-question framework before generating output
+- **Short-Form Content Mastery**: AI understands 3-second rule, message compression, hook formulas, punchy delivery
 - **Legal Media Asset Library**: Stores links with full licensing metadata (CC0, Public Domain, CC BY, etc.)
 - **Voice System**: 8 punchy character personas with multi-character script support
-- **Caption System**: Word-synced captions via FFmpeg drawtext filters
+- **Caption System**: Word-synced captions via FFmpeg drawtext filters with dynamic phone-frame preview
 - **Output Formats**: 9:16, 1:1, 4:5, 16:9 aspect ratios
 - **Scene Composer**: Background picker with character layer system
 - **Background Removal**: Pillow-based subject extraction with character tabs
 - **Character Generation**: DALL-E integration for AI-generated characters
 - **Conversation Memory**: AI learns from user patterns and preferences
+- **Persistent Chat Panel**: Floating chat with cross-tab sync via localStorage, animated message entrance
 
 **Character Voice Personas:**
 1. News Anchor - Professional, authoritative newsroom delivery
