@@ -1289,6 +1289,141 @@ def download_asset():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/remove-background', methods=['POST'])
+def remove_background():
+    """
+    Remove background from an image using threshold-based alpha extraction.
+    Returns a PNG with transparent background.
+    """
+    from PIL import Image
+    import io
+    import base64
+    
+    data = request.get_json()
+    image_url = data.get('image_url')
+    image_base64 = data.get('image_base64')
+    character_name = data.get('character_name', 'Subject')
+    
+    if not image_url and not image_base64:
+        return jsonify({'error': 'No image provided'}), 400
+    
+    try:
+        if image_base64:
+            image_data = base64.b64decode(image_base64)
+            img = Image.open(io.BytesIO(image_data))
+        else:
+            from urllib.parse import urlparse
+            allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'pexels.com', 'images.pexels.com']
+            parsed = urlparse(image_url)
+            if not any(domain in parsed.netloc for domain in allowed_domains):
+                return jsonify({'error': 'Image URL not from approved source'}), 403
+            
+            resp = requests.get(image_url, timeout=30)
+            resp.raise_for_status()
+            img = Image.open(io.BytesIO(resp.content))
+        
+        img = img.convert('RGBA')
+        pixels = img.load()
+        width, height = img.size
+        
+        for y in range(height):
+            for x in range(width):
+                r, g, b, a = pixels[x, y]
+                brightness = (r + g + b) / 3
+                if brightness > 240:
+                    pixels[x, y] = (r, g, b, 0)
+                elif brightness > 220:
+                    pixels[x, y] = (r, g, b, int(a * 0.5))
+        
+        output_filename = f"{uuid.uuid4()}_extracted.png"
+        output_path = os.path.join('output', output_filename)
+        img.save(output_path, 'PNG')
+        
+        buffered = io.BytesIO()
+        img.save(buffered, format='PNG')
+        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'image_base64': result_base64,
+            'local_path': output_path,
+            'character_name': character_name,
+            'dimensions': {'width': width, 'height': height}
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-character-image', methods=['POST'])
+def generate_character_image():
+    """
+    Generate a character image using DALL-E for use in video compositions.
+    """
+    from openai import OpenAI
+    from PIL import Image
+    import io
+    import base64
+    
+    data = request.get_json()
+    character_description = data.get('description', '')
+    character_name = data.get('name', 'Character')
+    style = data.get('style', 'realistic')
+    
+    if not character_description:
+        return jsonify({'error': 'No character description provided'}), 400
+    
+    try:
+        client = OpenAI()
+        
+        style_prompts = {
+            'realistic': 'photorealistic, high quality, professional photography',
+            'cartoon': 'cartoon style, vibrant colors, clean lines',
+            'anime': 'anime style, Japanese animation aesthetic',
+            'sketch': 'pencil sketch, black and white, artistic',
+            'cinematic': 'cinematic, dramatic lighting, film quality'
+        }
+        
+        style_modifier = style_prompts.get(style, style_prompts['realistic'])
+        full_prompt = f"{character_description}, {style_modifier}, portrait, clean background suitable for background removal, high contrast"
+        
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=full_prompt,
+            size="1024x1024",
+            quality="standard",
+            n=1
+        )
+        
+        image_url = response.data[0].url
+        
+        img_response = requests.get(image_url, timeout=60)
+        img_response.raise_for_status()
+        
+        output_filename = f"{uuid.uuid4()}_character.png"
+        output_path = os.path.join('output', output_filename)
+        
+        with open(output_path, 'wb') as f:
+            f.write(img_response.content)
+        
+        buffered = io.BytesIO(img_response.content)
+        result_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+        
+        return jsonify({
+            'success': True,
+            'image_url': image_url,
+            'image_base64': result_base64,
+            'local_path': output_path,
+            'character_name': character_name,
+            'prompt_used': full_prompt
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/source/preview', methods=['POST'])
 def source_preview():
     """
