@@ -206,12 +206,20 @@ The AI is configured to be:
 - **Rendering**: Multiple FFmpeg drawtext filters with enable='between(t,start,end)' for word timing
 
 ## Timeline Developer (Unified View)
+- **AI Chat First**: Dedicated AI chat section with robot emoji under Timeline header - "Chat with Krakd anytime to change visuals, voice, or captions"
+- **Format First Selection**: Pick output format(s) before building visuals - supports multi-select for batch rendering
+- **Multi-Format Toggle**: Preview tabs appear when 2+ formats selected to switch between previews
+- **Carousel Options**: Two carousel styles - "News & Facts" (viral sharing) or "Comic Recap" (visual story panels)
 - **Visual Timeline Bar**: Horizontal bar showing clip thumbnails with duration markers, clickable to select segments
 - **Live Preview Panel**: Right side panel shows selected visual, caption preview, format aspect ratio, and voice indicator
-- **Accordion Settings**: Collapsible sections for Voice, Format, and Captions (all visible, no wizard steps)
+- **Accordion Settings**: Collapsible sections for Voice and Captions (format moved to top)
 - **Color Wheel Picker**: Native color inputs for caption text/highlight colors with preset color buttons
-- **AI Control Hint**: Reminder that users can chat with Krakd to adjust any video aspect
-- **Flow Integration**: finishSceneSelection() populates timeline from selected visuals automatically
+- **Personalized AI Note**: "Krakd learns your style over time - the more you create, the better it understands your vision"
+
+## Export Hub
+- **Social Media Buttons**: One-click export to Instagram, TikTok, YouTube, X (Twitter), Facebook, LinkedIn
+- **Smart Export Flow**: Opens platform in new tab + auto-triggers download so user can upload immediately
+- **Download Options**: Direct video download + "Download All Formats" when multiple formats rendered
 
 ## Chat Interface
 - **File Upload**: Paperclip button allows attaching video, audio, images, PDFs, or documents
