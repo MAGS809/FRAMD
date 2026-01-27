@@ -1852,6 +1852,17 @@
         let extractedModels = [];
         let sceneIdCounter = 0;
         
+        // Helper to extract visuals array from currentVisualPlan (which is an object)
+        function getVisualsArray() {
+            if (!currentVisualPlan) return [];
+            if (Array.isArray(currentVisualPlan)) return currentVisualPlan;
+            // Try various properties that might contain visuals
+            return currentVisualPlan.curated_visuals || 
+                   currentVisualPlan.visuals || 
+                   currentVisualPlan.images || 
+                   [];
+        }
+        
         function addNewScene() {
             const sceneId = sceneIdCounter++;
             const scene = {
@@ -1881,12 +1892,12 @@
                         <div class="scene-layer">
                             <span class="layer-label">Background</span>
                             <div class="layer-content">
-                                ${currentVisualPlan ? currentVisualPlan.slice(0, 3).map((v, i) => `
+                                ${getVisualsArray().slice(0, 3).map((v, i) => `
                                     <div class="layer-item ${scene.background && scene.background.id === i ? 'selected' : ''}" 
                                          onclick="selectSceneBackground(${scene.id}, ${i})">
-                                        <img src="${v.thumbnail || v.preview_url}" alt="${v.title || 'Visual'}">
+                                        <img src="${v.thumbnail || v.preview_url || v.url}" alt="${v.title || 'Visual'}">
                                     </div>
-                                `).join('') : '<div class="add-layer-btn">No visuals</div>'}
+                                `).join('') || '<div class="add-layer-btn">No visuals</div>'}
                             </div>
                         </div>
                         <div class="scene-layer">
@@ -1915,8 +1926,9 @@
         
         function selectSceneBackground(sceneId, visualIdx) {
             const scene = scenes.find(s => s.id === sceneId);
-            if (scene && currentVisualPlan && currentVisualPlan[visualIdx]) {
-                scene.background = { ...currentVisualPlan[visualIdx], id: visualIdx };
+            const visuals = getVisualsArray();
+            if (scene && visuals[visualIdx]) {
+                scene.background = { ...visuals[visualIdx], id: visualIdx };
                 scene.minimized = true;
                 renderScenes();
             }
