@@ -4089,7 +4089,7 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             script: script,
-                            voice: voiceSettings?.voice || 'alloy'
+                            voice: selectedVoice || 'alloy'
                         })
                     });
                     
@@ -5573,8 +5573,8 @@
                 if (typeof selectedFormats !== 'undefined' && selectedFormats && selectedFormats.length > 0) {
                     context += `Formats: ${selectedFormats.join(', ')}. `;
                 }
-                if (typeof voiceSettings !== 'undefined' && voiceSettings && voiceSettings.voice) {
-                    context += `Voice: ${voiceSettings.voice}. `;
+                if (typeof selectedVoice !== 'undefined' && selectedVoice) {
+                    context += `Voice: ${selectedVoice}. `;
                 }
                 if (typeof captionSettings !== 'undefined' && captionSettings && captionSettings.enabled) {
                     context += 'Captions enabled. ';
