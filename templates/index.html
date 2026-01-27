@@ -2205,9 +2205,86 @@
             await curateVisuals(currentScript);
         }
         
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Extract simplified script for display (spoken lines + scene headers in bold)
+        function simplifyScriptForDisplay(script) {
+            const lines = script.split('\n');
+            let simplified = [];
+            let currentScene = '';
+            let pendingScene = false;
+            
+            for (let line of lines) {
+                const trimmed = line.trim();
+                
+                // Scene header (e.g., "SCENE 1 [5s]")
+                if (/^SCENE\s+\d+/i.test(trimmed)) {
+                    // If there was a pending scene without location, output it now
+                    if (pendingScene && currentScene) {
+                        simplified.push({ type: 'header', text: currentScene });
+                    }
+                    currentScene = trimmed.replace(/\[.*?\]/g, '').trim();
+                    pendingScene = true;
+                    continue;
+                }
+                
+                // Location line (EXT. or INT.) - combine with scene number
+                if (/^(EXT\.|INT\.)/i.test(trimmed)) {
+                    const location = trimmed.replace(/^(EXT\.|INT\.)\s*/i, '').replace(/-.*$/, '').trim();
+                    if (currentScene) {
+                        simplified.push({ type: 'header', text: currentScene + ' - ' + location });
+                    } else {
+                        simplified.push({ type: 'header', text: location });
+                    }
+                    currentScene = '';
+                    pendingScene = false;
+                    continue;
+                }
+                
+                // Skip visual directions, underscores, character names as headers, and technical notes
+                if (trimmed.startsWith('VISUAL:') || 
+                    trimmed.startsWith('CUT:') || 
+                    trimmed.startsWith('===') ||
+                    trimmed.startsWith('___') ||
+                    trimmed.startsWith('CHARACTERS:') ||
+                    trimmed.startsWith('VOICES?') ||
+                    /^[A-Z\s]+$/.test(trimmed) && trimmed.length < 30) {
+                    continue;
+                }
+                
+                // Dialogue lines (indented or regular text that's not a direction)
+                if (trimmed.length > 0 && !trimmed.match(/^\[.*\]$/)) {
+                    // If there's a pending scene header, output it before dialogue
+                    if (pendingScene && currentScene) {
+                        simplified.push({ type: 'header', text: currentScene });
+                        currentScene = '';
+                        pendingScene = false;
+                    }
+                    simplified.push({ type: 'dialogue', text: trimmed });
+                }
+            }
+            
+            // Output any remaining pending scene
+            if (pendingScene && currentScene) {
+                simplified.push({ type: 'header', text: currentScene });
+            }
+            
+            // Build safe HTML with escaped content
+            return simplified.map(item => {
+                const escaped = escapeHtml(item.text);
+                return item.type === 'header' ? `<strong>${escaped}</strong>` : escaped;
+            }).join('<br><br>');
+        }
+        
         // Curate visuals
         async function curateVisuals(script) {
             try {
+                console.log('Starting visual curation...');
                 const response = await fetch('/curate-visuals', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2215,26 +2292,34 @@
                 });
                 
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Server response:', errorText);
                     throw new Error(`Server error: ${response.status}`);
                 }
                 
                 const data = await response.json();
+                console.log('Curate response:', data);
                 
                 if (data.success) {
                     currentVisualPlan = data.visual_board;
-                    document.getElementById('script-text').textContent = script;
+                    
+                    // Show simplified script for user (spoken lines only)
+                    const scriptEl = document.getElementById('script-text');
+                    scriptEl.innerHTML = simplifyScriptForDisplay(script);
+                    
                     populateVisuals(data.visual_board);
                     
                     // Mark step as completed and show review
                     document.getElementById('step-create').classList.add('completed');
                     showStage('review');
+                    showToast('Visuals curated successfully');
                 } else {
                     console.error('Curate failed:', data.error);
                     showToast(data.error || 'Failed to curate visuals');
                 }
             } catch (error) {
                 console.error('Curate error:', error);
-                showToast('Failed to curate visuals: ' + (error.message || 'Unknown error'));
+                showToast('Failed to curate visuals: ' + (error.message || String(error) || 'Unknown error'));
             } finally {
                 stopLoading();
             }
@@ -2243,23 +2328,52 @@
         // Populate visual grid
         function populateVisuals(visualBoard) {
             const grid = document.getElementById('visual-grid');
+            if (!grid) {
+                console.error('Visual grid element not found');
+                return;
+            }
             grid.innerHTML = '';
             
-            if (!visualBoard?.sections) return;
+            if (!visualBoard) {
+                console.log('No visual board provided');
+                return;
+            }
             
+            if (!visualBoard.sections || !Array.isArray(visualBoard.sections)) {
+                console.log('No sections in visual board:', visualBoard);
+                return;
+            }
+            
+            console.log('Populating visuals with', visualBoard.sections.length, 'sections');
+            
+            let visualsAdded = 0;
             visualBoard.sections.forEach((section, i) => {
-                if (section.suggested_videos?.length > 0) {
+                if (section.suggested_videos && section.suggested_videos.length > 0) {
                     const video = section.suggested_videos[0];
+                    // Get thumbnail with fallbacks
+                    const thumbUrl = video.thumbnail || video.preview_url || video.url || '';
+                    if (!thumbUrl) {
+                        console.log('Section', i, 'has no valid thumbnail');
+                        return;
+                    }
+                    
                     const div = document.createElement('div');
-                    div.className = 'visual-option' + (i === 0 ? ' selected' : '');
-                    div.innerHTML = `<img src="${video.thumbnail}" alt="Scene ${i + 1}">`;
+                    div.className = 'visual-option' + (visualsAdded === 0 ? ' selected' : '');
+                    div.innerHTML = `<img src="${thumbUrl}" alt="Scene ${i + 1}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23333%22 width=%22100%22 height=%22100%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23888%22 text-anchor=%22middle%22 dy=%22.3em%22>No Preview</text></svg>'">`;
                     div.onclick = () => {
                         document.querySelectorAll('.visual-option').forEach(v => v.classList.remove('selected'));
                         div.classList.add('selected');
                     };
                     grid.appendChild(div);
+                    visualsAdded++;
                 }
             });
+            
+            console.log('Added', visualsAdded, 'visual options to grid');
+            
+            if (visualsAdded === 0) {
+                grid.innerHTML = '<div class="no-visuals-msg">No visuals found. Try a different script.</div>';
+            }
         }
         
         // Generate video

@@ -106,6 +106,7 @@ def extract_dialogue_only(script_text):
     """
     Filter script to only include spoken dialogue lines.
     Removes visual directions, stage directions, scene headers, and parentheticals.
+    Voice AI reads only the spoken words - no headers, no directions, no bold text.
     """
     import re
     
@@ -120,8 +121,22 @@ def extract_dialogue_only(script_text):
         if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE'):
             continue
         
-        # Skip scene headers (INT., EXT., TITLE:, CUT TO:)
+        # Skip scene headers (SCENE 1, INT., EXT., TITLE:, CUT TO:)
+        if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
+            continue
         if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
+            continue
+        
+        # Skip decorative lines (===, ___, ---)
+        if re.match(r'^[=_\-]{3,}$', line):
+            continue
+        
+        # Skip VISUAL: and CUT: lines
+        if line.startswith('VISUAL:') or line.startswith('CUT:'):
+            continue
+        
+        # Skip CHARACTERS: and VOICES? lines
+        if line.startswith('CHARACTERS:') or line.startswith('VOICES?'):
             continue
         
         # Skip lines that are just parentheticals like (quietly) or (V.O.)
@@ -132,14 +147,18 @@ def extract_dialogue_only(script_text):
         if re.match(r'^\[.*\]$', line):
             continue
         
+        # Skip all-caps short lines (character name headers like "NARRATOR")
+        if re.match(r'^[A-Z\s]{2,25}$', line) and not any(c.islower() for c in line):
+            continue
+        
         # Remove inline parentheticals but keep the rest
         line = re.sub(r'\([^)]*\)', '', line).strip()
         
-        # If line has CHARACTER: format, keep the dialogue part
+        # If line has CHARACTER: format, keep the dialogue part only
         if ':' in line:
             parts = line.split(':', 1)
-            # If first part looks like character name (1-3 words, all caps or title case)
             char_part = parts[0].strip()
+            # If first part looks like character name (1-3 words, all caps or title case)
             if len(char_part.split()) <= 3 and (char_part.isupper() or char_part.istitle()):
                 dialogue = parts[1].strip()
                 if dialogue:
@@ -2644,7 +2663,7 @@ def generate_voiceover():
             model="tts-1-hd",
             voice=base_voice,
             input=text,
-            speed=1.15  # Slightly faster for snappy reel-style pacing
+            speed=1.25  # Faster pacing for punchy delivery
         )
         
         filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
@@ -2690,7 +2709,7 @@ def preview_voice():
             model="tts-1",
             voice=base_voice,
             input=text,
-            speed=1.15  # Slightly faster for snappy reel-style pacing
+            speed=1.25  # Faster pacing for punchy delivery
         )
         
         filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
@@ -2803,6 +2822,7 @@ def generate_voiceover_multi():
         import re
         
         # Parse script into character lines (filtering out non-dialogue)
+        # Voice AI reads ONLY the spoken dialogue - no headers, no directions
         lines = []
         current_char = 'NARRATOR'
         
@@ -2815,12 +2835,30 @@ def generate_voiceover_multi():
             if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE') or re.match(r'^\[.*\]$', line):
                 continue
             
-            # Skip scene headers (INT., EXT., TITLE:, CUT TO:)
+            # Skip scene headers (SCENE 1, INT., EXT., TITLE:, CUT TO:)
+            if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
+                continue
             if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
+                continue
+            
+            # Skip decorative lines (===, ___, ---)
+            if re.match(r'^[=_\-]{3,}$', line):
+                continue
+            
+            # Skip VISUAL: and CUT: lines
+            if line.startswith('VISUAL:') or line.startswith('CUT:'):
+                continue
+            
+            # Skip CHARACTERS: and VOICES? lines
+            if line.startswith('CHARACTERS:') or line.startswith('VOICES?'):
                 continue
             
             # Skip pure parentheticals
             if re.match(r'^\([^)]+\)$', line):
+                continue
+            
+            # Skip all-caps short lines (character name headers like "NARRATOR" on their own line)
+            if re.match(r'^[A-Z\s]{2,25}$', line) and not any(c.islower() for c in line):
                 continue
             
             # Remove inline parentheticals
@@ -2828,7 +2866,7 @@ def generate_voiceover_multi():
             if not line:
                 continue
             
-            # Check if line starts with CHARACTER:
+            # Check if line starts with CHARACTER: - extract only the dialogue
             if ':' in line:
                 parts = line.split(':', 1)
                 if len(parts[0].split()) <= 3:  # Likely a character name
@@ -2863,7 +2901,7 @@ def generate_voiceover_multi():
                 model="tts-1-hd",
                 voice=base_voice,
                 input=text,
-                speed=1.15  # Slightly faster for snappy reel-style pacing
+                speed=1.25  # Faster pacing for punchy delivery
             )
             
             # Get audio bytes
