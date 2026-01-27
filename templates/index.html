@@ -299,6 +299,68 @@
             min-height: 48px;
             border-radius: 8px;
             font-size: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        /* Expandable script messages */
+        .message.script-message {
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 214, 10, 0.1);
+            border-radius: 8px 8px 0 0;
+            border-bottom: 1px solid var(--border-light);
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .script-toggle {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            transition: transform 0.2s ease;
+        }
+        
+        .script-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .script-content {
+            white-space: pre-wrap;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+        }
+        
+        .script-content.collapsed {
+            max-height: 0;
+            padding: 0 1rem;
+            opacity: 0;
+            overflow: hidden;
+        }
+        
+        .message.script-message .script-preview {
+            padding: 0.5rem 1rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+        
+        .message.script-message .script-preview.hidden {
+            display: none;
         }
         
         /* Chat messages */
@@ -2287,7 +2349,29 @@
                 
                 if (data.success) {
                     console.log('Adding AI reply to chat');
-                    chatContainer.innerHTML += `<div class="message ai">${escapeHtml(data.reply)}</div>`;
+                    
+                    // Check if this is a script (contains screenplay formatting)
+                    const isScript = data.reply.includes('===') || 
+                                     data.reply.includes('SCENE') || 
+                                     data.reply.includes('CHARACTER') ||
+                                     data.reply.includes('VISUAL:');
+                    
+                    if (isScript && data.reply.length > 200) {
+                        // Render as expandable script
+                        const scriptId = 'script-' + Date.now();
+                        const preview = data.reply.substring(0, 80).replace(/\n/g, ' ') + '...';
+                        chatContainer.innerHTML += `
+                            <div class="message ai script-message" onclick="toggleScript('${scriptId}')">
+                                <div class="script-header">
+                                    <span>Script Ready</span>
+                                    <span class="script-toggle" id="${scriptId}-toggle">▼</span>
+                                </div>
+                                <div class="script-preview" id="${scriptId}-preview">${escapeHtml(preview)}</div>
+                                <div class="script-content" id="${scriptId}-content">${escapeHtml(data.reply)}</div>
+                            </div>`;
+                    } else {
+                        chatContainer.innerHTML += `<div class="message ai">${escapeHtml(data.reply)}</div>`;
+                    }
                     conversationHistory.push({ role: 'assistant', content: data.reply });
                     
                     if (data.has_question) {
@@ -2340,6 +2424,22 @@
             return div.innerHTML;
         }
         
+        function toggleScript(scriptId) {
+            const content = document.getElementById(scriptId + '-content');
+            const toggle = document.getElementById(scriptId + '-toggle');
+            const preview = document.getElementById(scriptId + '-preview');
+            
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                toggle.classList.remove('collapsed');
+                if (preview) preview.classList.add('hidden');
+            } else {
+                content.classList.add('collapsed');
+                toggle.classList.add('collapsed');
+                if (preview) preview.classList.remove('hidden');
+            }
+        }
+        
         function toggleFormat(card) {
             card.classList.toggle('selected');
             const format = card.dataset.format;
@@ -2373,6 +2473,8 @@
             document.getElementById('step2-indicator').classList.add('active');
             document.getElementById('step3-indicator').classList.remove('active');
             
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
             if (refinedScript) {
                 document.getElementById('script-preview').textContent = refinedScript;
             }
@@ -2384,6 +2486,8 @@
             document.getElementById('step2-indicator').classList.remove('active');
             document.getElementById('step2-indicator').classList.add('completed');
             document.getElementById('step3-indicator').classList.add('active');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
         function startOver() {
@@ -2414,6 +2518,8 @@
             document.getElementById('step1-indicator').classList.remove('completed');
             document.getElementById('step2-indicator').classList.remove('active', 'completed');
             document.getElementById('step3-indicator').classList.remove('active', 'completed');
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
         async function generateContent() {
