@@ -2888,14 +2888,15 @@
                 <!-- Compact Preview (after all scenes selected) -->
                 <div id="compact-preview" style="display: none;">
                     <div class="compact-preview-header">
-                        <h3 style="font-size: 0.9rem; color: var(--accent); margin: 0;">Preview</h3>
+                        <h3 style="font-size: 0.9rem; color: var(--accent); margin: 0;">Ready to Render</h3>
                         <span style="font-size: 0.75rem; color: var(--text-muted);" id="preview-duration">~0:30</span>
                     </div>
                     <div class="compact-preview-strip" id="preview-strip"></div>
                     <div class="compact-preview-actions">
-                        <button type="button" class="btn btn-secondary" onclick="editScenes()" style="flex: 1; padding: 0.5rem; font-size: 0.8rem;">Edit</button>
-                        <button type="button" class="btn btn-primary" id="render-video-btn" onclick="renderFinalVideo()" style="flex: 2; padding: 0.5rem; font-size: 0.8rem;">
-                            Render Video
+                        <button type="button" class="btn btn-secondary" onclick="editScenes()" style="flex: 1; padding: 0.5rem; font-size: 0.75rem;">Edit</button>
+                        <button type="button" class="btn btn-secondary" onclick="renderFinalVideo(true)" style="flex: 1; padding: 0.5rem; font-size: 0.75rem;">Quick Preview</button>
+                        <button type="button" class="btn btn-primary" id="render-video-btn" onclick="renderFinalVideo(false)" style="flex: 1.5; padding: 0.5rem; font-size: 0.75rem;">
+                            Render HD
                         </button>
                     </div>
                 </div>
@@ -3062,8 +3063,8 @@
             
             <!-- Render Button -->
             <div style="margin-top: 1.5rem;">
-                <button class="btn btn-primary generate-btn" onclick="renderFinalVideo()" style="width: 100%; padding: 1rem; font-size: 1rem;">
-                    Render Final Video
+                <button class="btn btn-primary generate-btn" onclick="renderFinalVideo(false)" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                    Render HD Video
                 </button>
             </div>
             
@@ -3631,7 +3632,6 @@
         let selectedVideos = {};
         let contentType = 'educational';
         let characterModels = {};
-        let currentSceneIndex = 0;
         
         function selectContentType(element) {
             document.querySelectorAll('.content-type-card').forEach(c => c.classList.remove('selected'));
@@ -4045,9 +4045,8 @@
             }
         }
         
-        async function renderFinalVideo() {
+        async function renderFinalVideo(previewMode = false) {
             const btn = document.getElementById('render-video-btn');
-            if (!btn) return;
             
             // Validate we have selected videos
             if (Object.keys(selectedVideos).length === 0) {
@@ -4062,29 +4061,36 @@
                 return;
             }
             
-            btn.disabled = true;
-            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">↻</span> Rendering...';
+            // Disable all render buttons in compact preview
+            const allButtons = document.querySelectorAll('.compact-preview-actions button');
+            allButtons.forEach(b => b.disabled = true);
+            if (btn) btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">↻</span>';
             
             try {
-                // Step 1: Generate voiceover first
-                showToast('Generating voiceover...', 'info');
-                
-                const voiceResponse = await fetch('/generate-voiceover', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        script: script,
-                        voice: voiceSettings?.voice || 'alloy'
-                    })
-                });
-                
-                const voiceData = await voiceResponse.json();
-                if (!voiceData.success) {
-                    throw new Error(voiceData.error || 'Voiceover generation failed');
+                // Step 1: Generate voiceover (skip for quick preview)
+                let audioPath = '';
+                if (!previewMode) {
+                    showToast('Generating voiceover...', 'info');
+                    
+                    const voiceResponse = await fetch('/generate-voiceover', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            script: script,
+                            voice: voiceSettings?.voice || 'alloy'
+                        })
+                    });
+                    
+                    const voiceData = await voiceResponse.json();
+                    if (!voiceData.success) {
+                        throw new Error(voiceData.error || 'Voiceover generation failed');
+                    }
+                    
+                    audioPath = voiceData.audio_path;
+                    showToast('Voiceover complete! Assembling video...', 'info');
+                } else {
+                    showToast('Creating quick preview (no audio)...', 'info');
                 }
-                
-                const audioPath = voiceData.audio_path;
-                showToast('Voiceover complete! Assembling video...', 'info');
                 
                 // Step 2: Download and assemble video clips
                 const scenes = Object.entries(selectedVideos).map(([idx, video]) => ({
@@ -4102,14 +4108,15 @@
                         audio_path: audioPath,
                         format: selectedFormats[0] || '9:16',
                         captions: captionSettings?.enabled || false,
-                        caption_settings: captionSettings || {}
+                        caption_settings: captionSettings || {},
+                        preview: previewMode
                     })
                 });
                 
                 const renderData = await renderResponse.json();
                 
                 if (renderData.success && renderData.video_path) {
-                    showToast('Video rendered successfully!', 'success');
+                    showToast(previewMode ? 'Preview ready!' : 'Video rendered successfully!', 'success');
                     
                     // Show the video
                     const videoEl = document.getElementById('final-video');
@@ -4134,8 +4141,9 @@
                 showToast('Render failed: ' + error.message, 'error');
             }
             
-            btn.disabled = false;
-            btn.textContent = 'Render Final Video';
+            // Re-enable buttons
+            allButtons.forEach(b => b.disabled = false);
+            if (btn) btn.textContent = 'Render HD';
         }
         
         async function generateVoiceover() {

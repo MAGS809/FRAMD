@@ -2942,13 +2942,14 @@ def render_video():
     video_format = data.get('format', '9:16')
     captions = data.get('captions', False)
     caption_settings = data.get('caption_settings', {})
+    preview_mode = data.get('preview', False)  # Quick preview at lower resolution
     
     if not scenes:
         return jsonify({'error': 'No scenes provided'}), 400
     
     # Create unique output filename
     output_id = str(uuid.uuid4())[:8]
-    output_path = f'output/final_{output_id}.mp4'
+    output_path = f'output/{"preview" if preview_mode else "final"}_{output_id}.mp4'
     
     # Ensure output directory exists
     os.makedirs('output', exist_ok=True)
@@ -2976,14 +2977,22 @@ def render_video():
         if not clip_paths:
             return jsonify({'error': 'Failed to download any video clips'}), 500
         
-        # Determine video dimensions based on format
-        format_sizes = {
-            '9:16': (1080, 1920),
-            '1:1': (1080, 1080),
-            '4:5': (1080, 1350),
-            '16:9': (1920, 1080)
-        }
-        width, height = format_sizes.get(video_format, (1080, 1920))
+        # Determine video dimensions based on format (lower res for preview)
+        if preview_mode:
+            format_sizes = {
+                '9:16': (360, 640),
+                '1:1': (360, 360),
+                '4:5': (360, 450),
+                '16:9': (640, 360)
+            }
+        else:
+            format_sizes = {
+                '9:16': (1080, 1920),
+                '1:1': (1080, 1080),
+                '4:5': (1080, 1350),
+                '16:9': (1920, 1080)
+            }
+        width, height = format_sizes.get(video_format, (360, 640) if preview_mode else (1080, 1920))
         
         # Create file list for FFmpeg concat
         list_path = f'output/clips_{output_id}.txt'
