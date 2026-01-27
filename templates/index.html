@@ -1852,7 +1852,58 @@
         let extractedModels = [];
         let sceneIdCounter = 0;
         
-        // Helper to extract visuals array from currentVisualPlan (which is an object)
+        // Populate scenes from visual board sections (called after curation)
+        function populateScenesFromVisualBoard(visualBoard) {
+            scenes = [];
+            sceneIdCounter = 0;
+            
+            if (!visualBoard || !visualBoard.sections || !Array.isArray(visualBoard.sections)) {
+                console.log('No sections in visual board to populate scenes');
+                return;
+            }
+            
+            visualBoard.sections.forEach((section, idx) => {
+                const sceneId = sceneIdCounter++;
+                // Extract a short label from script segment
+                let label = section.setting || `Scene ${idx + 1}`;
+                if (section.script_segment) {
+                    // Take first ~40 chars of script segment
+                    label = section.script_segment.substring(0, 40) + (section.script_segment.length > 40 ? '...' : '');
+                }
+                
+                scenes.push({
+                    id: sceneId,
+                    sectionIndex: idx,
+                    label: label,
+                    setting: section.setting || '',
+                    duration: section.duration_seconds || 5,
+                    background: null,
+                    layers: [],
+                    minimized: idx > 0  // First scene expanded, rest minimized
+                });
+            });
+            
+            console.log('Populated', scenes.length, 'scenes from visual board');
+            renderScenes();
+        }
+        
+        // Get visuals for a specific scene section
+        function getSceneVisuals(sectionIndex) {
+            if (!currentVisualPlan || !currentVisualPlan.sections) return [];
+            const section = currentVisualPlan.sections[sectionIndex];
+            if (!section || !section.suggested_videos) return [];
+            
+            return section.suggested_videos.map(video => ({
+                thumbnail: video.thumbnail,
+                preview_url: video.thumbnail,
+                url: video.download_url,
+                video_url: video.download_url,
+                title: video.title || 'Scene visual',
+                attribution: video.attribution
+            }));
+        }
+        
+        // Helper to extract all visuals (for fallback)
         function getVisualsArray() {
             if (!currentVisualPlan) return [];
             if (Array.isArray(currentVisualPlan)) return currentVisualPlan;
@@ -1901,26 +1952,41 @@
         function renderScenes() {
             const container = document.getElementById('scenes-container');
             if (scenes.length === 0) {
-                container.innerHTML = '<div class="no-models-msg">No scenes yet. Add a scene to start composing.</div>';
+                container.innerHTML = '<div class="no-models-msg">No scenes yet. Curate visuals or add a scene to start composing.</div>';
                 return;
             }
             
-            container.innerHTML = scenes.map((scene, idx) => `
+            container.innerHTML = scenes.map((scene, idx) => {
+                // Get visuals specific to this scene
+                const sceneVisuals = scene.sectionIndex !== undefined ? 
+                    getSceneVisuals(scene.sectionIndex) : 
+                    getVisualsArray().slice(idx * 3, (idx + 1) * 3);
+                
+                // Build scene title with label
+                const sceneTitle = scene.label ? 
+                    `<strong>Scene ${idx + 1}</strong> — ${escapeHtml(scene.label)}` :
+                    `Scene ${idx + 1}${scene.background ? ' ✓' : ''}`;
+                
+                return `
                 <div class="scene-card ${scene.minimized ? 'minimized' : ''}" data-scene-id="${scene.id}">
                     <div class="scene-header" onclick="toggleScene(${scene.id})">
-                        <span class="scene-title">Scene ${idx + 1}${scene.background ? ' - ' + (scene.background.title || 'Background set') : ''}</span>
-                        <span class="scene-toggle">${scene.minimized ? 'Expand' : 'Minimize'}</span>
+                        <span class="scene-title">${sceneTitle}</span>
+                        <span class="scene-toggle">${scene.minimized ? '▼' : '▲'}</span>
                     </div>
-                    <div class="scene-body">
+                    <div class="scene-body" style="display: ${scene.minimized ? 'none' : 'block'}">
+                        ${scene.setting ? `<div class="scene-setting" style="font-size:0.75rem;color:var(--accent);margin-bottom:0.5rem;">${escapeHtml(scene.setting)}</div>` : ''}
                         <div class="scene-layer">
-                            <span class="layer-label">Background</span>
+                            <span class="layer-label">Background (${sceneVisuals.length} options)</span>
                             <div class="layer-content">
-                                ${getVisualsArray().slice(0, 3).map((v, i) => `
-                                    <div class="layer-item ${scene.background && scene.background.id === i ? 'selected' : ''}" 
-                                         onclick="selectSceneBackground(${scene.id}, ${i})">
-                                        <img src="${v.thumbnail || v.preview_url || v.url}" alt="${v.title || 'Visual'}">
+                                ${sceneVisuals.length > 0 ? sceneVisuals.map((v, i) => `
+                                    <div class="layer-item ${scene.background && scene.background.visualIdx === i ? 'selected' : ''}" 
+                                         onclick="selectSceneBackground(${scene.id}, ${i})"
+                                         title="${escapeHtml(v.title || '')}">
+                                        <img src="${v.thumbnail || v.preview_url || v.url}" 
+                                             alt="${v.title || 'Visual'}"
+                                             onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%22100%22><rect fill=%22%23222%22 width=%22100%22 height=%22100%22/><text x=%2250%25%22 y=%2250%25%22 fill=%22%23666%22 text-anchor=%22middle%22 dy=%22.3em%22>?</text></svg>'">
                                     </div>
-                                `).join('') || '<div class="add-layer-btn">No visuals</div>'}
+                                `).join('') : '<div class="add-layer-btn" style="opacity:0.5">No visuals for this scene</div>'}
                             </div>
                         </div>
                         <div class="scene-layer">
@@ -1936,7 +2002,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         function toggleScene(sceneId) {
@@ -1949,9 +2015,15 @@
         
         function selectSceneBackground(sceneId, visualIdx) {
             const scene = scenes.find(s => s.id === sceneId);
-            const visuals = getVisualsArray();
-            if (scene && visuals[visualIdx]) {
-                scene.background = { ...visuals[visualIdx], id: visualIdx };
+            if (!scene) return;
+            
+            // Get visuals specific to this scene
+            const sceneVisuals = scene.sectionIndex !== undefined ? 
+                getSceneVisuals(scene.sectionIndex) : 
+                getVisualsArray();
+            
+            if (sceneVisuals[visualIdx]) {
+                scene.background = { ...sceneVisuals[visualIdx], visualIdx: visualIdx };
                 scene.minimized = true;
                 renderScenes();
             }
@@ -2307,12 +2379,13 @@
                     const scriptEl = document.getElementById('script-text');
                     scriptEl.innerHTML = simplifyScriptForDisplay(script);
                     
-                    populateVisuals(data.visual_board);
+                    // Populate scene composer with sections from visual board
+                    populateScenesFromVisualBoard(data.visual_board);
                     
                     // Mark step as completed and show review
                     document.getElementById('step-create').classList.add('completed');
                     showStage('review');
-                    showToast('Visuals curated successfully');
+                    showToast('Visuals curated - ' + (data.visual_board.sections?.length || 0) + ' scenes ready');
                 } else {
                     console.error('Curate failed:', data.error);
                     showToast(data.error || 'Failed to curate visuals');
