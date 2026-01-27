@@ -578,12 +578,12 @@ def search_unsplash():
 @app.route('/search-all-sources', methods=['POST'])
 def search_all_sources():
     """
-    Search all sources for legal media - PRIORITIZES Wikimedia/Unsplash over Pexels.
-    Implements fallback ladder: Wikimedia → Unsplash → Pexels → query expansion.
+    Search all sources for legal media - PRIORITIZES Wikimedia Commons over Pexels.
+    Implements fallback ladder: Wikimedia (primary) → Pexels (fallback if <6 results) → query expansion.
     """
     data = request.get_json()
     query = data.get('query', '')
-    limit = data.get('limit', 12)
+    limit = data.get('limit', 15)  # Default to 15 for more results
     media_type = data.get('media_type', 'all')  # 'video', 'image', 'all'
     
     all_results = []
@@ -600,7 +600,7 @@ def search_all_sources():
             'generator': 'search',
             'gsrnamespace': 6,
             'gsrsearch': query,
-            'gsrlimit': limit,
+            'gsrlimit': max(limit, 15),  # Always fetch at least 15 from Wikimedia
             'prop': 'imageinfo',
             'iiprop': 'url|extmetadata|size|mime|mediatype',
             'iiurlwidth': 640
@@ -651,36 +651,7 @@ def search_all_sources():
     except Exception as e:
         print(f"Wikimedia search error: {e}")
     
-    # PRIORITY 2: Search Unsplash (artistic photos, less stocky)
-    if media_type in ['image', 'all']:
-        unsplash_key = os.environ.get('UNSPLASH_ACCESS_KEY')
-        if unsplash_key:
-            try:
-                response = requests.get(
-                    'https://api.unsplash.com/search/photos',
-                    headers={'Authorization': f'Client-ID {unsplash_key}'},
-                    params={'query': query, 'per_page': limit // 2, 'orientation': 'portrait'},
-                    timeout=10
-                )
-                for photo in response.json().get('results', []):
-                    all_results.append({
-                        'id': f"unsplash_{photo['id']}",
-                        'source': 'unsplash',
-                        'source_page': photo.get('links', {}).get('html', ''),
-                        'download_url': photo.get('urls', {}).get('regular'),
-                        'thumbnail': photo.get('urls', {}).get('small'),
-                        'title': photo.get('alt_description') or 'Untitled',
-                        'content_type': 'image',
-                        'license': 'Unsplash License',
-                        'license_url': 'https://unsplash.com/license',
-                        'attribution_required': False,
-                        'attribution_text': f"Photo by {photo.get('user', {}).get('name', 'Unknown')} on Unsplash"
-                    })
-                sources_searched.append('unsplash')
-            except Exception as e:
-                print(f"Unsplash search error: {e}")
-    
-    # FALLBACK 3: Search Pexels only if we have fewer than 6 results
+    # FALLBACK 2: Search Pexels only if we have fewer than 6 results from Wikimedia
     if len(all_results) < 6:
         pexels_key = os.environ.get('PEXELS_API_KEY')
         if pexels_key:
@@ -716,7 +687,7 @@ def search_all_sources():
             except Exception as e:
                 print(f"Pexels search error: {e}")
     
-    # FALLBACK 4: Query expansion if still too few results
+    # FALLBACK 3: Query expansion if still too few results
     if len(all_results) < 4 and ' ' in query:
         # Try simpler query (remove adjectives, use core noun)
         words = query.split()
