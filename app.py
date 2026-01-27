@@ -195,7 +195,7 @@ def create_checkout_session():
                     'currency': 'usd',
                     'product_data': {
                         'name': f'{token_amount} Tokens',
-                        'description': f'Framd Post Assembler - {token_amount} tokens for content creation',
+                        'description': f'Krakd Post Assembler - {token_amount} tokens for content creation',
                     },
                     'unit_amount': price_cents,
                 },
@@ -336,7 +336,7 @@ def search_wikimedia_videos():
             'iiurlwidth': 640
         }
         
-        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
         response = requests.get(search_url, params=params, headers=wiki_headers, timeout=15)
         data = response.json()
         
@@ -437,7 +437,7 @@ def search_all_sources():
             'iiprop': 'url|extmetadata',
             'iiurlwidth': 640
         }
-        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
         response = requests.get(search_url, params=params, headers=wiki_headers, timeout=10)
         pages = response.json().get('query', {}).get('pages', {})
         
@@ -626,7 +626,7 @@ def curate_visuals():
     content_type = data.get('content_type', 'educational')
     
     # Enhanced prompt that extracts setting, mood, and visual intent
-    system_prompt = """You are Framd's visual curator. Analyze the script deeply to find visuals that SERVE the message.
+    system_prompt = """You are Krakd's visual curator. Analyze the script deeply to find visuals that SERVE the message.
 
 EXTRACT FROM SCRIPT:
 1. SETTING - Where does this take place? (office, street, home, abstract)
@@ -754,7 +754,7 @@ CRITICAL:
                     # Search Wikimedia Commons for videos
                     try:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
-                        wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+                        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
                         
                         # Try multiple search strategies for better video coverage
                         search_results = []
@@ -995,7 +995,7 @@ def ingest_assets():
                 'iiprop': 'url|extmetadata|size',
                 'iiurlwidth': 320
             }
-            wiki_headers = {'User-Agent': 'FramdPostAssembler/1.0 (https://replit.com; contact@framd.app)'}
+            wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
             resp = requests.get(search_url, params=params, headers=wiki_headers, timeout=15)
             pages = resp.json().get('query', {}).get('pages', {})
             

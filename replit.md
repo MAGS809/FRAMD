@@ -1,7 +1,7 @@
 # Calligra
 
 ## Overview
-Calligra is a high-end post-assembler utilizing the Framd workflow. The core AI, **Framd**, transforms raw links into cinematic clips and abstract ideas into structured posts.
+Calligra is a high-end post-assembler utilizing the Krakd workflow. The core AI, **Krakd**, transforms raw links into cinematic clips and abstract ideas into structured posts.
 
 ## UI Design (Apple-Inspired)
 - **Typography**: Inter font family with refined weights (300-700)
@@ -12,7 +12,7 @@ Calligra is a high-end post-assembler utilizing the Framd workflow. The core AI,
 - **Layout**: Centered 720px max-width container with generous spacing
 
 ## Core Principle
-- **Framd™** - No clip exists without a script.
+- **Krakd™** - No clip exists without a script.
 - **Reasoning** - No script exists without thinking.
 
 ## AI Constitution & Operating Principles
