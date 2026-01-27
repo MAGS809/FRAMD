@@ -760,6 +760,60 @@
             transform: translateX(-50%) translateY(0);
         }
         
+        /* Tablet adjustments */
+        @media (max-width: 768px) {
+            .app {
+                padding: 0 1rem;
+            }
+            
+            header {
+                padding: 1.25rem 0 1rem;
+            }
+            
+            .brand {
+                font-size: 1.75rem;
+            }
+            
+            .steps {
+                font-size: 0.85rem;
+                gap: 0.5rem;
+            }
+            
+            .voice-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .format-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .layer-content {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .casting-characters {
+                gap: 0.5rem;
+            }
+            
+            .character-cast {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .cast-voice {
+                width: 100%;
+            }
+            
+            .models-grid {
+                justify-content: center;
+            }
+            
+            .model-card {
+                width: 100px;
+            }
+        }
+        
         /* Mobile adjustments */
         @media (max-width: 480px) {
             .app {
@@ -774,16 +828,155 @@
                 font-size: 1.5rem;
             }
             
+            .tagline {
+                font-size: 0.65rem;
+            }
+            
             .steps {
-                font-size: 0.75rem;
+                font-size: 0.7rem;
+                gap: 0.25rem;
+            }
+            
+            .step {
+                padding: 0.4rem 0.75rem;
+            }
+            
+            .step::after {
+                display: none;
+            }
+            
+            .message {
+                padding: 0.5rem 0;
             }
             
             .message.user {
-                padding-left: 1rem;
+                padding-left: 0.5rem;
+            }
+            
+            .message-content {
+                font-size: 0.9rem;
+                line-height: 1.5;
+            }
+            
+            .section-title {
+                font-size: 0.65rem;
             }
             
             .voice-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 0.4rem;
+            }
+            
+            .voice-option {
+                padding: 0.6rem;
+                font-size: 0.75rem;
+            }
+            
+            .format-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .format-option {
+                padding: 0.6rem;
+                font-size: 0.85rem;
+            }
+            
+            .composer-inner {
+                padding: 0.5rem 0.75rem;
+            }
+            
+            .composer-input {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                padding: 0.75rem 1.25rem;
+                font-size: 0.85rem;
+            }
+            
+            .scene-card {
+                border-radius: 8px;
+            }
+            
+            .scene-header {
+                padding: 0.6rem 0.75rem;
+            }
+            
+            .scene-body {
+                padding: 0.75rem;
+            }
+            
+            .layer-content {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.4rem;
+            }
+            
+            .layer-item {
+                border-radius: 4px;
+            }
+            
+            .models-grid {
+                gap: 0.75rem;
+            }
+            
+            .model-card {
+                width: 80px;
+            }
+            
+            .model-tab {
+                font-size: 0.55rem;
+                padding: 2px 6px;
+            }
+            
+            .casting-panel {
+                margin-top: 0.75rem;
+            }
+            
+            .character-cast {
+                padding: 0.6rem 0.75rem;
+            }
+            
+            .cast-name {
+                font-size: 0.8rem;
+            }
+            
+            .cast-voice {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            
+            .script-display {
+                padding: 0.75rem;
+                font-size: 0.85rem;
+            }
+            
+            .actions {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+            
+            .actions .btn {
+                width: 100%;
+            }
+            
+            .tokens {
+                font-size: 0.75rem;
+            }
+        }
+        
+        /* Very small devices */
+        @media (max-width: 360px) {
+            .brand {
+                font-size: 1.25rem;
+            }
+            
+            .steps {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .voice-grid {
+                grid-template-columns: 1fr;
             }
         }
         
