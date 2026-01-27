@@ -35,6 +35,30 @@
             -webkit-font-smoothing: antialiased;
         }
         
+        /* Custom scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--text-faint);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-dim);
+        }
+        
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-faint) var(--bg);
+        }
+        
         /* Layout */
         .app {
             display: flex;
@@ -350,9 +374,15 @@
         }
         
         /* Voice selection */
+        .voice-count {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+        
         .voice-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr);
             gap: 0.5rem;
             margin-top: 1rem;
         }
@@ -651,14 +681,16 @@
                     <pre id="script-text">Script will appear here after AI generates it...</pre>
                 </div>
                 
-                <div class="section-title">Voice</div>
+                <div class="section-title">Voice <span id="voice-count" class="voice-count"></span></div>
                 <div class="voice-grid" id="voice-grid">
-                    <div class="voice-option selected" data-voice="alloy" onclick="selectVoice(this)">Alloy</div>
-                    <div class="voice-option" data-voice="echo" onclick="selectVoice(this)">Echo</div>
-                    <div class="voice-option" data-voice="fable" onclick="selectVoice(this)">Fable</div>
-                    <div class="voice-option" data-voice="onyx" onclick="selectVoice(this)">Onyx</div>
-                    <div class="voice-option" data-voice="nova" onclick="selectVoice(this)">Nova</div>
-                    <div class="voice-option" data-voice="shimmer" onclick="selectVoice(this)">Shimmer</div>
+                    <div class="voice-option selected" data-voice="news_anchor" onclick="selectVoice(this)">News Anchor</div>
+                    <div class="voice-option" data-voice="wolf_businessman" onclick="selectVoice(this)">Wolf Businessman</div>
+                    <div class="voice-option" data-voice="power_businesswoman" onclick="selectVoice(this)">Power Businesswoman</div>
+                    <div class="voice-option" data-voice="club_promoter" onclick="selectVoice(this)">Club Promoter</div>
+                    <div class="voice-option" data-voice="standup_comedian" onclick="selectVoice(this)">Stand-up Comedian</div>
+                    <div class="voice-option" data-voice="conspiracy_theorist" onclick="selectVoice(this)">Conspiracy Theorist</div>
+                    <div class="voice-option" data-voice="movie_trailer" onclick="selectVoice(this)">Movie Trailer Guy</div>
+                    <div class="voice-option" data-voice="custom" onclick="selectVoice(this)">+ Custom</div>
                 </div>
                 
                 <div class="section-title" style="margin-top: 1.5rem;">Format</div>
@@ -676,7 +708,7 @@
             
             <div class="actions">
                 <button class="btn btn-secondary" onclick="showStage('create')">Back</button>
-                <button class="btn btn-primary" onclick="generateVideo()">Generate Video</button>
+                <button class="btn btn-primary" id="generate-btn" onclick="generateVideo()">Generate Video — <span id="token-cost">15</span> tokens</button>
             </div>
         </div>
         
@@ -711,7 +743,7 @@
         let conversationHistory = [];
         let currentScript = null;
         let currentVisualPlan = null;
-        let selectedVoice = 'alloy';
+        let selectedVoice = 'news_anchor';
         let selectedFormat = '9:16';
         let uploadedFile = null;
         let tokenBalance = 120;

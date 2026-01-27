@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, session
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import json
 import uuid
@@ -9,6 +10,7 @@ import tempfile
 import stripe
 import requests
 import re
+import logging
 from bs4 import BeautifulSoup
 from PIL import Image, ImageDraw, ImageFont
 from urllib.parse import urlparse
@@ -19,14 +21,18 @@ from context_engine import (
     cut_video_clip, concatenate_clips
 )
 
+logging.basicConfig(level=logging.DEBUG)
+
 class Base(DeclarativeBase):
     pass
 
 db = SQLAlchemy(model_class=Base)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SESSION_SECRET', 'dev-secret-key')
+app.secret_key = os.environ.get('SESSION_SECRET')
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -94,6 +100,7 @@ with app.app_context():
         token_entry.balance = 120
         db.session.add(token_entry)
         db.session.commit()
+    logging.info("Database tables created")
 
 def extract_dialogue_only(script_text):
     """
@@ -1568,7 +1575,15 @@ def add_no_cache_headers(response):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return render_template('index.html', user=current_user)
+    return render_template('landing.html')
+
+@app.route('/dev')
+def dev_mode():
+    session['dev_mode'] = True
+    return render_template('index.html', user=None, dev_mode=True)
 
 
 @app.route('/download-reference', methods=['POST'])
@@ -2417,37 +2432,45 @@ def generate_video():
         return jsonify({'error': str(e)}), 500
 
 
-GOOFY_VOICE_CONFIG = {
-    'goofy_cartoon': {
-        'base_voice': 'fable',
-        'prompt': "You are a wacky, over-the-top cartoon character! Speak with EXTREME enthusiasm, wild energy, and silly vocal inflections. Add dramatic pauses and emphasis on random words. Be animated and zany!"
-    },
-    'goofy_dramatic': {
+CHARACTER_VOICE_CONFIG = {
+    'news_anchor': {
         'base_voice': 'onyx',
-        'prompt': "You are an EXTREMELY dramatic Shakespearean actor. Speak as if every word is the most important thing ever said. Add long dramatic pauses. Treat mundane topics like epic sagas. Be theatrical and grandiose!"
+        'prompt': "You are a professional news anchor delivering breaking news. Speak with authority, gravitas, and measured pacing. Be serious, credible, and commanding. Use the classic newsroom delivery style."
     },
-    'goofy_robot': {
+    'wolf_businessman': {
         'base_voice': 'echo',
-        'prompt': "You are a robot with limited emotional processing. Speak in a flat, monotone voice. Occasionally add 'beep boop' or 'processing' between sentences. Be mechanical and literal."
+        'prompt': "You are Jordan Belfort from Wolf of Wall Street - intense, hyped, selling the dream. Speak with aggressive energy, build to crescendos, pump people up. Use power words. Be a motivational beast who commands the room!"
     },
-    'goofy_surfer': {
+    'power_businesswoman': {
+        'base_voice': 'nova',
+        'prompt': "You are a powerful female executive - confident, sharp, no-nonsense. Speak with authority and precision. Every word is deliberate. You command respect and radiate competence. Think Sheryl Sandberg meets Miranda Priestly."
+    },
+    'club_promoter': {
         'base_voice': 'alloy',
-        'prompt': "You are a super chill surfer dude from California. Say 'dude', 'bro', 'gnarly', 'totally', and 'like' frequently. Be laid-back, relaxed, and use surfer slang. Everything is awesome to you!"
+        'prompt': "You are an energetic club promoter hyping up the crowd! Speak with infectious energy, excitement, and urgency. Build hype! Use phrases like 'let's go', 'are you ready', 'this is gonna be huge'. Be the life of the party!"
     },
-    'goofy_villain': {
+    'standup_comedian': {
+        'base_voice': 'fable',
+        'prompt': "You are a stand-up comedian in the style of Dave Chappelle and Jim Carrey. Speak with perfect comedic timing, dramatic pauses, and expressive delivery. Find the absurdity in everything. Be irreverent but intelligent."
+    },
+    'conspiracy_theorist': {
+        'base_voice': 'echo',
+        'prompt': "You are an intense conspiracy theorist who has uncovered THE TRUTH. Speak with urgency and paranoia. Lower your voice for the 'secret' parts. Everything is connected. Use phrases like 'think about it', 'they don't want you to know'."
+    },
+    'movie_trailer': {
         'base_voice': 'onyx',
-        'prompt': "You are an evil cartoon villain! Speak with a sinister, maniacal tone. Add evil laughs (mwahahaha) where appropriate. Be menacing but in a campy, over-the-top way. Relish in your villainy!"
+        'prompt': "You are the epic movie trailer voice. Deep, resonant, dramatic. Build tension with pauses. Every line lands like a dramatic reveal. Use phrases like 'In a world where...', 'One man...', 'This summer...'. Be EPIC!"
     },
-    'goofy_grandma': {
-        'base_voice': 'shimmer',
-        'prompt': "You are a sweet old grandmother. Speak slowly and warmly. Add 'dearie', 'sweetie', and 'back in my day' occasionally. Ramble a bit and be nurturing. Sound like you're offering cookies."
+    'custom': {
+        'base_voice': 'alloy',
+        'prompt': "You are a professional voiceover artist. Read the following script naturally and engagingly with perfect pacing and clarity."
     }
 }
 
 def get_voice_config(voice):
     """Get base voice and system prompt for a voice type."""
-    if voice in GOOFY_VOICE_CONFIG:
-        config = GOOFY_VOICE_CONFIG[voice]
+    if voice in CHARACTER_VOICE_CONFIG:
+        config = CHARACTER_VOICE_CONFIG[voice]
         return config['base_voice'], config['prompt']
     return voice, "You are a professional voiceover artist. Read the following script naturally and engagingly."
 

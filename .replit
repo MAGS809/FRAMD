@@ -2,11 +2,11 @@ modules = ["python-3.11", "postgresql-16"]
 
 [agent]
 expertMode = true
-integrations = ["python_openai_ai_integrations:1.0.0", "python_database:1.0.0", "stripe:2.0.0", "python_xai:1.0.0"]
+integrations = ["python_openai_ai_integrations:1.0.0", "python_database:1.0.0", "stripe:2.0.0", "python_xai:1.0.0", "python_log_in_with_replit:1.0.0"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["ffmpeg", "ffmpeg-full", "freetype", "imagemagick", "imagemagickBig", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "poppler_utils", "tcl", "tk", "yt-dlp", "zlib", "poppler-utils"]
+packages = ["ffmpeg", "ffmpeg-full", "freetype", "imagemagick", "imagemagickBig", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "poppler-utils", "poppler_utils", "tcl", "tk", "yt-dlp", "zlib"]
 
 [workflows]
 runButton = "Project"
@@ -24,13 +24,13 @@ args = "Echo Engine"
 name = "Echo Engine"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python app.py"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
 
 [[ports]]
 localPort = 5000

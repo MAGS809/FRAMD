@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Framd — AI Video Creator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a1f14;
+            --text: #ffd60a;
+            --text-dim: rgba(255, 214, 10, 0.6);
+            --text-faint: rgba(255, 214, 10, 0.2);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        html { scroll-behavior: smooth; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .logo span {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-dim);
+            display: block;
+        }
+        
+        .hero {
+            text-align: center;
+            padding: 4rem 0 3rem;
+        }
+        
+        .hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.5rem, 6vw, 4rem);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+        
+        .hero p {
+            font-size: 1.125rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--text);
+            color: var(--bg);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 214, 10, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--text);
+            border: 1px solid var(--text-faint);
+        }
+        
+        .btn-secondary:hover {
+            border-color: var(--text);
+        }
+        
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .features {
+            padding: 3rem 0;
+        }
+        
+        .features h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 2.5rem;
+            color: var(--text-dim);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .feature {
+            padding: 1.5rem;
+            border: 1px solid var(--text-faint);
+            border-radius: 12px;
+            transition: all 0.2s;
+        }
+        
+        .feature:hover {
+            border-color: var(--text-dim);
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .feature h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.125rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature p {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+        
+        .voices {
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .voices h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .voices p {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+        
+        .voice-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+        }
+        
+        .voice-tag {
+            padding: 0.5rem 1rem;
+            background: var(--text-faint);
+            border-radius: 20px;
+            font-size: 0.875rem;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+        
+        footer a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        
+        @media (max-width: 600px) {
+            .hero { padding: 2.5rem 0 2rem; }
+            .auth-buttons { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                Framd
+                <span>powered by Krakd</span>
+            </div>
+        </header>
+        
+        <section class="hero">
+            <h1>Turn ideas into<br>ready-to-post videos</h1>
+            <p>Paste a link, transcript, or raw idea. Krakd thinks, writes, and assembles cinematic clips with AI voiceovers and captions.</p>
+            
+            <div class="auth-buttons">
+                <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                        <polyline points="10 17 15 12 10 7"></polyline>
+                        <line x1="15" y1="12" x2="3" y2="12"></line>
+                    </svg>
+                    Sign in with Email or Google
+                </a>
+                <a href="/dev" class="btn btn-secondary">Continue as Dev</a>
+            </div>
+        </section>
+        
+        <section class="features">
+            <h2>Everything you need to create</h2>
+            <div class="feature-grid">
+                <div class="feature">
+                    <div class="feature-icon">🧠</div>
+                    <h3>AI Script Writer</h3>
+                    <p>Krakd analyzes your input, reasons through the message, and generates punchy, human-sounding scripts.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎭</div>
+                    <h3>Character Voices</h3>
+                    <p>8 punchy voice personas — from News Anchor to Stand-up Comedian. Assign different voices to different characters.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">✂️</div>
+                    <h3>Smart Cutouts</h3>
+                    <p>Background removal extracts subjects from any image. Layer characters over custom backgrounds.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>AI Character Generator</h3>
+                    <p>Generate custom characters and personas with AI. Perfect for consistent visual storytelling.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📐</div>
+                    <h3>Multi-Format Export</h3>
+                    <p>9:16 Reels, 1:1 Square, 16:9 Wide. Word-synced captions styled to your brand.</p>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">🎬</div>
+                    <h3>Scene-by-Scene Builder</h3>
+                    <p>Choose backgrounds, add character layers, preview each scene before rendering.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="voices">
+            <h2>Character Voices</h2>
+            <p>Punchy personas that bring your script to life</p>
+            <div class="voice-list">
+                <span class="voice-tag">News Anchor</span>
+                <span class="voice-tag">Wolf Businessman</span>
+                <span class="voice-tag">Power Businesswoman</span>
+                <span class="voice-tag">Club Promoter</span>
+                <span class="voice-tag">Stand-up Comedian</span>
+                <span class="voice-tag">Conspiracy Theorist</span>
+                <span class="voice-tag">Movie Trailer Guy</span>
+                <span class="voice-tag">+ Custom Voice</span>
+            </div>
+        </section>
+        
+        <footer>
+            <p>Clarity over noise. Meaning over metrics.<br><a href="#">Krakd</a></p>
+        </footer>
+    </div>
+</body>
+</html>
