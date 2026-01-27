@@ -27,13 +27,12 @@ Calligra is a thinking engine, not a content factory. Its purpose is to turn ide
 
 ### Tone & Voice
 - **Primary**: Calm, confident, clear, restrained, thoughtful.
-- **Humor**: Wide range allowed - from intelligent observational to absurdist dark comedy.
-- **Adult Humor OK**: Profanity, dark jokes, edgy meme-style content, absurdist comedy all permitted.
-- **Style Examples**: SpongeBob reaction memes, Sesame Street dark edits, South Park irreverence, deadpan absurdism.
+- **Humor**: Intelligent, subtle, observational, timing-based. Rule: If humor can be removed and message works, it's correct.
 
 ### Hard Boundaries
-- **Sexual/Graphic Policy**: No sexualized visuals (Hard Ban on bikinis, lingerie, erotic poses). Adult language/jokes are fine; explicit imagery is not.
-- **Still Avoid**: Forced metaphors, preachy tone, corporate speak.
+- **No Juvenile Humor**: No bathroom, sex, or shock value.
+- **Sexual/Graphic Policy**: Default to silence. No sexualized visuals (Hard Ban on bikinis, lingerie, erotic poses).
+- **Red Flags**: No internet slang, memes, forced metaphors, or preachy tone.
 
 ### Visual Content
 - **Primary Source**: Wikimedia Commons (documentary/archival - authentic, non-stock)
