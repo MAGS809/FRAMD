@@ -267,6 +267,7 @@
         /* Chat input area */
         .chat-input-area {
             display: flex;
+            align-items: center;
             gap: 0.75rem;
             margin-bottom: 1rem;
             padding: 0.75rem;
@@ -2975,9 +2976,30 @@
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (file) {
-                uploadedFile = file;
-                document.getElementById('file-name').textContent = file.name;
-                document.getElementById('file-preview').style.display = 'flex';
+                setUploadedFile(file);
+            }
+        }
+        
+        function setUploadedFile(file) {
+            uploadedFile = file;
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-preview').style.display = 'flex';
+        }
+        
+        function handlePaste(event) {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+            
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) {
+                        event.preventDefault();
+                        setUploadedFile(file);
+                        break;
+                    }
+                }
             }
         }
         
@@ -3622,6 +3644,9 @@
                     }
                 });
                 console.log('Enter key listener attached');
+                
+                userInput.addEventListener('paste', handlePaste);
+                console.log('Paste listener attached');
             }
             
             // Also attach click handler directly
