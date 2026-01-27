@@ -1856,11 +1856,34 @@
         function getVisualsArray() {
             if (!currentVisualPlan) return [];
             if (Array.isArray(currentVisualPlan)) return currentVisualPlan;
+            
             // Try various properties that might contain visuals
-            return currentVisualPlan.curated_visuals || 
-                   currentVisualPlan.visuals || 
-                   currentVisualPlan.images || 
-                   [];
+            if (currentVisualPlan.curated_visuals) return currentVisualPlan.curated_visuals;
+            if (currentVisualPlan.visuals) return currentVisualPlan.visuals;
+            if (currentVisualPlan.images) return currentVisualPlan.images;
+            
+            // Extract from sections if visual_board format
+            if (currentVisualPlan.sections && Array.isArray(currentVisualPlan.sections)) {
+                const allVisuals = [];
+                currentVisualPlan.sections.forEach(section => {
+                    if (section.suggested_videos && section.suggested_videos.length > 0) {
+                        section.suggested_videos.forEach(video => {
+                            allVisuals.push({
+                                thumbnail: video.thumbnail,
+                                preview_url: video.thumbnail,
+                                url: video.download_url,
+                                video_url: video.download_url,
+                                title: video.title || `Scene visual`,
+                                license: video.license,
+                                duration: video.duration
+                            });
+                        });
+                    }
+                });
+                return allVisuals;
+            }
+            
+            return [];
         }
         
         function addNewScene() {
