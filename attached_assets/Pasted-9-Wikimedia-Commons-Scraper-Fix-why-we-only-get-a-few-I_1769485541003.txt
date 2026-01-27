@@ -1,0 +1,144 @@
+9) Wikimedia Commons Scraper Fix (why we only get a few)
+
+Implement the correct 2-step API:
+	1.	Search files only:
+
+	•	namespace = 6 (File)
+	•	generator=search
+
+	2.	Fetch metadata:
+
+	•	prop=imageinfo
+	•	iiprop=url|extmetadata|mime|size
+
+Parse from extmetadata:
+	•	LicenseShortName
+	•	LicenseUrl
+	•	Artist / Attribution
+
+Do not exclude videos:
+Allow MIME:
+	•	image/*
+	•	video/webm
+	•	video/ogg
+	•	video/mp4 (rare)
+
+⸻
+
+10) Fallback Ladder (when Commons is thin)
+
+If results < N (e.g., 10):
+	1.	query expansion (synonyms, remove adjectives)
+	2.	try secondary explicit-license sources (only if per-item license proof exists)
+	3.	auto-generate “Source Card” visual
+	4.	abstract internal visuals (gradients, icons, text scenes)
+	5.	ask user to upload a licensed reference
+
+Never “panic” into risky scraping.
+
+⸻
+
+11) “Source Document Visual” Feature (for articles/PDFs)
+
+When user provides a primary document/article, show a visual safely:
+
+Tier 1: if PDF → render page 1 image
+Tier 2: generate “document snapshot” image from extracted metadata:
+	•	title, source, date, URL
+	•	2–4 short excerpts (≤25 words each)
+Tier 3: title card fallback
+
+Never scrape random images from the web for articles.
+
+⸻
+
+12) Video Builder Requirements
+
+Output: 9:16 MP4
+	•	burned subtitles always on
+	•	visuals change per scene/segment
+	•	clean transitions
+	•	minimal effects
+	•	audio: podcast clip or voiceover
+
+Also output:
+	•	caption (1–2 lines)
+	•	hashtags
+	•	credits line (when attribution required)
+
+⸻
+
+13) Posting & Anti-Bot Pacing
+
+If auto-posting is included:
+	•	schedule posting with human-like spacing
+	•	randomize within bounded ranges (e.g., 40–120 minutes)
+	•	max posts per day per platform (configurable)
+	•	retry logic and failure logging
+
+(If posting is later: export pack with everything ready.)
+
+⸻
+
+14) Safety / Content Restrictions (global)
+
+Reject or avoid:
+	•	sexualized visuals (no cleavage, bikinis)
+	•	explicit violence/gore
+	•	brands/logos
+	•	recognizable celebrities
+	•	porn/NSFW
+	•	anything with unclear licensing
+
+If the story is graphic:
+
+“We’re skipping that part.”
+
+⸻
+
+15) Required API Endpoints
+	•	POST /generate (main pipeline; returns job id)
+	•	GET /job/:id (status + artifacts)
+	•	POST /ingest (scraper ingest by query/source)
+	•	GET /assets (filter by tags/type/status=safe)
+	•	POST /source/preview (document visual)
+	•	GET /health
+
+⸻
+
+16) Logging & Debugging (must have)
+
+For every job, store:
+	•	model used
+	•	prompt hashes (for caching)
+	•	word count / token count
+	•	script + scene plan JSON
+	•	which assets were selected and why (tags match)
+	•	attribution proof links
+
+⸻
+
+17) Business / Usage (token-based)
+
+Implement credit system:
+	•	Each generate job costs credits based on:
+	•	transcript length
+	•	number of outputs
+	•	whether live search is used
+
+Include rate limits per user to avoid abuse.
+
+⸻
+
+18) IMPORTANT Security Note (do this)
+
+Never ask users to paste API keys into chat.
+Keys must be stored as server secrets / env vars.
+
+(If any key was exposed previously, instruct user to rotate it.)
+
+⸻
+
+Done: What success looks like
+
+User pastes transcript or link → chooses Educational or Skit → chooses setting per scene (yellow border UI) → the app outputs a coherent postable video where every visual matches the script, and every scraped asset has license proof stored.
