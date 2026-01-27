@@ -6,7 +6,7 @@
     <title>Krakd</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Montserrat:wght@400;600;800;900&family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap');
         
         :root {
             --bg-primary: #0a1f14;
@@ -446,6 +446,84 @@
         
         .chat-mode-hidden {
             display: none !important;
+        }
+        
+        /* Caption Option Cards */
+        .caption-option-card {
+            padding: 0.6rem 0.8rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            color: var(--text-secondary);
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            align-items: center;
+        }
+        
+        .caption-option-card:hover {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.05);
+        }
+        
+        .caption-option-card.selected {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.15);
+            color: var(--text-primary);
+        }
+        
+        /* Caption Color Swatches */
+        .caption-color-swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .caption-color-swatch:hover {
+            transform: scale(1.1);
+        }
+        
+        .caption-color-swatch.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.3);
+        }
+        
+        /* Effect Checkboxes */
+        .effect-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            padding: 0.4rem 0.8rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+        
+        .effect-checkbox:hover {
+            border-color: var(--accent);
+        }
+        
+        .effect-checkbox input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+        
+        .effect-checkbox:has(input:checked) {
+            background: rgba(255, 214, 10, 0.1);
+            color: var(--text-primary);
+            border-color: var(--accent);
         }
         
         /* Chat messages */
@@ -1500,7 +1578,7 @@
                 <h3>Caption Style</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add captions to your video:</p>
                 
-                <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
                     <label class="toggle-switch">
                         <input type="checkbox" id="caption-toggle" checked>
                         <span class="toggle-slider"></span>
@@ -1508,22 +1586,150 @@
                     <span style="color: var(--text-primary);">Enable Captions</span>
                 </div>
                 
-                <div id="caption-options" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
-                    <div class="format-card caption-style-card selected" data-style="bold-center" onclick="selectCaptionStyle(this)">
-                        <h3 style="font-size: 0.9rem;">Bold Center</h3>
-                        <p style="font-size: 0.75rem;">Classic TikTok style</p>
+                <div id="caption-options">
+                    <!-- Font Family -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Font Family</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
+                            <div class="caption-option-card selected" data-font="inter" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Inter', sans-serif; font-weight: 700;">Inter</span>
+                            </div>
+                            <div class="caption-option-card" data-font="bebas" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">BEBAS</span>
+                            </div>
+                            <div class="caption-option-card" data-font="montserrat" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Montserrat', sans-serif; font-weight: 800;">Montserrat</span>
+                            </div>
+                            <div class="caption-option-card" data-font="oswald" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Oswald', sans-serif; font-weight: 700;">OSWALD</span>
+                            </div>
+                            <div class="caption-option-card" data-font="poppins" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Poppins', sans-serif; font-weight: 700;">Poppins</span>
+                            </div>
+                            <div class="caption-option-card" data-font="roboto" onclick="selectCaptionFont(this)">
+                                <span style="font-family: 'Roboto', sans-serif; font-weight: 900;">Roboto</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="format-card caption-style-card" data-style="typewriter" onclick="selectCaptionStyle(this)">
-                        <h3 style="font-size: 0.9rem;">Typewriter</h3>
-                        <p style="font-size: 0.75rem;">Word by word reveal</p>
+                    
+                    <!-- Animation Style -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Animation Style</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem;">
+                            <div class="caption-option-card selected" data-animation="pop" onclick="selectCaptionAnimation(this)">
+                                <strong>Pop</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Words scale in</span>
+                            </div>
+                            <div class="caption-option-card" data-animation="typewriter" onclick="selectCaptionAnimation(this)">
+                                <strong>Typewriter</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Letter by letter</span>
+                            </div>
+                            <div class="caption-option-card" data-animation="karaoke" onclick="selectCaptionAnimation(this)">
+                                <strong>Karaoke</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Word highlight sweep</span>
+                            </div>
+                            <div class="caption-option-card" data-animation="bounce" onclick="selectCaptionAnimation(this)">
+                                <strong>Bounce</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Elastic pop-in</span>
+                            </div>
+                            <div class="caption-option-card" data-animation="fade" onclick="selectCaptionAnimation(this)">
+                                <strong>Fade</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">Smooth fade in/out</span>
+                            </div>
+                            <div class="caption-option-card" data-animation="none" onclick="selectCaptionAnimation(this)">
+                                <strong>Static</strong>
+                                <span style="font-size: 0.7rem; color: var(--text-muted);">No animation</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="format-card caption-style-card" data-style="highlight" onclick="selectCaptionStyle(this)">
-                        <h3 style="font-size: 0.9rem;">Highlight</h3>
-                        <p style="font-size: 0.75rem;">Key words pop</p>
+                    
+                    <!-- Position -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Position</label>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 300px;">
+                            <div class="caption-option-card" data-position="top" onclick="selectCaptionPosition(this)">Top</div>
+                            <div class="caption-option-card selected" data-position="center" onclick="selectCaptionPosition(this)">Center</div>
+                            <div class="caption-option-card" data-position="bottom" onclick="selectCaptionPosition(this)">Bottom</div>
+                        </div>
                     </div>
-                    <div class="format-card caption-style-card" data-style="minimal" onclick="selectCaptionStyle(this)">
-                        <h3 style="font-size: 0.9rem;">Minimal</h3>
-                        <p style="font-size: 0.75rem;">Clean subtitle look</p>
+                    
+                    <!-- Colors -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Text Color</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <div class="caption-color-swatch selected" data-color="#FFFFFF" onclick="selectCaptionColor(this)" style="background: #FFFFFF;"></div>
+                            <div class="caption-color-swatch" data-color="#FFD60A" onclick="selectCaptionColor(this)" style="background: #FFD60A;"></div>
+                            <div class="caption-color-swatch" data-color="#00D4FF" onclick="selectCaptionColor(this)" style="background: #00D4FF;"></div>
+                            <div class="caption-color-swatch" data-color="#FF6B6B" onclick="selectCaptionColor(this)" style="background: #FF6B6B;"></div>
+                            <div class="caption-color-swatch" data-color="#4ECDC4" onclick="selectCaptionColor(this)" style="background: #4ECDC4;"></div>
+                            <div class="caption-color-swatch" data-color="#FF69B4" onclick="selectCaptionColor(this)" style="background: #FF69B4;"></div>
+                            <div class="caption-color-swatch" data-color="#9B59B6" onclick="selectCaptionColor(this)" style="background: #9B59B6;"></div>
+                            <div class="caption-color-swatch" data-color="#2ECC71" onclick="selectCaptionColor(this)" style="background: #2ECC71;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Highlight Color -->
+                    <div style="margin-bottom: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Highlight/Accent Color</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <div class="caption-color-swatch selected" data-highlight="#FFD60A" onclick="selectHighlightColor(this)" style="background: #FFD60A;"></div>
+                            <div class="caption-color-swatch" data-highlight="#FF6B6B" onclick="selectHighlightColor(this)" style="background: #FF6B6B;"></div>
+                            <div class="caption-color-swatch" data-highlight="#00D4FF" onclick="selectHighlightColor(this)" style="background: #00D4FF;"></div>
+                            <div class="caption-color-swatch" data-highlight="#4ECDC4" onclick="selectHighlightColor(this)" style="background: #4ECDC4;"></div>
+                            <div class="caption-color-swatch" data-highlight="#FF69B4" onclick="selectHighlightColor(this)" style="background: #FF69B4;"></div>
+                            <div class="caption-color-swatch" data-highlight="#FFFFFF" onclick="selectHighlightColor(this)" style="background: #FFFFFF;"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Size & Effects -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Size</label>
+                            <select id="caption-size" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
+                                <option value="small">Small</option>
+                                <option value="medium" selected>Medium</option>
+                                <option value="large">Large</option>
+                                <option value="xlarge">Extra Large</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Style</label>
+                            <select id="caption-weight" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
+                                <option value="normal">Regular</option>
+                                <option value="bold" selected>Bold</option>
+                                <option value="black">Extra Bold</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Text Effects -->
+                    <div style="margin-top: 1.25rem;">
+                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Text Effects</label>
+                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                            <label class="effect-checkbox">
+                                <input type="checkbox" id="caption-outline" checked>
+                                <span>Outline</span>
+                            </label>
+                            <label class="effect-checkbox">
+                                <input type="checkbox" id="caption-shadow" checked>
+                                <span>Drop Shadow</span>
+                            </label>
+                            <label class="effect-checkbox">
+                                <input type="checkbox" id="caption-background">
+                                <span>Background Box</span>
+                            </label>
+                            <label class="effect-checkbox">
+                                <input type="checkbox" id="caption-uppercase">
+                                <span>ALL CAPS</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview -->
+                    <div style="margin-top: 1.5rem; padding: 2rem; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; text-align: center;">
+                        <span id="caption-preview" style="font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 700; color: #FFFFFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;">
+                            Preview Text
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1774,11 +1980,127 @@
         // Caption settings
         let captionsEnabled = true;
         let selectedCaptionStyle = 'bold-center';
+        let captionSettings = {
+            font: 'inter',
+            animation: 'pop',
+            position: 'center',
+            color: '#FFFFFF',
+            highlightColor: '#FFD60A',
+            size: 'medium',
+            weight: 'bold',
+            outline: true,
+            shadow: true,
+            background: false,
+            uppercase: false
+        };
+        
+        const fontFamilyMap = {
+            'inter': "'Inter', sans-serif",
+            'bebas': "'Bebas Neue', sans-serif",
+            'montserrat': "'Montserrat', sans-serif",
+            'oswald': "'Oswald', sans-serif",
+            'poppins': "'Poppins', sans-serif",
+            'roboto': "'Roboto', sans-serif"
+        };
+        
+        const fontSizeMap = {
+            'small': '1.1rem',
+            'medium': '1.5rem',
+            'large': '2rem',
+            'xlarge': '2.5rem'
+        };
+        
+        const fontWeightMap = {
+            'normal': '400',
+            'bold': '700',
+            'black': '900'
+        };
         
         function selectCaptionStyle(card) {
             document.querySelectorAll('.caption-style-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             selectedCaptionStyle = card.dataset.style;
+        }
+        
+        function selectCaptionFont(card) {
+            card.parentElement.querySelectorAll('.caption-option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            captionSettings.font = card.dataset.font;
+            updateCaptionPreview();
+        }
+        
+        function selectCaptionAnimation(card) {
+            card.parentElement.querySelectorAll('.caption-option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            captionSettings.animation = card.dataset.animation;
+        }
+        
+        function selectCaptionPosition(card) {
+            card.parentElement.querySelectorAll('.caption-option-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            captionSettings.position = card.dataset.position;
+        }
+        
+        function selectCaptionColor(swatch) {
+            swatch.parentElement.querySelectorAll('.caption-color-swatch').forEach(s => s.classList.remove('selected'));
+            swatch.classList.add('selected');
+            captionSettings.color = swatch.dataset.color;
+            updateCaptionPreview();
+        }
+        
+        function selectHighlightColor(swatch) {
+            swatch.parentElement.querySelectorAll('.caption-color-swatch').forEach(s => s.classList.remove('selected'));
+            swatch.classList.add('selected');
+            captionSettings.highlightColor = swatch.dataset.highlight;
+            updateCaptionPreview();
+        }
+        
+        function updateCaptionPreview() {
+            const preview = document.getElementById('caption-preview');
+            if (!preview) return;
+            
+            const sizeSelect = document.getElementById('caption-size');
+            const weightSelect = document.getElementById('caption-weight');
+            const outlineCheck = document.getElementById('caption-outline');
+            const shadowCheck = document.getElementById('caption-shadow');
+            const bgCheck = document.getElementById('caption-background');
+            const uppercaseCheck = document.getElementById('caption-uppercase');
+            
+            captionSettings.size = sizeSelect?.value || 'medium';
+            captionSettings.weight = weightSelect?.value || 'bold';
+            captionSettings.outline = outlineCheck?.checked ?? true;
+            captionSettings.shadow = shadowCheck?.checked ?? true;
+            captionSettings.background = bgCheck?.checked ?? false;
+            captionSettings.uppercase = uppercaseCheck?.checked ?? false;
+            
+            let styles = `
+                font-family: ${fontFamilyMap[captionSettings.font]};
+                font-size: ${fontSizeMap[captionSettings.size]};
+                font-weight: ${fontWeightMap[captionSettings.weight]};
+                color: ${captionSettings.color};
+            `;
+            
+            let textShadow = '';
+            if (captionSettings.outline) {
+                textShadow = '-1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000';
+            }
+            if (captionSettings.shadow) {
+                textShadow += (textShadow ? ', ' : '') + '2px 2px 4px rgba(0,0,0,0.8)';
+            }
+            if (textShadow) {
+                styles += `text-shadow: ${textShadow};`;
+            }
+            
+            if (captionSettings.background) {
+                styles += 'background: rgba(0,0,0,0.7); padding: 0.3rem 0.6rem; border-radius: 4px;';
+            }
+            
+            if (captionSettings.uppercase) {
+                styles += 'text-transform: uppercase; letter-spacing: 1px;';
+            }
+            
+            preview.style.cssText = styles;
+            preview.textContent = captionSettings.uppercase ? 'PREVIEW TEXT' : 'Preview Text';
         }
         
         // Caption toggle listener
@@ -1791,6 +2113,17 @@
                     document.getElementById('caption-options').style.pointerEvents = this.checked ? 'auto' : 'none';
                 });
             }
+            
+            // Add listeners for dropdowns and checkboxes
+            ['caption-size', 'caption-weight'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', updateCaptionPreview);
+            });
+            
+            ['caption-outline', 'caption-shadow', 'caption-background', 'caption-uppercase'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('change', updateCaptionPreview);
+            });
         });
         
         // Voice preview samples
