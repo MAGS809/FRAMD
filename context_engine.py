@@ -6,17 +6,17 @@ import requests
 from typing import Optional
 from openai import OpenAI
 
-# Use Grok (xAI) as the main AI for text generation
+# Krakd AI - powered by xAI
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
-# Grok client for text generation
+# Krakd client for text generation (xAI backend)
 client = OpenAI(
     api_key=XAI_API_KEY,
     base_url="https://api.x.ai/v1"
 )
 
-# OpenAI client for audio transcription (Grok doesn't support audio)
+# OpenAI client for audio transcription (Krakd doesn't support audio yet)
 openai_client = OpenAI(
     api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
     base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")

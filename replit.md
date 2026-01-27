@@ -53,15 +53,15 @@ Calligra is a thinking engine, not a content factory. Its purpose is to turn ide
 
 ### Tech Stack
 - **Python 3.11** with Flask
-- **xAI Grok (grok-2-1212)** for text generation - chat, script generation, idea analysis, visual curation
+- **Krakd AI** (powered by xAI grok-2-1212) for text generation - chat, script generation, idea analysis, visual curation
 - **OpenAI** for audio only - transcription (gpt-4o-mini-transcribe) and voiceover (gpt-4o-audio-preview)
 - **FFmpeg** for video/audio processing
 - **MoviePy** for additional video manipulation
 
-### Token Pricing (Updated for Grok)
-- 100 tokens = $2.00 (60% cheaper with Grok)
-- 500 tokens = $8.00 (60% cheaper with Grok)
-- 2000 tokens = $25.00 (58% cheaper with Grok)
+### Token Pricing (Updated for Krakd)
+- 100 tokens = $2.00 (60% cheaper with Krakd)
+- 500 tokens = $8.00 (60% cheaper with Krakd)
+- 2000 tokens = $25.00 (58% cheaper with Krakd)
 
 ## Guardrails (System-Level Rules)
 The AI must NEVER:

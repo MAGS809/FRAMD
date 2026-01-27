@@ -159,9 +159,9 @@ def get_stripe_credentials():
 
 # Token pricing
 TOKEN_PACKAGES = {
-    100: 200,    # 100 tokens = $2.00 (200 cents) - 60% cheaper with Grok
-    500: 800,    # 500 tokens = $8.00 (800 cents) - 60% cheaper with Grok
-    2000: 2500   # 2000 tokens = $25.00 (2500 cents) - 58% cheaper with Grok
+    100: 200,    # 100 tokens = $2.00 (200 cents) - 60% cheaper with Krakd
+    500: 800,    # 500 tokens = $8.00 (800 cents) - 60% cheaper with Krakd
+    2000: 2500   # 2000 tokens = $25.00 (2500 cents) - 58% cheaper with Krakd
 }
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -1877,7 +1877,7 @@ def generate_voiceover():
     if not text:
         return jsonify({'error': 'No dialogue found in script'}), 400
     
-    # Use OpenAI for audio generation (Grok doesn't support audio)
+    # Use OpenAI for audio generation (Krakd doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -1929,7 +1929,7 @@ def preview_voice():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
-    # Use OpenAI for audio generation (Grok doesn't support audio)
+    # Use OpenAI for audio generation (Krakd doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -2031,7 +2031,7 @@ def generate_voiceover_multi():
     if not script:
         return jsonify({'error': 'No script provided'}), 400
     
-    # Use OpenAI for audio generation (Grok doesn't support audio)
+    # Use OpenAI for audio generation (Krakd doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -2154,7 +2154,7 @@ def build_post():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Direct chat with the Grok-style AI."""
+    """Direct chat with Krakd AI."""
     from openai import OpenAI
     import os
     
