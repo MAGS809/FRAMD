@@ -1513,6 +1513,348 @@
         .toast.error {
             border-color: #ff6b6b;
         }
+        
+        /* ========== VISUAL TIMELINE STYLES ========== */
+        .timeline-editor {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        @media (max-width: 900px) {
+            .timeline-editor {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Timeline Track */
+        .timeline-track {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid var(--border);
+        }
+        
+        .timeline-track-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .timeline-track-title {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .timeline-duration {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+        
+        /* Clip segments in timeline */
+        .timeline-segments {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+            min-height: 80px;
+        }
+        
+        .timeline-segment {
+            flex: 1;
+            min-width: 60px;
+            max-width: 120px;
+            height: 70px;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+        
+        .timeline-segment:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        
+        .timeline-segment.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(255, 214, 10, 0.3);
+        }
+        
+        .timeline-segment img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .timeline-segment-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 4px 6px;
+            font-size: 0.65rem;
+            color: white;
+        }
+        
+        .timeline-segment-number {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: var(--accent);
+            color: var(--bg-primary);
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+        
+        /* Live Preview Panel */
+        .preview-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        
+        .preview-header {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .preview-format-badge {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .preview-canvas {
+            position: relative;
+            aspect-ratio: 9/16;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .preview-canvas.ratio-1-1 { aspect-ratio: 1/1; }
+        .preview-canvas.ratio-4-5 { aspect-ratio: 4/5; }
+        .preview-canvas.ratio-16-9 { aspect-ratio: 16/9; }
+        
+        .preview-visual {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .preview-caption-overlay {
+            position: absolute;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 0 1rem;
+            pointer-events: none;
+        }
+        
+        .preview-caption-overlay.pos-top { top: 15%; }
+        .preview-caption-overlay.pos-center { top: 50%; transform: translateY(-50%); }
+        .preview-caption-overlay.pos-bottom { bottom: 15%; }
+        
+        .preview-caption-text {
+            display: inline-block;
+            padding: 4px 8px;
+            max-width: 90%;
+        }
+        
+        .preview-voice-indicator {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        /* Color Wheel Picker */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .color-wheel-input {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+            padding: 0;
+        }
+        
+        .color-wheel-input::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        
+        .color-wheel-input::-webkit-color-swatch {
+            border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+        
+        .color-wheel-input::-moz-color-swatch {
+            border: 3px solid rgba(255,255,255,0.2);
+            border-radius: 50%;
+        }
+        
+        .color-preset-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        
+        .color-preset {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        
+        .color-preset:hover, .color-preset.selected {
+            border-color: var(--accent);
+            transform: scale(1.1);
+        }
+        
+        /* Inline AI Chat Indicator */
+        .ai-control-hint {
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .ai-control-hint .ai-icon {
+            font-size: 1.2rem;
+        }
+        
+        /* Unified Settings Panel */
+        .settings-accordion {
+            margin-top: 1rem;
+        }
+        
+        .settings-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+        }
+        
+        .settings-section-header {
+            padding: 0.875rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .settings-section-header:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .settings-section-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .settings-section-toggle {
+            color: var(--text-muted);
+            transition: transform 0.2s ease;
+        }
+        
+        .settings-section.open .settings-section-toggle {
+            transform: rotate(180deg);
+        }
+        
+        .settings-section-content {
+            padding: 0 1rem 1rem 1rem;
+            display: none;
+        }
+        
+        .settings-section.open .settings-section-content {
+            display: block;
+        }
+        
+        /* Add Clip Button */
+        .add-clip-btn {
+            min-width: 60px;
+            height: 70px;
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 0.65rem;
+        }
+        
+        .add-clip-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(255, 214, 10, 0.05);
+        }
+        
+        .add-clip-btn .plus-icon {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
     </style>
 </head>
 <body>
@@ -1631,437 +1973,250 @@
             </div>
         </div>
         
-        <!-- STEP 2: Timeline Developer -->
+        <!-- STEP 2: Timeline Editor -->
         <div class="panel" id="panel-format">
-            <h2>Timeline Developer</h2>
+            <h2>Timeline Editor</h2>
             
-            <!-- Step Navigation Menu -->
-            <div class="timeline-nav" id="timeline-nav">
-                <div class="timeline-nav-item active" data-step="visuals" onclick="showStep('visuals')">
-                    <span class="nav-number">1</span>
-                    <span>Visuals</span>
-                </div>
-                <div class="timeline-nav-item" data-step="voice" onclick="showStep('voice')">
-                    <span class="nav-number">2</span>
-                    <span>Voice</span>
-                </div>
-                <div class="timeline-nav-item" data-step="format" onclick="showStep('format')">
-                    <span class="nav-number">3</span>
-                    <span>Format</span>
-                </div>
-                <div class="timeline-nav-item" data-step="captions" onclick="showStep('captions')">
-                    <span class="nav-number">4</span>
-                    <span>Captions</span>
-                </div>
+            <!-- AI Control Hint -->
+            <div class="ai-control-hint">
+                <span class="ai-icon">🤖</span>
+                <span>Chat with Krakd anytime to change visuals, voice, or captions. Just describe what you want.</span>
             </div>
             
-            <!-- Script Preview (collapsed) -->
-            <div class="result-section" style="margin-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleScriptPreview()">
-                    <h3>Your Script</h3>
-                    <span id="script-toggle-icon" style="color: var(--text-secondary);">▼</span>
-                </div>
-                <div id="script-preview-container" style="display: none; margin-top: 1rem;">
-                    <p id="script-preview" style="white-space: pre-wrap; font-size: 0.9rem;"></p>
-                </div>
-            </div>
-            
-            <!-- Hidden: Content Type state (set by AI or user preference) -->
+            <!-- Hidden: Content Type state -->
             <input type="hidden" id="content-type-value" value="educational">
             
-            <!-- STEP 1: Visuals Section -->
-            <div id="step-visuals" class="timeline-step active" style="margin-bottom: 1.5rem;">
-                <h3>Build Your Visuals</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI will find legally-licensed footage that fits your script's setting and mood.</p>
-                
-                <!-- Source Document (optional) -->
-                <div id="source-section-inline" class="result-section" style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                        <h4 style="margin: 0; font-size: 0.95rem;">Source Document (optional)</h4>
-                        <span style="font-size: 0.75rem; color: var(--text-secondary);">For citations & credibility</span>
+            <!-- Visual Timeline Bar + Live Preview -->
+            <div class="timeline-editor">
+                <!-- Left: Timeline Track -->
+                <div class="timeline-track">
+                    <div class="timeline-track-header">
+                        <span class="timeline-track-title">Video Timeline</span>
+                        <span class="timeline-duration" id="timeline-total-duration">0:00</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="source-url-input" placeholder="Paste article or PDF link..." 
-                               style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary); font-size: 0.85rem;">
-                        <button onclick="fetchSourcePreview()" class="btn btn-secondary" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
-                            <span id="source-btn-text">Verify</span>
+                    
+                    <!-- Clip Segments -->
+                    <div class="timeline-segments" id="timeline-segments">
+                        <div class="timeline-segment" onclick="selectTimelineSegment(0)" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
+                            <span class="timeline-segment-number">1</span>
+                            <div class="timeline-segment-overlay">No clips yet</div>
+                        </div>
+                        <button class="add-clip-btn" onclick="addTimelineClip()">
+                            <span class="plus-icon">+</span>
+                            <span>Add</span>
                         </button>
                     </div>
-                    <div id="source-preview-container" style="display: none; margin-top: 1rem;">
-                        <div style="display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
-                            <img id="source-preview-image" src="" alt="Source Preview" style="width: 120px; height: auto; border-radius: 6px;">
-                            <div style="flex: 1;">
-                                <span style="background: var(--accent); color: var(--bg-primary); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600;">VERIFIED</span>
-                                <h5 id="source-title" style="margin: 0.3rem 0; font-size: 0.85rem;"></h5>
-                                <p id="source-meta" style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;"></p>
+                    
+                    <!-- Build Visuals Button -->
+                    <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%; margin-top: 1rem;">
+                        Build Visuals from Script
+                    </button>
+                    
+                    <!-- Visual Guidance -->
+                    <div style="margin-top: 1rem;">
+                        <input type="text" id="visual-guidance-input" placeholder="Visual style guidance (optional)..." style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-light); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
+                    </div>
+                </div>
+                
+                <!-- Right: Live Preview -->
+                <div class="preview-panel">
+                    <div class="preview-header">
+                        <span>Live Preview</span>
+                        <span class="preview-format-badge" id="preview-format-badge">9:16</span>
+                    </div>
+                    <div class="preview-canvas" id="preview-canvas">
+                        <img class="preview-visual" id="preview-visual" src="" alt="Preview" style="display: none;">
+                        <div style="color: var(--text-muted); font-size: 0.85rem;" id="preview-placeholder">Select a clip to preview</div>
+                        
+                        <!-- Caption Overlay -->
+                        <div class="preview-caption-overlay pos-center" id="preview-caption-container">
+                            <span class="preview-caption-text" id="preview-caption-text" style="display: none;">Sample Caption</span>
+                        </div>
+                        
+                        <!-- Voice Indicator -->
+                        <div class="preview-voice-indicator" id="preview-voice-indicator" style="display: none;">
+                            🎙️ <span id="preview-voice-name">Alloy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Scene Picker appears here when building visuals -->
+            <div id="scene-picker-section" style="margin-top: 1rem; display: none;">
+                <div id="scene-picker-content"></div>
+            </div>
+            
+            <!-- Settings Accordion -->
+            <div class="settings-accordion">
+                
+                <!-- Voice Settings -->
+                <div class="settings-section open" id="settings-voice">
+                    <div class="settings-section-header" onclick="toggleSettingsSection('voice')">
+                        <span class="settings-section-title">🎙️ Voiceover</span>
+                        <span class="settings-section-toggle">▼</span>
+                    </div>
+                    <div class="settings-section-content" id="voice-settings-content">
+                        <!-- Voice Selection Grid -->
+                        <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
+                            <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Alloy</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">Neutral</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('alloy')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
+                            </div>
+                            <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Echo</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">Deep male</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('echo')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
+                            </div>
+                            <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Nova</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">Warm female</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('nova')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
+                            </div>
+                            <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Onyx</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">Authoritative</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('onyx')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
+                            </div>
+                            <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Shimmer</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">Clear female</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('shimmer')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
+                            </div>
+                            <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)" style="padding: 0.75rem;">
+                                <h3 style="font-size: 0.9rem; margin-bottom: 0.25rem;">Fable</h3>
+                                <p style="font-size: 0.7rem; margin: 0;">British</p>
+                                <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('fable')" style="margin-top: 0.5rem; font-size: 0.7rem;">▶ Preview</button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div style="margin-bottom: 1rem;">
-                    <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Visual Guidance (optional)</label>
-                    <input type="text" id="visual-guidance-input" placeholder="e.g., 'dark moody visuals', 'warm natural lighting', 'urban street scenes'" style="width: 100%; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-light); border-radius: 10px; color: var(--text-primary); font-size: 0.9rem;">
+                <!-- Format Settings -->
+                <div class="settings-section" id="settings-format">
+                    <div class="settings-section-header" onclick="toggleSettingsSection('format')">
+                        <span class="settings-section-title">📐 Output Format</span>
+                        <span class="settings-section-toggle">▼</span>
+                    </div>
+                    <div class="settings-section-content">
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;">
+                            <div class="format-card selected" data-ratio="9:16" onclick="selectFormat(this)" style="padding: 0.75rem; text-align: center;">
+                                <strong style="font-size: 0.85rem;">9:16</strong>
+                                <p style="font-size: 0.65rem; margin: 0.25rem 0 0 0;">Reels/TikTok</p>
+                            </div>
+                            <div class="format-card" data-ratio="1:1" onclick="selectFormat(this)" style="padding: 0.75rem; text-align: center;">
+                                <strong style="font-size: 0.85rem;">1:1</strong>
+                                <p style="font-size: 0.65rem; margin: 0.25rem 0 0 0;">Square</p>
+                            </div>
+                            <div class="format-card" data-ratio="4:5" onclick="selectFormat(this)" style="padding: 0.75rem; text-align: center;">
+                                <strong style="font-size: 0.85rem;">4:5</strong>
+                                <p style="font-size: 0.65rem; margin: 0.25rem 0 0 0;">Feed</p>
+                            </div>
+                            <div class="format-card" data-ratio="16:9" onclick="selectFormat(this)" style="padding: 0.75rem; text-align: center;">
+                                <strong style="font-size: 0.85rem;">16:9</strong>
+                                <p style="font-size: 0.65rem; margin: 0.25rem 0 0 0;">Landscape</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%;">
-                    Build Visuals
+                <!-- Caption Settings -->
+                <div class="settings-section" id="settings-captions">
+                    <div class="settings-section-header" onclick="toggleSettingsSection('captions')">
+                        <span class="settings-section-title">💬 Captions</span>
+                        <span class="settings-section-toggle">▼</span>
+                    </div>
+                    <div class="settings-section-content">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="caption-toggle" checked onchange="updateCaptionPreview()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <span style="color: var(--text-primary); font-size: 0.85rem;">Enable Captions</span>
+                        </div>
+                        
+                        <div id="caption-options">
+                            <!-- Font Selection -->
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Font</label>
+                                <select id="caption-font" onchange="updateCaptionPreview()" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;">
+                                    <option value="inter" selected>Inter</option>
+                                    <option value="bebas">Bebas Neue</option>
+                                    <option value="montserrat">Montserrat</option>
+                                    <option value="oswald">Oswald</option>
+                                    <option value="poppins">Poppins</option>
+                                    <option value="roboto">Roboto</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Color Pickers with Color Wheel -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Text Color</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="caption-text-color" value="#FFFFFF" class="color-wheel-input" onchange="updateCaptionPreview()">
+                                        <div class="color-preset-row">
+                                            <div class="color-preset selected" style="background: #FFFFFF;" onclick="setColor('caption-text-color', '#FFFFFF', this)"></div>
+                                            <div class="color-preset" style="background: #FFD60A;" onclick="setColor('caption-text-color', '#FFD60A', this)"></div>
+                                            <div class="color-preset" style="background: #00D4FF;" onclick="setColor('caption-text-color', '#00D4FF', this)"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label style="display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Highlight Color</label>
+                                    <div class="color-picker-wrapper">
+                                        <input type="color" id="caption-highlight-color" value="#FFD60A" class="color-wheel-input" onchange="updateCaptionPreview()">
+                                        <div class="color-preset-row">
+                                            <div class="color-preset selected" style="background: #FFD60A;" onclick="setColor('caption-highlight-color', '#FFD60A', this)"></div>
+                                            <div class="color-preset" style="background: #FF6B6B;" onclick="setColor('caption-highlight-color', '#FF6B6B', this)"></div>
+                                            <div class="color-preset" style="background: #4ECDC4;" onclick="setColor('caption-highlight-color', '#4ECDC4', this)"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Position -->
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Position</label>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                                    <button class="btn btn-secondary" onclick="setCaptionPosition('top')" style="padding: 0.5rem; font-size: 0.8rem;">Top</button>
+                                    <button class="btn btn-primary" onclick="setCaptionPosition('center')" style="padding: 0.5rem; font-size: 0.8rem;">Center</button>
+                                    <button class="btn btn-secondary" onclick="setCaptionPosition('bottom')" style="padding: 0.5rem; font-size: 0.8rem;">Bottom</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Effects -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                <label class="effect-checkbox" style="font-size: 0.8rem;">
+                                    <input type="checkbox" id="caption-outline" checked onchange="updateCaptionPreview()">
+                                    <span>Outline</span>
+                                </label>
+                                <label class="effect-checkbox" style="font-size: 0.8rem;">
+                                    <input type="checkbox" id="caption-shadow" checked onchange="updateCaptionPreview()">
+                                    <span>Shadow</span>
+                                </label>
+                                <label class="effect-checkbox" style="font-size: 0.8rem;">
+                                    <input type="checkbox" id="caption-uppercase" onchange="updateCaptionPreview()">
+                                    <span>CAPS</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Render Button -->
+            <div style="margin-top: 1.5rem;">
+                <button class="btn btn-primary generate-btn" onclick="renderFinalVideo()" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                    Render Final Video
                 </button>
-                
-                <!-- Scene Picker appears here -->
-                <div id="scene-picker-section" style="margin-top: 1.5rem; display: none;">
-                    <div id="scene-picker-content"></div>
-                </div>
-                
-                <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
-                    <button class="btn btn-primary" onclick="showStep('voice')">Next: Voiceover →</button>
-                </div>
             </div>
             
-            <!-- STEP 4: Caption Options Section -->
-            <div id="step-captions" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
-                <h3>Caption Style</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add captions to your video:</p>
-                
-                <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="caption-toggle" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span style="color: var(--text-primary);">Enable Captions</span>
-                </div>
-                
-                <div id="caption-options">
-                    <!-- Font Family -->
-                    <div style="margin-bottom: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Font Family</label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem;">
-                            <div class="caption-option-card selected" data-font="inter" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Inter', sans-serif; font-weight: 700;">Inter</span>
-                            </div>
-                            <div class="caption-option-card" data-font="bebas" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Bebas Neue', sans-serif; letter-spacing: 1px;">BEBAS</span>
-                            </div>
-                            <div class="caption-option-card" data-font="montserrat" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Montserrat', sans-serif; font-weight: 800;">Montserrat</span>
-                            </div>
-                            <div class="caption-option-card" data-font="oswald" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Oswald', sans-serif; font-weight: 700;">OSWALD</span>
-                            </div>
-                            <div class="caption-option-card" data-font="poppins" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Poppins', sans-serif; font-weight: 700;">Poppins</span>
-                            </div>
-                            <div class="caption-option-card" data-font="roboto" onclick="selectCaptionFont(this)">
-                                <span style="font-family: 'Roboto', sans-serif; font-weight: 900;">Roboto</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Animation Style -->
-                    <div style="margin-bottom: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Animation Style</label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem;">
-                            <div class="caption-option-card selected" data-animation="pop" onclick="selectCaptionAnimation(this)">
-                                <strong>Pop</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Words scale in</span>
-                            </div>
-                            <div class="caption-option-card" data-animation="typewriter" onclick="selectCaptionAnimation(this)">
-                                <strong>Typewriter</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Letter by letter</span>
-                            </div>
-                            <div class="caption-option-card" data-animation="karaoke" onclick="selectCaptionAnimation(this)">
-                                <strong>Karaoke</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Word highlight sweep</span>
-                            </div>
-                            <div class="caption-option-card" data-animation="bounce" onclick="selectCaptionAnimation(this)">
-                                <strong>Bounce</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Elastic pop-in</span>
-                            </div>
-                            <div class="caption-option-card" data-animation="fade" onclick="selectCaptionAnimation(this)">
-                                <strong>Fade</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Smooth fade in/out</span>
-                            </div>
-                            <div class="caption-option-card" data-animation="none" onclick="selectCaptionAnimation(this)">
-                                <strong>Static</strong>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">No animation</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Position -->
-                    <div style="margin-bottom: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Position</label>
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 300px;">
-                            <div class="caption-option-card" data-position="top" onclick="selectCaptionPosition(this)">Top</div>
-                            <div class="caption-option-card selected" data-position="center" onclick="selectCaptionPosition(this)">Center</div>
-                            <div class="caption-option-card" data-position="bottom" onclick="selectCaptionPosition(this)">Bottom</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Colors -->
-                    <div style="margin-bottom: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Text Color</label>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <div class="caption-color-swatch selected" data-color="#FFFFFF" onclick="selectCaptionColor(this)" style="background: #FFFFFF;"></div>
-                            <div class="caption-color-swatch" data-color="#FFD60A" onclick="selectCaptionColor(this)" style="background: #FFD60A;"></div>
-                            <div class="caption-color-swatch" data-color="#00D4FF" onclick="selectCaptionColor(this)" style="background: #00D4FF;"></div>
-                            <div class="caption-color-swatch" data-color="#FF6B6B" onclick="selectCaptionColor(this)" style="background: #FF6B6B;"></div>
-                            <div class="caption-color-swatch" data-color="#4ECDC4" onclick="selectCaptionColor(this)" style="background: #4ECDC4;"></div>
-                            <div class="caption-color-swatch" data-color="#FF69B4" onclick="selectCaptionColor(this)" style="background: #FF69B4;"></div>
-                            <div class="caption-color-swatch" data-color="#9B59B6" onclick="selectCaptionColor(this)" style="background: #9B59B6;"></div>
-                            <div class="caption-color-swatch" data-color="#2ECC71" onclick="selectCaptionColor(this)" style="background: #2ECC71;"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Highlight Color -->
-                    <div style="margin-bottom: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Highlight/Accent Color</label>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <div class="caption-color-swatch selected" data-highlight="#FFD60A" onclick="selectHighlightColor(this)" style="background: #FFD60A;"></div>
-                            <div class="caption-color-swatch" data-highlight="#FF6B6B" onclick="selectHighlightColor(this)" style="background: #FF6B6B;"></div>
-                            <div class="caption-color-swatch" data-highlight="#00D4FF" onclick="selectHighlightColor(this)" style="background: #00D4FF;"></div>
-                            <div class="caption-color-swatch" data-highlight="#4ECDC4" onclick="selectHighlightColor(this)" style="background: #4ECDC4;"></div>
-                            <div class="caption-color-swatch" data-highlight="#FF69B4" onclick="selectHighlightColor(this)" style="background: #FF69B4;"></div>
-                            <div class="caption-color-swatch" data-highlight="#FFFFFF" onclick="selectHighlightColor(this)" style="background: #FFFFFF;"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Size & Effects -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div>
-                            <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Size</label>
-                            <select id="caption-size" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
-                                <option value="small">Small</option>
-                                <option value="medium" selected>Medium</option>
-                                <option value="large">Large</option>
-                                <option value="xlarge">Extra Large</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Style</label>
-                            <select id="caption-weight" style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
-                                <option value="normal">Regular</option>
-                                <option value="bold" selected>Bold</option>
-                                <option value="black">Extra Bold</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <!-- Text Effects -->
-                    <div style="margin-top: 1.25rem;">
-                        <label style="display: block; color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">Text Effects</label>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                            <label class="effect-checkbox">
-                                <input type="checkbox" id="caption-outline" checked>
-                                <span>Outline</span>
-                            </label>
-                            <label class="effect-checkbox">
-                                <input type="checkbox" id="caption-shadow" checked>
-                                <span>Drop Shadow</span>
-                            </label>
-                            <label class="effect-checkbox">
-                                <input type="checkbox" id="caption-background">
-                                <span>Background Box</span>
-                            </label>
-                            <label class="effect-checkbox">
-                                <input type="checkbox" id="caption-uppercase">
-                                <span>ALL CAPS</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <!-- Preview -->
-                    <div style="margin-top: 1.5rem; padding: 2rem; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); border-radius: 12px; text-align: center;">
-                        <span id="caption-preview" style="font-family: 'Inter', sans-serif; font-size: 1.5rem; font-weight: 700; color: #FFFFFF; text-shadow: 2px 2px 4px rgba(0,0,0,0.8), -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;">
-                            Preview Text
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Step Navigation -->
-                <div class="step-nav" style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
-                    <button class="btn btn-secondary" onclick="showStep('format')">← Output Formats</button>
-                    <button class="btn btn-primary generate-btn" onclick="renderFinalVideo()" style="padding: 0.75rem 2rem;">
-                        Render Final Video
-                    </button>
-                </div>
+            <!-- Voiceover audio elements (hidden) -->
+            <div id="voiceover-result" style="display: none;">
+                <audio id="voiceover-audio" controls style="width: 100%;"></audio>
             </div>
-            
-            <!-- STEP 2: Voiceover Section -->
-            <div id="step-voice" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
-                <h3>Choose Your Voice</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Preview voices and select narrator(s):</p>
-                
-                <!-- Single narrator mode -->
-                <div id="single-narrator-section">
-                    <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-                        <div class="format-card voice-card selected" data-voice="alloy" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Alloy</h3>
-                            <p>Neutral, versatile</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('alloy')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="echo" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Echo</h3>
-                            <p>Male, deep</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('echo')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="fable" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Fable</h3>
-                            <p>British, expressive</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('fable')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="onyx" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Onyx</h3>
-                            <p>Male, authoritative</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('onyx')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="nova" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Nova</h3>
-                            <p>Female, warm</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('nova')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="shimmer" onclick="selectVoice(this)">
-                            <div class="icon"></div>
-                            <h3>Shimmer</h3>
-                            <p>Female, clear</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('shimmer')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <p style="color: var(--accent); margin: 1rem 0 0.5rem; font-weight: 500;">Goofy Characters</p>
-                    <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
-                        <div class="format-card voice-card" data-voice="goofy_cartoon" onclick="selectVoice(this)">
-                            <div class="icon">🤪</div>
-                            <h3>Cartoon</h3>
-                            <p>Silly, animated</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_cartoon')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="goofy_dramatic" onclick="selectVoice(this)">
-                            <div class="icon">🎭</div>
-                            <h3>Drama King</h3>
-                            <p>Over-the-top theatrical</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_dramatic')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="goofy_robot" onclick="selectVoice(this)">
-                            <div class="icon">🤖</div>
-                            <h3>Robot</h3>
-                            <p>Monotone, mechanical</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_robot')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="goofy_surfer" onclick="selectVoice(this)">
-                            <div class="icon">🏄</div>
-                            <h3>Surfer Dude</h3>
-                            <p>Laid-back, chill bro</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_surfer')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="goofy_villain" onclick="selectVoice(this)">
-                            <div class="icon">😈</div>
-                            <h3>Villain</h3>
-                            <p>Evil, maniacal</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_villain')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                        <div class="format-card voice-card" data-voice="goofy_grandma" onclick="selectVoice(this)">
-                            <div class="icon">👵</div>
-                            <h3>Grandma</h3>
-                            <p>Sweet, rambling old lady</p>
-                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_grandma')">
-                                ▶ Preview
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Multi-character mode (shown when script has dialogue) -->
-                <div id="multi-character-section" style="display: none;">
-                    <div style="background: rgba(255, 214, 10, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                        <p style="color: var(--accent); font-weight: 500; margin-bottom: 0.5rem;">Multi-Character Script Detected</p>
-                        <p style="color: var(--text-secondary); font-size: 0.9rem;">Assign different voices to each character:</p>
-                    </div>
-                    <div id="character-voice-assignments"></div>
-                </div>
-                
-                <div style="display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" id="generate-voice-btn" onclick="generateVoiceover()">
-                        Generate Voiceover
-                    </button>
-                    <button class="btn btn-secondary" id="detect-characters-btn" onclick="detectCharacters()" style="background: transparent; border: 1px solid var(--border);">
-                        Detect Characters
-                    </button>
-                </div>
-                
-                <div id="voiceover-result" style="margin-top: 1rem; display: none;">
-                    <audio id="voiceover-audio" controls style="width: 100%;"></audio>
-                </div>
-                
-                <!-- Voice preview audio element (hidden) -->
-                <audio id="voice-preview-audio" style="display: none;"></audio>
-                
-                <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
-                    <button class="btn btn-secondary" onclick="showStep('visuals')">← Back to Visuals</button>
-                    <button class="btn btn-primary" onclick="showStep('format')">Next: Formats →</button>
-                </div>
-            </div>
-            
-            <!-- STEP 3: Output Format Section -->
-            <div id="step-format" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
-                <h3>Output Formats</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Select formats to generate:</p>
-                
-                <div class="format-grid">
-                    <div class="format-card" data-format="reel" onclick="toggleFormat(this)">
-                        <div class="icon"></div>
-                        <h3>Reel / TikTok</h3>
-                        <p>15-60 sec vertical video</p>
-                    </div>
-                    <div class="format-card" data-format="carousel" onclick="toggleFormat(this)">
-                        <div class="icon"></div>
-                        <h3>Carousel Post</h3>
-                        <p>Swipeable slides</p>
-                    </div>
-                    <div class="format-card" data-format="post" onclick="toggleFormat(this)">
-                        <div class="icon"></div>
-                        <h3>Regular Post</h3>
-                        <p>Single image + caption</p>
-                    </div>
-                    <div class="format-card" data-format="thread" onclick="toggleFormat(this)">
-                        <div class="icon"></div>
-                        <h3>Thread</h3>
-                        <p>Multi-part text thread</p>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
-                    <button class="btn btn-secondary" onclick="showStep('voice')">← Back to Voice</button>
-                    <button class="btn btn-primary" onclick="showStep('captions')">Next: Captions →</button>
-                </div>
-            </div>
+            <audio id="voice-preview-audio" style="display: none;"></audio>
             
         </div>
         
@@ -2765,7 +2920,10 @@
             characterModels[element.dataset.char] = element.dataset.model;
         }
         
+        let currentVisualBoard = null;
+        
         function showScenePicker(visualBoard) {
+            currentVisualBoard = visualBoard;  // Store for use in finishSceneSelection
             const container = document.getElementById('scene-picker-content');
             document.getElementById('scene-picker-section').style.display = 'block';
             
@@ -2910,8 +3068,31 @@
                 }
             }
             
-            // Scroll to voiceover section
-            document.querySelector('#single-narrator-section')?.scrollIntoView({ behavior: 'smooth' });
+            // Build timeline scenes array from selected videos
+            const scenes = Object.entries(selectedVideos).map(([idx, video]) => ({
+                index: parseInt(idx),
+                selectedAsset: {
+                    thumbnail: video.thumbnail,
+                    download_url: video.url,
+                    source: video.id?.split('_')[0] || 'unknown',
+                    license: video.license
+                },
+                script_segment: currentVisualBoard?.sections?.[idx]?.script_segment || '',
+                duration: 3
+            })).sort((a, b) => a.index - b.index);
+            
+            // Update the visual timeline bar
+            updateTimeline(scenes);
+            
+            // Collapse scene picker and show success
+            document.getElementById('scene-picker-section').style.display = 'none';
+            showToast('Visuals added to timeline! Adjust voice, format, and captions below.', 'info');
+            
+            // Open voice settings accordion
+            const voiceSection = document.getElementById('settings-voice');
+            if (voiceSection && !voiceSection.classList.contains('open')) {
+                voiceSection.classList.add('open');
+            }
         }
         
         async function generateVoiceover() {
@@ -3357,28 +3538,214 @@
         }
         
         function showStep(stepName) {
-            // Hide all timeline steps
-            document.querySelectorAll('.timeline-step').forEach(step => {
-                step.style.display = 'none';
-                step.classList.remove('active');
+            // Legacy function - now we use accordion instead of steps
+            console.log('showStep called with:', stepName);
+        }
+        
+        // Timeline data
+        let timelineSegments = [];
+        let activeSegmentIndex = 0;
+        // selectedVoice already declared earlier
+        let selectedFormat = '9:16';
+        let captionSettings = {
+            enabled: true,
+            font: 'inter',
+            textColor: '#FFFFFF',
+            highlightColor: '#FFD60A',
+            position: 'center',
+            outline: true,
+            shadow: true,
+            uppercase: false
+        };
+        
+        // Toggle settings accordion sections
+        function toggleSettingsSection(sectionName) {
+            const section = document.getElementById('settings-' + sectionName);
+            if (section) {
+                section.classList.toggle('open');
+            }
+        }
+        
+        // Select timeline segment
+        function selectTimelineSegment(index) {
+            activeSegmentIndex = index;
+            document.querySelectorAll('.timeline-segment').forEach((seg, i) => {
+                seg.classList.toggle('active', i === index);
             });
             
-            // Show the selected step
-            const selectedStep = document.getElementById('step-' + stepName);
-            if (selectedStep) {
-                selectedStep.style.display = 'block';
-                selectedStep.classList.add('active');
+            // Update preview
+            if (timelineSegments[index]) {
+                updatePreview(timelineSegments[index]);
+            }
+        }
+        
+        // Add a new clip to timeline
+        function addTimelineClip() {
+            showToast('Use "Build Visuals from Script" to automatically generate clips from your script.', 'info');
+        }
+        
+        // Update timeline display with curated visuals
+        function updateTimeline(scenes) {
+            timelineSegments = scenes;
+            const container = document.getElementById('timeline-segments');
+            
+            let html = '';
+            scenes.forEach((scene, i) => {
+                const thumb = scene.selectedAsset?.thumbnail || '';
+                const duration = scene.duration || 3;
+                html += `
+                    <div class="timeline-segment ${i === 0 ? 'active' : ''}" onclick="selectTimelineSegment(${i})" 
+                         style="${thumb ? '' : 'background: linear-gradient(135deg, #1a1a2e, #16213e);'}">
+                        ${thumb ? `<img src="${thumb}" alt="Scene ${i+1}">` : ''}
+                        <span class="timeline-segment-number">${i + 1}</span>
+                        <div class="timeline-segment-overlay">${duration}s</div>
+                    </div>
+                `;
+            });
+            html += `<button class="add-clip-btn" onclick="addTimelineClip()"><span class="plus-icon">+</span><span>Add</span></button>`;
+            container.innerHTML = html;
+            
+            // Update total duration
+            const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 3), 0);
+            document.getElementById('timeline-total-duration').textContent = formatDuration(totalDuration);
+            
+            // Update preview with first scene
+            if (scenes.length > 0) {
+                updatePreview(scenes[0]);
+            }
+        }
+        
+        function formatDuration(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Update live preview panel
+        function updatePreview(scene) {
+            const previewImg = document.getElementById('preview-visual');
+            const placeholder = document.getElementById('preview-placeholder');
+            const captionText = document.getElementById('preview-caption-text');
+            const voiceIndicator = document.getElementById('preview-voice-indicator');
+            const voiceName = document.getElementById('preview-voice-name');
+            
+            if (scene && scene.selectedAsset?.thumbnail) {
+                previewImg.src = scene.selectedAsset.thumbnail;
+                previewImg.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                previewImg.style.display = 'none';
+                placeholder.style.display = 'block';
             }
             
-            // Update nav active state
-            document.querySelectorAll('.timeline-nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            const navItem = document.querySelector(`.timeline-nav-item[data-step="${stepName}"]`);
-            if (navItem) navItem.classList.add('active');
+            // Show caption preview
+            if (captionSettings.enabled && scene?.script_segment) {
+                const words = scene.script_segment.split(' ').slice(0, 4).join(' ');
+                captionText.textContent = captionSettings.uppercase ? words.toUpperCase() : words;
+                captionText.style.display = 'inline-block';
+                captionText.style.color = captionSettings.textColor;
+                captionText.style.fontFamily = getFontFamily(captionSettings.font);
+                if (captionSettings.shadow) {
+                    captionText.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)';
+                } else {
+                    captionText.style.textShadow = 'none';
+                }
+            } else {
+                captionText.style.display = 'none';
+            }
             
-            // Scroll to top of panel
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Show voice indicator
+            voiceName.textContent = selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1);
+            voiceIndicator.style.display = 'flex';
+        }
+        
+        function getFontFamily(fontName) {
+            const fonts = {
+                'inter': "'Inter', sans-serif",
+                'bebas': "'Bebas Neue', sans-serif",
+                'montserrat': "'Montserrat', sans-serif",
+                'oswald': "'Oswald', sans-serif",
+                'poppins': "'Poppins', sans-serif",
+                'roboto': "'Roboto', sans-serif"
+            };
+            return fonts[fontName] || fonts['inter'];
+        }
+        
+        // Color wheel preset selection
+        function setColor(inputId, color, element) {
+            document.getElementById(inputId).value = color;
+            
+            // Update selected state
+            element.parentElement.querySelectorAll('.color-preset').forEach(p => p.classList.remove('selected'));
+            element.classList.add('selected');
+            
+            // Update caption settings
+            if (inputId === 'caption-text-color') {
+                captionSettings.textColor = color;
+            } else if (inputId === 'caption-highlight-color') {
+                captionSettings.highlightColor = color;
+            }
+            
+            updateCaptionPreview();
+        }
+        
+        // Caption position
+        function setCaptionPosition(position) {
+            captionSettings.position = position;
+            const container = document.getElementById('preview-caption-container');
+            container.className = 'preview-caption-overlay pos-' + position;
+            
+            // Update button states
+            document.querySelectorAll('[onclick^="setCaptionPosition"]').forEach(btn => {
+                btn.className = position === btn.textContent.toLowerCase() ? 'btn btn-primary' : 'btn btn-secondary';
+            });
+        }
+        
+        // Update caption preview
+        function updateCaptionPreview() {
+            captionSettings.enabled = document.getElementById('caption-toggle')?.checked ?? true;
+            captionSettings.font = document.getElementById('caption-font')?.value || 'inter';
+            captionSettings.textColor = document.getElementById('caption-text-color')?.value || '#FFFFFF';
+            captionSettings.highlightColor = document.getElementById('caption-highlight-color')?.value || '#FFD60A';
+            captionSettings.outline = document.getElementById('caption-outline')?.checked ?? true;
+            captionSettings.shadow = document.getElementById('caption-shadow')?.checked ?? true;
+            captionSettings.uppercase = document.getElementById('caption-uppercase')?.checked ?? false;
+            
+            // Update preview
+            if (timelineSegments.length > 0) {
+                updatePreview(timelineSegments[activeSegmentIndex]);
+            }
+        }
+        
+        // Format selection
+        function selectFormat(element) {
+            document.querySelectorAll('#settings-format .format-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            
+            selectedFormat = element.dataset.ratio;
+            document.getElementById('preview-format-badge').textContent = selectedFormat;
+            
+            // Update preview canvas aspect ratio
+            const canvas = document.getElementById('preview-canvas');
+            canvas.className = 'preview-canvas';
+            if (selectedFormat === '1:1') canvas.classList.add('ratio-1-1');
+            else if (selectedFormat === '4:5') canvas.classList.add('ratio-4-5');
+            else if (selectedFormat === '16:9') canvas.classList.add('ratio-16-9');
+        }
+        
+        // Voice selection
+        function selectVoice(element) {
+            document.querySelectorAll('.voice-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedVoice = element.dataset.voice;
+            
+            // Update preview
+            document.getElementById('preview-voice-name').textContent = 
+                selectedVoice.charAt(0).toUpperCase() + selectedVoice.slice(1);
         }
         
         function goToFormats() {

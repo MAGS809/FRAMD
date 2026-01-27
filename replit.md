@@ -205,12 +205,13 @@ The AI is configured to be:
 - **Effects**: Outline, Shadow, Background box, Uppercase
 - **Rendering**: Multiple FFmpeg drawtext filters with enable='between(t,start,end)' for word timing
 
-## Timeline Navigation (Wizard Style)
-- **Sticky Navigation**: Fixed menu at top of Timeline panel for step navigation
-- **Steps**: 1. Visuals → 2. Voice → 3. Format → 4. Captions
-- **Wizard Flow**: Only one step visible at a time via showStep() function
-- **Step Controls**: Each step has Next/Back buttons for linear progression
-- **Final Step**: Captions step has "Render Final Video" button to complete
+## Timeline Developer (Unified View)
+- **Visual Timeline Bar**: Horizontal bar showing clip thumbnails with duration markers, clickable to select segments
+- **Live Preview Panel**: Right side panel shows selected visual, caption preview, format aspect ratio, and voice indicator
+- **Accordion Settings**: Collapsible sections for Voice, Format, and Captions (all visible, no wizard steps)
+- **Color Wheel Picker**: Native color inputs for caption text/highlight colors with preset color buttons
+- **AI Control Hint**: Reminder that users can chat with Krakd to adjust any video aspect
+- **Flow Integration**: finishSceneSelection() populates timeline from selected visuals automatically
 
 ## Chat Interface
 - **File Upload**: Paperclip button allows attaching video, audio, images, PDFs, or documents
