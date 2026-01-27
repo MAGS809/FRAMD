@@ -755,6 +755,83 @@
             z-index: 1000;
         }
         
+        /* Review Confirmation Modal */
+        .review-confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .review-confirm-content {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .review-confirm-content h3 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+        
+        .review-confirm-content p {
+            color: var(--text);
+            opacity: 0.8;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        
+        .review-confirm-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .review-confirm-actions .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .review-confirm-actions .btn-secondary:hover {
+            background: var(--border);
+        }
+        
+        .review-confirm-actions .btn-primary {
+            background: var(--accent);
+            border: none;
+            color: var(--bg);
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .review-confirm-actions .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
         .toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
@@ -1559,9 +1636,8 @@
                     if (data.script_ready || (isScript && reply.length > 300)) {
                         currentScript = data.refined_script || reply;
                         
-                        // Auto-curate visuals
-                        showToast('Script ready! Curating visuals...');
-                        await curateVisuals(currentScript);
+                        // Show confirmation popup before moving to review
+                        showReviewConfirmation();
                     }
                 } else {
                     addMessage('Something went wrong. Please try again.');
@@ -1575,6 +1651,32 @@
             sendBtn.disabled = false;
         }
         
+        // Show review confirmation popup
+        function showReviewConfirmation() {
+            const modal = document.createElement('div');
+            modal.className = 'review-confirm-modal';
+            modal.innerHTML = `
+                <div class="review-confirm-content">
+                    <h3>Script Ready!</h3>
+                    <p>Your script is complete. Ready to move to the Review phase where you can curate visuals, assign voices, and compose scenes?</p>
+                    <div class="review-confirm-actions">
+                        <button class="btn-secondary" onclick="this.closest('.review-confirm-modal').remove()">Keep Editing</button>
+                        <button class="btn-primary" onclick="proceedToReview()">Continue to Review</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Proceed to review after confirmation
+        async function proceedToReview() {
+            const modal = document.querySelector('.review-confirm-modal');
+            if (modal) modal.remove();
+            
+            showToast('Curating visuals...');
+            await curateVisuals(currentScript);
+        }
+        
         // Curate visuals
         async function curateVisuals(script) {
             try {
@@ -1583,6 +1685,10 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ script })
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
                 
                 const data = await response.json();
                 
@@ -1594,10 +1700,13 @@
                     // Mark step as completed and show review
                     document.getElementById('step-create').classList.add('completed');
                     showStage('review');
+                } else {
+                    console.error('Curate failed:', data.error);
+                    showToast(data.error || 'Failed to curate visuals');
                 }
             } catch (error) {
                 console.error('Curate error:', error);
-                showToast('Failed to curate visuals');
+                showToast('Failed to curate visuals: ' + (error.message || 'Unknown error'));
             }
         }
         
