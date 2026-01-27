@@ -2180,37 +2180,37 @@
         .ai-assistant-tab {
             position: fixed;
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
+            right: 20px;
             z-index: 1000;
-            display: flex;
+            display: none;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.875rem 1.5rem;
-            background: linear-gradient(135deg, rgba(255, 214, 10, 0.95), rgba(255, 238, 50, 0.9));
-            border-radius: 20px 20px 0 0;
+            padding: 0.75rem 1.25rem;
+            background: linear-gradient(135deg, #1a4d2e, #2d6a4f);
+            border-radius: 12px 12px 0 0;
             cursor: pointer;
-            box-shadow: 0 -4px 24px rgba(255, 214, 10, 0.3);
+            box-shadow: 0 -4px 20px rgba(26, 77, 46, 0.4);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(45, 106, 79, 0.5);
             border-bottom: none;
         }
-        .ai-assistant-tab:hover {
-            transform: translateX(-50%) translateY(-2px);
-            box-shadow: 0 -8px 32px rgba(255, 214, 10, 0.4);
+        .ai-assistant-tab.visible {
+            display: flex;
         }
-        .ai-assistant-tab .tab-icon {
-            font-size: 1.25rem;
+        .ai-assistant-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 -8px 28px rgba(26, 77, 46, 0.5);
+            background: linear-gradient(135deg, #2d6a4f, #3d8b5f);
         }
         .ai-assistant-tab .tab-text {
             font-weight: 600;
-            color: #0a1f14;
-            font-size: 0.95rem;
+            color: #ffd60a;
+            font-size: 0.9rem;
             letter-spacing: 0.01em;
         }
         .ai-assistant-tab.hidden {
-            transform: translateX(-50%) translateY(100%);
+            transform: translateY(100%);
             pointer-events: none;
+            opacity: 0;
         }
         
         /* AI Assistant Popup */
@@ -4182,6 +4182,9 @@
             document.getElementById('step1-indicator').classList.add('active');
             document.getElementById('step1-indicator').classList.remove('completed');
             document.getElementById('step2-indicator').classList.remove('active');
+            
+            // Hide AI assistant tab on Create
+            hideAITab();
         }
         
         function scrollToStep(stepId) {
@@ -4508,6 +4511,9 @@
             document.getElementById('step2-indicator').classList.add('active');
             document.getElementById('step3-indicator').classList.remove('active');
             
+            // Show AI assistant tab on Timeline
+            showAITab();
+            
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
             if (refinedScript) {
@@ -4525,7 +4531,25 @@
             document.getElementById('step2-indicator').classList.add('completed');
             document.getElementById('step3-indicator').classList.add('active');
             
+            // Hide AI assistant tab on Export
+            hideAITab();
+            
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        function showAITab() {
+            const tab = document.getElementById('ai-assistant-tab');
+            if (tab) {
+                tab.classList.add('visible');
+                tab.classList.remove('hidden');
+            }
+        }
+        
+        function hideAITab() {
+            const tab = document.getElementById('ai-assistant-tab');
+            if (tab) {
+                tab.classList.remove('visible');
+            }
         }
         
         // Social Media Export Functions
@@ -5062,11 +5086,13 @@
             if (aiAssistantOpen) {
                 popup.classList.add('open');
                 tab.classList.add('hidden');
+                tab.classList.remove('visible');
                 overlay.classList.add('visible');
                 document.getElementById('ai-popup-input').focus();
             } else {
                 popup.classList.remove('open');
                 tab.classList.remove('hidden');
+                tab.classList.add('visible');
                 overlay.classList.remove('visible');
             }
         }
@@ -5074,7 +5100,9 @@
         function closeAIAssistant() {
             aiAssistantOpen = false;
             document.getElementById('ai-assistant-popup').classList.remove('open');
-            document.getElementById('ai-assistant-tab').classList.remove('hidden');
+            const tab = document.getElementById('ai-assistant-tab');
+            tab.classList.remove('hidden');
+            tab.classList.add('visible');
             document.getElementById('ai-assistant-overlay').classList.remove('visible');
         }
         
@@ -5232,7 +5260,6 @@
     
     <!-- Floating AI Assistant Tab -->
     <div class="ai-assistant-tab" id="ai-assistant-tab" onclick="toggleAIAssistant()">
-        <span class="tab-icon">✨</span>
         <span class="tab-text">Tell Krakd your vision</span>
     </div>
     
