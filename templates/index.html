@@ -43,6 +43,30 @@
             -moz-osx-font-smoothing: grayscale;
         }
         
+        /* Sleek global scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 214, 10, 0.3);
+            border-radius: 3px;
+            transition: background 0.2s ease;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 214, 10, 0.5);
+        }
+        ::-webkit-scrollbar-corner {
+            background: transparent;
+        }
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 214, 10, 0.3) transparent;
+        }
+        
         .container {
             max-width: 720px;
             margin: 0 auto;
@@ -3545,18 +3569,7 @@
         // Timeline data
         let timelineSegments = [];
         let activeSegmentIndex = 0;
-        // selectedVoice already declared earlier
-        let selectedFormat = '9:16';
-        let captionSettings = {
-            enabled: true,
-            font: 'inter',
-            textColor: '#FFFFFF',
-            highlightColor: '#FFD60A',
-            position: 'center',
-            outline: true,
-            shadow: true,
-            uppercase: false
-        };
+        // selectedVoice and captionSettings already declared earlier
         
         // Toggle settings accordion sections
         function toggleSettingsSection(sectionName) {
