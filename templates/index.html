@@ -941,6 +941,85 @@
             background: rgba(255, 214, 10, 0.05);
         }
         
+        /* Caption Settings */
+        .caption-section {
+            margin-top: 1.5rem;
+        }
+        .caption-colors {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+        .color-preset {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .color-preset:hover {
+            transform: scale(1.1);
+        }
+        .color-preset.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(255, 214, 10, 0.3);
+        }
+        .caption-preview {
+            background: #111;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            min-height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .caption-preview::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, 
+                rgba(0,0,0,0) 0%, 
+                rgba(0,0,0,0.3) 60%,
+                rgba(0,0,0,0.7) 100%);
+        }
+        .caption-text-preview {
+            position: relative;
+            font-family: 'Arial Black', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.5rem 1rem;
+        }
+        .caption-text-preview.shadow {
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .caption-text-preview.outline {
+            -webkit-text-stroke: 1px rgba(0,0,0,0.8);
+        }
+        .caption-options {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .caption-option {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            cursor: pointer;
+        }
+        .caption-option input {
+            accent-color: var(--accent);
+        }
+        
         /* Action buttons */
         .actions {
             display: flex;
@@ -1502,6 +1581,34 @@
                     <div class="format-option" data-format="16:9" onclick="selectFormat(this)">16:9 Wide</div>
                 </div>
                 
+                <div class="caption-section">
+                    <div class="section-title" style="margin-top: 1.5rem;">Captions</div>
+                    <div class="caption-colors" id="caption-colors">
+                        <div class="color-preset selected" data-color="#FFFFFF" style="background:#FFFFFF" onclick="selectCaptionColor(this)" title="White"></div>
+                        <div class="color-preset" data-color="#FFD60A" style="background:#FFD60A" onclick="selectCaptionColor(this)" title="Yellow"></div>
+                        <div class="color-preset" data-color="#FF3B30" style="background:#FF3B30" onclick="selectCaptionColor(this)" title="Red"></div>
+                        <div class="color-preset" data-color="#00D4FF" style="background:#00D4FF" onclick="selectCaptionColor(this)" title="Cyan"></div>
+                        <div class="color-preset" data-color="#30D158" style="background:#30D158" onclick="selectCaptionColor(this)" title="Green"></div>
+                        <div class="color-preset" data-color="#FF9500" style="background:#FF9500" onclick="selectCaptionColor(this)" title="Orange"></div>
+                    </div>
+                    <div class="caption-preview" id="caption-preview">
+                        <div class="caption-text-preview shadow outline" id="caption-text-preview" style="color:#FFFFFF">
+                            THE QUICK BROWN FOX
+                        </div>
+                    </div>
+                    <div class="caption-options">
+                        <label class="caption-option">
+                            <input type="checkbox" id="caption-shadow" checked onchange="updateCaptionPreview()"> Shadow
+                        </label>
+                        <label class="caption-option">
+                            <input type="checkbox" id="caption-outline" checked onchange="updateCaptionPreview()"> Outline
+                        </label>
+                        <label class="caption-option">
+                            <input type="checkbox" id="caption-uppercase" checked onchange="updateCaptionPreview()"> Uppercase
+                        </label>
+                    </div>
+                </div>
+                
                 <div class="section-title scene-composer-header" style="margin-top: 1.5rem;">
                     <span>Scene Composer</span>
                     <button class="framd-ai-btn" onclick="openFramdAI()">Framd AI</button>
@@ -1608,6 +1715,41 @@
             document.querySelectorAll('.format-option').forEach(f => f.classList.remove('selected'));
             el.classList.add('selected');
             selectedFormat = el.dataset.format;
+        }
+        
+        // Caption settings
+        let selectedCaptionColor = '#FFFFFF';
+        
+        function selectCaptionColor(el) {
+            document.querySelectorAll('.color-preset').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedCaptionColor = el.dataset.color;
+            updateCaptionPreview();
+        }
+        
+        function updateCaptionPreview() {
+            const preview = document.getElementById('caption-text-preview');
+            if (!preview) return;
+            
+            const hasShadow = document.getElementById('caption-shadow')?.checked ?? true;
+            const hasOutline = document.getElementById('caption-outline')?.checked ?? true;
+            const isUppercase = document.getElementById('caption-uppercase')?.checked ?? true;
+            
+            preview.style.color = selectedCaptionColor;
+            preview.classList.toggle('shadow', hasShadow);
+            preview.classList.toggle('outline', hasOutline);
+            preview.textContent = isUppercase ? 'THE QUICK BROWN FOX' : 'The quick brown fox';
+        }
+        
+        function getCaptionSettings() {
+            return {
+                enabled: true,
+                position: 'bottom',
+                uppercase: document.getElementById('caption-uppercase')?.checked ?? true,
+                outline: document.getElementById('caption-outline')?.checked ?? true,
+                shadow: document.getElementById('caption-shadow')?.checked ?? true,
+                textColor: selectedCaptionColor
+            };
         }
         
         // Character Casting
@@ -2551,14 +2693,7 @@
                         audio_path: audioPath,
                         format: selectedFormat,
                         script: currentScript,
-                        captions: {
-                            enabled: true,
-                            position: 'bottom',
-                            uppercase: true,
-                            outline: true,
-                            shadow: true,
-                            textColor: '#FFFFFF'
-                        }
+                        captions: getCaptionSettings()
                     })
                 });
                 
