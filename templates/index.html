@@ -363,6 +363,91 @@
             display: none;
         }
         
+        /* Script Editor Mode */
+        .script-editor-container {
+            display: none;
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        .script-editor-container.active {
+            display: block;
+        }
+        
+        .script-editor {
+            width: 100%;
+            min-height: 450px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 2rem;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 0.9rem;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            resize: none;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        
+        .script-editor:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255, 214, 10, 0.1);
+        }
+        
+        .script-editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .script-editor-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .script-editor-actions {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-ghost:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        
+        .script-status {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .script-status .saved {
+            color: var(--success);
+        }
+        
+        .chat-mode-hidden {
+            display: none !important;
+        }
+        
         /* Chat messages */
         .chat-container {
             max-height: 400px;
@@ -1305,27 +1390,41 @@
         
         <!-- STEP 1: Script Development -->
         <div class="panel active" id="panel-script">
-            <div class="chat-container" id="script-chat">
-                <div class="message ai">
-                    What would you like to create today?
+            <!-- Chat Mode -->
+            <div id="chat-mode">
+                <div class="chat-container" id="script-chat">
+                    <div class="message ai">
+                        What would you like to create today?
+                    </div>
+                </div>
+                
+                <div class="chat-input-area">
+                    <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="2"></textarea>
+                    <button type="button" class="btn btn-primary btn-send" id="send-btn">
+                        &#8594;
+                    </button>
+                </div>
+                
+                <div class="token-panel">
+                    <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
+                    <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
                 </div>
             </div>
             
-            <div class="chat-input-area">
-                <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="2"></textarea>
-                <button type="button" class="btn btn-primary btn-send" id="send-btn">
-                    &#8594;
-                </button>
-            </div>
-            
-            <div class="token-panel">
-                <span class="token-balance"><span id="balance-amount">120</span> <a href="#" onclick="openCreditsModal(); return false;" class="token-link">tokens</a></span>
-                <span class="token-estimate"><span id="post-estimate">3</span> posts remaining</span>
-            </div>
-            
-            <div id="script-ready" class="hidden" style="margin-top: 1rem; padding: 1rem; background: rgba(34, 197, 94, 0.1); border: 1px solid var(--success); border-radius: 8px;">
-                <p style="color: var(--success); font-weight: 600;">Script refined and ready!</p>
-                <button class="btn btn-primary" style="margin-top: 0.75rem;" onclick="goToFormats()">Continue to Format Selection</button>
+            <!-- Script Editor Mode -->
+            <div id="script-editor-mode" class="script-editor-container">
+                <div class="script-editor-header">
+                    <span class="script-editor-title">Your Script</span>
+                    <div class="script-editor-actions">
+                        <button class="btn-ghost" onclick="backToChat()">Back to Chat</button>
+                        <button class="btn btn-primary" onclick="approveScript()">Approve & Continue</button>
+                    </div>
+                </div>
+                <textarea id="script-editor" class="script-editor" placeholder="Your script will appear here..."></textarea>
+                <div class="script-status">
+                    <span id="script-save-status">Edit freely - changes save automatically</span>
+                    <span id="word-count">0 words</span>
+                </div>
             </div>
         </div>
         
@@ -2356,51 +2455,41 @@
                                      data.reply.includes('CHARACTER') ||
                                      data.reply.includes('VISUAL:');
                     
-                    if (isScript && data.reply.length > 200) {
-                        // Render as expandable script
-                        const scriptId = 'script-' + Date.now();
-                        const preview = data.reply.substring(0, 80).replace(/\n/g, ' ') + '...';
-                        chatContainer.innerHTML += `
-                            <div class="message ai script-message" onclick="toggleScript('${scriptId}')">
-                                <div class="script-header">
-                                    <span>Script Ready</span>
-                                    <span class="script-toggle" id="${scriptId}-toggle">▼</span>
-                                </div>
-                                <div class="script-preview" id="${scriptId}-preview">${escapeHtml(preview)}</div>
-                                <div class="script-content" id="${scriptId}-content">${escapeHtml(data.reply)}</div>
-                            </div>`;
+                    // If script is ready, seamlessly transition to editor mode
+                    if (data.script_ready || (isScript && data.reply.length > 200)) {
+                        refinedScript = data.refined_script || data.reply;
+                        conversationHistory.push({ role: 'assistant', content: data.reply });
+                        
+                        // Seamless transition to script editor
+                        transitionToEditor(refinedScript);
                     } else {
+                        // Regular chat message
                         chatContainer.innerHTML += `<div class="message ai">${escapeHtml(data.reply)}</div>`;
-                    }
-                    conversationHistory.push({ role: 'assistant', content: data.reply });
-                    
-                    if (data.has_question) {
-                        questionCount++;
-                    }
-                    
-                    if (data.video_downloaded) {
-                        currentVideoPath = data.video_path;
-                        chatContainer.innerHTML += `<div class="message ai" style="background: rgba(45, 106, 79, 0.8); border: 1px solid var(--accent);">Video downloaded and analyzed! I'll suggest clips you can cut.</div>`;
-                    }
-                    
-                    const clipMatches = data.reply.match(/\[CLIP:\s*(\d{1,2}:\d{2})-(\d{1,2}:\d{2})\]/gi);
-                    if (clipMatches && currentVideoPath) {
-                        let clipButtonsHtml = '<div class="clip-buttons" style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">';
-                        clipMatches.forEach((match, index) => {
-                            const times = match.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
-                            if (times) {
-                                const startTime = times[1];
-                                const endTime = times[2];
-                                clipButtonsHtml += `<button type="button" class="btn btn-secondary" onclick="cutClip('${startTime}', '${endTime}')" style="font-size: 0.85rem; padding: 0.5rem 1rem;">Cut ${startTime}-${endTime}</button>`;
-                            }
-                        });
-                        clipButtonsHtml += '</div>';
-                        chatContainer.innerHTML += clipButtonsHtml;
-                    }
-                    
-                    if (data.script_ready) {
-                        refinedScript = data.refined_script;
-                        document.getElementById('script-ready').classList.remove('hidden');
+                        conversationHistory.push({ role: 'assistant', content: data.reply });
+                        
+                        if (data.has_question) {
+                            questionCount++;
+                        }
+                        
+                        if (data.video_downloaded) {
+                            currentVideoPath = data.video_path;
+                            chatContainer.innerHTML += `<div class="message ai" style="background: rgba(45, 106, 79, 0.8); border: 1px solid var(--accent);">Video downloaded and analyzed! I'll suggest clips you can cut.</div>`;
+                        }
+                        
+                        const clipMatches = data.reply.match(/\[CLIP:\s*(\d{1,2}:\d{2})-(\d{1,2}:\d{2})\]/gi);
+                        if (clipMatches && currentVideoPath) {
+                            let clipButtonsHtml = '<div class="clip-buttons" style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">';
+                            clipMatches.forEach((match, index) => {
+                                const times = match.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/);
+                                if (times) {
+                                    const startTime = times[1];
+                                    const endTime = times[2];
+                                    clipButtonsHtml += `<button type="button" class="btn btn-secondary" onclick="cutClip('${startTime}', '${endTime}')" style="font-size: 0.85rem; padding: 0.5rem 1rem;">Cut ${startTime}-${endTime}</button>`;
+                                }
+                            });
+                            clipButtonsHtml += '</div>';
+                            chatContainer.innerHTML += clipButtonsHtml;
+                        }
                     }
                 } else {
                     console.error('Response not successful:', data);
@@ -2439,6 +2528,56 @@
                 if (preview) preview.classList.remove('hidden');
             }
         }
+        
+        function transitionToEditor(scriptText) {
+            // Hide chat mode, show editor
+            document.getElementById('chat-mode').style.display = 'none';
+            document.getElementById('script-editor-mode').classList.add('active');
+            
+            // Load script into editor
+            const editor = document.getElementById('script-editor');
+            editor.value = scriptText;
+            updateWordCount();
+            
+            // Focus the editor
+            setTimeout(() => editor.focus(), 100);
+        }
+        
+        function backToChat() {
+            // Show chat mode, hide editor
+            document.getElementById('chat-mode').style.display = 'block';
+            document.getElementById('script-editor-mode').classList.remove('active');
+        }
+        
+        function approveScript() {
+            // Save the edited script
+            const editor = document.getElementById('script-editor');
+            refinedScript = editor.value;
+            approvedScript = refinedScript;
+            
+            // Proceed to formats
+            goToFormats();
+        }
+        
+        function updateWordCount() {
+            const editor = document.getElementById('script-editor');
+            const text = editor.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('word-count').textContent = words + ' words';
+        }
+        
+        // Auto-save and word count on editor input
+        document.addEventListener('DOMContentLoaded', function() {
+            const editor = document.getElementById('script-editor');
+            if (editor) {
+                editor.addEventListener('input', function() {
+                    updateWordCount();
+                    refinedScript = editor.value;
+                    document.getElementById('script-save-status').textContent = 'Saved';
+                    document.getElementById('script-save-status').classList.add('saved');
+                });
+            }
+        });
         
         function toggleFormat(card) {
             card.classList.toggle('selected');
@@ -2493,6 +2632,7 @@
         function startOver() {
             conversationHistory = [];
             refinedScript = null;
+            approvedScript = null;
             questionCount = 0;
             selectedFormats = [];
             selectedVoice = 'alloy';
@@ -2502,7 +2642,12 @@
                     What would you like to create today?
                 </div>
             `;
-            document.getElementById('script-ready').classList.add('hidden');
+            
+            // Reset editor mode
+            document.getElementById('chat-mode').style.display = 'block';
+            document.getElementById('script-editor-mode').classList.remove('active');
+            document.getElementById('script-editor').value = '';
+            
             document.getElementById('results-container').innerHTML = '';
             document.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
             document.querySelectorAll('.voice-card').forEach(c => c.classList.remove('selected'));
