@@ -373,6 +373,188 @@
             object-fit: cover;
         }
         
+        /* Scene Composer */
+        .scene-composer {
+            margin-top: 1rem;
+        }
+        
+        .scenes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .scene-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scene-card.minimized {
+            padding: 0.5rem 1rem;
+        }
+        
+        .scene-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 214, 10, 0.05);
+            cursor: pointer;
+        }
+        
+        .scene-header:hover {
+            background: rgba(255, 214, 10, 0.08);
+        }
+        
+        .scene-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        .scene-toggle {
+            color: var(--text-dim);
+            font-size: 0.8rem;
+        }
+        
+        .scene-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .scene-card.minimized .scene-body {
+            display: none;
+        }
+        
+        .scene-layer {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .layer-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+        }
+        
+        .layer-content {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .layer-item {
+            aspect-ratio: 16/9;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .layer-item:hover {
+            border-color: var(--text-dim);
+        }
+        
+        .layer-item.selected {
+            border-color: var(--text);
+        }
+        
+        .layer-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .add-layer-btn {
+            aspect-ratio: 16/9;
+            border-radius: 6px;
+            border: 2px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            transition: all 0.2s;
+        }
+        
+        .add-layer-btn:hover {
+            border-color: var(--text-dim);
+            color: var(--text);
+        }
+        
+        .add-scene-btn {
+            margin-top: 1rem;
+            width: 100%;
+        }
+        
+        /* Extracted Models / Character Layers */
+        .extracted-models {
+            margin-top: 1.5rem;
+        }
+        
+        .models-grid {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .model-card {
+            position: relative;
+            width: 120px;
+        }
+        
+        .model-tab {
+            position: absolute;
+            top: -8px;
+            left: 8px;
+            background: var(--text);
+            color: var(--background);
+            font-size: 0.65rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            z-index: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .model-preview {
+            width: 100%;
+            aspect-ratio: 1/1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: grab;
+        }
+        
+        .model-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .model-preview.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .no-models-msg {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+        
         /* Voice selection */
         .voice-count {
             font-size: 0.75rem;
@@ -700,9 +882,19 @@
                     <div class="format-option" data-format="16:9" onclick="selectFormat(this)">16:9 Wide</div>
                 </div>
                 
-                <div class="section-title" style="margin-top: 1.5rem;">Visuals</div>
-                <div class="visual-grid" id="visual-grid">
-                    <!-- Populated dynamically -->
+                <div class="section-title" style="margin-top: 1.5rem;">Scene Composer</div>
+                <div class="scene-composer" id="scene-composer">
+                    <div class="scenes-container" id="scenes-container">
+                        <!-- Scenes populated dynamically -->
+                    </div>
+                    <button class="btn btn-secondary add-scene-btn" onclick="addNewScene()">+ Add Scene</button>
+                </div>
+                
+                <div class="extracted-models" id="extracted-models">
+                    <div class="section-title" style="margin-top: 1rem; margin-bottom: 0.5rem;">Character Layers</div>
+                    <div class="models-grid" id="models-grid">
+                        <!-- Extracted character models with tabs -->
+                    </div>
                 </div>
             </div>
             
@@ -799,6 +991,126 @@
             document.querySelectorAll('.format-option').forEach(f => f.classList.remove('selected'));
             el.classList.add('selected');
             selectedFormat = el.dataset.format;
+        }
+        
+        // Scene Composer
+        let scenes = [];
+        let extractedModels = [];
+        let sceneIdCounter = 0;
+        
+        function addNewScene() {
+            const sceneId = sceneIdCounter++;
+            const scene = {
+                id: sceneId,
+                background: null,
+                layers: [],
+                minimized: false
+            };
+            scenes.push(scene);
+            renderScenes();
+        }
+        
+        function renderScenes() {
+            const container = document.getElementById('scenes-container');
+            if (scenes.length === 0) {
+                container.innerHTML = '<div class="no-models-msg">No scenes yet. Add a scene to start composing.</div>';
+                return;
+            }
+            
+            container.innerHTML = scenes.map((scene, idx) => `
+                <div class="scene-card ${scene.minimized ? 'minimized' : ''}" data-scene-id="${scene.id}">
+                    <div class="scene-header" onclick="toggleScene(${scene.id})">
+                        <span class="scene-title">Scene ${idx + 1}${scene.background ? ' - ' + (scene.background.title || 'Background set') : ''}</span>
+                        <span class="scene-toggle">${scene.minimized ? 'Expand' : 'Minimize'}</span>
+                    </div>
+                    <div class="scene-body">
+                        <div class="scene-layer">
+                            <span class="layer-label">Background</span>
+                            <div class="layer-content">
+                                ${currentVisualPlan ? currentVisualPlan.slice(0, 3).map((v, i) => `
+                                    <div class="layer-item ${scene.background && scene.background.id === i ? 'selected' : ''}" 
+                                         onclick="selectSceneBackground(${scene.id}, ${i})">
+                                        <img src="${v.thumbnail || v.preview_url}" alt="${v.title || 'Visual'}">
+                                    </div>
+                                `).join('') : '<div class="add-layer-btn">No visuals</div>'}
+                            </div>
+                        </div>
+                        <div class="scene-layer">
+                            <span class="layer-label">Character Layer</span>
+                            <div class="layer-content">
+                                ${scene.layers.map((layer, li) => `
+                                    <div class="layer-item selected" onclick="removeSceneLayer(${scene.id}, ${li})">
+                                        <img src="${layer.image}" alt="${layer.name}">
+                                    </div>
+                                `).join('')}
+                                <div class="add-layer-btn" onclick="addLayerToScene(${scene.id})">+ Add</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function toggleScene(sceneId) {
+            const scene = scenes.find(s => s.id === sceneId);
+            if (scene) {
+                scene.minimized = !scene.minimized;
+                renderScenes();
+            }
+        }
+        
+        function selectSceneBackground(sceneId, visualIdx) {
+            const scene = scenes.find(s => s.id === sceneId);
+            if (scene && currentVisualPlan && currentVisualPlan[visualIdx]) {
+                scene.background = { ...currentVisualPlan[visualIdx], id: visualIdx };
+                scene.minimized = true;
+                renderScenes();
+            }
+        }
+        
+        function addLayerToScene(sceneId) {
+            if (extractedModels.length === 0) {
+                showToast('No character models available. Extract a subject first.');
+                return;
+            }
+            const scene = scenes.find(s => s.id === sceneId);
+            if (scene) {
+                scene.layers.push(extractedModels[0]);
+                renderScenes();
+            }
+        }
+        
+        function removeSceneLayer(sceneId, layerIdx) {
+            const scene = scenes.find(s => s.id === sceneId);
+            if (scene) {
+                scene.layers.splice(layerIdx, 1);
+                renderScenes();
+            }
+        }
+        
+        function renderExtractedModels() {
+            const grid = document.getElementById('models-grid');
+            if (extractedModels.length === 0) {
+                grid.innerHTML = '<div class="no-models-msg">No characters extracted. AI will detect subjects automatically.</div>';
+                return;
+            }
+            
+            grid.innerHTML = extractedModels.map((model, idx) => `
+                <div class="model-card" draggable="true" data-model-idx="${idx}">
+                    <div class="model-tab">${model.name}</div>
+                    <div class="model-preview">
+                        <img src="${model.image}" alt="${model.name}">
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function addExtractedModel(name, imageBase64) {
+            extractedModels.push({
+                name: name,
+                image: 'data:image/png;base64,' + imageBase64
+            });
+            renderExtractedModels();
         }
         
         // Toast
