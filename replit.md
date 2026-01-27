@@ -126,12 +126,32 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 
 **Technical Implementations:**
 - **Flask Web Application**: `app.py` handles REST API endpoints
-- **Context Engine**: `context_engine.py` manages the core processing pipeline
+- **Context Engine**: `context_engine.py` manages the core processing pipeline with conversation memory
 - **AI Reasoning**: 4-question framework before generating output
 - **Legal Media Asset Library**: Stores links with full licensing metadata (CC0, Public Domain, CC BY, etc.)
-- **Voice System**: 6 standard voices + 6 character voices with multi-character script support
+- **Voice System**: 8 punchy character personas with multi-character script support
 - **Caption System**: Word-synced captions via FFmpeg drawtext filters
 - **Output Formats**: 9:16, 1:1, 4:5, 16:9 aspect ratios
+- **Scene Composer**: Background picker with character layer system
+- **Background Removal**: Pillow-based subject extraction with character tabs
+- **Character Generation**: DALL-E integration for AI-generated characters
+- **Conversation Memory**: AI learns from user patterns and preferences
+
+**Character Voice Personas:**
+1. News Anchor - Professional, authoritative newsroom delivery
+2. Wolf Businessman - Intense, Jordan Belfort-style motivational energy
+3. Power Businesswoman - Sharp, no-nonsense executive authority
+4. Club Promoter - High-energy hype and excitement
+5. Stand-up Comedian - Timing-based humor, Chappelle/Carrey style
+6. Conspiracy Theorist - Urgent, paranoid truth-revealer
+7. Movie Trailer Guy - Epic, dramatic, tension-building
+8. Custom Voice - Professional voiceover artist
+
+**Responsive Design:**
+- Desktop: Full layout with all features
+- Tablet (768px): Adapted grids, stacked casting controls
+- Mobile (480px): Single-column layouts, touch-friendly buttons
+- Small devices (360px): Wrapped navigation, simplified controls
 
 ## External Dependencies
 - **Python 3.11**
