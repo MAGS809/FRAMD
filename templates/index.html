@@ -35,6 +35,10 @@
             -webkit-font-smoothing: antialiased;
         }
         
+        body.loading, body.loading * {
+            cursor: wait !important;
+        }
+        
         /* Custom scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
@@ -585,6 +589,12 @@
             letter-spacing: 0.05em;
         }
         
+        .cast-voice-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
         .cast-voice {
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
@@ -593,6 +603,27 @@
             color: var(--text);
             font-size: 0.85rem;
             cursor: pointer;
+            flex: 1;
+        }
+        
+        .voice-preview-btn {
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            width: 32px;
+            height: 32px;
+            color: var(--bg);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .voice-preview-btn:hover {
+            filter: brightness(1.1);
+            transform: scale(1.05);
         }
         
         .cast-voice:focus {
@@ -1346,6 +1377,7 @@
                 return;
             }
             
+            startLoading();
             try {
                 const resp = await fetch('/detect-characters', {
                     method: 'POST',
@@ -1364,6 +1396,8 @@
             } catch (err) {
                 console.error(err);
                 showToast('Error detecting characters');
+            } finally {
+                stopLoading();
             }
         }
         
@@ -1388,9 +1422,12 @@
                             <div class="cast-name">${char.name}</div>
                             <div class="cast-desc">${char.personality || ''}</div>
                         </div>
-                        <select class="cast-voice" onchange="updateCharacterVoice('${char.name}', this.value)">
-                            ${voiceOptions.replace(`value="${currentVoice}"`, `value="${currentVoice}" selected`)}
-                        </select>
+                        <div class="cast-voice-row">
+                            <select class="cast-voice" id="voice-${char.name}" onchange="updateCharacterVoice('${char.name}', this.value)">
+                                ${voiceOptions.replace(`value="${currentVoice}"`, `value="${currentVoice}" selected`)}
+                            </select>
+                            <button class="voice-preview-btn" onclick="previewVoice(document.getElementById('voice-${char.name}').value)" title="Preview voice">&#9654;</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -1528,6 +1565,46 @@
             setTimeout(() => toast.classList.remove('show'), duration);
         }
         
+        // Loading cursor helpers
+        function startLoading() {
+            document.body.classList.add('loading');
+        }
+        
+        function stopLoading() {
+            document.body.classList.remove('loading');
+        }
+        
+        // Preview narrator voice
+        async function previewVoice(voiceId) {
+            startLoading();
+            showToast('Generating voice preview...');
+            try {
+                const sampleText = "This is how your character will sound in the final video.";
+                const response = await fetch('/generate-voiceover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        text: sampleText, 
+                        voice: voiceId
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.audio_url) {
+                    const audio = new Audio(data.audio_url);
+                    audio.play();
+                    showToast('Playing voice preview');
+                } else {
+                    showToast(data.error || 'Failed to preview voice');
+                }
+            } catch (error) {
+                console.error('Preview error:', error);
+                showToast('Failed to preview voice');
+            } finally {
+                stopLoading();
+            }
+        }
+        
         // Add message to chat
         function addMessage(content, isUser = false) {
             const messages = document.getElementById('messages');
@@ -1568,6 +1645,7 @@
             if (!message && !uploadedFile) return;
             
             sendBtn.disabled = true;
+            startLoading();
             
             // Handle file upload
             let fileContext = '';
@@ -1648,6 +1726,8 @@
                 console.error('Error:', error);
                 removeTypingIndicator();
                 addMessage('Connection error. Please try again.');
+            } finally {
+                stopLoading();
             }
             
             sendBtn.disabled = false;
@@ -1676,6 +1756,7 @@
             if (modal) modal.remove();
             
             showToast('Curating visuals...');
+            startLoading();
             await curateVisuals(currentScript);
         }
         
@@ -1709,6 +1790,8 @@
             } catch (error) {
                 console.error('Curate error:', error);
                 showToast('Failed to curate visuals: ' + (error.message || 'Unknown error'));
+            } finally {
+                stopLoading();
             }
         }
         
