@@ -1535,18 +1535,26 @@
         // Custom voice prompts storage
         let customVoicePrompts = {};
         let customVoiceModels = {};
+        let previousVoiceSelection = {};
         
         function handleVoiceChange(characterName, voice) {
             if (voice === 'custom') {
+                // Store current value before opening popup
+                const select = document.getElementById('voice-' + characterName);
+                previousVoiceSelection[characterName] = select ? select.dataset.previousValue || 'news_anchor' : 'news_anchor';
                 showCustomVoicePopup(characterName);
             } else {
                 updateCharacterVoice(characterName, voice);
+                // Track this selection for cancel recovery
+                const select = document.getElementById('voice-' + characterName);
+                if (select) select.dataset.previousValue = voice;
             }
         }
         
         function showCustomVoicePopup(characterName) {
-            const modelOptions = extractedModels.length > 0 
-                ? extractedModels.map(m => `<option value="${m.name}">${m.name}</option>`).join('')
+            const models = extractedModels || [];
+            const modelOptions = models.length > 0 
+                ? models.map(m => `<option value="${m.name}">${m.name}</option>`).join('')
                 : '<option value="">No models available</option>';
             
             const modal = document.createElement('div');
@@ -1579,10 +1587,11 @@
             const modal = document.getElementById('custom-voice-modal');
             if (modal) modal.remove();
             
-            // Reset dropdown to previous value
+            // Reset dropdown to the actual previous value
             const select = document.getElementById('voice-' + characterName);
             if (select) {
-                select.value = characterVoices[characterName] || 'news_anchor';
+                const prevValue = previousVoiceSelection[characterName] || 'news_anchor';
+                select.value = prevValue;
             }
         }
         
