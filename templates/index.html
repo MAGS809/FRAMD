@@ -147,21 +147,51 @@
         
         .message {
             margin-bottom: 1.5rem;
-            animation: fadeIn 0.3s ease;
+            animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes messageSlideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px) scale(0.95); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0) scale(1); 
+            }
         }
         
         .message.user {
             padding-left: 2rem;
             color: var(--text);
+            animation: userMessageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes userMessageIn {
+            from { 
+                opacity: 0; 
+                transform: translateX(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
         }
         
         .message.ai {
             color: var(--text);
+            animation: aiMessageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes aiMessageIn {
+            from { 
+                opacity: 0; 
+                transform: translateX(-20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateX(0); 
+            }
         }
         
         .message-label {
@@ -181,6 +211,215 @@
         .typing-indicator {
             color: var(--text-dim);
             font-style: italic;
+            animation: typingPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes typingPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        /* Persistent chat panel */
+        .chat-panel {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 380px;
+            max-height: 500px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transform: translateY(20px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .chat-panel.open {
+            transform: translateY(0);
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .chat-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+            border-radius: 16px 16px 0 0;
+        }
+        
+        .chat-panel-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chat-panel-title::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.9); }
+        }
+        
+        .chat-panel-close {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .chat-panel-close:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+        }
+        
+        .chat-panel-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            max-height: 320px;
+            scrollbar-width: thin;
+        }
+        
+        .chat-panel-input {
+            padding: 12px 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+        
+        .chat-panel-input input {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+        
+        .chat-panel-input input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .chat-panel-input button {
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .chat-panel-input button:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+        
+        .chat-panel-input button svg {
+            width: 18px;
+            height: 18px;
+            stroke: #000;
+        }
+        
+        /* Floating chat toggle button */
+        .chat-toggle {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 20px rgba(255, 214, 10, 0.3);
+            z-index: 999;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .chat-toggle:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 24px rgba(255, 214, 10, 0.4);
+        }
+        
+        .chat-toggle.hidden {
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .chat-toggle svg {
+            width: 24px;
+            height: 24px;
+            stroke: #000;
+        }
+        
+        .chat-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 20px;
+            height: 20px;
+            background: #FF3B30;
+            border-radius: 50%;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transform: scale(0);
+            transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        .chat-badge.show {
+            transform: scale(1);
+        }
+        
+        @media (max-width: 480px) {
+            .chat-panel {
+                width: calc(100% - 32px);
+                right: 16px;
+                bottom: 80px;
+                max-height: 60vh;
+            }
+            .chat-toggle {
+                bottom: 16px;
+                right: 16px;
+            }
         }
         
         /* Composer */
@@ -1755,6 +1994,40 @@
         </div>
     </div>
     
+    <!-- Persistent Chat Panel -->
+    <button class="chat-toggle" id="chat-toggle" onclick="toggleChatPanel()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span class="chat-badge" id="chat-badge">0</span>
+    </button>
+    
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-panel-header">
+            <div class="chat-panel-title">Krakd AI</div>
+            <button class="chat-panel-close" onclick="toggleChatPanel()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="chat-panel-messages" id="chat-panel-messages">
+            <div class="message ai">
+                <div class="message-content">What would you like to create?</div>
+            </div>
+        </div>
+        <div class="chat-panel-input">
+            <input type="text" id="chat-panel-input" placeholder="Ask anything..." onkeypress="if(event.key==='Enter')sendChatPanelMessage()">
+            <button onclick="sendChatPanelMessage()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+    
     <script>
         // State
         let conversationHistory = [];
@@ -1764,6 +2037,183 @@
         let selectedFormat = '9:16';
         let uploadedFile = null;
         let tokenBalance = 120;
+        let chatPanelOpen = false;
+        let unreadMessages = 0;
+        
+        // Restore conversation from localStorage on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            restoreConversation();
+            // Show chat panel on non-create stages
+            const currentStage = document.querySelector('.stage.active')?.id;
+            if (currentStage !== 'stage-create') {
+                document.getElementById('chat-toggle').classList.remove('hidden');
+            }
+        });
+        
+        // Listen for storage events to sync across tabs
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'krakd_conversation') {
+                try {
+                    const newHistory = JSON.parse(e.newValue || '[]');
+                    // Check if new AI messages were added (not user messages)
+                    const lastNewMsg = newHistory[newHistory.length - 1];
+                    if (newHistory.length > conversationHistory.length && 
+                        lastNewMsg && lastNewMsg.role === 'assistant') {
+                        showUnreadBadge();
+                    }
+                    conversationHistory = newHistory;
+                    renderChatPanelMessages();
+                    renderMainMessages();
+                } catch (err) {
+                    console.warn('Could not sync conversation:', err);
+                }
+            }
+            // Sync unread clear across tabs
+            if (e.key === 'krakd_last_seen') {
+                unreadMessages = 0;
+                const badge = document.getElementById('chat-badge');
+                badge.classList.remove('show');
+                badge.textContent = '0';
+            }
+        });
+        
+        // Save conversation to localStorage (syncs across tabs)
+        function saveConversation() {
+            try {
+                localStorage.setItem('krakd_conversation', JSON.stringify(conversationHistory));
+            } catch (e) {
+                console.warn('Could not save conversation:', e);
+            }
+        }
+        
+        // Restore conversation from localStorage
+        function restoreConversation() {
+            try {
+                const saved = localStorage.getItem('krakd_conversation');
+                if (saved) {
+                    conversationHistory = JSON.parse(saved);
+                    renderChatPanelMessages();
+                    renderMainMessages();
+                }
+            } catch (e) {
+                console.warn('Could not restore conversation:', e);
+            }
+        }
+        
+        // Render messages in the floating chat panel
+        function renderChatPanelMessages() {
+            const container = document.getElementById('chat-panel-messages');
+            if (!container) return;
+            
+            container.innerHTML = conversationHistory.length === 0 
+                ? '<div class="message ai"><div class="message-content">What would you like to create?</div></div>'
+                : conversationHistory.map(msg => `
+                    <div class="message ${msg.role === 'user' ? 'user' : 'ai'}">
+                        <div class="message-content">${escapeHtml(msg.content)}</div>
+                    </div>
+                `).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Render messages in main create stage
+        function renderMainMessages() {
+            const container = document.getElementById('messages');
+            if (!container) return;
+            
+            container.innerHTML = conversationHistory.length === 0 
+                ? '<div class="message ai"><div class="message-content">What would you like to create?</div></div>'
+                : conversationHistory.map(msg => `
+                    <div class="message ${msg.role === 'user' ? 'user' : 'ai'}">
+                        <div class="message-content">${escapeHtml(msg.content)}</div>
+                    </div>
+                `).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Toggle floating chat panel
+        function toggleChatPanel() {
+            chatPanelOpen = !chatPanelOpen;
+            const panel = document.getElementById('chat-panel');
+            const toggle = document.getElementById('chat-toggle');
+            const badge = document.getElementById('chat-badge');
+            
+            panel.classList.toggle('open', chatPanelOpen);
+            toggle.classList.toggle('hidden', chatPanelOpen);
+            
+            if (chatPanelOpen) {
+                unreadMessages = 0;
+                badge.classList.remove('show');
+                badge.textContent = '0';
+                // Broadcast to other tabs that unread was cleared
+                localStorage.setItem('krakd_last_seen', Date.now().toString());
+                document.getElementById('chat-panel-input').focus();
+                renderChatPanelMessages();
+            }
+        }
+        
+        // Show unread badge
+        function showUnreadBadge() {
+            if (!chatPanelOpen) {
+                unreadMessages++;
+                const badge = document.getElementById('chat-badge');
+                badge.textContent = unreadMessages > 9 ? '9+' : unreadMessages;
+                badge.classList.add('show');
+            }
+        }
+        
+        // Send message from floating chat panel
+        async function sendChatPanelMessage() {
+            const input = document.getElementById('chat-panel-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            input.value = '';
+            
+            // Add user message
+            conversationHistory.push({ role: 'user', content: message });
+            saveConversation();
+            renderChatPanelMessages();
+            renderMainMessages();
+            
+            // Show typing indicator
+            const container = document.getElementById('chat-panel-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'message ai';
+            typingDiv.innerHTML = '<div class="message-content typing-indicator">Thinking...</div>';
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        conversation: conversationHistory.slice(-10)
+                    })
+                });
+                
+                const data = await response.json();
+                typingDiv.remove();
+                
+                if (data.reply) {
+                    conversationHistory.push({ role: 'assistant', content: data.reply });
+                    saveConversation();
+                    renderChatPanelMessages();
+                    renderMainMessages();
+                    
+                    if (data.script) {
+                        currentScript = data.script;
+                        document.getElementById('script-text').textContent = data.display_script || data.script;
+                    }
+                }
+            } catch (error) {
+                typingDiv.remove();
+                console.error('Chat error:', error);
+            }
+        }
         
         // Auto-resize textarea
         function autoResize(el) {
@@ -1802,6 +2252,22 @@
             
             document.getElementById('stage-' + stage).classList.add('active');
             document.getElementById('step-' + stage).classList.add('active');
+            
+            // Show/hide floating chat toggle based on stage
+            const chatToggle = document.getElementById('chat-toggle');
+            const chatPanel = document.getElementById('chat-panel');
+            
+            if (stage === 'create') {
+                // On create stage, hide floating chat (main chat is visible)
+                chatToggle.classList.add('hidden');
+                if (chatPanelOpen) {
+                    chatPanel.classList.remove('open');
+                    chatPanelOpen = false;
+                }
+            } else {
+                // On other stages, show floating chat toggle
+                chatToggle.classList.remove('hidden');
+            }
         }
         
         // Voice selection
@@ -2499,6 +2965,8 @@
             
             const fullMessage = fileContext ? (message + '\n\n' + fileContext) : message;
             conversationHistory.push({ role: 'user', content: fullMessage });
+            saveConversation();
+            renderChatPanelMessages();
             
             try {
                 const response = await fetch('/refine-script', {
@@ -2517,6 +2985,9 @@
                     const reply = data.reply || data.refined_script;
                     addMessage(reply);
                     conversationHistory.push({ role: 'assistant', content: reply });
+                    saveConversation();
+                    renderChatPanelMessages();
+                    showUnreadBadge();
                     
                     // Check if script is ready
                     const isScript = reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:');
@@ -2892,6 +3363,8 @@
             conversationHistory = [];
             currentScript = null;
             currentVisualPlan = null;
+            saveConversation();
+            renderChatPanelMessages();
             
             document.getElementById('messages').innerHTML = `
                 <div class="message ai">
