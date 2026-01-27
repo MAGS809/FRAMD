@@ -138,6 +138,18 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Character Generation**: DALL-E integration for AI-generated characters
 - **Conversation Memory**: AI learns from user patterns and preferences
 - **Persistent Chat Panel**: Floating chat with cross-tab sync via localStorage, animated message entrance
+- **Step-by-Step Workflow**: 8-step guided process with chat prompts at each transition
+- **Voice Actor Script Display**: Users only see clean dialogue (no VISUAL/CUT directions)
+
+**Guided Workflow Steps (Max 8):**
+1. Script Writing - AI generates script through chat
+2. Voice Assignment - Guide appears when script is ready
+3. Visual Curation - Guide after AI curates matching footage
+4. Scene Review - Guide when scenes are populated in timeline
+5. Caption Styling - Guide when entering caption controls
+6. Audio Preview - Guide when voiceover is generated
+7. Final Preview - Guide when video render completes
+8. Export - Guide when entering export stage
 
 **Character Voice Personas:**
 1. News Anchor - Professional, authoritative newsroom delivery
