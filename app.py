@@ -889,13 +889,15 @@ def curate_visuals():
     
     content_type = data.get('content_type', 'educational')
     
-    # Enhanced prompt that extracts setting, mood, and visual intent
+    # Enhanced prompt that extracts setting, mood, visual intent, AND editing instructions
     system_prompt = """You are Krakd's visual curator. Analyze the script deeply to find visuals that SERVE the message.
 
 EXTRACT FROM SCRIPT:
 1. SETTING - Where does this take place? (office, street, home, abstract)
 2. MOOD - What's the emotional tone? (tense, hopeful, contemplative, urgent)
 3. VISUAL INTENT - What should the viewer FEEL, not just see?
+4. DURATION - Look for [Xs] hints in scene headers (e.g. "SCENE 1 [4s]" means 4 seconds)
+5. CUT INSTRUCTIONS - Look for "CUT:" lines describing shot type and motion
 
 For each section, create search queries that are:
 - SPECIFIC to the script content (not generic B-roll)
@@ -914,6 +916,9 @@ OUTPUT FORMAT (JSON):
       "script_segment": "The actual dialogue from this part...",
       "setting": "empty boardroom",
       "mood": "tense",
+      "duration_seconds": 4,
+      "cut_type": "wide",
+      "cut_motion": "slow zoom",
       "visual_notes": "This moment needs visual isolation - one person against institutional coldness",
       "search_queries": ["empty boardroom table", "fluorescent office lights", "person alone corporate"],
       "cache_keywords": ["corporate_tension", "isolation", "office_night"]
@@ -923,7 +928,10 @@ OUTPUT FORMAT (JSON):
 
 CRITICAL: 
 - search_queries = specific terms for API search
-- cache_keywords = conceptual tags for our asset library"""
+- cache_keywords = conceptual tags for our asset library
+- duration_seconds = how long this scene should last (default 4 if not specified)
+- cut_type = wide, medium, or close-up (affects which part of video to use)
+- cut_motion = static, pan, zoom (for visual rhythm)"""
 
     user_content = f"Create a visual board for this script:\n\n{script}"
     if user_guidance:
@@ -942,6 +950,28 @@ CRITICAL:
         
         visual_board = json.loads(response.choices[0].message.content or '{}')
         pexels_key = os.environ.get('PEXELS_API_KEY')
+        
+        # FALLBACK: Parse durations directly from script if AI missed them
+        import re as duration_re
+        scene_durations = {}
+        scene_pattern = r'SCENE\s+(\d+)\s*\[(\d+(?:-\d+)?)\s*s?\]'
+        for match in duration_re.finditer(script, duration_re.IGNORECASE):
+            scene_num = int(match.group(1)) - 1  # 0-indexed
+            duration_str = match.group(2)
+            # Handle range like "3-4" -> take average
+            if '-' in duration_str:
+                parts = duration_str.split('-')
+                duration = (int(parts[0]) + int(parts[1])) / 2
+            else:
+                duration = int(duration_str)
+            scene_durations[scene_num] = duration
+        
+        # Apply parsed durations as fallback
+        for i, section in enumerate(visual_board.get('sections', [])):
+            if not section.get('duration_seconds') and i in scene_durations:
+                section['duration_seconds'] = scene_durations[i]
+            elif not section.get('duration_seconds'):
+                section['duration_seconds'] = 4  # Default
         
         for section in visual_board.get('sections', []):
             section['suggested_videos'] = []
@@ -2963,23 +2993,62 @@ def render_video():
     os.makedirs('output', exist_ok=True)
     
     try:
-        # Download video clips
+        # Download video clips and trim to specified duration
         clip_paths = []
         for i, scene in enumerate(scenes):
             video_url = scene.get('video_url', '')
             if not video_url:
                 continue
+            
+            # Get scene duration (default 4 seconds if not specified)
+            duration = scene.get('duration_seconds', scene.get('duration', 4))
+            try:
+                duration = float(duration)
+                if duration <= 0 or duration > 30:
+                    duration = 4
+            except:
+                duration = 4
                 
+            raw_path = f'output/raw_{output_id}_{i}.mp4'
             clip_path = f'output/clip_{output_id}_{i}.mp4'
             try:
                 # Download video clip
                 req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
                 with urllib.request.urlopen(req, timeout=30) as response:
-                    with open(clip_path, 'wb') as f:
+                    with open(raw_path, 'wb') as f:
                         f.write(response.read())
-                clip_paths.append(clip_path)
+                
+                # Trim clip to specified duration (re-encode for accurate cuts)
+                trim_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', os.path.abspath(raw_path),
+                    '-t', str(duration),
+                    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+                    '-c:a', 'aac', '-b:a', '128k',
+                    '-movflags', '+faststart',
+                    os.path.abspath(clip_path)
+                ]
+                result = subprocess.run(trim_cmd, capture_output=True, timeout=60)
+                
+                if result.returncode != 0:
+                    print(f"Trim error for scene {i+1}: {result.stderr.decode()[:200]}")
+                    # Fallback: just copy without trimming
+                    import shutil
+                    shutil.copy(raw_path, clip_path)
+                
+                # Clean up raw file
+                if os.path.exists(raw_path):
+                    os.remove(raw_path)
+                
+                if os.path.exists(clip_path):
+                    clip_paths.append(clip_path)
+                    print(f"Scene {i+1}: trimmed to {duration}s")
             except Exception as e:
-                print(f"Failed to download clip {i}: {e}")
+                print(f"Failed to download/trim clip {i}: {e}")
+                # Clean up on failure
+                for f in [raw_path, clip_path]:
+                    if os.path.exists(f):
+                        os.remove(f)
                 continue
         
         if not clip_paths:

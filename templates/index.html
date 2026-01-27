@@ -4104,13 +4104,19 @@
                     showToast('Creating quick preview (no audio)...', 'info');
                 }
                 
-                // Step 2: Download and assemble video clips
-                const scenes = Object.entries(selectedVideos).map(([idx, video]) => ({
-                    index: parseInt(idx),
-                    video_url: video.url,
-                    thumbnail: video.thumbnail,
-                    script_segment: currentVisualBoard?.sections?.[idx]?.script_segment || ''
-                })).sort((a, b) => a.index - b.index);
+                // Step 2: Download and assemble video clips with duration from visual board
+                const scenes = Object.entries(selectedVideos).map(([idx, video]) => {
+                    const section = currentVisualBoard?.sections?.[idx] || {};
+                    return {
+                        index: parseInt(idx),
+                        video_url: video.url,
+                        thumbnail: video.thumbnail,
+                        script_segment: section.script_segment || '',
+                        duration_seconds: section.duration_seconds || 4,
+                        cut_type: section.cut_type || 'medium',
+                        cut_motion: section.cut_motion || 'static'
+                    };
+                }).sort((a, b) => a.index - b.index);
                 
                 const renderResponse = await fetch('/render-video', {
                     method: 'POST',
