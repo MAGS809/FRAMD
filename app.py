@@ -1815,22 +1815,82 @@ def generate_video():
         # Add captions if enabled
         if captions.get('enabled') and script:
             caption_video = os.path.join(output_dir, f'captioned_{output_id}.mp4')
-            caption_style = captions.get('style', 'bold-center')
             
-            # Sanitize text for ffmpeg drawtext: escape special characters and newlines
+            # Get caption settings with defaults
+            caption_font = captions.get('font', 'inter')
+            caption_position = captions.get('position', 'center')
+            caption_color = captions.get('color', '#FFFFFF').replace('#', '')
+            caption_size = captions.get('size', 'medium')
+            caption_weight = captions.get('weight', 'bold')
+            caption_outline = captions.get('outline', True)
+            caption_shadow = captions.get('shadow', True)
+            caption_background = captions.get('background', False)
+            caption_uppercase = captions.get('uppercase', False)
+            
+            # Font family mapping for FFmpeg (system fonts)
+            font_map = {
+                'inter': 'Sans',
+                'bebas': 'Sans-Bold',
+                'montserrat': 'Sans-Bold',
+                'oswald': 'Sans',
+                'poppins': 'Sans',
+                'roboto': 'Sans'
+            }
+            font_name = font_map.get(caption_font, 'Sans')
+            
+            # Size mapping
+            size_map = {
+                'small': 32,
+                'medium': 48,
+                'large': 64,
+                'xlarge': 80
+            }
+            font_size = size_map.get(caption_size, 48)
+            
+            # Position mapping (y coordinate)
+            position_map = {
+                'top': 80,
+                'center': '(h-text_h)/2',
+                'bottom': 'h-150'
+            }
+            y_pos = position_map.get(caption_position, 'h-150')
+            
+            # Sanitize text for ffmpeg drawtext
             import re
             safe_text = script.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
-            safe_text = re.sub(r'[\n\r]', ' ', safe_text)[:200]  # Remove newlines, limit length
+            safe_text = re.sub(r'[\n\r]', ' ', safe_text)[:200]
             
-            # Caption style configurations
-            if caption_style == 'bold-center':
-                font_filter = f"drawtext=text='{safe_text}':fontsize=48:fontcolor=white:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-150"
-            elif caption_style == 'typewriter':
-                font_filter = f"drawtext=text='{safe_text}':fontsize=42:fontcolor=white:borderw=2:bordercolor=black:x=(w-text_w)/2:y=h-150"
-            elif caption_style == 'highlight':
-                font_filter = f"drawtext=text='{safe_text}':fontsize=48:fontcolor=yellow:borderw=3:bordercolor=black:x=(w-text_w)/2:y=h-150"
-            else:  # minimal
-                font_filter = f"drawtext=text='{safe_text}':fontsize=36:fontcolor=white:x=(w-text_w)/2:y=h-100"
+            if caption_uppercase:
+                safe_text = safe_text.upper()
+            
+            # Build the drawtext filter with all settings
+            filter_parts = [
+                f"drawtext=text='{safe_text}'",
+                f"fontsize={font_size}",
+                f"fontcolor=#{caption_color}",
+                f"font={font_name}",
+                f"x=(w-text_w)/2",
+                f"y={y_pos}"
+            ]
+            
+            # Add outline (border) if enabled
+            if caption_outline:
+                filter_parts.append("borderw=3")
+                filter_parts.append("bordercolor=black")
+            
+            # Add shadow if enabled
+            if caption_shadow:
+                filter_parts.append("shadowcolor=black@0.7")
+                filter_parts.append("shadowx=2")
+                filter_parts.append("shadowy=2")
+            
+            # Add background box if enabled
+            if caption_background:
+                filter_parts.append("box=1")
+                filter_parts.append("boxcolor=black@0.6")
+                filter_parts.append("boxborderw=10")
+            
+            font_filter = ":".join(filter_parts)
             
             # Check if video has audio stream
             probe_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', final_video]

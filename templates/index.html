@@ -3145,7 +3145,18 @@
                             format: selectedFormats.includes('reel') ? 'reel' : 'post',
                             captions: {
                                 enabled: captionsEnabled,
-                                style: selectedCaptionStyle
+                                style: selectedCaptionStyle,
+                                font: captionSettings.font,
+                                animation: captionSettings.animation,
+                                position: captionSettings.position,
+                                color: captionSettings.color,
+                                highlightColor: captionSettings.highlightColor,
+                                size: captionSettings.size,
+                                weight: captionSettings.weight,
+                                outline: captionSettings.outline,
+                                shadow: captionSettings.shadow,
+                                background: captionSettings.background,
+                                uppercase: captionSettings.uppercase
                             }
                         })
                     });
