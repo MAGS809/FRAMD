@@ -762,7 +762,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(5, 15, 10, 0.95);
+            backdrop-filter: blur(10px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -771,12 +772,13 @@
         }
         
         .review-confirm-content {
-            background: var(--panel);
-            border: 1px solid var(--border);
+            background: var(--bg);
+            border: 1px solid var(--accent);
             border-radius: 16px;
-            padding: 2rem;
-            max-width: 400px;
+            padding: 2.5rem;
+            max-width: 420px;
             text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
         
         .review-confirm-content h3 {
