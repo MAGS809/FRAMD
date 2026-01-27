@@ -1618,111 +1618,264 @@
         }
         
         /* ========== VISUAL TIMELINE STYLES ========== */
-        .timeline-editor {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 1.5rem;
+        /* Vertical Timeline Container */
+        .vertical-timeline {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-light);
             margin-bottom: 1.5rem;
         }
         
-        @media (max-width: 900px) {
-            .timeline-editor {
+        .vertical-timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .vertical-timeline-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .vertical-timeline-duration {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: monospace;
+            background: rgba(255, 214, 10, 0.1);
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+        }
+        
+        /* Timeline with vertical line */
+        .timeline-scenes {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .timeline-scenes::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent), rgba(255, 214, 10, 0.2));
+        }
+        
+        /* Individual scene item */
+        .timeline-scene-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+            animation: fadeSlideIn 0.3s ease forwards;
+        }
+        
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .timeline-scene-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* Scene dot/number on the line */
+        .scene-dot {
+            position: absolute;
+            left: -40px;
+            top: 0;
+            width: 30px;
+            height: 30px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--bg-primary);
+            z-index: 2;
+            box-shadow: 0 2px 8px rgba(255, 214, 10, 0.3);
+        }
+        
+        .scene-dot.pending {
+            background: rgba(255, 214, 10, 0.3);
+            border: 2px dashed var(--accent);
+        }
+        
+        .scene-dot.confirmed {
+            background: var(--success);
+        }
+        
+        /* Scene content card */
+        .scene-content {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .scene-content:hover {
+            border-color: var(--accent);
+        }
+        
+        .scene-content.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(255, 214, 10, 0.2);
+        }
+        
+        /* Scene header */
+        .scene-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 214, 10, 0.05);
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .scene-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .scene-duration {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        
+        /* Scene body with preview and text */
+        .scene-body {
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        
+        @media (max-width: 600px) {
+            .scene-body {
                 grid-template-columns: 1fr;
             }
         }
         
-        /* Timeline Track */
-        .timeline-track {
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 12px;
-            padding: 1rem;
-            border: 1px solid var(--border);
-        }
-        
-        .timeline-track-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        .timeline-track-title {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .timeline-duration {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            font-family: monospace;
-        }
-        
-        /* Clip segments in timeline */
-        .timeline-segments {
-            display: flex;
-            gap: 4px;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-            min-height: 80px;
-        }
-        
-        .timeline-segment {
-            flex: 1;
-            min-width: 60px;
-            max-width: 120px;
-            height: 70px;
+        /* Scene thumbnail */
+        .scene-thumbnail {
+            width: 120px;
+            height: 90px;
+            background: rgba(0, 0, 0, 0.5);
             border-radius: 8px;
             overflow: hidden;
-            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
             transition: all 0.2s ease;
             border: 2px solid transparent;
         }
         
-        .timeline-segment:hover {
-            transform: translateY(-2px);
+        .scene-thumbnail:hover {
             border-color: var(--accent);
         }
         
-        .timeline-segment.active {
-            border-color: var(--accent);
-            box-shadow: 0 0 12px rgba(255, 214, 10, 0.3);
-        }
-        
-        .timeline-segment img {
+        .scene-thumbnail img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
         
-        .timeline-segment-overlay {
+        .scene-thumbnail-placeholder {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            text-align: center;
+            padding: 0.5rem;
+        }
+        
+        /* Scene script text */
+        .scene-script-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* Visual options picker (inline) */
+        .scene-visual-options {
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-top: 1px solid var(--border-light);
+        }
+        
+        .visual-options-title {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+        
+        .visual-options-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+        
+        @media (max-width: 600px) {
+            .visual-options-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .visual-option {
+            aspect-ratio: 16/9;
+            border-radius: 6px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .visual-option:hover {
+            border-color: rgba(255, 214, 10, 0.5);
+            transform: scale(1.02);
+        }
+        
+        .visual-option.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(255, 214, 10, 0.4);
+        }
+        
+        .visual-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .visual-option-badge {
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0,0,0,0.8));
-            padding: 4px 6px;
-            font-size: 0.65rem;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.6rem;
             color: white;
         }
         
-        .timeline-segment-number {
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            background: var(--accent);
-            color: var(--bg-primary);
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65rem;
-            font-weight: 700;
+        /* Empty timeline state */
+        .timeline-empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+        
+        .timeline-empty-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.5;
         }
         
         /* Live Preview Panel */
@@ -2588,64 +2741,32 @@
             <!-- Hidden: Content Type state -->
             <input type="hidden" id="content-type-value" value="educational">
             
-            <!-- Visual Timeline Bar + Live Preview -->
-            <div class="timeline-editor">
-                <!-- Left: Timeline Track -->
-                <div class="timeline-track">
-                    <div class="timeline-track-header">
-                        <span class="timeline-track-title">Video Timeline</span>
-                        <span class="timeline-duration" id="timeline-total-duration">0:00</span>
-                    </div>
-                    
-                    <!-- Clip Segments -->
-                    <div class="timeline-segments" id="timeline-segments">
-                        <div class="timeline-segment" onclick="selectTimelineSegment(0)" style="background: linear-gradient(135deg, #1a1a2e, #16213e);">
-                            <span class="timeline-segment-number">1</span>
-                            <div class="timeline-segment-overlay">No clips yet</div>
-                        </div>
-                        <button class="add-clip-btn" onclick="addTimelineClip()">
-                            <span class="plus-icon">+</span>
-                            <span>Add</span>
-                        </button>
-                    </div>
-                    
-                    <!-- Build Visuals Button -->
-                    <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%; margin-top: 1rem;">
-                        Build Visuals from Script
-                    </button>
-                    
-                    <!-- Visual Guidance -->
-                    <div style="margin-top: 1rem;">
-                        <input type="text" id="visual-guidance-input" placeholder="Visual style guidance (optional)..." style="width: 100%; padding: 0.6rem 0.75rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-light); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
-                    </div>
+            <!-- Vertical Timeline -->
+            <div class="vertical-timeline">
+                <div class="vertical-timeline-header">
+                    <h3 class="vertical-timeline-title">Video Timeline</h3>
+                    <span class="vertical-timeline-duration" id="timeline-total-duration">0:00</span>
                 </div>
                 
-                <!-- Right: Live Preview -->
-                <div class="preview-panel">
-                    <div class="preview-header">
-                        <span>Live Preview</span>
-                        <span class="preview-format-badge" id="preview-format-badge">9:16</span>
+                <!-- Build Visuals Button (shown when no scenes) -->
+                <div id="build-visuals-section">
+                    <div style="margin-bottom: 1rem;">
+                        <input type="text" id="visual-guidance-input" placeholder="Visual style guidance (optional)..." style="width: 100%; padding: 0.75rem 1rem; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--border-light); border-radius: 8px; color: var(--text-primary); font-size: 0.85rem;">
                     </div>
-                    <div class="preview-canvas" id="preview-canvas">
-                        <img class="preview-visual" id="preview-visual" src="" alt="Preview" style="display: none;">
-                        <div style="color: var(--text-muted); font-size: 0.85rem;" id="preview-placeholder">Select a clip to preview</div>
-                        
-                        <!-- Caption Overlay -->
-                        <div class="preview-caption-overlay pos-center" id="preview-caption-container">
-                            <span class="preview-caption-text" id="preview-caption-text" style="display: none;">Sample Caption</span>
-                        </div>
-                        
-                        <!-- Voice Indicator -->
-                        <div class="preview-voice-indicator" id="preview-voice-indicator" style="display: none;">
-                            🎙️ <span id="preview-voice-name">Alloy</span>
-                        </div>
-                    </div>
+                    <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%;">
+                        Build Visuals from Script
+                    </button>
                 </div>
-            </div>
-            
-            <!-- Scene Picker appears here when building visuals -->
-            <div id="scene-picker-section" style="margin-top: 1rem; display: none;">
-                <div id="scene-picker-content"></div>
+                
+                <!-- Timeline Scenes (populated by JavaScript) -->
+                <div class="timeline-scenes" id="timeline-scenes" style="display: none;"></div>
+                
+                <!-- Render Button (shown after scenes are confirmed) -->
+                <div id="render-section" style="display: none; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-primary" id="render-video-btn" onclick="renderFinalVideo()" style="width: 100%;">
+                        Render Final Video
+                    </button>
+                </div>
             </div>
             
             <!-- Settings Accordion -->
@@ -3574,107 +3695,119 @@
         let currentVisualBoard = null;
         
         function showScenePicker(visualBoard) {
-            currentVisualBoard = visualBoard;  // Store for use in finishSceneSelection
-            const container = document.getElementById('scene-picker-content');
-            document.getElementById('scene-picker-section').style.display = 'block';
+            currentVisualBoard = visualBoard;
+            const container = document.getElementById('timeline-scenes');
+            const buildSection = document.getElementById('build-visuals-section');
+            const renderSection = document.getElementById('render-section');
+            
+            // Hide build button, show timeline
+            buildSection.style.display = 'none';
+            container.style.display = 'block';
             
             const sections = visualBoard.sections || [];
             const context = visualBoard.overall_context || {};
             
             let html = '';
             
-            // Show overall context banner if available
-            if (context.setting || context.mood || context.visual_intent) {
+            // Optional context info at top
+            if (context.mood || context.setting) {
                 html += `
-                    <div class="visual-context-banner">
-                        <h4>Visual Context</h4>
-                        <div class="context-tags">
-                            ${context.setting ? `<span class="context-tag">${escapeHtml(context.setting)}</span>` : ''}
-                            ${context.mood ? `<span class="context-tag">${escapeHtml(context.mood)}</span>` : ''}
-                        </div>
-                        ${context.visual_intent ? `<p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.75rem; font-style: italic;">${escapeHtml(context.visual_intent)}</p>` : ''}
+                    <div style="margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: rgba(255, 214, 10, 0.05); border-radius: 8px; border-left: 3px solid var(--accent);">
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">Visual mood: </span>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">${escapeHtml(context.mood || context.setting || '')}</span>
                     </div>
                 `;
             }
             
             sections.forEach((section, idx) => {
                 const videos = section.suggested_videos || [];
-                const setting = section.setting || '';
-                const mood = section.mood || '';
+                const scriptText = section.script_segment || '';
                 
                 html += `
-                    <div class="scene-card" id="scene-${idx}">
-                        <div class="scene-header">
-                            <div class="scene-number">Scene ${idx + 1}</div>
-                            ${(setting || mood) ? `
-                                <div class="scene-meta">
-                                    ${setting ? `<span class="scene-meta-tag setting">${escapeHtml(setting)}</span>` : ''}
-                                    ${mood ? `<span class="scene-meta-tag mood">${escapeHtml(mood)}</span>` : ''}
+                    <div class="timeline-scene-item" id="scene-${idx}">
+                        <div class="scene-dot pending">${idx + 1}</div>
+                        <div class="scene-content">
+                            <div class="scene-header">
+                                <span class="scene-label">Scene ${idx + 1}</span>
+                                <span class="scene-duration">~5s</span>
+                            </div>
+                            <div class="scene-body">
+                                <div class="scene-thumbnail" id="scene-thumb-${idx}">
+                                    <div class="scene-thumbnail-placeholder">Select visual</div>
                                 </div>
-                            ` : ''}
-                            <div class="scene-description">${escapeHtml(section.script_segment || '')}</div>
-                            <div class="scene-rationale">${escapeHtml(section.visual_notes || 'Select visuals for this moment')}</div>
-                        </div>
-                        <div class="scene-options">
+                                <div class="scene-script-text">${escapeHtml(scriptText.substring(0, 120))}${scriptText.length > 120 ? '...' : ''}</div>
+                            </div>
+                            <div class="scene-visual-options">
+                                <div class="visual-options-title">Choose a visual:</div>
+                                <div class="visual-options-grid">
                 `;
                 
                 videos.slice(0, 4).forEach((video, vidIdx) => {
                     const source = video.source || 'pexels';
-                    const license = video.license || 'Licensed';
-                    const fromCache = video.from_cache ? true : false;
-                    const isPopular = video.is_popular ? true : false;
-                    const useCount = video.use_count || 0;
                     const cacheKeywords = section.cache_keywords || [];
                     
                     html += `
-                        <div class="scene-option" 
+                        <div class="visual-option ${vidIdx === 0 ? 'selected' : ''}" 
                              data-section="${idx}" 
                              data-video="${vidIdx}"
                              data-url="${video.download_url || ''}"
                              data-id="${video.id || ''}"
                              data-source-page="${video.source_page || ''}"
-                             data-license="${license}"
+                             data-license="${video.license || ''}"
                              data-license-url="${video.license_url || ''}"
                              data-attribution="${video.attribution || ''}"
                              data-keywords="${cacheKeywords.join(',')}"
-                             onclick="selectSceneVideo(this, ${idx})">
-                            <img src="${video.thumbnail || ''}" alt="Option ${vidIdx + 1}" loading="lazy" onerror="this.style.display='none'">
-                            <span class="source-badge">${source}</span>
-                            <span class="license-badge">${license}</span>
-                            ${fromCache ? '<span class="cache-badge">CACHED</span>' : ''}
-                            ${isPopular ? '<span class="popular-badge">Popular</span>' : ''}
+                             data-thumbnail="${video.thumbnail || ''}"
+                             onclick="selectSceneVisual(this, ${idx})">
+                            <img src="${video.thumbnail || ''}" alt="Option ${vidIdx + 1}" loading="lazy" onerror="this.parentElement.style.background='#1a1a2e'">
+                            <span class="visual-option-badge">${source}</span>
                         </div>
                     `;
                 });
                 
                 html += `
+                                </div>
+                            </div>
                         </div>
                     </div>
                 `;
             });
             
-            // Add continue button
-            html += `
-                <button class="btn btn-primary" onclick="finishSceneSelection()" style="width: 100%; margin-top: 1rem;">
-                    Continue to Voiceover
-                </button>
-            `;
-            
             container.innerHTML = html;
             
-            // Auto-select first option for each scene
+            // Auto-select first option for each scene and update thumbnails
             sections.forEach((section, idx) => {
-                const firstOption = document.querySelector(`#scene-${idx} .scene-option`);
+                const firstOption = document.querySelector(`#scene-${idx} .visual-option`);
                 if (firstOption) {
-                    selectSceneVideo(firstOption, idx);
+                    selectSceneVisual(firstOption, idx);
                 }
             });
+            
+            // Show render button
+            renderSection.style.display = 'block';
+            
+            // Calculate total duration
+            updateTimelineDuration(sections.length);
         }
         
-        function selectSceneVideo(element, sectionIdx) {
-            const card = element.closest('.scene-card');
-            card.querySelectorAll('.scene-option').forEach(o => o.classList.remove('selected'));
+        function selectSceneVisual(element, sectionIdx) {
+            const sceneItem = element.closest('.timeline-scene-item');
+            sceneItem.querySelectorAll('.visual-option').forEach(o => o.classList.remove('selected'));
             element.classList.add('selected');
+            
+            // Update the thumbnail preview
+            const thumbnail = element.dataset.thumbnail;
+            const thumbContainer = document.getElementById(`scene-thumb-${sectionIdx}`);
+            if (thumbContainer && thumbnail) {
+                thumbContainer.innerHTML = `<img src="${thumbnail}" alt="Scene ${sectionIdx + 1}">`;
+            }
+            
+            // Mark scene as confirmed
+            const dot = sceneItem.querySelector('.scene-dot');
+            if (dot) {
+                dot.classList.remove('pending');
+                dot.classList.add('confirmed');
+            }
             
             selectedVideos[sectionIdx] = {
                 id: element.dataset.id,
@@ -3684,8 +3817,19 @@
                 license_url: element.dataset.licenseUrl || '',
                 attribution: element.dataset.attribution || '',
                 keywords: element.dataset.keywords || '',
-                thumbnail: element.querySelector('img')?.src || ''
+                thumbnail: thumbnail
             };
+        }
+        
+        function updateTimelineDuration(sceneCount) {
+            const avgDuration = 5; // seconds per scene
+            const total = sceneCount * avgDuration;
+            const mins = Math.floor(total / 60);
+            const secs = total % 60;
+            const durationEl = document.getElementById('timeline-total-duration');
+            if (durationEl) {
+                durationEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            }
         }
         
         async function finishSceneSelection() {
@@ -3744,6 +3888,99 @@
             if (voiceSection && !voiceSection.classList.contains('open')) {
                 voiceSection.classList.add('open');
             }
+        }
+        
+        async function renderFinalVideo() {
+            const btn = document.getElementById('render-video-btn');
+            if (!btn) return;
+            
+            // Validate we have selected videos
+            if (Object.keys(selectedVideos).length === 0) {
+                showToast('Please select visuals for your scenes first', 'warning');
+                return;
+            }
+            
+            // Get script
+            const script = approvedScript || refinedScript || finalScript;
+            if (!script) {
+                showToast('No script available. Create a script first.', 'warning');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span style="display: inline-block; animation: spin 1s linear infinite;">↻</span> Rendering...';
+            
+            try {
+                // Step 1: Generate voiceover first
+                showToast('Generating voiceover...', 'info');
+                
+                const voiceResponse = await fetch('/generate-voiceover', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        script: script,
+                        voice: voiceSettings?.voice || 'alloy'
+                    })
+                });
+                
+                const voiceData = await voiceResponse.json();
+                if (!voiceData.success) {
+                    throw new Error(voiceData.error || 'Voiceover generation failed');
+                }
+                
+                const audioPath = voiceData.audio_path;
+                showToast('Voiceover complete! Assembling video...', 'info');
+                
+                // Step 2: Download and assemble video clips
+                const scenes = Object.entries(selectedVideos).map(([idx, video]) => ({
+                    index: parseInt(idx),
+                    video_url: video.url,
+                    thumbnail: video.thumbnail,
+                    script_segment: currentVisualBoard?.sections?.[idx]?.script_segment || ''
+                })).sort((a, b) => a.index - b.index);
+                
+                const renderResponse = await fetch('/render-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scenes: scenes,
+                        audio_path: audioPath,
+                        format: selectedFormats[0] || '9:16',
+                        captions: captionSettings?.enabled || false,
+                        caption_settings: captionSettings || {}
+                    })
+                });
+                
+                const renderData = await renderResponse.json();
+                
+                if (renderData.success && renderData.video_path) {
+                    showToast('Video rendered successfully!', 'success');
+                    
+                    // Show the video
+                    const videoEl = document.getElementById('final-video');
+                    if (videoEl) {
+                        videoEl.src = renderData.video_path;
+                        videoEl.style.display = 'block';
+                    }
+                    
+                    // Go to export panel
+                    goToResults();
+                    
+                    // Show video result section
+                    const resultSection = document.getElementById('video-result');
+                    if (resultSection) {
+                        resultSection.style.display = 'block';
+                    }
+                } else {
+                    throw new Error(renderData.error || 'Video render failed');
+                }
+            } catch (error) {
+                console.error('Render error:', error);
+                showToast('Render failed: ' + error.message, 'error');
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Render Final Video';
         }
         
         async function generateVoiceover() {

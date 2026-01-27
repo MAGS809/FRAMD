@@ -2928,5 +2928,138 @@ def process_full():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/render-video', methods=['POST'])
+def render_video():
+    """Render final video from selected scenes and voiceover."""
+    import subprocess
+    import uuid
+    import urllib.request
+    
+    data = request.get_json()
+    scenes = data.get('scenes', [])
+    audio_path = data.get('audio_path', '')
+    video_format = data.get('format', '9:16')
+    captions = data.get('captions', False)
+    caption_settings = data.get('caption_settings', {})
+    
+    if not scenes:
+        return jsonify({'error': 'No scenes provided'}), 400
+    
+    # Create unique output filename
+    output_id = str(uuid.uuid4())[:8]
+    output_path = f'output/final_{output_id}.mp4'
+    
+    # Ensure output directory exists
+    os.makedirs('output', exist_ok=True)
+    
+    try:
+        # Download video clips
+        clip_paths = []
+        for i, scene in enumerate(scenes):
+            video_url = scene.get('video_url', '')
+            if not video_url:
+                continue
+                
+            clip_path = f'output/clip_{output_id}_{i}.mp4'
+            try:
+                # Download video clip
+                req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=30) as response:
+                    with open(clip_path, 'wb') as f:
+                        f.write(response.read())
+                clip_paths.append(clip_path)
+            except Exception as e:
+                print(f"Failed to download clip {i}: {e}")
+                continue
+        
+        if not clip_paths:
+            return jsonify({'error': 'Failed to download any video clips'}), 500
+        
+        # Determine video dimensions based on format
+        format_sizes = {
+            '9:16': (1080, 1920),
+            '1:1': (1080, 1080),
+            '4:5': (1080, 1350),
+            '16:9': (1920, 1080)
+        }
+        width, height = format_sizes.get(video_format, (1080, 1920))
+        
+        # Create file list for FFmpeg concat
+        list_path = f'output/clips_{output_id}.txt'
+        with open(list_path, 'w') as f:
+            for clip in clip_paths:
+                f.write(f"file '{os.path.basename(clip)}'\n")
+        
+        # First, concatenate clips
+        concat_path = f'output/concat_{output_id}.mp4'
+        concat_cmd = [
+            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+            '-i', list_path,
+            '-c', 'copy',
+            concat_path
+        ]
+        subprocess.run(concat_cmd, cwd='output', capture_output=True, timeout=120)
+        
+        # Now scale and crop to format, add audio
+        ffmpeg_cmd = [
+            'ffmpeg', '-y',
+            '-i', concat_path,
+        ]
+        
+        # Add audio if available
+        if audio_path and os.path.exists(audio_path):
+            ffmpeg_cmd.extend(['-i', audio_path])
+            audio_filter = '-map 0:v -map 1:a -shortest'
+        else:
+            audio_filter = ''
+        
+        # Scale and crop to fit format
+        ffmpeg_cmd.extend([
+            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        ])
+        
+        if audio_path and os.path.exists(audio_path):
+            ffmpeg_cmd.extend(['-c:a', 'aac', '-b:a', '128k', '-shortest'])
+        else:
+            ffmpeg_cmd.extend(['-an'])
+        
+        ffmpeg_cmd.append(output_path)
+        
+        result = subprocess.run(ffmpeg_cmd, capture_output=True, timeout=180)
+        
+        if result.returncode != 0:
+            print(f"FFmpeg error: {result.stderr.decode()}")
+            # Fallback - just use first clip
+            if clip_paths:
+                import shutil
+                shutil.copy(clip_paths[0], output_path)
+        
+        # Cleanup temp files
+        for clip in clip_paths:
+            try:
+                os.remove(clip)
+            except:
+                pass
+        try:
+            os.remove(list_path)
+            os.remove(concat_path)
+        except:
+            pass
+        
+        if os.path.exists(output_path):
+            return jsonify({
+                'success': True,
+                'video_path': '/' + output_path,
+                'format': video_format
+            })
+        else:
+            return jsonify({'error': 'Video render failed'}), 500
+            
+    except Exception as e:
+        print(f"Render error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
