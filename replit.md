@@ -203,10 +203,18 @@ The AI is configured to be:
 - **Effects**: Outline, Shadow, Background box, Uppercase
 - **Rendering**: Multiple FFmpeg drawtext filters with enable='between(t,start,end)' for word timing
 
-## Timeline Navigation
-- **Sticky Navigation**: Fixed menu at top of Timeline panel for quick section jumping
-- **Steps**: 1. Content Type → 2. Output Formats → 3. Voiceover → 4. Visuals → 5. Captions
-- **Scroll Behavior**: Smooth scroll to selected section with active state highlighting
+## Timeline Navigation (Wizard Style)
+- **Sticky Navigation**: Fixed menu at top of Timeline panel for step navigation
+- **Steps**: 1. Visuals → 2. Voice → 3. Format → 4. Captions
+- **Wizard Flow**: Only one step visible at a time via showStep() function
+- **Step Controls**: Each step has Next/Back buttons for linear progression
+- **Final Step**: Captions step has "Render Final Video" button to complete
+
+## Chat Interface
+- **File Upload**: Paperclip button allows attaching video, audio, images, PDFs, or documents
+- **Auto-Transcription**: Video/audio files are automatically transcribed and included in AI context
+- **Smart Upload**: File preview shows attached file name with option to remove before sending
+- **Error Handling**: Guards against sending empty messages when upload fails
 
 ## Script Formatting
 - AI formats final scripts with `CHARACTER_NAME: dialogue` for voice acting

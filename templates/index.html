@@ -293,6 +293,27 @@
             box-shadow: 0 0 0 2px rgba(255, 214, 10, 0.1);
         }
         
+        .chat-input-area .btn-attach {
+            width: 42px;
+            height: 42px;
+            min-width: 42px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .chat-input-area .btn-attach:hover {
+            background: rgba(255,214,10,0.1);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
         .chat-input-area .btn-send {
             width: 48px;
             height: 48px;
@@ -1560,10 +1581,20 @@
                 </div>
                 
                 <div class="chat-input-area">
-                    <textarea id="user-input" placeholder="Paste a link or describe your idea..." rows="2"></textarea>
+                    <input type="file" id="file-upload" accept="video/*,audio/*,image/*,.pdf,.txt,.doc,.docx" style="display: none;" onchange="handleFileUpload(event)">
+                    <button type="button" class="btn-attach" onclick="document.getElementById('file-upload').click()" title="Attach file">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                    </button>
+                    <textarea id="user-input" placeholder="Paste a link, describe your idea, or attach a file..." rows="2"></textarea>
                     <button type="button" class="btn btn-primary btn-send" id="send-btn">
                         &#8594;
                     </button>
+                </div>
+                <div id="file-preview" style="display: none; padding: 0.5rem 1rem; background: rgba(255,214,10,0.1); border-radius: 8px; margin-top: 0.5rem; align-items: center; gap: 0.5rem;">
+                    <span id="file-name" style="flex: 1; font-size: 0.85rem; color: var(--text-primary);"></span>
+                    <button onclick="clearFileUpload()" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 0.25rem;">&times;</button>
                 </div>
                 
                 <div class="token-panel">
@@ -1605,24 +1636,20 @@
             
             <!-- Step Navigation Menu -->
             <div class="timeline-nav" id="timeline-nav">
-                <div class="timeline-nav-item active" data-step="type" onclick="scrollToStep('step-type')">
+                <div class="timeline-nav-item active" data-step="visuals" onclick="showStep('visuals')">
                     <span class="nav-number">1</span>
-                    <span>Type</span>
-                </div>
-                <div class="timeline-nav-item" data-step="format" onclick="scrollToStep('step-format')">
-                    <span class="nav-number">2</span>
-                    <span>Format</span>
-                </div>
-                <div class="timeline-nav-item" data-step="voice" onclick="scrollToStep('step-voice')">
-                    <span class="nav-number">3</span>
-                    <span>Voice</span>
-                </div>
-                <div class="timeline-nav-item" data-step="visuals" onclick="scrollToStep('step-visuals')">
-                    <span class="nav-number">4</span>
                     <span>Visuals</span>
                 </div>
-                <div class="timeline-nav-item" data-step="captions" onclick="scrollToStep('step-captions')">
-                    <span class="nav-number">5</span>
+                <div class="timeline-nav-item" data-step="voice" onclick="showStep('voice')">
+                    <span class="nav-number">2</span>
+                    <span>Voice</span>
+                </div>
+                <div class="timeline-nav-item" data-step="format" onclick="showStep('format')">
+                    <span class="nav-number">3</span>
+                    <span>Format</span>
+                </div>
+                <div class="timeline-nav-item" data-step="captions" onclick="showStep('captions')">
+                    <span class="nav-number">4</span>
                     <span>Captions</span>
                 </div>
             </div>
@@ -1638,72 +1665,38 @@
                 </div>
             </div>
             
-            <!-- Source Document Section (for Educational reels) -->
-            <div id="source-section" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Source Document</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add a source URL to display a verified citation in your video:</p>
+            <!-- Hidden: Content Type state (set by AI or user preference) -->
+            <input type="hidden" id="content-type-value" value="educational">
+            
+            <!-- STEP 1: Visuals Section -->
+            <div id="step-visuals" class="timeline-step active" style="margin-bottom: 1.5rem;">
+                <h3>Build Your Visuals</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI will find legally-licensed footage that fits your script's setting and mood.</p>
                 
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <input type="text" id="source-url-input" placeholder="https://example.com/article or PDF link" 
-                           style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary);">
-                    <button onclick="fetchSourcePreview()" class="generate-btn" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
-                        <span id="source-btn-text">Verify Source</span>
-                    </button>
-                </div>
-                
-                <div id="source-preview-container" style="display: none;">
-                    <div style="display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--border);">
-                        <img id="source-preview-image" src="" alt="Source Preview" 
-                             style="width: 200px; height: auto; border-radius: 8px; border: 1px solid var(--border);">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                <span style="background: var(--accent); color: var(--bg-primary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">VERIFIED SOURCE</span>
-                                <span id="source-method-badge" style="background: rgba(255,255,255,0.1); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;"></span>
+                <!-- Source Document (optional) -->
+                <div id="source-section-inline" class="result-section" style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.02); border-radius: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <h4 style="margin: 0; font-size: 0.95rem;">Source Document (optional)</h4>
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">For citations & credibility</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="source-url-input" placeholder="Paste article or PDF link..." 
+                               style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary); font-size: 0.85rem;">
+                        <button onclick="fetchSourcePreview()" class="btn btn-secondary" style="padding: 0.6rem 1rem; font-size: 0.85rem;">
+                            <span id="source-btn-text">Verify</span>
+                        </button>
+                    </div>
+                    <div id="source-preview-container" style="display: none; margin-top: 1rem;">
+                        <div style="display: flex; gap: 0.75rem; align-items: flex-start; padding: 0.75rem; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border);">
+                            <img id="source-preview-image" src="" alt="Source Preview" style="width: 120px; height: auto; border-radius: 6px;">
+                            <div style="flex: 1;">
+                                <span style="background: var(--accent); color: var(--bg-primary); padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.65rem; font-weight: 600;">VERIFIED</span>
+                                <h5 id="source-title" style="margin: 0.3rem 0; font-size: 0.85rem;"></h5>
+                                <p id="source-meta" style="color: var(--text-secondary); font-size: 0.75rem; margin: 0;"></p>
                             </div>
-                            <h4 id="source-title" style="margin: 0.5rem 0; font-size: 1rem;"></h4>
-                            <p id="source-meta" style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;"></p>
-                            <div id="source-excerpts" style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;"></div>
                         </div>
                     </div>
-                    
-                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; cursor: pointer;">
-                        <input type="checkbox" id="include-source-overlay" checked style="accent-color: var(--accent);">
-                        <span style="font-size: 0.9rem;">Include source overlay in final video</span>
-                    </label>
                 </div>
-            </div>
-            
-            <!-- STEP 1: Content Type Selector -->
-            <div id="step-type" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>1. Content Type</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                    <div class="format-card content-type-card selected" data-type="educational" onclick="selectContentType(this)">
-                        <h3 style="font-size: 1rem;">Educational</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary);">B-roll and stock footage</p>
-                    </div>
-                    <div class="format-card content-type-card" data-type="skit" onclick="selectContentType(this)">
-                        <h3 style="font-size: 1rem;">Skit / Podcast</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Characters and scenes</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Character Model Picker (for skits only) -->
-            <div id="character-picker-section" class="result-section" style="margin-bottom: 1.5rem; display: none;">
-                <h3>Cast Your Characters</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Pick a look for each character or leave as voice-only.</p>
-                <div id="character-models-container"></div>
-            </div>
-            
-            <!-- Scene Picker - Full Screen Style -->
-            <div id="scene-picker-section" class="result-section" style="margin-bottom: 1.5rem; display: none;">
-                <div id="scene-picker-content"></div>
-            </div>
-            
-            <!-- STEP 4: Visual Curation Section -->
-            <div id="step-visuals" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>4. Build Your Visuals</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI will find legally-licensed footage that fits your script's setting and mood.</p>
                 
                 <div style="margin-bottom: 1rem;">
                     <label style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-bottom: 0.5rem;">Visual Guidance (optional)</label>
@@ -1713,11 +1706,20 @@
                 <button type="button" class="btn btn-primary" id="curate-visuals-btn" onclick="startVisualCuration()" style="width: 100%;">
                     Build Visuals
                 </button>
+                
+                <!-- Scene Picker appears here -->
+                <div id="scene-picker-section" style="margin-top: 1.5rem; display: none;">
+                    <div id="scene-picker-content"></div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+                    <button class="btn btn-primary" onclick="showStep('voice')">Next: Voiceover →</button>
+                </div>
             </div>
             
-            <!-- STEP 5: Caption Options Section -->
-            <div id="step-captions" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>5. Caption Style</h3>
+            <!-- STEP 4: Caption Options Section -->
+            <div id="step-captions" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
+                <h3>Caption Style</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add captions to your video:</p>
                 
                 <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
@@ -1874,11 +1876,19 @@
                         </span>
                     </div>
                 </div>
+                
+                <!-- Step Navigation -->
+                <div class="step-nav" style="display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                    <button class="btn btn-secondary" onclick="showStep('format')">← Output Formats</button>
+                    <button class="btn btn-primary generate-btn" onclick="renderFinalVideo()" style="padding: 0.75rem 2rem;">
+                        Render Final Video
+                    </button>
+                </div>
             </div>
             
-            <!-- STEP 3: Voiceover Section -->
-            <div id="step-voice" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>3. Voiceover</h3>
+            <!-- STEP 2: Voiceover Section -->
+            <div id="step-voice" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
+                <h3>Choose Your Voice</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Preview voices and select narrator(s):</p>
                 
                 <!-- Single narrator mode -->
@@ -2011,11 +2021,16 @@
                 
                 <!-- Voice preview audio element (hidden) -->
                 <audio id="voice-preview-audio" style="display: none;"></audio>
+                
+                <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
+                    <button class="btn btn-secondary" onclick="showStep('visuals')">← Back to Visuals</button>
+                    <button class="btn btn-primary" onclick="showStep('format')">Next: Formats →</button>
+                </div>
             </div>
             
-            <!-- STEP 2: Output Format Section -->
-            <div id="step-format" class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>2. Output Formats</h3>
+            <!-- STEP 3: Output Format Section -->
+            <div id="step-format" class="timeline-step" style="margin-bottom: 1.5rem; display: none;">
+                <h3>Output Formats</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Select formats to generate:</p>
                 
                 <div class="format-grid">
@@ -2040,12 +2055,13 @@
                         <p>Multi-part text thread</p>
                     </div>
                 </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; justify-content: space-between;">
+                    <button class="btn btn-secondary" onclick="showStep('voice')">← Back to Voice</button>
+                    <button class="btn btn-primary" onclick="showStep('captions')">Next: Captions →</button>
+                </div>
             </div>
             
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button class="btn btn-secondary" onclick="goToScript()">Back</button>
-                <button class="btn btn-primary" id="generate-btn" onclick="generateContent()" disabled>Generate Content</button>
-            </div>
         </div>
         
         <!-- Confirmation Modal -->
@@ -2953,6 +2969,36 @@
             btn.textContent = 'Generate Voiceover';
         }
         
+        // File upload handling
+        let uploadedFile = null;
+        
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedFile = file;
+                document.getElementById('file-name').textContent = file.name;
+                document.getElementById('file-preview').style.display = 'flex';
+            }
+        }
+        
+        function clearFileUpload() {
+            uploadedFile = null;
+            document.getElementById('file-upload').value = '';
+            document.getElementById('file-preview').style.display = 'none';
+        }
+        
+        async function uploadFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            return await response.json();
+        }
+        
         async function sendMessage() {
             console.log('sendMessage called');
             const input = document.getElementById('user-input');
@@ -2964,24 +3010,80 @@
                 return;
             }
             
-            const message = input.value.trim();
-            if (!message) {
-                console.log('Empty message, returning');
+            let message = input.value.trim();
+            const hasFile = uploadedFile !== null;
+            
+            if (!message && !hasFile) {
+                console.log('Empty message and no file, returning');
                 return;
             }
             
-            console.log('Sending message:', message);
-            
-            // Add user message
-            chatContainer.innerHTML += `<div class="message user">${escapeHtml(message)}</div>`;
-            input.value = '';
+            console.log('Sending message:', message, 'Has file:', hasFile);
             sendBtn.disabled = true;
             
-            // Add typing indicator
-            chatContainer.innerHTML += `<div class="message ai typing" id="typing">Thinking...</div>`;
-            chatContainer.scrollTop = chatContainer.scrollHeight;
+            // Handle file upload first if present
+            let fileContext = '';
+            if (hasFile) {
+                const fileName = uploadedFile.name;
+                chatContainer.innerHTML += `<div class="message user">${message ? escapeHtml(message) + '<br><br>' : ''}<span style="color: var(--accent);">📎 ${escapeHtml(fileName)}</span></div>`;
+                input.value = '';
+                
+                // Add uploading indicator
+                chatContainer.innerHTML += `<div class="message ai typing" id="typing">Uploading file...</div>`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+                
+                try {
+                    const uploadResult = await uploadFile(uploadedFile);
+                    if (uploadResult.success) {
+                        fileContext = `[User uploaded file: ${fileName}. File path: ${uploadResult.filename}]`;
+                        document.getElementById('typing').textContent = 'Processing...';
+                        
+                        // If video/audio file, auto-transcribe
+                        if (fileName.match(/\.(mp4|mov|webm|mp3|wav|m4a)$/i)) {
+                            const transcribeResponse = await fetch('/transcribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filename: uploadResult.filename })
+                            });
+                            const transcribeData = await transcribeResponse.json();
+                            if (transcribeData.success) {
+                                fileContext = `[User uploaded ${fileName}. Transcript: "${transcribeData.transcript.substring(0, 2000)}${transcribeData.transcript.length > 2000 ? '...' : ''}"]`;
+                            }
+                        }
+                    } else {
+                        document.getElementById('typing').textContent = 'Upload failed. Thinking...';
+                    }
+                } catch (err) {
+                    console.error('File upload error:', err);
+                    document.getElementById('typing').textContent = 'Thinking...';
+                }
+                
+                clearFileUpload();
+            } else {
+                // Add user message
+                chatContainer.innerHTML += `<div class="message user">${escapeHtml(message)}</div>`;
+                input.value = '';
+                
+                // Add typing indicator
+                chatContainer.innerHTML += `<div class="message ai typing" id="typing">Thinking...</div>`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
             
-            conversationHistory.push({ role: 'user', content: message });
+            // Combine message with file context
+            const fullMessage = fileContext ? (message ? message + '\n\n' + fileContext : fileContext) : message;
+            
+            // Guard: don't proceed if we have nothing to send
+            if (!fullMessage || fullMessage.trim() === '') {
+                const typingEl = document.getElementById('typing');
+                if (typingEl) {
+                    typingEl.textContent = 'Upload failed. Please try again.';
+                    setTimeout(() => typingEl.remove(), 3000);
+                }
+                sendBtn.disabled = false;
+                return;
+            }
+            
+            conversationHistory.push({ role: 'user', content: fullMessage });
             
             try {
                 console.log('Making fetch request...');
@@ -2989,7 +3091,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        message: message,
+                        message: fullMessage,
                         conversation: conversationHistory,
                         question_count: questionCount,
                         reference: referenceContext
@@ -3229,17 +3331,32 @@
         }
         
         function scrollToStep(stepId) {
-            const element = document.getElementById(stepId);
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                
-                // Update nav active state
-                document.querySelectorAll('.timeline-nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                const navItem = document.querySelector(`.timeline-nav-item[data-step="${stepId.replace('step-', '')}"]`);
-                if (navItem) navItem.classList.add('active');
+            showStep(stepId.replace('step-', ''));
+        }
+        
+        function showStep(stepName) {
+            // Hide all timeline steps
+            document.querySelectorAll('.timeline-step').forEach(step => {
+                step.style.display = 'none';
+                step.classList.remove('active');
+            });
+            
+            // Show the selected step
+            const selectedStep = document.getElementById('step-' + stepName);
+            if (selectedStep) {
+                selectedStep.style.display = 'block';
+                selectedStep.classList.add('active');
             }
+            
+            // Update nav active state
+            document.querySelectorAll('.timeline-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            const navItem = document.querySelector(`.timeline-nav-item[data-step="${stepName}"]`);
+            if (navItem) navItem.classList.add('active');
+            
+            // Scroll to top of panel
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
         
         function goToFormats() {
