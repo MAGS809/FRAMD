@@ -892,6 +892,85 @@
             font-size: 0.95rem;
         }
         
+        /* Export Hub Styles */
+        .export-destinations {
+            margin-top: 1.5rem;
+        }
+        .export-section-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin: 0 0 1rem 0;
+        }
+        .export-buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        @media (max-width: 600px) {
+            .export-buttons-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .export-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .export-btn:hover {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        .export-btn .export-icon {
+            font-size: 1.5rem;
+        }
+        .export-btn span:last-child {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        .export-btn.instagram:hover { border-color: #E1306C; }
+        .export-btn.tiktok:hover { border-color: #00f2ea; }
+        .export-btn.youtube:hover { border-color: #FF0000; }
+        .export-btn.twitter:hover { border-color: #1DA1F2; }
+        .export-btn.facebook:hover { border-color: #1877F2; }
+        .export-btn.linkedin:hover { border-color: #0A66C2; }
+        
+        .download-section {
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+        }
+        .download-options {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .export-formats-preview {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+        .export-format-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
         /* Visual board sections */
         .visual-section {
             background: rgba(0, 0, 0, 0.15);
@@ -1798,6 +1877,223 @@
             font-size: 1.2rem;
         }
         
+        /* Timeline AI Chat Section */
+        .timeline-ai-chat {
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.08), rgba(255, 214, 10, 0.02));
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-ai-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .timeline-ai-header .ai-icon {
+            font-size: 1.5rem;
+        }
+        .ai-chat-prompt {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .timeline-ai-input-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .timeline-ai-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .timeline-ai-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .timeline-ai-send {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.85rem;
+        }
+        .timeline-ai-response {
+            background: rgba(45, 106, 79, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        .ai-personalized-note {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin: 0.5rem 0 0 0;
+            font-style: italic;
+        }
+        
+        /* Format First Section */
+        .format-first-section {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-light);
+        }
+        .section-label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0 0 0.25rem 0;
+        }
+        .section-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0 0 1rem 0;
+        }
+        .format-selection-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.75rem;
+        }
+        @media (max-width: 768px) {
+            .format-selection-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        .format-option {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .format-option:hover {
+            background: rgba(255, 214, 10, 0.05);
+            border-color: rgba(255, 214, 10, 0.3);
+        }
+        .format-option.selected {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--accent);
+        }
+        .format-option strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        .format-option span {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .format-preview {
+            width: 100%;
+            height: 50px;
+            background: rgba(255, 214, 10, 0.1);
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .ratio-9-16 { width: 28px; height: 50px; margin: 0 auto; }
+        .ratio-1-1 { width: 40px; height: 40px; margin: 5px auto; }
+        .ratio-4-5 { width: 40px; height: 50px; margin: 0 auto; }
+        .ratio-16-9 { width: 100%; height: 35px; margin: 7.5px 0; }
+        .ratio-carousel { width: 100%; height: 50px; }
+        
+        /* Carousel Style Picker */
+        .carousel-style-picker {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+        }
+        .carousel-style-picker h4 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0 0 0.75rem 0;
+            font-weight: 500;
+        }
+        .carousel-style-options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+        .carousel-style-option {
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .carousel-style-option:hover {
+            border-color: rgba(255, 214, 10, 0.3);
+        }
+        .carousel-style-option.selected {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        .carousel-style-preview {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .carousel-style-option strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+        .carousel-style-option span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        
+        /* Multi-Format Preview Toggle */
+        .format-preview-toggle {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .toggle-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .preview-format-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .preview-format-tab {
+            padding: 0.4rem 0.75rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .preview-format-tab:hover {
+            border-color: var(--accent);
+        }
+        .preview-format-tab.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
         /* Unified Settings Panel */
         .settings-accordion {
             margin-top: 1rem;
@@ -2001,10 +2297,74 @@
         <div class="panel" id="panel-format">
             <h2>Timeline Editor</h2>
             
-            <!-- AI Control Hint -->
-            <div class="ai-control-hint">
-                <span class="ai-icon">🤖</span>
-                <span>Chat with Krakd anytime to change visuals, voice, or captions. Just describe what you want.</span>
+            <!-- AI Chat Section - Primary Feature -->
+            <div class="timeline-ai-chat">
+                <div class="timeline-ai-header">
+                    <span class="ai-icon">🤖</span>
+                    <span class="ai-chat-prompt">Chat with Krakd anytime to change visuals, voice, or captions. Just describe what you want.</span>
+                </div>
+                <div class="timeline-ai-input-row">
+                    <input type="text" id="timeline-ai-input" placeholder="Tell Krakd what to adjust..." class="timeline-ai-input">
+                    <button class="btn btn-primary timeline-ai-send" onclick="sendTimelineAIMessage()">Send</button>
+                </div>
+                <div id="timeline-ai-response" class="timeline-ai-response" style="display: none;"></div>
+                <p class="ai-personalized-note">Krakd learns your style over time - the more you create, the better it understands your vision.</p>
+            </div>
+            
+            <!-- FORMAT FIRST: Output Format Selection -->
+            <div class="format-first-section">
+                <h3 class="section-label">📐 What are you creating?</h3>
+                <p class="section-hint">Select one or more formats. Multiple formats will render together.</p>
+                <div class="format-selection-grid">
+                    <div class="format-option selected" data-format="9:16" onclick="toggleFormatSelection(this)">
+                        <div class="format-preview ratio-9-16"></div>
+                        <strong>9:16</strong>
+                        <span>Reels / TikTok / Shorts</span>
+                    </div>
+                    <div class="format-option" data-format="1:1" onclick="toggleFormatSelection(this)">
+                        <div class="format-preview ratio-1-1"></div>
+                        <strong>1:1</strong>
+                        <span>Square Feed</span>
+                    </div>
+                    <div class="format-option" data-format="4:5" onclick="toggleFormatSelection(this)">
+                        <div class="format-preview ratio-4-5"></div>
+                        <strong>4:5</strong>
+                        <span>Instagram Feed</span>
+                    </div>
+                    <div class="format-option" data-format="16:9" onclick="toggleFormatSelection(this)">
+                        <div class="format-preview ratio-16-9"></div>
+                        <strong>16:9</strong>
+                        <span>YouTube / Landscape</span>
+                    </div>
+                    <div class="format-option" data-format="carousel" onclick="toggleFormatSelection(this)">
+                        <div class="format-preview ratio-carousel">📚</div>
+                        <strong>Carousel</strong>
+                        <span>Instagram Slides</span>
+                    </div>
+                </div>
+                
+                <!-- Carousel Style Picker (appears when carousel selected) -->
+                <div id="carousel-style-picker" class="carousel-style-picker" style="display: none;">
+                    <h4>Carousel Style</h4>
+                    <div class="carousel-style-options">
+                        <div class="carousel-style-option selected" data-style="news-facts" onclick="selectCarouselStyle(this)">
+                            <div class="carousel-style-preview news-style">📰</div>
+                            <strong>News & Facts</strong>
+                            <span>Viral sharing format</span>
+                        </div>
+                        <div class="carousel-style-option" data-style="comic-recap" onclick="selectCarouselStyle(this)">
+                            <div class="carousel-style-preview comic-style">🎬</div>
+                            <strong>Comic Recap</strong>
+                            <span>Visual story panels</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Multi-Format Preview Toggle (appears when 2+ formats selected) -->
+                <div id="format-preview-toggle" class="format-preview-toggle" style="display: none;">
+                    <span class="toggle-label">Preview:</span>
+                    <div class="preview-format-tabs" id="preview-format-tabs"></div>
+                </div>
             </div>
             
             <!-- Hidden: Content Type state -->
@@ -2267,13 +2627,61 @@
 
         <!-- STEP 3: Export Video -->
         <div class="panel" id="panel-results">
-            <h2>Your Video is Ready</h2>
+            <h2>Export Hub</h2>
             
             <div id="video-result" style="display: none; margin-bottom: 1.5rem;">
                 <div class="result-section">
-                    <h3>Final Video</h3>
+                    <h3>Your Content is Ready</h3>
                     <video id="final-video" controls style="width: 100%; max-height: 400px; border-radius: 8px; margin-top: 1rem;"></video>
-                    <a id="download-video" class="btn btn-primary" style="margin-top: 1rem; display: inline-block;" download>Download Video</a>
+                    
+                    <!-- Export Formats Preview (for multi-format) -->
+                    <div id="export-formats-preview" class="export-formats-preview" style="margin-top: 1rem; display: none;">
+                        <div class="export-format-tabs" id="export-format-tabs"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Social Media Export Buttons -->
+            <div class="export-destinations">
+                <h3 class="export-section-title">Share to Platforms</h3>
+                <div class="export-buttons-grid">
+                    <button class="export-btn instagram" onclick="exportToInstagram()">
+                        <span class="export-icon">📸</span>
+                        <span>Instagram</span>
+                    </button>
+                    <button class="export-btn tiktok" onclick="exportToTikTok()">
+                        <span class="export-icon">🎵</span>
+                        <span>TikTok</span>
+                    </button>
+                    <button class="export-btn youtube" onclick="exportToYouTube()">
+                        <span class="export-icon">▶️</span>
+                        <span>YouTube</span>
+                    </button>
+                    <button class="export-btn twitter" onclick="exportToX()">
+                        <span class="export-icon">𝕏</span>
+                        <span>X (Twitter)</span>
+                    </button>
+                    <button class="export-btn facebook" onclick="exportToFacebook()">
+                        <span class="export-icon">📘</span>
+                        <span>Facebook</span>
+                    </button>
+                    <button class="export-btn linkedin" onclick="exportToLinkedIn()">
+                        <span class="export-icon">💼</span>
+                        <span>LinkedIn</span>
+                    </button>
+                </div>
+                
+                <!-- Download Section -->
+                <div class="download-section">
+                    <h3 class="export-section-title">Download</h3>
+                    <div class="download-options">
+                        <a id="download-video" class="btn btn-primary download-btn" download>
+                            <span>⬇️</span> Download Video
+                        </a>
+                        <button class="btn btn-secondary" onclick="downloadAllFormats()" id="download-all-btn" style="display: none;">
+                            <span>📦</span> Download All Formats
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -3730,7 +4138,7 @@
             }
         }
         
-        // Format selection
+        // Format selection (old accordion style - kept for compatibility)
         function selectFormat(element) {
             document.querySelectorAll('#settings-format .format-card').forEach(card => {
                 card.classList.remove('selected');
@@ -3746,6 +4154,117 @@
             if (selectedFormat === '1:1') canvas.classList.add('ratio-1-1');
             else if (selectedFormat === '4:5') canvas.classList.add('ratio-4-5');
             else if (selectedFormat === '16:9') canvas.classList.add('ratio-16-9');
+        }
+        
+        // NEW: Multi-format selection (format-first section)
+        let selectedFormatsNew = ['9:16'];
+        let selectedCarouselStyle = 'news-facts';
+        let activePreviewFormat = '9:16';
+        
+        function toggleFormatSelection(element) {
+            const format = element.dataset.format;
+            element.classList.toggle('selected');
+            
+            // Update selectedFormatsNew array
+            if (element.classList.contains('selected')) {
+                if (!selectedFormatsNew.includes(format)) {
+                    selectedFormatsNew.push(format);
+                }
+            } else {
+                selectedFormatsNew = selectedFormatsNew.filter(f => f !== format);
+            }
+            
+            // Show/hide carousel style picker
+            const carouselPicker = document.getElementById('carousel-style-picker');
+            if (selectedFormatsNew.includes('carousel')) {
+                carouselPicker.style.display = 'block';
+            } else {
+                carouselPicker.style.display = 'none';
+            }
+            
+            // Show/hide multi-format preview toggle
+            updateFormatPreviewTabs();
+            
+            // Update live preview badge
+            if (selectedFormatsNew.length > 0) {
+                activePreviewFormat = selectedFormatsNew[0];
+                document.getElementById('preview-format-badge').textContent = activePreviewFormat;
+            }
+        }
+        
+        function selectCarouselStyle(element) {
+            document.querySelectorAll('.carousel-style-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedCarouselStyle = element.dataset.style;
+        }
+        
+        function updateFormatPreviewTabs() {
+            const toggle = document.getElementById('format-preview-toggle');
+            const tabsContainer = document.getElementById('preview-format-tabs');
+            
+            if (selectedFormatsNew.length > 1) {
+                toggle.style.display = 'flex';
+                tabsContainer.innerHTML = selectedFormatsNew.map((fmt, idx) => 
+                    `<button class="preview-format-tab ${idx === 0 ? 'active' : ''}" onclick="switchPreviewFormat('${fmt}', this)">${fmt}</button>`
+                ).join('');
+            } else {
+                toggle.style.display = 'none';
+            }
+        }
+        
+        function switchPreviewFormat(format, tabElement) {
+            document.querySelectorAll('.preview-format-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            tabElement.classList.add('active');
+            activePreviewFormat = format;
+            document.getElementById('preview-format-badge').textContent = format;
+            
+            // Update preview canvas ratio
+            const canvas = document.getElementById('preview-canvas');
+            canvas.className = 'preview-canvas';
+            if (format === '1:1') canvas.classList.add('ratio-1-1');
+            else if (format === '4:5') canvas.classList.add('ratio-4-5');
+            else if (format === '16:9') canvas.classList.add('ratio-16-9');
+        }
+        
+        // Timeline AI Chat
+        async function sendTimelineAIMessage() {
+            const input = document.getElementById('timeline-ai-input');
+            const responseDiv = document.getElementById('timeline-ai-response');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            input.disabled = true;
+            responseDiv.style.display = 'block';
+            responseDiv.innerHTML = '<span style="color: var(--text-muted);">Thinking...</span>';
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `[Timeline Editor Context] The user is editing their video. Current format: ${activePreviewFormat}. Current voice: ${selectedVoice}. User request: ${message}`,
+                        conversation: conversationHistory
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    responseDiv.innerHTML = data.reply;
+                    conversationHistory = data.conversation || [];
+                } else {
+                    responseDiv.innerHTML = '<span style="color: var(--error);">Something went wrong. Try again.</span>';
+                }
+            } catch (error) {
+                responseDiv.innerHTML = '<span style="color: var(--error);">Connection error. Try again.</span>';
+            }
+            
+            input.disabled = false;
+            input.value = '';
         }
         
         // Voice selection
@@ -3773,7 +4292,10 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
             
             if (refinedScript) {
-                document.getElementById('script-preview').textContent = refinedScript;
+                const scriptPreview = document.getElementById('script-preview');
+                if (scriptPreview) {
+                    scriptPreview.textContent = refinedScript;
+                }
             }
         }
         
@@ -3785,6 +4307,85 @@
             document.getElementById('step3-indicator').classList.add('active');
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Social Media Export Functions
+        function exportToInstagram() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening Instagram... Download the video and post from the Instagram app.', 'info');
+            window.open('https://www.instagram.com/', '_blank');
+            triggerDownload();
+        }
+        
+        function exportToTikTok() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening TikTok... Download the video and upload from TikTok.', 'info');
+            window.open('https://www.tiktok.com/upload', '_blank');
+            triggerDownload();
+        }
+        
+        function exportToYouTube() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening YouTube Studio... Download the video and upload as a Short.', 'info');
+            window.open('https://studio.youtube.com/', '_blank');
+            triggerDownload();
+        }
+        
+        function exportToX() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening X... Download the video and post from X.', 'info');
+            window.open('https://twitter.com/compose/tweet', '_blank');
+            triggerDownload();
+        }
+        
+        function exportToFacebook() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening Facebook... Download the video and upload as a Reel.', 'info');
+            window.open('https://www.facebook.com/', '_blank');
+            triggerDownload();
+        }
+        
+        function exportToLinkedIn() {
+            const videoEl = document.getElementById('final-video');
+            if (!videoEl.src) {
+                showToast('No video to export. Render your video first.', 'warning');
+                return;
+            }
+            showToast('Opening LinkedIn... Download the video and post from LinkedIn.', 'info');
+            window.open('https://www.linkedin.com/feed/', '_blank');
+            triggerDownload();
+        }
+        
+        function triggerDownload() {
+            const downloadBtn = document.getElementById('download-video');
+            if (downloadBtn && downloadBtn.href) {
+                downloadBtn.click();
+            }
+        }
+        
+        function downloadAllFormats() {
+            showToast('Downloading all formats...', 'info');
+            triggerDownload();
         }
         
         function startOver() {
@@ -4027,6 +4628,17 @@
                 
                 userInput.addEventListener('paste', handlePaste);
                 console.log('Paste listener attached');
+            }
+            
+            // Timeline AI input - Enter key to send
+            const timelineAIInput = document.getElementById('timeline-ai-input');
+            if (timelineAIInput) {
+                timelineAIInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendTimelineAIMessage();
+                    }
+                });
             }
             
             // Also attach click handler directly
