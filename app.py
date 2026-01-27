@@ -955,7 +955,7 @@ CRITICAL:
         import re as duration_re
         scene_durations = {}
         scene_pattern = r'SCENE\s+(\d+)\s*\[(\d+(?:-\d+)?)\s*s?\]'
-        for match in duration_re.finditer(script, duration_re.IGNORECASE):
+        for match in duration_re.finditer(scene_pattern, script, duration_re.IGNORECASE):
             scene_num = int(match.group(1)) - 1  # 0-indexed
             duration_str = match.group(2)
             # Handle range like "3-4" -> take average
