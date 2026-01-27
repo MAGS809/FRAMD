@@ -337,29 +337,141 @@ def validate_license(license_short):
     # Unknown license - reject
     return False, None, f'Unknown/unclear license: {license_short}'
 
-@app.route('/search-wikimedia-videos', methods=['POST'])
-def search_wikimedia_videos():
-    """Search Wikimedia Commons for videos with proper licensing."""
+@app.route('/search-wikimedia', methods=['POST'])
+def search_wikimedia():
+    """
+    Search Wikimedia Commons using proper 2-step API approach.
+    Step 1: Search files only (namespace=6)
+    Step 2: Fetch metadata with imageinfo + extmetadata
+    Supports both images and videos.
+    """
     data = request.get_json()
     query = data.get('query', '')
-    limit = data.get('limit', 10)
+    limit = data.get('limit', 20)
+    media_type = data.get('media_type', 'all')  # 'video', 'image', or 'all'
     
     try:
-        # Search Wikimedia Commons API for video files
+        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
         search_url = 'https://commons.wikimedia.org/w/api.php'
-        params = {
+        
+        # Step 1: Search in File namespace (namespace=6) using generator=search
+        search_params = {
             'action': 'query',
             'format': 'json',
             'generator': 'search',
-            'gsrsearch': f'{query} filetype:video',
-            'gsrlimit': limit,
-            'prop': 'imageinfo|categories',
-            'iiprop': 'url|extmetadata|size|mime',
+            'gsrnamespace': 6,  # File namespace only
+            'gsrsearch': query,
+            'gsrlimit': limit * 2,  # Request more to account for filtering
+            'prop': 'imageinfo',
+            'iiprop': 'url|extmetadata|size|mime|mediatype',
             'iiurlwidth': 640
         }
         
+        response = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=20)
+        data = response.json()
+        
+        results = []
+        pages = data.get('query', {}).get('pages', {})
+        
+        for page_id, page in pages.items():
+            if page_id == '-1':
+                continue
+                
+            imageinfo = page.get('imageinfo', [{}])[0]
+            mime = imageinfo.get('mime', '')
+            mediatype = imageinfo.get('mediatype', '')
+            extmeta = imageinfo.get('extmetadata', {})
+            
+            # Filter by media type
+            is_video = mime.startswith('video/') or mediatype in ['VIDEO', 'AUDIO']
+            is_image = mime.startswith('image/') and not mime.endswith('/gif')
+            
+            # Allow video MIME types: webm, ogg, mp4
+            allowed_video_mimes = ['video/webm', 'video/ogg', 'video/mp4', 'application/ogg']
+            allowed_image_mimes = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']
+            
+            if media_type == 'video' and not (is_video or mime in allowed_video_mimes):
+                continue
+            elif media_type == 'image' and not (is_image or mime in allowed_image_mimes):
+                continue
+            elif media_type == 'all' and not (is_video or is_image or mime in allowed_video_mimes + allowed_image_mimes):
+                continue
+            
+            # Get license info
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
+            license_url = extmeta.get('LicenseUrl', {}).get('value', '')
+            
+            # Validate license
+            is_valid, our_license, _ = validate_license(license_short)
+            if not is_valid:
+                continue
+            
+            # Get attribution
+            artist_html = extmeta.get('Artist', {}).get('value', 'Unknown')
+            artist = re.sub('<[^<]+?>', '', artist_html).strip()
+            if not artist or artist == 'Unknown':
+                artist = extmeta.get('Credit', {}).get('value', 'Unknown')
+                artist = re.sub('<[^<]+?>', '', artist).strip()
+            
+            attribution_required = our_license not in ['CC0', 'Public Domain']
+            content_type = 'video' if (is_video or mime in allowed_video_mimes) else 'image'
+            
+            # Get description
+            description = extmeta.get('ImageDescription', {}).get('value', '')
+            description = re.sub('<[^<]+?>', '', description).strip()[:200]
+            
+            results.append({
+                'id': f"wikimedia_{page.get('pageid')}",
+                'source': 'wikimedia_commons',
+                'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
+                'download_url': imageinfo.get('url'),
+                'thumbnail': imageinfo.get('thumburl') or imageinfo.get('url'),
+                'title': page.get('title', '').replace('File:', ''),
+                'description': description,
+                'content_type': content_type,
+                'mime': mime,
+                'resolution': f"{imageinfo.get('width', 0)}x{imageinfo.get('height', 0)}",
+                'license': our_license,
+                'license_url': license_url or 'https://creativecommons.org/licenses/',
+                'commercial_use_allowed': True,
+                'derivatives_allowed': our_license not in [],
+                'attribution_required': attribution_required,
+                'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
+            })
+            
+            if len(results) >= limit:
+                break
+        
+        return jsonify({'success': True, 'assets': results, 'count': len(results)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/search-wikimedia-videos', methods=['POST'])
+def search_wikimedia_videos():
+    """Legacy endpoint - calls new search with video filter."""
+    req_data = request.get_json() or {}
+    query = req_data.get('query', '')
+    limit = req_data.get('limit', 10)
+    
+    # Reuse the new search logic
+    try:
         wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
-        response = requests.get(search_url, params=params, headers=wiki_headers, timeout=15)
+        search_url = 'https://commons.wikimedia.org/w/api.php'
+        
+        search_params = {
+            'action': 'query',
+            'format': 'json',
+            'generator': 'search',
+            'gsrnamespace': 6,
+            'gsrsearch': query,
+            'gsrlimit': limit * 2,
+            'prop': 'imageinfo',
+            'iiprop': 'url|extmetadata|size|mime|mediatype',
+            'iiurlwidth': 640
+        }
+        
+        response = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=20)
         data = response.json()
         
         videos = []
@@ -370,23 +482,20 @@ def search_wikimedia_videos():
                 continue
                 
             imageinfo = page.get('imageinfo', [{}])[0]
+            mime = imageinfo.get('mime', '')
+            
+            # Video only
+            if not mime.startswith('video/') and mime not in ['video/webm', 'video/ogg', 'video/mp4', 'application/ogg']:
+                continue
+            
             extmeta = imageinfo.get('extmetadata', {})
-            
-            # Get license info
             license_short = extmeta.get('LicenseShortName', {}).get('value', '')
-            license_url = extmeta.get('LicenseUrl', {}).get('value', '')
             
-            # Validate license using safe function (rejects NC/ND first)
-            is_valid, our_license, rejection_reason = validate_license(license_short)
+            is_valid, our_license, _ = validate_license(license_short)
             if not is_valid:
                 continue
             
-            # Get attribution
-            artist = extmeta.get('Artist', {}).get('value', 'Unknown')
-            import re
-            artist = re.sub('<[^<]+?>', '', artist).strip()
-            
-            attribution_required = our_license not in ['CC0', 'Public Domain']
+            artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
             
             videos.append({
                 'id': f"wikimedia_{page.get('pageid')}",
@@ -397,99 +506,261 @@ def search_wikimedia_videos():
                 'title': page.get('title', '').replace('File:', ''),
                 'resolution': f"{imageinfo.get('width', 0)}x{imageinfo.get('height', 0)}",
                 'license': our_license,
-                'license_url': license_url or 'https://creativecommons.org/licenses/',
+                'license_url': extmeta.get('LicenseUrl', {}).get('value', ''),
                 'commercial_use_allowed': True,
                 'derivatives_allowed': True,
-                'attribution_required': attribution_required,
+                'attribution_required': our_license not in ['CC0', 'Public Domain'],
                 'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
             })
+            
+            if len(videos) >= limit:
+                break
         
         return jsonify({'success': True, 'videos': videos})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/search-unsplash', methods=['POST'])
+def search_unsplash():
+    """
+    Search Unsplash for high-quality artistic photos.
+    Unsplash has more editorial/artistic content than Pexels.
+    """
+    req_data = request.get_json()
+    query = req_data.get('query', '')
+    limit = req_data.get('per_page', 15)
+    orientation = req_data.get('orientation', 'portrait')  # portrait, landscape, squarish
+    
+    unsplash_key = os.environ.get('UNSPLASH_ACCESS_KEY')
+    if not unsplash_key:
+        return jsonify({'success': False, 'error': 'Unsplash API not configured', 'assets': []})
+    
+    try:
+        response = requests.get(
+            'https://api.unsplash.com/search/photos',
+            headers={'Authorization': f'Client-ID {unsplash_key}'},
+            params={
+                'query': query,
+                'per_page': limit,
+                'orientation': orientation
+            },
+            timeout=15
+        )
+        data = response.json()
+        
+        results = []
+        for photo in data.get('results', []):
+            # Unsplash license is always free for commercial use
+            results.append({
+                'id': f"unsplash_{photo['id']}",
+                'source': 'unsplash',
+                'source_page': photo.get('links', {}).get('html', ''),
+                'download_url': photo.get('urls', {}).get('full') or photo.get('urls', {}).get('regular'),
+                'thumbnail': photo.get('urls', {}).get('small') or photo.get('urls', {}).get('thumb'),
+                'title': photo.get('alt_description') or photo.get('description') or 'Untitled',
+                'description': photo.get('description', ''),
+                'content_type': 'image',
+                'resolution': f"{photo.get('width', 0)}x{photo.get('height', 0)}",
+                'license': 'Unsplash License',
+                'license_url': 'https://unsplash.com/license',
+                'commercial_use_allowed': True,
+                'derivatives_allowed': True,
+                'attribution_required': False,  # Not required but appreciated
+                'attribution_text': f"Photo by {photo.get('user', {}).get('name', 'Unknown')} on Unsplash"
+            })
+        
+        return jsonify({'success': True, 'assets': results, 'count': len(results)})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'assets': []})
+
+
 @app.route('/search-all-sources', methods=['POST'])
 def search_all_sources():
-    """Search both Pexels and Wikimedia Commons for legal videos."""
+    """
+    Search all sources for legal media - PRIORITIZES Wikimedia/Unsplash over Pexels.
+    Implements fallback ladder: Wikimedia → Unsplash → Pexels → query expansion.
+    """
     data = request.get_json()
     query = data.get('query', '')
+    limit = data.get('limit', 12)
+    media_type = data.get('media_type', 'all')  # 'video', 'image', 'all'
     
-    all_videos = []
+    all_results = []
+    sources_searched = []
     
-    # Search Pexels
-    pexels_key = os.environ.get('PEXELS_API_KEY')
-    if pexels_key:
-        try:
-            response = requests.get(
-                'https://api.pexels.com/videos/search',
-                headers={'Authorization': pexels_key},
-                params={'query': query, 'per_page': 5, 'orientation': 'portrait'},
-                timeout=10
-            )
-            for video in response.json().get('videos', []):
-                video_files = video.get('video_files', [])
-                best_file = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
-                if best_file:
-                    all_videos.append({
-                        'id': f"pexels_{video['id']}",
-                        'source': 'pexels',
-                        'source_page': video.get('url'),
-                        'download_url': best_file.get('link'),
-                        'thumbnail': video.get('image'),
-                        'duration': video.get('duration'),
-                        'license': 'Pexels License',
-                        'license_url': 'https://www.pexels.com/license/',
-                        'attribution_required': False,
-                        'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
-                    })
-        except:
-            pass
-    
-    # Search Wikimedia Commons
+    # PRIORITY 1: Search Wikimedia Commons (most authentic/documentary content)
     try:
+        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
         search_url = 'https://commons.wikimedia.org/w/api.php'
-        params = {
+        
+        search_params = {
             'action': 'query',
             'format': 'json',
             'generator': 'search',
-            'gsrsearch': f'{query} filetype:video',
-            'gsrlimit': 5,
+            'gsrnamespace': 6,
+            'gsrsearch': query,
+            'gsrlimit': limit,
             'prop': 'imageinfo',
-            'iiprop': 'url|extmetadata',
+            'iiprop': 'url|extmetadata|size|mime|mediatype',
             'iiurlwidth': 640
         }
-        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
-        response = requests.get(search_url, params=params, headers=wiki_headers, timeout=10)
+        
+        response = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=15)
         pages = response.json().get('query', {}).get('pages', {})
         
         for page_id, page in pages.items():
             if page_id == '-1':
                 continue
+                
             imageinfo = page.get('imageinfo', [{}])[0]
+            mime = imageinfo.get('mime', '')
             extmeta = imageinfo.get('extmetadata', {})
-            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
             
-            # Validate license using safe function (rejects NC/ND first)
+            # Filter by media type
+            is_video = mime.startswith('video/')
+            is_image = mime.startswith('image/') and not mime.endswith('/gif')
+            
+            if media_type == 'video' and not is_video:
+                continue
+            elif media_type == 'image' and not is_image:
+                continue
+            
+            license_short = extmeta.get('LicenseShortName', {}).get('value', '')
             is_valid, our_license, _ = validate_license(license_short)
-            if is_valid:
-                import re
-                artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
-                all_videos.append({
-                    'id': f"wikimedia_{page.get('pageid')}",
-                    'source': 'wikimedia_commons',
-                    'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
-                    'download_url': imageinfo.get('url'),
-                    'thumbnail': imageinfo.get('thumburl'),
-                    'license': our_license,
-                    'license_url': extmeta.get('LicenseUrl', {}).get('value', ''),
-                    'attribution_required': our_license not in ['CC0', 'Public Domain'],
-                    'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
-                })
-    except:
-        pass
+            if not is_valid:
+                continue
+            
+            artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
+            
+            all_results.append({
+                'id': f"wikimedia_{page.get('pageid')}",
+                'source': 'wikimedia_commons',
+                'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
+                'download_url': imageinfo.get('url'),
+                'thumbnail': imageinfo.get('thumburl') or imageinfo.get('url'),
+                'title': page.get('title', '').replace('File:', ''),
+                'content_type': 'video' if is_video else 'image',
+                'license': our_license,
+                'license_url': extmeta.get('LicenseUrl', {}).get('value', ''),
+                'attribution_required': our_license not in ['CC0', 'Public Domain'],
+                'attribution_text': f"{artist} / Wikimedia Commons / {our_license}"
+            })
+        
+        sources_searched.append('wikimedia_commons')
+    except Exception as e:
+        print(f"Wikimedia search error: {e}")
     
-    return jsonify({'success': True, 'videos': all_videos, 'sources': ['pexels', 'wikimedia_commons']})
+    # PRIORITY 2: Search Unsplash (artistic photos, less stocky)
+    if media_type in ['image', 'all']:
+        unsplash_key = os.environ.get('UNSPLASH_ACCESS_KEY')
+        if unsplash_key:
+            try:
+                response = requests.get(
+                    'https://api.unsplash.com/search/photos',
+                    headers={'Authorization': f'Client-ID {unsplash_key}'},
+                    params={'query': query, 'per_page': limit // 2, 'orientation': 'portrait'},
+                    timeout=10
+                )
+                for photo in response.json().get('results', []):
+                    all_results.append({
+                        'id': f"unsplash_{photo['id']}",
+                        'source': 'unsplash',
+                        'source_page': photo.get('links', {}).get('html', ''),
+                        'download_url': photo.get('urls', {}).get('regular'),
+                        'thumbnail': photo.get('urls', {}).get('small'),
+                        'title': photo.get('alt_description') or 'Untitled',
+                        'content_type': 'image',
+                        'license': 'Unsplash License',
+                        'license_url': 'https://unsplash.com/license',
+                        'attribution_required': False,
+                        'attribution_text': f"Photo by {photo.get('user', {}).get('name', 'Unknown')} on Unsplash"
+                    })
+                sources_searched.append('unsplash')
+            except Exception as e:
+                print(f"Unsplash search error: {e}")
+    
+    # FALLBACK 3: Search Pexels only if we have fewer than 6 results
+    if len(all_results) < 6:
+        pexels_key = os.environ.get('PEXELS_API_KEY')
+        if pexels_key:
+            try:
+                # Try videos from Pexels
+                if media_type in ['video', 'all']:
+                    response = requests.get(
+                        'https://api.pexels.com/videos/search',
+                        headers={'Authorization': pexels_key},
+                        params={'query': query, 'per_page': 4, 'orientation': 'portrait'},
+                        timeout=10
+                    )
+                    for video in response.json().get('videos', []):
+                        video_files = video.get('video_files', [])
+                        best_file = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
+                        if best_file:
+                            all_results.append({
+                                'id': f"pexels_{video['id']}",
+                                'source': 'pexels',
+                                'source_page': video.get('url'),
+                                'download_url': best_file.get('link'),
+                                'thumbnail': video.get('image'),
+                                'title': 'Pexels Video',
+                                'content_type': 'video',
+                                'duration': video.get('duration'),
+                                'license': 'Pexels License',
+                                'license_url': 'https://www.pexels.com/license/',
+                                'attribution_required': False,
+                                'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
+                            })
+                
+                sources_searched.append('pexels')
+            except Exception as e:
+                print(f"Pexels search error: {e}")
+    
+    # FALLBACK 4: Query expansion if still too few results
+    if len(all_results) < 4 and ' ' in query:
+        # Try simpler query (remove adjectives, use core noun)
+        words = query.split()
+        simple_query = words[-1] if len(words) > 1 else query  # Use last word (usually the noun)
+        
+        try:
+            wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0'}
+            response = requests.get('https://commons.wikimedia.org/w/api.php', params={
+                'action': 'query', 'format': 'json', 'generator': 'search',
+                'gsrnamespace': 6, 'gsrsearch': simple_query, 'gsrlimit': 5,
+                'prop': 'imageinfo', 'iiprop': 'url|extmetadata|mime', 'iiurlwidth': 640
+            }, headers=wiki_headers, timeout=10)
+            
+            pages = response.json().get('query', {}).get('pages', {})
+            for page_id, page in pages.items():
+                if page_id == '-1':
+                    continue
+                imageinfo = page.get('imageinfo', [{}])[0]
+                extmeta = imageinfo.get('extmetadata', {})
+                license_short = extmeta.get('LicenseShortName', {}).get('value', '')
+                is_valid, our_license, _ = validate_license(license_short)
+                if is_valid:
+                    all_results.append({
+                        'id': f"wikimedia_{page.get('pageid')}",
+                        'source': 'wikimedia_commons',
+                        'source_page': f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}",
+                        'download_url': imageinfo.get('url'),
+                        'thumbnail': imageinfo.get('thumburl') or imageinfo.get('url'),
+                        'title': page.get('title', '').replace('File:', ''),
+                        'content_type': 'video' if imageinfo.get('mime', '').startswith('video/') else 'image',
+                        'license': our_license,
+                        'attribution_required': our_license not in ['CC0', 'Public Domain'],
+                        'attribution_text': f"Wikimedia Commons / {our_license}"
+                    })
+        except:
+            pass
+    
+    return jsonify({
+        'success': True, 
+        'assets': all_results, 
+        'videos': all_results,  # Backward compatibility
+        'count': len(all_results),
+        'sources': sources_searched
+    })
 
 
 @app.route('/search-pexels-videos', methods=['POST'])
