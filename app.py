@@ -2987,8 +2987,10 @@ def render_video():
     scenes = data.get('scenes', [])
     audio_path = data.get('audio_path', '')
     video_format = data.get('format', '9:16')
-    captions = data.get('captions', False)
-    caption_settings = data.get('caption_settings', {})
+    captions_data = data.get('captions', {})
+    captions_enabled = captions_data.get('enabled', False) if isinstance(captions_data, dict) else bool(captions_data)
+    caption_settings = captions_data if isinstance(captions_data, dict) else {}
+    script_text = data.get('script', '')  # Script text for subtitles
     preview_mode = data.get('preview', False)  # Quick preview at lower resolution
     
     if not scenes:
@@ -3027,13 +3029,13 @@ def render_video():
                     with open(raw_path, 'wb') as f:
                         f.write(response.read())
                 
-                # Trim clip to specified duration (re-encode for accurate cuts)
+                # Trim clip to specified duration (re-encode for accurate cuts, mute background audio)
                 trim_cmd = [
                     'ffmpeg', '-y',
                     '-i', os.path.abspath(raw_path),
                     '-t', str(duration),
                     '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
-                    '-c:a', 'aac', '-b:a', '128k',
+                    '-an',  # Mute background audio from stock clips
                     '-movflags', '+faststart',
                     os.path.abspath(clip_path)
                 ]
@@ -3107,13 +3109,95 @@ def render_video():
         # Add audio if available
         if audio_path and os.path.exists(audio_path):
             ffmpeg_cmd.extend(['-i', audio_path])
-            audio_filter = '-map 0:v -map 1:a -shortest'
-        else:
-            audio_filter = ''
         
-        # Scale and crop to fit format
+        # Build video filter chain
+        video_filters = [f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}']
+        
+        # Add captions/subtitles if enabled
+        if captions_enabled and script_text:
+            # Extract dialogue lines from script for subtitle display
+            import re
+            dialogue_lines = []
+            for line in script_text.split('\n'):
+                line = line.strip()
+                # Skip scene headers, visual cues, CUT: directions
+                if not line or line.startswith('SCENE') or line.startswith('INT.') or line.startswith('EXT.'):
+                    continue
+                if line.startswith('VISUAL:') or line.startswith('CUT:') or line.startswith('_'):
+                    continue
+                if line.startswith('=') or line.startswith('-'):
+                    continue
+                # Extract character dialogue (CHARACTER: text or just text)
+                dialogue_match = re.match(r'^([A-Z][A-Z0-9\s\(\)]+):\s*(.+)$', line)
+                if dialogue_match:
+                    dialogue_lines.append(dialogue_match.group(2).strip())
+                elif len(line) > 10 and not line.isupper():
+                    dialogue_lines.append(line)
+            
+            if dialogue_lines:
+                # Get caption settings
+                font_map = {
+                    'inter': 'Inter',
+                    'roboto': 'Roboto', 
+                    'poppins': 'Poppins',
+                    'montserrat': 'Montserrat',
+                    'opensans': 'Open Sans',
+                    'lato': 'Lato'
+                }
+                caption_font = font_map.get(caption_settings.get('font', 'inter'), 'Inter')
+                caption_color = caption_settings.get('textColor', caption_settings.get('color', '#FFFFFF')).lstrip('#')
+                caption_position = caption_settings.get('position', 'center')
+                caption_uppercase = caption_settings.get('uppercase', False)
+                caption_outline = caption_settings.get('outline', True)
+                caption_shadow = caption_settings.get('shadow', True)
+                
+                # Calculate Y position
+                if caption_position == 'top':
+                    y_pos = 'h*0.1'
+                elif caption_position == 'bottom':
+                    y_pos = 'h*0.85'
+                else:  # center
+                    y_pos = '(h-text_h)/2'
+                
+                # Font size based on resolution
+                fontsize = 48 if not preview_mode else 24
+                
+                # Calculate timing: distribute dialogue across video duration
+                total_duration = sum(s.get('duration_seconds', s.get('duration', 4)) for s in scenes)
+                time_per_line = total_duration / max(len(dialogue_lines), 1)
+                
+                # Build drawtext filters for each subtitle segment
+                for i, text in enumerate(dialogue_lines[:20]):  # Limit to 20 lines
+                    start_time = i * time_per_line
+                    end_time = (i + 1) * time_per_line
+                    
+                    # Clean text for FFmpeg (escape special chars)
+                    clean_text = text.replace("'", "\\'").replace(":", "\\:").replace("\\", "\\\\")
+                    clean_text = clean_text.replace("%", "\\%")
+                    if caption_uppercase:
+                        clean_text = clean_text.upper()
+                    
+                    # Build drawtext filter with timing
+                    border_params = ""
+                    if caption_outline:
+                        border_params = ":borderw=3:bordercolor=black"
+                    if caption_shadow:
+                        border_params += ":shadowcolor=black@0.6:shadowx=2:shadowy=2"
+                    
+                    drawtext = (
+                        f"drawtext=text='{clean_text}'"
+                        f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                        f":fontsize={fontsize}"
+                        f":fontcolor=#{caption_color}"
+                        f":x=(w-text_w)/2:y={y_pos}"
+                        f"{border_params}"
+                        f":enable='between(t,{start_time:.2f},{end_time:.2f})'"
+                    )
+                    video_filters.append(drawtext)
+        
+        # Apply video filters
         ffmpeg_cmd.extend([
-            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
+            '-vf', ','.join(video_filters),
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
         ])
         

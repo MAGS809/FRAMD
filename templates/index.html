@@ -4125,8 +4125,9 @@
                         scenes: scenes,
                         audio_path: audioPath,
                         format: selectedFormats[0] || '9:16',
-                        captions: captionSettings?.enabled || false,
+                        captions: captionSettings || {},
                         caption_settings: captionSettings || {},
+                        script: typeof currentScript !== 'undefined' ? currentScript : '',
                         preview: previewMode
                     })
                 });
