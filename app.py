@@ -2623,7 +2623,8 @@ def generate_voiceover():
         response = client.audio.speech.create(
             model="tts-1-hd",
             voice=base_voice,
-            input=text
+            input=text,
+            speed=1.15  # Slightly faster for snappy reel-style pacing
         )
         
         filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
@@ -2668,7 +2669,8 @@ def preview_voice():
         response = client.audio.speech.create(
             model="tts-1",
             voice=base_voice,
-            input=text
+            input=text,
+            speed=1.15  # Slightly faster for snappy reel-style pacing
         )
         
         filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
@@ -2840,7 +2842,8 @@ def generate_voiceover_multi():
             response = client.audio.speech.create(
                 model="tts-1-hd",
                 voice=base_voice,
-                input=text
+                input=text,
+                speed=1.15  # Slightly faster for snappy reel-style pacing
             )
             
             # Get audio bytes
@@ -3113,87 +3116,112 @@ def render_video():
         # Build video filter chain
         video_filters = [f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}']
         
-        # Add captions/subtitles if enabled
-        if captions_enabled and script_text:
-            # Extract dialogue lines from script for subtitle display
-            import re
-            dialogue_lines = []
-            for line in script_text.split('\n'):
-                line = line.strip()
-                # Skip scene headers, visual cues, CUT: directions
-                if not line or line.startswith('SCENE') or line.startswith('INT.') or line.startswith('EXT.'):
-                    continue
-                if line.startswith('VISUAL:') or line.startswith('CUT:') or line.startswith('_'):
-                    continue
-                if line.startswith('=') or line.startswith('-'):
-                    continue
-                # Extract character dialogue (CHARACTER: text or just text)
-                dialogue_match = re.match(r'^([A-Z][A-Z0-9\s\(\)]+):\s*(.+)$', line)
-                if dialogue_match:
-                    dialogue_lines.append(dialogue_match.group(2).strip())
-                elif len(line) > 10 and not line.isupper():
-                    dialogue_lines.append(line)
-            
-            if dialogue_lines:
-                # Get caption settings
-                font_map = {
-                    'inter': 'Inter',
-                    'roboto': 'Roboto', 
-                    'poppins': 'Poppins',
-                    'montserrat': 'Montserrat',
-                    'opensans': 'Open Sans',
-                    'lato': 'Lato'
-                }
-                caption_font = font_map.get(caption_settings.get('font', 'inter'), 'Inter')
-                caption_color = caption_settings.get('textColor', caption_settings.get('color', '#FFFFFF')).lstrip('#')
-                caption_position = caption_settings.get('position', 'center')
-                caption_uppercase = caption_settings.get('uppercase', False)
-                caption_outline = caption_settings.get('outline', True)
-                caption_shadow = caption_settings.get('shadow', True)
+        # Add word-synced captions if enabled and audio exists
+        if captions_enabled and audio_path and os.path.exists(audio_path):
+            try:
+                # Use Whisper to transcribe voiceover with word-level timestamps
+                from openai import OpenAI
+                whisper_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
                 
-                # Calculate Y position
-                if caption_position == 'top':
-                    y_pos = 'h*0.1'
-                elif caption_position == 'bottom':
-                    y_pos = 'h*0.85'
-                else:  # center
-                    y_pos = '(h-text_h)/2'
-                
-                # Font size based on resolution
-                fontsize = 48 if not preview_mode else 24
-                
-                # Calculate timing: distribute dialogue across video duration
-                total_duration = sum(s.get('duration_seconds', s.get('duration', 4)) for s in scenes)
-                time_per_line = total_duration / max(len(dialogue_lines), 1)
-                
-                # Build drawtext filters for each subtitle segment
-                for i, text in enumerate(dialogue_lines[:20]):  # Limit to 20 lines
-                    start_time = i * time_per_line
-                    end_time = (i + 1) * time_per_line
-                    
-                    # Clean text for FFmpeg (escape special chars)
-                    clean_text = text.replace("'", "\\'").replace(":", "\\:").replace("\\", "\\\\")
-                    clean_text = clean_text.replace("%", "\\%")
-                    if caption_uppercase:
-                        clean_text = clean_text.upper()
-                    
-                    # Build drawtext filter with timing
-                    border_params = ""
-                    if caption_outline:
-                        border_params = ":borderw=3:bordercolor=black"
-                    if caption_shadow:
-                        border_params += ":shadowcolor=black@0.6:shadowx=2:shadowy=2"
-                    
-                    drawtext = (
-                        f"drawtext=text='{clean_text}'"
-                        f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-                        f":fontsize={fontsize}"
-                        f":fontcolor=#{caption_color}"
-                        f":x=(w-text_w)/2:y={y_pos}"
-                        f"{border_params}"
-                        f":enable='between(t,{start_time:.2f},{end_time:.2f})'"
+                with open(audio_path, 'rb') as audio_file:
+                    transcription = whisper_client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="verbose_json",
+                        timestamp_granularities=["word"]
                     )
-                    video_filters.append(drawtext)
+                
+                # Get word-level timestamps
+                words = getattr(transcription, 'words', [])
+                
+                if words:
+                    # Get caption settings
+                    caption_color = caption_settings.get('textColor', caption_settings.get('color', '#FFFFFF')).lstrip('#')
+                    caption_position = caption_settings.get('position', 'bottom')
+                    caption_uppercase = caption_settings.get('uppercase', False)
+                    caption_outline = caption_settings.get('outline', True)
+                    caption_shadow = caption_settings.get('shadow', True)
+                    
+                    # Calculate Y position
+                    if caption_position == 'top':
+                        y_pos = 'h*0.12'
+                    elif caption_position == 'bottom':
+                        y_pos = 'h*0.82'
+                    else:  # center
+                        y_pos = '(h-text_h)/2'
+                    
+                    # Font size based on resolution
+                    fontsize = 56 if not preview_mode else 28
+                    
+                    # Group words into phrases (3-5 words per caption for readability)
+                    phrases = []
+                    current_phrase = []
+                    current_start = None
+                    
+                    for word_data in words:
+                        word = word_data.get('word', word_data.word if hasattr(word_data, 'word') else '')
+                        start = word_data.get('start', word_data.start if hasattr(word_data, 'start') else 0)
+                        end = word_data.get('end', word_data.end if hasattr(word_data, 'end') else 0)
+                        
+                        if current_start is None:
+                            current_start = start
+                        
+                        current_phrase.append(word)
+                        
+                        # Break into phrases of 3-4 words for snappy captions
+                        if len(current_phrase) >= 4 or (len(current_phrase) >= 2 and word.endswith(('.', '!', '?', ','))):
+                            phrases.append({
+                                'text': ' '.join(current_phrase),
+                                'start': current_start,
+                                'end': end
+                            })
+                            current_phrase = []
+                            current_start = None
+                    
+                    # Add remaining words
+                    if current_phrase:
+                        phrases.append({
+                            'text': ' '.join(current_phrase),
+                            'start': current_start,
+                            'end': words[-1].get('end', words[-1].end if hasattr(words[-1], 'end') else 0)
+                        })
+                    
+                    # Build drawtext filters with precise timing
+                    for phrase in phrases:
+                        text = phrase['text']
+                        start_time = phrase['start']
+                        end_time = phrase['end']
+                        
+                        # Clean text for FFmpeg (escape special chars)
+                        clean_text = text.replace("\\", "\\\\\\\\").replace("'", "'\\\\\\''").replace(":", "\\\\:")
+                        clean_text = clean_text.replace("%", "\\\\%")
+                        if caption_uppercase:
+                            clean_text = clean_text.upper()
+                        
+                        # Build drawtext filter with timing
+                        border_params = ""
+                        if caption_outline:
+                            border_params = ":borderw=4:bordercolor=black"
+                        if caption_shadow:
+                            border_params += ":shadowcolor=black@0.7:shadowx=3:shadowy=3"
+                        
+                        drawtext = (
+                            f"drawtext=text='{clean_text}'"
+                            f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+                            f":fontsize={fontsize}"
+                            f":fontcolor=#{caption_color}"
+                            f":x=(w-text_w)/2:y={y_pos}"
+                            f"{border_params}"
+                            f":enable='between(t,{start_time:.3f},{end_time:.3f})'"
+                        )
+                        video_filters.append(drawtext)
+                    
+                    print(f"Added {len(phrases)} word-synced caption phrases")
+                else:
+                    print("No word timestamps returned from Whisper")
+                    
+            except Exception as e:
+                print(f"Whisper transcription failed, skipping captions: {e}")
         
         # Apply video filters
         ffmpeg_cmd.extend([
