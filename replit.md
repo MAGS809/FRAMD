@@ -54,7 +54,7 @@ Calligra is a thinking engine, not a content factory. Its purpose is to turn ide
 ### Tech Stack
 - **Python 3.11** with Flask
 - **Krakd AI** (powered by xAI grok-3) for text generation - chat, script generation, idea analysis, visual curation
-- **OpenAI** for audio only - transcription (gpt-4o-mini-transcribe) and voiceover (gpt-4o-audio-preview)
+- **OpenAI** for audio only - transcription (gpt-4o-mini-transcribe) and voiceover (tts-1-hd)
 - **FFmpeg** for video/audio processing
 - **MoviePy** for additional video manipulation
 
@@ -172,8 +172,17 @@ The AI is configured to be:
 
 ## Caption System
 - **Toggle**: Enable/disable captions for final video
-- **Styles**: Bold Center (TikTok style), Typewriter (reveal effect), Highlight (key words pop), Minimal (clean subtitles)
-- **Rendering**: FFmpeg drawtext filter with text sanitization
+- **Word-Synced**: Captions display 3-4 words at a time, timed to match voiceover duration
+- **Fonts**: Inter, Roboto, Poppins, Montserrat, Open Sans, Lato
+- **Colors**: White, Yellow, Cyan, Lime, Magenta, Orange
+- **Positions**: Top, Center, Bottom
+- **Effects**: Outline, Shadow, Background box, Uppercase
+- **Rendering**: Multiple FFmpeg drawtext filters with enable='between(t,start,end)' for word timing
+
+## Timeline Navigation
+- **Sticky Navigation**: Fixed menu at top of Timeline panel for quick section jumping
+- **Steps**: 1. Content Type → 2. Output Formats → 3. Voiceover → 4. Visuals → 5. Captions
+- **Scroll Behavior**: Smooth scroll to selected section with active state highlighting
 
 ## Script Formatting
 - AI formats final scripts with `CHARACTER_NAME: dialogue` for voice acting
