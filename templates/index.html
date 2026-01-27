@@ -92,48 +92,60 @@
             font-weight: 300;
         }
         
-        /* Step indicator - Apple-style segmented control */
+        /* Step indicator - Sleek integrated tabs */
         .steps {
             display: flex;
             justify-content: center;
             gap: 0;
             margin-bottom: 2.5rem;
-            background: var(--bg-glass);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 12px;
-            padding: 4px;
-            border: 1px solid var(--border-light);
+            background: linear-gradient(135deg, #0d2818 0%, #1a4d2e 50%, #0d2818 100%);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 16px;
+            padding: 6px;
+            border: 1px solid rgba(45, 106, 79, 0.4);
             max-width: fit-content;
             margin-left: auto;
             margin-right: auto;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         
         .step-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.625rem 1.25rem;
-            border-radius: 8px;
+            padding: 0.75rem 1.75rem;
+            border-radius: 10px;
             background: transparent;
             border: none;
-            color: var(--text-muted);
-            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
             font-weight: 500;
-            letter-spacing: 0.01em;
+            letter-spacing: 0.02em;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            position: relative;
+        }
+        
+        .step-indicator:hover:not(.active) {
+            color: rgba(255, 255, 255, 0.8);
+            background: rgba(45, 106, 79, 0.3);
         }
         
         .step-indicator.active {
-            background: var(--accent);
-            color: #0a1f14;
+            background: linear-gradient(135deg, #2d6a4f, #3d8b5f);
+            color: #ffd60a;
             font-weight: 600;
-            box-shadow: 0 2px 8px rgba(255, 214, 10, 0.3);
+            box-shadow: 0 4px 16px rgba(26, 77, 46, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(61, 139, 95, 0.5);
         }
         
         .step-indicator.completed {
-            color: var(--text-primary);
+            color: rgba(255, 214, 10, 0.7);
+        }
+        
+        .step-indicator.completed:hover:not(.active) {
+            color: #ffd60a;
         }
         
         /* Panels - Glassmorphism */
