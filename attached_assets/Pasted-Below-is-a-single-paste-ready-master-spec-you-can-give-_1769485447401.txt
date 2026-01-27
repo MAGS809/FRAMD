@@ -1,0 +1,344 @@
+Below is a single paste-ready master spec you can give to Replit. It includes everything that will help your mission: script-first editorial intelligence, legal asset scraping with proof, clean scene-based UI, post-ready outputs, and guardrails so the AI doesn’t drift.
+
+⸻
+
+REPLIT MASTER SPEC — “Post Assembly” (Script → Visuals → Edit → Post)
+
+0) Mission (what this app is actually for)
+
+Build an app that turns user-provided content (podcast, transcript, article, or link) into postable short-form content where:
+
+Script decides everything → then visuals are chosen to match the script → then the video is assembled.
+
+This is not a random clipper. It is an editorial system.
+
+Core outcome:
+	•	post-ready 9:16 video(s)
+	•	subtitles burned in
+	•	caption + hashtags
+	•	attribution/credits when required
+	•	multiple outputs per input (different angles, no overlap)
+
+⸻
+
+1) Non-negotiable Core Rule
+
+Script → Visual Intent → Asset Selection (licensed) → Edit → Export → Post
+
+❌ No “cut first, think later”
+❌ No random stock visuals
+✅ Every visual must have a “why” tied to the script
+
+⸻
+
+2) Product Inputs
+
+User can provide any of:
+	1.	Upload: podcast audio/video file
+	2.	Paste transcript text
+	3.	Paste an article URL / PDF URL
+	4.	Paste a video URL (optional, user-supplied source content)
+
+User also sets:
+	•	tone (default: “intelligent, calm, sly when earned”)
+	•	length (15/30/60 seconds)
+	•	mode: Educational or Skit/Podcast/Short film
+	•	optional: required points / “must say”
+
+⸻
+
+3) Two Modes (mandatory fork)
+
+Mode A — Educational
+	•	No characters required
+	•	Visuals are supporting context (B-roll style)
+	•	Output is a clean explainer video
+
+Mode B — Skit / Podcast / Short Film
+	•	Scene-based structure
+	•	Optional character models per character (or None)
+	•	User chooses a setting per scene tied to the script
+
+⸻
+
+4) The AI System (tiered, so it’s actually good)
+
+A) “Editor Model” (high quality)
+
+Responsibilities:
+	•	understand intent
+	•	write the script
+	•	enforce wording precision
+	•	output scene plan + visual intent + tags
+
+B) “Worker Model” (cheaper)
+
+Responsibilities:
+	•	metadata cleanup
+	•	tagging
+	•	caption variants
+	•	platform hashtags
+
+Hard rule:
+Editor produces structured plan → Workers never change meaning.
+
+⸻
+
+5) Script Requirements (strict)
+	•	Script length target: 60 words
+	•	Allowed range: 50–70 words
+	•	Max: 100 tokens
+	•	Hook in first 2 seconds
+	•	Flowing spoken language (no bullets)
+	•	Calm landing, no forced CTA
+
+Tone rules:
+	•	intelligent
+	•	calm
+	•	confident
+	•	lightly sly if “character mode” is enabled
+	•	never juvenile, no sex/butt/fart humor, no profanity by default
+
+If content becomes graphic:
+
+“The story gets graphic here — we’re skipping that part.”
+
+⸻
+
+6) Visual Intent Requirements (this fixes the “Pexels mismatch” problem)
+
+The AI must output visual intent per scene, not random images.
+
+For each scene the AI outputs:
+	•	scene_purpose (why it exists)
+	•	visual_intent (what viewer should feel)
+	•	asset_type (image or video)
+	•	search_tags (generic, non-branded)
+	•	duration_sec
+
+⸻
+
+7) Scene-Based UI (clean, postable-first)
+
+For Mode B (Skit/Podcast/Short Film), after script generation:
+
+For each scene show:
+
+Title: “Pick the setting for this scene”
+Under it: “Why this scene matters” (1–2 lines)
+
+Then show 3–6 setting options:
+	•	full-screen previews
+	•	yellow border around each selectable option
+	•	user chooses one quickly
+
+The user can answer with one word and the app still produces a coherent full output (sensible defaults).
+
+Theme requirements:
+	•	green background
+	•	yellow text
+	•	yellow input text (including what user types)
+	•	minimal layout, no clutter
+
+⸻
+
+8) Legal Scraper (Option 2) — MUST store proof
+
+We do not scrape random internet media.
+
+Hard legality rule
+
+Download media ONLY if we can store:
+	1.	source page URL
+	2.	license name (exact)
+	3.	license URL / explicit reuse statement
+	4.	commercial use allowed (boolean)
+	5.	attribution required + attribution text if required
+If any are missing → reject (don’t download).
+
+License whitelist
+
+ACCEPT:
+	•	Public Domain / CC0
+	•	CC BY (3.0 / 4.0)
+	•	CC BY-SA (3.0 / 4.0)
+
+REJECT:
+	•	NC
+	•	ND
+	•	Editorial use only
+	•	All Rights Reserved
+	•	Fair use
+	•	Unknown/unclear
+
+Asset DB record structure (required)
+
+Use this structure (or equivalent DB fields):
+
+{
+  "id": "commons_File:Example.webm",
+  "source_page": "...",
+  "download_url": "...",
+  "source": "wikimedia_commons",
+  "license": "CC BY 4.0",
+  "license_url": "...",
+  "commercial_use_allowed": true,
+  "derivatives_allowed": true,
+  "attribution_required": true,
+  "attribution_text": "...",
+  "content_type": "video",
+  "duration_sec": 6.2,
+  "resolution": "1080x1920",
+  "description": "...",
+  "tags": ["person_walking","city_night","quiet"],
+  "safe_flags": { "no_sexual": true, "no_cleavage": true, "no_bikini": true, "no_brands": true, "no_celeb": true },
+  "status": "safe"
+}
+
+
+⸻
+
+9) Wikimedia Commons Scraper Fix (why we only get a few)
+
+Implement the correct 2-step API:
+	1.	Search files only:
+
+	•	namespace = 6 (File)
+	•	generator=search
+
+	2.	Fetch metadata:
+
+	•	prop=imageinfo
+	•	iiprop=url|extmetadata|mime|size
+
+Parse from extmetadata:
+	•	LicenseShortName
+	•	LicenseUrl
+	•	Artist / Attribution
+
+Do not exclude videos:
+Allow MIME:
+	•	image/*
+	•	video/webm
+	•	video/ogg
+	•	video/mp4 (rare)
+
+⸻
+
+10) Fallback Ladder (when Commons is thin)
+
+If results < N (e.g., 10):
+	1.	query expansion (synonyms, remove adjectives)
+	2.	try secondary explicit-license sources (only if per-item license proof exists)
+	3.	auto-generate “Source Card” visual
+	4.	abstract internal visuals (gradients, icons, text scenes)
+	5.	ask user to upload a licensed reference
+
+Never “panic” into risky scraping.
+
+⸻
+
+11) “Source Document Visual” Feature (for articles/PDFs)
+
+When user provides a primary document/article, show a visual safely:
+
+Tier 1: if PDF → render page 1 image
+Tier 2: generate “document snapshot” image from extracted metadata:
+	•	title, source, date, URL
+	•	2–4 short excerpts (≤25 words each)
+Tier 3: title card fallback
+
+Never scrape random images from the web for articles.
+
+⸻
+
+12) Video Builder Requirements
+
+Output: 9:16 MP4
+	•	burned subtitles always on
+	•	visuals change per scene/segment
+	•	clean transitions
+	•	minimal effects
+	•	audio: podcast clip or voiceover
+
+Also output:
+	•	caption (1–2 lines)
+	•	hashtags
+	•	credits line (when attribution required)
+
+⸻
+
+13) Posting & Anti-Bot Pacing
+
+If auto-posting is included:
+	•	schedule posting with human-like spacing
+	•	randomize within bounded ranges (e.g., 40–120 minutes)
+	•	max posts per day per platform (configurable)
+	•	retry logic and failure logging
+
+(If posting is later: export pack with everything ready.)
+
+⸻
+
+14) Safety / Content Restrictions (global)
+
+Reject or avoid:
+	•	sexualized visuals (no cleavage, bikinis)
+	•	explicit violence/gore
+	•	brands/logos
+	•	recognizable celebrities
+	•	porn/NSFW
+	•	anything with unclear licensing
+
+If the story is graphic:
+
+“We’re skipping that part.”
+
+⸻
+
+15) Required API Endpoints
+	•	POST /generate (main pipeline; returns job id)
+	•	GET /job/:id (status + artifacts)
+	•	POST /ingest (scraper ingest by query/source)
+	•	GET /assets (filter by tags/type/status=safe)
+	•	POST /source/preview (document visual)
+	•	GET /health
+
+⸻
+
+16) Logging & Debugging (must have)
+
+For every job, store:
+	•	model used
+	•	prompt hashes (for caching)
+	•	word count / token count
+	•	script + scene plan JSON
+	•	which assets were selected and why (tags match)
+	•	attribution proof links
+
+⸻
+
+17) Business / Usage (token-based)
+
+Implement credit system:
+	•	Each generate job costs credits based on:
+	•	transcript length
+	•	number of outputs
+	•	whether live search is used
+
+Include rate limits per user to avoid abuse.
+
+⸻
+
+18) IMPORTANT Security Note (do this)
+
+Never ask users to paste API keys into chat.
+Keys must be stored as server secrets / env vars.
+
+(If any key was exposed previously, instruct user to rotate it.)
+
+⸻
+
+Done: What success looks like
+
+User pastes transcript or link → chooses Educational or Skit → chooses setting per scene (yellow border UI) → the app outputs a coherent postable video where every visual matches the script, and every scraped asset has license proof stored.
