@@ -6,7 +6,7 @@
     <title>Krakd</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Montserrat:wght@400;600;800;900&family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Montserrat:wght@400;600;800;900&family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Cinzel:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
         
         :root {
             --bg-primary: #0a1f14;
@@ -92,56 +92,75 @@
             font-weight: 300;
         }
         
-        /* Step indicator - Sleek integrated tabs */
+        /* Step indicator - Cinema-style tabs */
         .steps {
             display: flex;
             justify-content: center;
             gap: 0;
             margin-bottom: 2.5rem;
-            background: linear-gradient(135deg, #0d2818 0%, #1a4d2e 50%, #0d2818 100%);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border-radius: 16px;
-            padding: 6px;
-            border: 1px solid rgba(45, 106, 79, 0.4);
-            max-width: fit-content;
+            background: rgba(10, 31, 20, 0.8);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 0;
+            padding: 0;
+            border-top: 1px solid rgba(255, 214, 10, 0.15);
+            border-bottom: 1px solid rgba(255, 214, 10, 0.15);
+            max-width: 100%;
             margin-left: auto;
             margin-right: auto;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         }
         
         .step-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.75rem 1.75rem;
-            border-radius: 10px;
+            padding: 1rem 2.5rem;
+            border-radius: 0;
             background: transparent;
             border: none;
-            color: rgba(255, 255, 255, 0.5);
-            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.4);
+            font-family: 'Cinzel', serif;
+            font-size: 0.75rem;
             font-weight: 500;
-            letter-spacing: 0.02em;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
             position: relative;
         }
         
+        .step-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ffd60a, transparent);
+            transition: transform 0.3s ease;
+        }
+        
         .step-indicator:hover:not(.active) {
-            color: rgba(255, 255, 255, 0.8);
-            background: rgba(45, 106, 79, 0.3);
+            color: rgba(255, 214, 10, 0.7);
+        }
+        
+        .step-indicator:hover:not(.active)::after {
+            transform: translateX(-50%) scaleX(0.5);
         }
         
         .step-indicator.active {
-            background: linear-gradient(135deg, #2d6a4f, #3d8b5f);
+            background: transparent;
             color: #ffd60a;
             font-weight: 600;
-            box-shadow: 0 4px 16px rgba(26, 77, 46, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(61, 139, 95, 0.5);
+        }
+        
+        .step-indicator.active::after {
+            transform: translateX(-50%) scaleX(1);
         }
         
         .step-indicator.completed {
-            color: rgba(255, 214, 10, 0.7);
+            color: rgba(255, 214, 10, 0.6);
         }
         
         .step-indicator.completed:hover:not(.active) {
@@ -2719,8 +2738,12 @@
     <div class="container">
         <header>
             <div class="logo">
-                <h1 style="font-size: 2.75rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.25rem;">Krakd</h1>
-                <p style="font-size: 0.9rem; font-weight: 300; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted);">Post Assembler</p>
+                <h1 style="font-family: 'Cinzel', serif; font-size: 3.2rem; font-weight: 600; letter-spacing: 0.12em; margin-bottom: 0.5rem; text-transform: uppercase; background: linear-gradient(180deg, #ffd60a 0%, #d4a808 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 30px rgba(255, 214, 10, 0.3);">KRAKD</h1>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
+                    <div style="height: 1px; width: 60px; background: linear-gradient(90deg, transparent, rgba(255, 214, 10, 0.4), transparent);"></div>
+                    <p style="font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 400; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-secondary);">Post Assembler</p>
+                    <div style="height: 1px; width: 60px; background: linear-gradient(90deg, transparent, rgba(255, 214, 10, 0.4), transparent);"></div>
+                </div>
             </div>
         </header>
         
@@ -3004,12 +3027,21 @@
                             <div style="margin-bottom: 1rem;">
                                 <label style="display: block; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">Font</label>
                                 <select id="caption-font" onchange="updateCaptionPreview()" style="width: 100%; padding: 0.5rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;">
-                                    <option value="inter" selected>Inter</option>
-                                    <option value="bebas">Bebas Neue</option>
-                                    <option value="montserrat">Montserrat</option>
-                                    <option value="oswald">Oswald</option>
-                                    <option value="poppins">Poppins</option>
-                                    <option value="roboto">Roboto</option>
+                                    <optgroup label="Classic Cinema">
+                                        <option value="cinzel">Cinzel (Art Deco)</option>
+                                        <option value="playfair">Playfair Display</option>
+                                        <option value="crimson">Crimson Pro</option>
+                                        <option value="garamond">EB Garamond</option>
+                                        <option value="cormorant">Cormorant Garamond</option>
+                                    </optgroup>
+                                    <optgroup label="Modern">
+                                        <option value="inter" selected>Inter</option>
+                                        <option value="bebas">Bebas Neue</option>
+                                        <option value="montserrat">Montserrat</option>
+                                        <option value="oswald">Oswald</option>
+                                        <option value="poppins">Poppins</option>
+                                        <option value="roboto">Roboto</option>
+                                    </optgroup>
                                 </select>
                             </div>
                             
@@ -3221,6 +3253,11 @@
         };
         
         const fontFamilyMap = {
+            'cinzel': "'Cinzel', serif",
+            'playfair': "'Playfair Display', serif",
+            'crimson': "'Crimson Pro', serif",
+            'garamond': "'EB Garamond', serif",
+            'cormorant': "'Cormorant Garamond', serif",
             'inter': "'Inter', sans-serif",
             'bebas': "'Bebas Neue', sans-serif",
             'montserrat': "'Montserrat', sans-serif",
@@ -4719,6 +4756,11 @@
         
         function getFontFamily(fontName) {
             const fonts = {
+                'cinzel': "'Cinzel', serif",
+                'playfair': "'Playfair Display', serif",
+                'crimson': "'Crimson Pro', serif",
+                'garamond': "'EB Garamond', serif",
+                'cormorant': "'Cormorant Garamond', serif",
                 'inter': "'Inter', sans-serif",
                 'bebas': "'Bebas Neue', sans-serif",
                 'montserrat': "'Montserrat', sans-serif",
