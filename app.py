@@ -2620,32 +2620,23 @@ def generate_voiceover():
     )
     
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-audio-preview-2024-12-17",
-            modalities=["text", "audio"],
-            audio={"voice": base_voice, "format": "mp3"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Read this script: {text}"},
-            ],
+        # Use the TTS API endpoint
+        response = client.audio.speech.create(
+            model="tts-1-hd",
+            voice=base_voice,
+            input=text
         )
         
-        audio_data = getattr(response.choices[0].message, "audio", None)
-        if audio_data and hasattr(audio_data, "data"):
-            audio_bytes = base64.b64decode(audio_data.data)
-            
-            filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
-            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-            with open(filepath, 'wb') as f:
-                f.write(audio_bytes)
-            
-            return jsonify({
-                'success': True,
-                'audio_url': f'/output/{filename}',
-                'duration_estimate': len(text.split()) / 2.5
-            })
-        else:
-            return jsonify({'error': 'No audio generated'}), 500
+        filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
+        filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        response.stream_to_file(filepath)
+        
+        return jsonify({
+            'success': True,
+            'audio_path': filepath,
+            'audio_url': f'/output/{filename}',
+            'duration_estimate': len(text.split()) / 2.5
+        })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -2675,31 +2666,21 @@ def preview_voice():
     )
     
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o-audio-preview-2024-12-17",
-            modalities=["text", "audio"],
-            audio={"voice": base_voice, "format": "mp3"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text},
-            ],
+        # Use the TTS API endpoint
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice=base_voice,
+            input=text
         )
         
-        audio_data = getattr(response.choices[0].message, "audio", None)
-        if audio_data and hasattr(audio_data, "data"):
-            audio_bytes = base64.b64decode(audio_data.data)
-            
-            filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
-            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-            with open(filepath, 'wb') as f:
-                f.write(audio_bytes)
-            
-            return jsonify({
-                'success': True,
-                'audio_url': f'/output/{filename}'
-            })
-        else:
-            return jsonify({'error': 'No audio generated'}), 500
+        filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
+        filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+        response.stream_to_file(filepath)
+        
+        return jsonify({
+            'success': True,
+            'audio_url': f'/output/{filename}'
+        })
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
