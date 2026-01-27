@@ -1855,42 +1855,76 @@ def generate_video():
             }
             y_pos = position_map.get(caption_position, 'h-150')
             
-            # Sanitize text for ffmpeg drawtext
+            # Get video duration for word timing
             import re
-            safe_text = script.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
-            safe_text = re.sub(r'[\n\r]', ' ', safe_text)[:200]
+            duration_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', final_video]
+            duration_result = subprocess.run(duration_cmd, capture_output=True, text=True, timeout=10)
+            try:
+                video_duration = float(duration_result.stdout.strip())
+            except:
+                video_duration = 30.0  # Default fallback
+            
+            # Clean and split script into words
+            clean_script = re.sub(r'[\n\r]+', ' ', script)
+            clean_script = re.sub(r'\s+', ' ', clean_script).strip()
             
             if caption_uppercase:
-                safe_text = safe_text.upper()
+                clean_script = clean_script.upper()
             
-            # Build the drawtext filter with all settings
-            filter_parts = [
-                f"drawtext=text='{safe_text}'",
-                f"fontsize={font_size}",
-                f"fontcolor=#{caption_color}",
-                f"font={font_name}",
-                f"x=(w-text_w)/2",
-                f"y={y_pos}"
-            ]
+            words = clean_script.split()
             
-            # Add outline (border) if enabled
-            if caption_outline:
-                filter_parts.append("borderw=3")
-                filter_parts.append("bordercolor=black")
+            # Group words into phrases (3-4 words each for readability)
+            words_per_group = 4
+            word_groups = []
+            for i in range(0, len(words), words_per_group):
+                group = ' '.join(words[i:i + words_per_group])
+                word_groups.append(group)
             
-            # Add shadow if enabled
-            if caption_shadow:
-                filter_parts.append("shadowcolor=black@0.7")
-                filter_parts.append("shadowx=2")
-                filter_parts.append("shadowy=2")
+            # Calculate timing for each word group
+            if len(word_groups) > 0:
+                time_per_group = video_duration / len(word_groups)
+            else:
+                time_per_group = video_duration
             
-            # Add background box if enabled
-            if caption_background:
-                filter_parts.append("box=1")
-                filter_parts.append("boxcolor=black@0.6")
-                filter_parts.append("boxborderw=10")
+            # Build filter chain with timed word groups
+            filter_chain = []
             
-            font_filter = ":".join(filter_parts)
+            for idx, group_text in enumerate(word_groups):
+                start_time = idx * time_per_group
+                end_time = (idx + 1) * time_per_group
+                
+                # Sanitize text for ffmpeg
+                safe_text = group_text.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
+                
+                # Build drawtext filter for this word group
+                parts = [
+                    f"drawtext=text='{safe_text}'",
+                    f"fontsize={font_size}",
+                    f"fontcolor=#{caption_color}",
+                    f"font={font_name}",
+                    f"x=(w-text_w)/2",
+                    f"y={y_pos}",
+                    f"enable='between(t,{start_time:.2f},{end_time:.2f})'"
+                ]
+                
+                if caption_outline:
+                    parts.append("borderw=3")
+                    parts.append("bordercolor=black")
+                
+                if caption_shadow:
+                    parts.append("shadowcolor=black@0.7")
+                    parts.append("shadowx=2")
+                    parts.append("shadowy=2")
+                
+                if caption_background:
+                    parts.append("box=1")
+                    parts.append("boxcolor=black@0.6")
+                    parts.append("boxborderw=10")
+                
+                filter_chain.append(":".join(parts))
+            
+            # Combine all drawtext filters
+            font_filter = ",".join(filter_chain) if filter_chain else f"drawtext=text='':fontsize={font_size}"
             
             # Check if video has audio stream
             probe_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=codec_type', '-of', 'csv=p=0', final_video]
@@ -2014,7 +2048,7 @@ def generate_voiceover():
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-audio-preview",
+            model="gpt-4o-audio-preview-2024-12-17",
             modalities=["text", "audio"],
             audio={"voice": base_voice, "format": "mp3"},
             messages=[
@@ -2069,7 +2103,7 @@ def preview_voice():
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o-audio-preview",
+            model="gpt-4o-audio-preview-2024-12-17",
             modalities=["text", "audio"],
             audio={"voice": base_voice, "format": "mp3"},
             messages=[
@@ -2233,7 +2267,7 @@ def generate_voiceover_multi():
                 system_prompt = f"You are a voice actor playing {char_name}. Speak this line naturally and in character. Just speak the line, no explanation."
             
             response = client.chat.completions.create(
-                model="gpt-4o-audio-preview",
+                model="gpt-4o-audio-preview-2024-12-17",
                 modalities=["text", "audio"],
                 audio={"voice": base_voice, "format": "mp3"},
                 messages=[

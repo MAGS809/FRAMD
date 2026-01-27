@@ -526,6 +526,75 @@
             border-color: var(--accent);
         }
         
+        /* Timeline Step Navigation */
+        .timeline-nav {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-light);
+            flex-wrap: wrap;
+        }
+        
+        .timeline-nav-item {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        
+        .timeline-nav-item:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        
+        .timeline-nav-item.active {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .timeline-nav-item.completed {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .timeline-nav-item .nav-number {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        
+        .timeline-nav-item.active .nav-number {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        
+        .timeline-nav-item.completed .nav-number {
+            background: var(--success);
+            color: white;
+        }
+        
         /* Chat messages */
         .chat-container {
             max-height: 400px;
@@ -1520,18 +1589,27 @@
         <div class="panel" id="panel-format">
             <h2>Timeline Developer</h2>
             
-            <!-- Content Type Selector -->
-            <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Content Type</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-                    <div class="format-card content-type-card selected" data-type="educational" onclick="selectContentType(this)">
-                        <h3 style="font-size: 1rem;">Educational</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary);">B-roll and stock footage</p>
-                    </div>
-                    <div class="format-card content-type-card" data-type="skit" onclick="selectContentType(this)">
-                        <h3 style="font-size: 1rem;">Skit / Podcast</h3>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Characters and scenes</p>
-                    </div>
+            <!-- Step Navigation Menu -->
+            <div class="timeline-nav" id="timeline-nav">
+                <div class="timeline-nav-item active" data-step="type" onclick="scrollToStep('step-type')">
+                    <span class="nav-number">1</span>
+                    <span>Type</span>
+                </div>
+                <div class="timeline-nav-item" data-step="format" onclick="scrollToStep('step-format')">
+                    <span class="nav-number">2</span>
+                    <span>Format</span>
+                </div>
+                <div class="timeline-nav-item" data-step="voice" onclick="scrollToStep('step-voice')">
+                    <span class="nav-number">3</span>
+                    <span>Voice</span>
+                </div>
+                <div class="timeline-nav-item" data-step="visuals" onclick="scrollToStep('step-visuals')">
+                    <span class="nav-number">4</span>
+                    <span>Visuals</span>
+                </div>
+                <div class="timeline-nav-item" data-step="captions" onclick="scrollToStep('step-captions')">
+                    <span class="nav-number">5</span>
+                    <span>Captions</span>
                 </div>
             </div>
             
@@ -1543,6 +1621,21 @@
                 </div>
                 <div id="script-preview-container" style="display: none; margin-top: 1rem;">
                     <p id="script-preview" style="white-space: pre-wrap; font-size: 0.9rem;"></p>
+                </div>
+            </div>
+            
+            <!-- STEP 1: Content Type Selector -->
+            <div id="step-type" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>1. Content Type</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                    <div class="format-card content-type-card selected" data-type="educational" onclick="selectContentType(this)">
+                        <h3 style="font-size: 1rem;">Educational</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">B-roll and stock footage</p>
+                    </div>
+                    <div class="format-card content-type-card" data-type="skit" onclick="selectContentType(this)">
+                        <h3 style="font-size: 1rem;">Skit / Podcast</h3>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Characters and scenes</p>
+                    </div>
                 </div>
             </div>
             
@@ -1558,9 +1651,9 @@
                 <div id="scene-picker-content"></div>
             </div>
             
-            <!-- Visual Curation Section -->
-            <div class="result-section" style="margin-bottom: 1.5rem;" id="curate-section">
-                <h3>Build Your Visuals</h3>
+            <!-- STEP 4: Visual Curation Section -->
+            <div id="step-visuals" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>4. Build Your Visuals</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">AI will find legally-licensed footage that fits your script's setting and mood.</p>
                 
                 <div style="margin-bottom: 1rem;">
@@ -1573,9 +1666,9 @@
                 </button>
             </div>
             
-            <!-- Caption Options Section -->
-            <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Caption Style</h3>
+            <!-- STEP 5: Caption Options Section -->
+            <div id="step-captions" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>5. Caption Style</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add captions to your video:</p>
                 
                 <div class="caption-toggle" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
@@ -1734,9 +1827,9 @@
                 </div>
             </div>
             
-            <!-- Voiceover Section -->
-            <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Voiceover</h3>
+            <!-- STEP 3: Voiceover Section -->
+            <div id="step-voice" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>3. Voiceover</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Preview voices and select narrator(s):</p>
                 
                 <!-- Single narrator mode -->
@@ -1871,9 +1964,9 @@
                 <audio id="voice-preview-audio" style="display: none;"></audio>
             </div>
             
-            <!-- Output Format Section -->
-            <div class="result-section" style="margin-bottom: 1.5rem;">
-                <h3>Output Formats</h3>
+            <!-- STEP 2: Output Format Section -->
+            <div id="step-format" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>2. Output Formats</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">Select formats to generate:</p>
                 
                 <div class="format-grid">
@@ -3012,6 +3105,20 @@
             document.getElementById('step1-indicator').classList.add('active');
             document.getElementById('step1-indicator').classList.remove('completed');
             document.getElementById('step2-indicator').classList.remove('active');
+        }
+        
+        function scrollToStep(stepId) {
+            const element = document.getElementById(stepId);
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Update nav active state
+                document.querySelectorAll('.timeline-nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                const navItem = document.querySelector(`.timeline-nav-item[data-step="${stepId.replace('step-', '')}"]`);
+                if (navItem) navItem.classList.add('active');
+            }
         }
         
         function goToFormats() {

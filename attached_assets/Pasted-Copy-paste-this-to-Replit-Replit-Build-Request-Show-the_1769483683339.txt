@@ -1,0 +1,80 @@
+Copy/paste this to Replit:
+
+⸻
+
+Replit Build Request: “Show the Source Document” Visual Feature
+
+Hi — add a feature that lets the app display a visual of a primary document or article used as a source, in a way that is legal and reliable.
+
+Goal
+
+When the user provides a source (PDF link / article link / uploaded file), the app should be able to show a document-style visual inside the UI and/or export it as an overlay frame in the video.
+
+Implement 3-tier fallback logic (in this order)
+
+Tier 1 — Use an official preview when available
+If the source is a PDF or a page with an official preview/thumbnail:
+	•	Fetch and render the first page preview (or official thumbnail)
+	•	Do NOT scrape random images from Google
+	•	Store:
+	•	source_url
+	•	preview_url
+	•	timestamp of fetch
+	•	file type (pdf/html)
+
+Tier 2 — Render a document snapshot ourselves (recommended default)
+If no official preview exists:
+	•	Generate a clean “document snapshot” image that looks like a real paper:
+	•	Title
+	•	Author (if available)
+	•	Publisher/source
+	•	Date
+	•	2–4 short excerpts (<= 25 words each)
+	•	URL footer
+	•	This snapshot is generated as an image from HTML/CSS (or a template)
+	•	This avoids copyright issues and guarantees consistency.
+
+Tier 3 — Title card fallback
+If extraction fails:
+	•	Display a simple title card:
+	•	Source name
+	•	Headline
+	•	Date
+	•	URL
+
+Technical requirements
+	•	Add endpoint: POST /source/preview
+Body:
+
+{ "url": "https://...", "type": "auto" }
+
+Returns:
+
+{
+  "ok": true,
+  "method": "official_preview|rendered_snapshot|title_card",
+  "image_url": "https://...",
+  "meta": { "title": "...", "source": "...", "date": "..." }
+}
+
+	•	For PDFs: render page 1 to PNG (server-side)
+	•	For articles: extract metadata (title, site, date) and 2–4 short excerpt lines
+	•	Ensure excerpt length limits (no long copying)
+
+UI requirement
+	•	When a source is attached, show a “Source” section:
+	•	a clean preview image
+	•	a “Verified source” label
+	•	a short metadata line (publisher + date)
+
+Important compliance rules
+	•	Never scrape random images for articles
+	•	Never display paywalled content
+	•	Excerpts must be short (<= 25 words per excerpt)
+
+Acceptance criteria
+	•	PDF link displays page 1 image
+	•	Article link displays a rendered snapshot or title card
+	•	Returned image_url is stable and can be used as an overlay in the final video
+
+⸻
