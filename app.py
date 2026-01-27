@@ -2729,8 +2729,31 @@ OUTPUT FORMAT (JSON):
             response_format={"type": "json_object"}
         )
         
-        result = json.loads(response.choices[0].message.content)
-        return jsonify({'success': True, 'characters': result.get('characters', [])})
+        content = response.choices[0].message.content
+        
+        # Try to parse JSON, with fallback for malformed responses
+        try:
+            result = json.loads(content)
+        except json.JSONDecodeError:
+            # Try to extract JSON from response
+            import re
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                try:
+                    result = json.loads(json_match.group())
+                except:
+                    result = {"characters": [{"name": "NARRATOR", "personality": "Calm, clear", "sample_line": "Narration..."}]}
+            else:
+                result = {"characters": [{"name": "NARRATOR", "personality": "Calm, clear", "sample_line": "Narration..."}]}
+        
+        characters = result.get('characters', [])
+        
+        # Sanitize character data to prevent JS errors
+        for char in characters:
+            if 'sample_line' in char:
+                char['sample_line'] = char['sample_line'].replace("'", "\\'").replace('"', '\\"')[:100]
+        
+        return jsonify({'success': True, 'characters': characters})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -2813,27 +2836,19 @@ def generate_voiceover_multi():
                     voice = val
                     break
             
-            # Get base voice and prompt for goofy voices
-            base_voice, goofy_prompt = get_voice_config(voice)
-            if voice in GOOFY_VOICE_CONFIG:
-                system_prompt = goofy_prompt + f" You are playing the character {char_name}. Just speak the line, no explanation."
-            else:
-                system_prompt = f"You are a voice actor playing {char_name}. Speak this line naturally and in character. Just speak the line, no explanation."
+            # Get base voice for this character
+            base_voice, _ = get_voice_config(voice)
             
-            response = client.chat.completions.create(
-                model="gpt-4o-audio-preview-2024-12-17",
-                modalities=["text", "audio"],
-                audio={"voice": base_voice, "format": "mp3"},
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": text},
-                ],
+            # Use TTS API for each character's line
+            response = client.audio.speech.create(
+                model="tts-1-hd",
+                voice=base_voice,
+                input=text
             )
             
-            audio_data = getattr(response.choices[0].message, "audio", None)
-            if audio_data and hasattr(audio_data, "data"):
-                audio_bytes = base64.b64decode(audio_data.data)
-                audio_segments.append(audio_bytes)
+            # Get audio bytes
+            audio_bytes = response.content
+            audio_segments.append(audio_bytes)
         
         # Combine all audio segments
         if audio_segments:
