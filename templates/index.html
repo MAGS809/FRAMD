@@ -626,6 +626,106 @@
             transform: scale(1.05);
         }
         
+        .character-layers-inline {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .layers-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-faint);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Custom Voice Modal */
+        .custom-voice-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(5, 15, 10, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        .custom-voice-content {
+            background: var(--bg);
+            border: 1px solid var(--accent);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 450px;
+            width: 90%;
+        }
+        
+        .custom-voice-content h3 {
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            font-size: 1.25rem;
+        }
+        
+        .custom-voice-field {
+            margin-bottom: 1.25rem;
+        }
+        
+        .custom-voice-field label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .custom-voice-field input,
+        .custom-voice-field textarea,
+        .custom-voice-field select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        
+        .custom-voice-field textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .custom-voice-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .custom-voice-actions button {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .custom-voice-actions .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .custom-voice-actions .btn-confirm {
+            background: var(--accent);
+            border: none;
+            color: var(--bg);
+        }
+        
         .cast-voice:focus {
             outline: none;
             border-color: var(--text);
@@ -1216,36 +1316,37 @@
                     <pre id="script-text">Script will appear here after AI generates it...</pre>
                 </div>
                 
-                <div class="section-title">Voice Casting <span id="voice-count" class="voice-count"></span></div>
+                <div class="section-title">Voice Casting & Characters <span id="voice-count" class="voice-count"></span></div>
                 <div class="casting-panel" id="casting-panel">
                     <div class="casting-characters" id="casting-characters">
                         <div class="character-cast">
-                            <div class="cast-name">NARRATOR</div>
-                            <select class="cast-voice" onchange="updateCharacterVoice('NARRATOR', this.value)">
-                                <option value="news_anchor" selected>News Anchor</option>
-                                <option value="wolf_businessman">Wolf Businessman</option>
-                                <option value="power_businesswoman">Power Businesswoman</option>
-                                <option value="club_promoter">Club Promoter</option>
-                                <option value="standup_comedian">Stand-up Comedian</option>
-                                <option value="conspiracy_theorist">Conspiracy Theorist</option>
-                                <option value="movie_trailer">Movie Trailer Guy</option>
-                                <option value="custom">Custom Voice</option>
-                            </select>
+                            <div class="cast-info">
+                                <div class="cast-name">NARRATOR</div>
+                                <div class="cast-desc">Default narrator</div>
+                            </div>
+                            <div class="cast-voice-row">
+                                <select class="cast-voice" id="voice-NARRATOR" onchange="handleVoiceChange('NARRATOR', this.value)">
+                                    <option value="news_anchor" selected>News Anchor</option>
+                                    <option value="wolf_businessman">Wolf Businessman</option>
+                                    <option value="power_businesswoman">Power Businesswoman</option>
+                                    <option value="club_promoter">Club Promoter</option>
+                                    <option value="standup_comedian">Stand-up Comedian</option>
+                                    <option value="conspiracy_theorist">Conspiracy Theorist</option>
+                                    <option value="movie_trailer">Movie Trailer Guy</option>
+                                    <option value="custom">Custom Voice</option>
+                                </select>
+                                <button class="voice-preview-btn" onclick="previewVoice(document.getElementById('voice-NARRATOR').value)" title="Preview voice">&#9654;</button>
+                            </div>
                         </div>
                     </div>
                     <button class="btn btn-secondary detect-chars-btn" onclick="detectCharacters()">Detect Characters</button>
-                </div>
-                
-                <div class="section-title" style="margin-top: 1rem;">Default Voice</div>
-                <div class="voice-grid" id="voice-grid">
-                    <div class="voice-option selected" data-voice="news_anchor" onclick="selectVoice(this)">News Anchor</div>
-                    <div class="voice-option" data-voice="wolf_businessman" onclick="selectVoice(this)">Wolf Businessman</div>
-                    <div class="voice-option" data-voice="power_businesswoman" onclick="selectVoice(this)">Power Businesswoman</div>
-                    <div class="voice-option" data-voice="club_promoter" onclick="selectVoice(this)">Club Promoter</div>
-                    <div class="voice-option" data-voice="standup_comedian" onclick="selectVoice(this)">Stand-up Comedian</div>
-                    <div class="voice-option" data-voice="conspiracy_theorist" onclick="selectVoice(this)">Conspiracy Theorist</div>
-                    <div class="voice-option" data-voice="movie_trailer" onclick="selectVoice(this)">Movie Trailer Guy</div>
-                    <div class="voice-option" data-voice="custom" onclick="selectVoice(this)">+ Custom</div>
+                    
+                    <div class="character-layers-inline">
+                        <div class="layers-subtitle">Character Layers</div>
+                        <div class="models-grid" id="models-grid">
+                            <div class="no-models-msg">No characters extracted yet. Detect characters above.</div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="section-title" style="margin-top: 1.5rem;">Format</div>
@@ -1263,12 +1364,6 @@
                     <button class="btn btn-secondary add-scene-btn" onclick="addNewScene()">+ Add Scene</button>
                 </div>
                 
-                <div class="extracted-models" id="extracted-models">
-                    <div class="section-title" style="margin-top: 1rem; margin-bottom: 0.5rem;">Character Layers</div>
-                    <div class="models-grid" id="models-grid">
-                        <!-- Extracted character models with tabs -->
-                    </div>
-                </div>
             </div>
             
             <div class="actions">
@@ -1423,7 +1518,7 @@
                             <div class="cast-desc">${char.personality || ''}</div>
                         </div>
                         <div class="cast-voice-row">
-                            <select class="cast-voice" id="voice-${char.name}" onchange="updateCharacterVoice('${char.name}', this.value)">
+                            <select class="cast-voice" id="voice-${char.name}" onchange="handleVoiceChange('${char.name}', this.value)">
                                 ${voiceOptions.replace(`value="${currentVoice}"`, `value="${currentVoice}" selected`)}
                             </select>
                             <button class="voice-preview-btn" onclick="previewVoice(document.getElementById('voice-${char.name}').value)" title="Preview voice">&#9654;</button>
@@ -1435,6 +1530,79 @@
         
         function updateCharacterVoice(characterName, voice) {
             characterVoices[characterName] = voice;
+        }
+        
+        // Custom voice prompts storage
+        let customVoicePrompts = {};
+        let customVoiceModels = {};
+        
+        function handleVoiceChange(characterName, voice) {
+            if (voice === 'custom') {
+                showCustomVoicePopup(characterName);
+            } else {
+                updateCharacterVoice(characterName, voice);
+            }
+        }
+        
+        function showCustomVoicePopup(characterName) {
+            const modelOptions = extractedModels.length > 0 
+                ? extractedModels.map(m => `<option value="${m.name}">${m.name}</option>`).join('')
+                : '<option value="">No models available</option>';
+            
+            const modal = document.createElement('div');
+            modal.className = 'custom-voice-modal';
+            modal.id = 'custom-voice-modal';
+            modal.innerHTML = `
+                <div class="custom-voice-content">
+                    <h3>Custom Voice for ${characterName}</h3>
+                    <div class="custom-voice-field">
+                        <label>What kind of voiceover do you want?</label>
+                        <textarea id="custom-voice-prompt" placeholder="e.g., Calm, soothing narrator with a slight British accent. Speaks slowly and thoughtfully..."></textarea>
+                    </div>
+                    <div class="custom-voice-field">
+                        <label>Character model (optional)</label>
+                        <select id="custom-voice-model">
+                            <option value="">None - voice only</option>
+                            ${modelOptions}
+                        </select>
+                    </div>
+                    <div class="custom-voice-actions">
+                        <button class="btn-cancel" onclick="cancelCustomVoice('${characterName}')">Cancel</button>
+                        <button class="btn-confirm" onclick="confirmCustomVoice('${characterName}')">Confirm</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        function cancelCustomVoice(characterName) {
+            const modal = document.getElementById('custom-voice-modal');
+            if (modal) modal.remove();
+            
+            // Reset dropdown to previous value
+            const select = document.getElementById('voice-' + characterName);
+            if (select) {
+                select.value = characterVoices[characterName] || 'news_anchor';
+            }
+        }
+        
+        function confirmCustomVoice(characterName) {
+            const prompt = document.getElementById('custom-voice-prompt').value.trim();
+            const model = document.getElementById('custom-voice-model').value;
+            
+            if (!prompt) {
+                showToast('Please describe the voiceover style');
+                return;
+            }
+            
+            customVoicePrompts[characterName] = prompt;
+            customVoiceModels[characterName] = model || null;
+            characterVoices[characterName] = 'custom';
+            
+            const modal = document.getElementById('custom-voice-modal');
+            if (modal) modal.remove();
+            
+            showToast(`Custom voice set for ${characterName}`);
         }
         
         // Scene Composer
