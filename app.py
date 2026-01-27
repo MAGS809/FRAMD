@@ -1501,57 +1501,53 @@ Pull the gold. Skip the filler.
 - [CLIP: 00:30-01:15] "money quote here"
 - Max 4 clips. State the angle.
 
-SCRIPT FORMAT (CLEAN DOC STYLE):
+SCRIPT FORMAT (PLAIN TEXT SCREENPLAY):
 
-SCRIPT READY:
+================================================
+                    TITLE HERE
+================================================
 
----
+SCENE 1
+EXT. LOCATION - TIME
+________________________________________________
 
-**TITLE**
+                    CHARACTER NAME
+          Dialogue line goes here. Keep it
+          centered and actor-ready.
 
----
+                    VISUAL: keyword keyword keyword
 
-**SCENE 1**
-*EXT. LOCATION - TIME*
 
-**CHARACTER NAME:**
-"Dialogue line here."
+SCENE 2  
+INT. LOCATION - TIME
+________________________________________________
 
-> VISUAL: keyword keyword keyword
+                    CHARACTER NAME
+          Next dialogue line here.
 
----
+                    VISUAL: keyword keyword keyword
 
-**SCENE 2**
-*INT. LOCATION - TIME*
 
-**CHARACTER NAME:**
-"Next line."
+================================================
+CHARACTERS: Name1, Name2, Name3
+VOICES?
+================================================
 
-> VISUAL: keyword keyword keyword
-
----
-
-**CHARACTERS:** Name1, Name2, Name3
-**VOICES?** [end with this question]
-
----
-
-RULES:
-- Use --- dividers between scenes
-- Bold character names with **
-- Italics for scene headers with *
-- Quote marks around dialogue
-- Visual tags on their own line with >
-- Clean vertical spacing
-- No walls of text
+FORMATTING RULES:
+- Use ======= for title/footer bars
+- Use _______ under scene headers
+- CENTER character names and dialogue (use spaces)
+- VISUAL tags centered below dialogue
+- Blank lines between every element
+- NO markdown symbols (no **, no >, no ---)
+- Pure plain text that prints clean
 
 VOICE:
 Tight. Pro. Zero preamble.
-Comedy = state the style (deadpan/absurd/satirical).
 Never narrate yourself. Just write.
 
 WRONG: "Here's a script capturing the vibe..."
-RIGHT: SCRIPT READY: [clean formatted script]"""
+RIGHT: [clean screenplay format]"""
 
     messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation)
