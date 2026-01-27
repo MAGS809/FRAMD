@@ -2613,10 +2613,10 @@ def generate_voiceover():
     # Get base voice and prompt for goofy voices
     base_voice, system_prompt = get_voice_config(voice)
     
-    # Use OpenAI for audio generation (Krakd doesn't support audio)
+    # Use OpenAI for audio generation - direct API (not Replit proxy, which doesn't support TTS)
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
+        # No base_url = uses default https://api.openai.com/v1
     )
     
     try:
@@ -2659,10 +2659,10 @@ def preview_voice():
     # Get base voice and prompt for goofy voices
     base_voice, system_prompt = get_voice_config(voice)
     
-    # Use OpenAI for audio generation (Krakd doesn't support audio)
+    # Use OpenAI for audio generation - direct API (not Replit proxy, which doesn't support TTS)
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
+        # No base_url = uses default https://api.openai.com/v1
     )
     
     try:
@@ -2774,10 +2774,10 @@ def generate_voiceover_multi():
     if not script:
         return jsonify({'error': 'No script provided'}), 400
     
-    # Use OpenAI for audio generation (Krakd doesn't support audio)
+    # Use OpenAI for audio generation - direct API (not Replit proxy, which doesn't support TTS)
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
+        # No base_url = uses default https://api.openai.com/v1
     )
     
     try:
