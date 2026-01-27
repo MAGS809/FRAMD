@@ -3,7 +3,7 @@ import json
 import subprocess
 import tempfile
 import requests
-from typing import Optional
+from typing import Optional, List
 from openai import OpenAI
 
 # Krakd AI - powered by xAI
@@ -49,6 +49,66 @@ POLITICAL/SOCIAL:
 - Expose contradictions calmly; let conclusions emerge naturally.
 
 "Clarity over noise. Meaning over metrics. Thought before output." """
+
+
+def get_user_context(user_id: str, limit: int = 10) -> str:
+    """
+    Build context from user's conversation history for personalized AI responses.
+    Returns a summary of the user's preferences and patterns.
+    """
+    from app import db
+    from models import Conversation, UserPreference
+    
+    context_parts = []
+    
+    try:
+        prefs = UserPreference.query.filter_by(user_id=user_id).first()
+        if prefs:
+            context_parts.append(f"User Preferences: Voice={prefs.preferred_voice}, Format={prefs.preferred_format}")
+            if prefs.style_preferences:
+                context_parts.append(f"Style: {json.dumps(prefs.style_preferences)}")
+        
+        recent = Conversation.query.filter_by(user_id=user_id).order_by(
+            Conversation.created_at.desc()
+        ).limit(limit).all()
+        
+        if recent:
+            history_summary = []
+            for conv in reversed(recent):
+                role = "User" if conv.role == "user" else "AI"
+                text = conv.content[:200] + "..." if len(conv.content) > 200 else conv.content
+                history_summary.append(f"{role}: {text}")
+            
+            if history_summary:
+                context_parts.append("Recent conversation context:\n" + "\n".join(history_summary))
+    
+    except Exception as e:
+        print(f"Error fetching user context: {e}")
+    
+    return "\n\n".join(context_parts) if context_parts else ""
+
+
+def save_conversation(user_id: str, role: str, content: str):
+    """Save a conversation message to the database for learning."""
+    from app import db
+    from models import Conversation
+    
+    try:
+        conv = Conversation(user_id=user_id, role=role, content=content)
+        db.session.add(conv)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error saving conversation: {e}")
+        db.session.rollback()
+
+
+def build_personalized_prompt(user_id: str, base_prompt: str) -> str:
+    """Build a personalized system prompt incorporating user history."""
+    user_context = get_user_context(user_id)
+    
+    if user_context:
+        return f"{base_prompt}\n\n## USER CONTEXT (Learn from this):\n{user_context}"
+    return base_prompt
 
 
 def extract_audio(video_path: str, output_path: str) -> bool:

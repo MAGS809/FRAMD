@@ -2916,13 +2916,17 @@ def build_post():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Direct chat with Krakd AI."""
+    """Direct chat with Krakd AI with conversation memory."""
     from openai import OpenAI
+    from context_engine import save_conversation, build_personalized_prompt
+    from flask_login import current_user
     import os
     
     data = request.get_json()
     message = data.get('message')
     conversation = data.get('conversation', [])
+    
+    user_id = current_user.id if current_user.is_authenticated else 'dev_user'
     
     if not message:
         return jsonify({'error': 'No message provided'}), 400
@@ -2981,9 +2985,13 @@ If output could be mistaken for generic social media commentary, activist slogan
 
 Never explain what you're doing. Just write."""
 
-    messages = [{"role": "system", "content": system_prompt}]
+    personalized_prompt = build_personalized_prompt(user_id, system_prompt)
+    
+    messages = [{"role": "system", "content": personalized_prompt}]
     messages.extend(conversation)
     messages.append({"role": "user", "content": message})
+    
+    save_conversation(user_id, 'user', message)
     
     try:
         response = client.chat.completions.create(
@@ -2993,6 +3001,8 @@ Never explain what you're doing. Just write."""
         )
         
         reply = response.choices[0].message.content or ""
+        
+        save_conversation(user_id, 'assistant', reply)
         
         return jsonify({
             'success': True,
