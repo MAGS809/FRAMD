@@ -1,11 +1,18 @@
-# Calligra
+# Framd
 
 ## Overview
-Calligra is a high-end post-assembler utilizing the Krakd workflow. It transforms raw links, ideas, and transcripts into cinematic clips and structured posts.
+Framd (powered by Krakd) is a high-end post-assembler. It transforms raw links, ideas, and transcripts into cinematic clips and structured posts.
 
 ## Core Principle
 - **Krakd** - No clip exists without a script.
 - **Reasoning** - No script exists without thinking.
+
+## UI Design
+- **Brand**: Framd (powered by Krakd)
+- **Typography**: Space Grotesk for brand name, Inter for body text
+- **Style**: Minimal, modern LLM-style UI
+- **Tabs**: Clean pill-style navigation
+- **Panels**: Subtle borders, minimal glassmorphism
 
 ---
 

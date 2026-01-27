@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krakd</title>
+    <title>Framd</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Montserrat:wght@400;600;800;900&family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Cinzel:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&family=Montserrat:wght@400;600;800;900&family=Oswald:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Cinzel:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Crimson+Pro:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
         
         :root {
             --bg-primary: #0a1f14;
@@ -92,94 +92,68 @@
             font-weight: 300;
         }
         
-        /* Step indicator - Cinema-style tabs */
+        /* Step indicator - Minimal LLM-style tabs */
         .steps {
             display: flex;
             justify-content: center;
-            gap: 0;
-            margin-bottom: 2.5rem;
-            background: rgba(10, 31, 20, 0.8);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border-radius: 0;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: transparent;
             padding: 0;
-            border-top: 1px solid rgba(255, 214, 10, 0.15);
-            border-bottom: 1px solid rgba(255, 214, 10, 0.15);
-            max-width: 100%;
-            margin-left: auto;
-            margin-right: auto;
         }
         
         .step-indicator {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem 2.5rem;
-            border-radius: 0;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
             background: transparent;
             border: none;
             color: rgba(255, 255, 255, 0.4);
-            font-family: 'Cinzel', serif;
-            font-size: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
             font-weight: 500;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            letter-spacing: 0;
+            text-transform: none;
+            transition: all 0.2s ease;
             cursor: pointer;
             position: relative;
         }
         
         .step-indicator::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%) scaleX(0);
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #ffd60a, transparent);
-            transition: transform 0.3s ease;
+            display: none;
         }
         
         .step-indicator:hover:not(.active) {
             color: rgba(255, 214, 10, 0.7);
-        }
-        
-        .step-indicator:hover:not(.active)::after {
-            transform: translateX(-50%) scaleX(0.5);
+            background: rgba(255, 214, 10, 0.05);
         }
         
         .step-indicator.active {
-            background: transparent;
+            background: rgba(255, 214, 10, 0.1);
             color: #ffd60a;
-            font-weight: 600;
-        }
-        
-        .step-indicator.active::after {
-            transform: translateX(-50%) scaleX(1);
+            font-weight: 500;
         }
         
         .step-indicator.completed {
-            color: rgba(255, 214, 10, 0.6);
+            color: rgba(255, 214, 10, 0.5);
         }
         
         .step-indicator.completed:hover:not(.active) {
             color: #ffd60a;
         }
         
-        /* Panels - Glassmorphism */
+        /* Panels - Minimal clean */
         .panel {
             display: none;
-            background: var(--bg-glass);
-            backdrop-filter: blur(40px);
-            -webkit-backdrop-filter: blur(40px);
-            border: 1px solid var(--border-light);
-            border-radius: 20px;
-            padding: 2.5rem;
-            margin-bottom: 2rem;
-            min-height: 320px;
-            box-shadow: var(--shadow);
-            animation: fadeIn 0.4s ease-out;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+            min-height: 280px;
+            animation: fadeIn 0.3s ease-out;
         }
         
         @keyframes fadeIn {
@@ -2738,12 +2712,8 @@
     <div class="container">
         <header>
             <div class="logo">
-                <h1 style="font-family: 'Cinzel', serif; font-size: 3.2rem; font-weight: 600; letter-spacing: 0.12em; margin-bottom: 0.5rem; text-transform: uppercase; background: linear-gradient(180deg, #ffd60a 0%, #d4a808 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 30px rgba(255, 214, 10, 0.3);">KRAKD</h1>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
-                    <div style="height: 1px; width: 60px; background: linear-gradient(90deg, transparent, rgba(255, 214, 10, 0.4), transparent);"></div>
-                    <p style="font-family: 'Cinzel', serif; font-size: 0.7rem; font-weight: 400; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-secondary);">Post Assembler</p>
-                    <div style="height: 1px; width: 60px; background: linear-gradient(90deg, transparent, rgba(255, 214, 10, 0.4), transparent);"></div>
-                </div>
+                <h1 style="font-family: 'Space Grotesk', sans-serif; font-size: 2.8rem; font-weight: 500; letter-spacing: -0.02em; margin-bottom: 0.25rem; color: #ffd60a;">Framd</h1>
+                <p style="font-family: 'Inter', sans-serif; font-size: 0.7rem; font-weight: 400; letter-spacing: 0.02em; color: rgba(255, 214, 10, 0.4);">powered by Krakd</p>
             </div>
         </header>
         
@@ -2821,14 +2791,14 @@
             <div class="timeline-ai-chat">
                 <div class="timeline-ai-header">
                     <span class="ai-icon">🤖</span>
-                    <span class="ai-chat-prompt">Chat with Krakd anytime to change visuals, voice, or captions. Just describe what you want.</span>
+                    <span class="ai-chat-prompt">Chat with Framd to adjust visuals, voice, or captions.</span>
                 </div>
                 <div class="timeline-ai-input-row">
-                    <input type="text" id="timeline-ai-input" placeholder="Tell Krakd what to adjust..." class="timeline-ai-input">
+                    <input type="text" id="timeline-ai-input" placeholder="Tell me what to adjust..." class="timeline-ai-input">
                     <button class="btn btn-primary timeline-ai-send" onclick="sendTimelineAIMessage()">Send</button>
                 </div>
                 <div id="timeline-ai-response" class="timeline-ai-response" style="display: none;"></div>
-                <p class="ai-personalized-note">Krakd learns your style over time - the more you create, the better it understands your vision.</p>
+                <p class="ai-personalized-note">Framd learns your style over time.</p>
             </div>
             
             <!-- FORMAT FIRST: Output Format Selection -->
@@ -3206,7 +3176,7 @@
         </div>
         
         <footer>
-            <p>Krakd Post Assembler</p>
+            <p>Framd</p>
         </footer>
     </div>
     
@@ -5724,7 +5694,7 @@
     
     <!-- Floating AI Assistant Tab -->
     <div class="ai-assistant-tab" id="ai-assistant-tab" onclick="toggleAIAssistant()">
-        <span class="tab-text">Tell Krakd your vision</span>
+        <span class="tab-text">Tell me your vision</span>
     </div>
     
     <!-- AI Assistant Overlay -->
@@ -5734,8 +5704,8 @@
     <div class="ai-assistant-popup" id="ai-assistant-popup">
         <div class="ai-popup-header">
             <div class="ai-popup-title">
-                <span class="krakd-icon">🧠</span>
-                <span>Krakd Assistant</span>
+                <span class="krakd-icon">✦</span>
+                <span>Framd</span>
             </div>
             <button class="ai-popup-close" onclick="closeAIAssistant()">×</button>
         </div>
