@@ -4,10 +4,12 @@ version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
+    "beautifulsoup4>=4.14.3",
     "flask>=3.1.2",
     "flask-sqlalchemy>=3.1.1",
     "moviepy>=2.2.1",
     "openai>=2.15.0",
+    "pdf2image>=1.17.0",
     "pillow>=11.3.0",
     "psycopg2-binary>=2.9.11",
     "pydantic>=2.12.5",

@@ -108,8 +108,32 @@ Assets are stored with full licensing metadata (LINKS ONLY - downloaded on-deman
 ### Asset Library Endpoints
 - `POST /ingest` - Crawl and save verified legal asset LINKS with rejection logging
 - `GET /assets` - Query cached assets by tags and content type
-- `POST /save-to-cache` - Save selected asset to cache with keywords
+- `POST /save-to-cache` - Save selected asset to cache with keywords (also increments use_count)
 - `POST /download-asset` - Download asset on-demand for final render (SSRF-protected)
+- `POST /source/preview` - Generate verified source document preview (3-tier fallback)
+
+## Source Document Preview System
+For educational reels, users can add verified source citations that display as overlays.
+
+### 3-Tier Fallback Logic
+1. **Tier 1 - Official Preview**: For PDFs, render page 1 to PNG. For articles with og:image, use that
+2. **Tier 2 - Rendered Snapshot**: Generate a clean document-style image with title, author, publisher, date, and 2-4 short excerpts (≤25 words each)
+3. **Tier 3 - Title Card**: Simple fallback with source name, headline, date, and URL
+
+### Source Preview Response
+```json
+{
+  "ok": true,
+  "method": "official_preview|rendered_snapshot|title_card",
+  "image_url": "/output/source_preview_abc123.png",
+  "meta": { "title": "...", "source": "...", "author": "...", "date": "...", "excerpts": [...] }
+}
+```
+
+## Asset Popularity Tracking
+- Each MediaAsset has a `use_count` field tracking how often it's selected
+- Assets with use_count >= 3 are marked as "Popular" with a badge in the visual curation UI
+- Popular assets help users quickly find proven, quality footage
 
 ## Chat API Usage
 Send POST to `/chat` with JSON body:

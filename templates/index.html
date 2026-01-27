@@ -1119,6 +1119,20 @@
             font-weight: 700;
         }
         
+        .scene-option .popular-badge {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: white;
+            font-size: 0.55rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        
         /* Character Model Picker */
         .character-card {
             background: rgba(0, 0, 0, 0.2);
@@ -1621,6 +1635,41 @@
                 </div>
                 <div id="script-preview-container" style="display: none; margin-top: 1rem;">
                     <p id="script-preview" style="white-space: pre-wrap; font-size: 0.9rem;"></p>
+                </div>
+            </div>
+            
+            <!-- Source Document Section (for Educational reels) -->
+            <div id="source-section" class="result-section" style="margin-bottom: 1.5rem;">
+                <h3>Source Document</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">Add a source URL to display a verified citation in your video:</p>
+                
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="text" id="source-url-input" placeholder="https://example.com/article or PDF link" 
+                           style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border); background: var(--glass-bg); color: var(--text-primary);">
+                    <button onclick="fetchSourcePreview()" class="generate-btn" style="padding: 0.75rem 1.5rem; white-space: nowrap;">
+                        <span id="source-btn-text">Verify Source</span>
+                    </button>
+                </div>
+                
+                <div id="source-preview-container" style="display: none;">
+                    <div style="display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--border);">
+                        <img id="source-preview-image" src="" alt="Source Preview" 
+                             style="width: 200px; height: auto; border-radius: 8px; border: 1px solid var(--border);">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                <span style="background: var(--accent); color: var(--bg-primary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem; font-weight: 600;">VERIFIED SOURCE</span>
+                                <span id="source-method-badge" style="background: rgba(255,255,255,0.1); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.7rem;"></span>
+                            </div>
+                            <h4 id="source-title" style="margin: 0.5rem 0; font-size: 1rem;"></h4>
+                            <p id="source-meta" style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;"></p>
+                            <div id="source-excerpts" style="font-size: 0.8rem; color: var(--text-secondary); font-style: italic;"></div>
+                        </div>
+                    </div>
+                    
+                    <label style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; cursor: pointer;">
+                        <input type="checkbox" id="include-source-overlay" checked style="accent-color: var(--accent);">
+                        <span style="font-size: 0.9rem;">Include source overlay in final video</span>
+                    </label>
                 </div>
             </div>
             
@@ -2517,6 +2566,75 @@
             // Show/hide character picker based on content type
             document.getElementById('character-picker-section').style.display = 
                 contentType === 'skit' ? 'block' : 'none';
+            
+            // Show source section for educational content
+            document.getElementById('source-section').style.display = 
+                contentType === 'educational' ? 'block' : 'none';
+        }
+        
+        let sourcePreviewData = null;
+        
+        async function fetchSourcePreview() {
+            const url = document.getElementById('source-url-input').value.trim();
+            if (!url) {
+                alert('Please enter a source URL');
+                return;
+            }
+            
+            const btnText = document.getElementById('source-btn-text');
+            btnText.textContent = 'Verifying...';
+            
+            try {
+                const response = await fetch('/source/preview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: url, type: 'auto' })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    sourcePreviewData = data;
+                    
+                    // Show preview
+                    document.getElementById('source-preview-container').style.display = 'block';
+                    document.getElementById('source-preview-image').src = data.image_url;
+                    document.getElementById('source-title').textContent = data.meta.title || 'Source Document';
+                    
+                    let metaText = data.meta.source || '';
+                    if (data.meta.author) metaText += ' • ' + data.meta.author;
+                    if (data.meta.date) metaText += ' • ' + data.meta.date;
+                    document.getElementById('source-meta').textContent = metaText;
+                    
+                    // Method badge
+                    const methodBadge = document.getElementById('source-method-badge');
+                    const methodLabels = {
+                        'official_preview': 'Official Preview',
+                        'rendered_snapshot': 'Generated Snapshot',
+                        'title_card': 'Title Card'
+                    };
+                    methodBadge.textContent = methodLabels[data.method] || data.method;
+                    
+                    // Excerpts
+                    const excerptsDiv = document.getElementById('source-excerpts');
+                    if (data.meta.excerpts && data.meta.excerpts.length > 0) {
+                        excerptsDiv.innerHTML = data.meta.excerpts.slice(0, 2).map(e => 
+                            `<p style="margin: 0.25rem 0;">"${e}"</p>`
+                        ).join('');
+                    } else {
+                        excerptsDiv.innerHTML = '';
+                    }
+                    
+                    btnText.textContent = 'Verified ✓';
+                } else {
+                    alert('Could not verify source: ' + (data.error || 'Unknown error'));
+                    btnText.textContent = 'Verify Source';
+                }
+            } catch (e) {
+                console.error('Source preview error:', e);
+                alert('Error verifying source');
+                btnText.textContent = 'Verify Source';
+            }
         }
         
         function toggleScriptPreview() {
@@ -2678,6 +2796,8 @@
                     const source = video.source || 'pexels';
                     const license = video.license || 'Licensed';
                     const fromCache = video.from_cache ? true : false;
+                    const isPopular = video.is_popular ? true : false;
+                    const useCount = video.use_count || 0;
                     const cacheKeywords = section.cache_keywords || [];
                     
                     html += `
@@ -2696,6 +2816,7 @@
                             <span class="source-badge">${source}</span>
                             <span class="license-badge">${license}</span>
                             ${fromCache ? '<span class="cache-badge">CACHED</span>' : ''}
+                            ${isPopular ? '<span class="popular-badge">Popular</span>' : ''}
                         </div>
                     `;
                 });
