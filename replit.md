@@ -53,7 +53,7 @@ Calligra is a thinking engine, not a content factory. Its purpose is to turn ide
 
 ### Tech Stack
 - **Python 3.11** with Flask
-- **Krakd AI** (powered by xAI grok-2-1212) for text generation - chat, script generation, idea analysis, visual curation
+- **Krakd AI** (powered by xAI grok-3) for text generation - chat, script generation, idea analysis, visual curation
 - **OpenAI** for audio only - transcription (gpt-4o-mini-transcribe) and voiceover (gpt-4o-audio-preview)
 - **FFmpeg** for video/audio processing
 - **MoviePy** for additional video manipulation

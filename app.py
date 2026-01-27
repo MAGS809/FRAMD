@@ -667,7 +667,7 @@ CRITICAL:
 
     try:
         response = client.chat.completions.create(
-            model="grok-2-1212",
+            model="grok-3",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
@@ -1529,7 +1529,7 @@ Max 2 questions before writing. If the idea is clear, write immediately."""
     
     try:
         response = client.chat.completions.create(
-            model="grok-2-1212",
+            model="grok-3",
             messages=messages,
             max_tokens=1024
         )
@@ -1653,7 +1653,7 @@ Output as JSON:
                 continue
             
             response = client.chat.completions.create(
-                model="grok-2-1212",
+                model="grok-3",
                 messages=[
                     {"role": "system", "content": "You are a content creation expert. Output valid JSON only."},
                     {"role": "user", "content": prompt}
@@ -2042,7 +2042,7 @@ OUTPUT FORMAT (JSON):
 
     try:
         response = client.chat.completions.create(
-            model="grok-2-1212",
+            model="grok-3",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Detect characters in this script:\n\n{script}"}
@@ -2240,7 +2240,7 @@ Never explain what you're doing. Just write."""
     
     try:
         response = client.chat.completions.create(
-            model="grok-2-1212",
+            model="grok-3",
             messages=messages,
             max_tokens=2048
         )
