@@ -1425,6 +1425,16 @@
                     <span id="script-save-status">Edit freely - changes save automatically</span>
                     <span id="word-count">0 words</span>
                 </div>
+                
+                <!-- AI Feedback Section -->
+                <div class="editor-feedback-section" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                        <input type="text" id="editor-feedback-input" placeholder="Ask AI for feedback or suggest changes..." 
+                            style="flex: 1; padding: 0.75rem 1rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;">
+                        <button class="btn btn-secondary" onclick="getEditorFeedback()" id="editor-feedback-btn">Get Feedback</button>
+                    </div>
+                    <div id="editor-ai-response" style="margin-top: 1rem; display: none; padding: 1rem; background: rgba(45, 106, 79, 0.2); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem; line-height: 1.6;"></div>
+                </div>
             </div>
         </div>
         
@@ -2555,8 +2565,76 @@
             refinedScript = editor.value;
             approvedScript = refinedScript;
             
-            // Proceed to formats
+            // Reset editor mode for next time
+            document.getElementById('editor-ai-response').style.display = 'none';
+            document.getElementById('editor-feedback-input').value = '';
+            
+            // Proceed to timeline
             goToFormats();
+        }
+        
+        async function getEditorFeedback() {
+            const input = document.getElementById('editor-feedback-input');
+            const responseDiv = document.getElementById('editor-ai-response');
+            const btn = document.getElementById('editor-feedback-btn');
+            const editor = document.getElementById('script-editor');
+            const currentScript = editor.value;
+            const userRequest = input.value.trim();
+            
+            if (!userRequest) {
+                responseDiv.style.display = 'block';
+                responseDiv.textContent = 'Type a question or request above.';
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.textContent = '...';
+            responseDiv.style.display = 'block';
+            responseDiv.textContent = 'Getting feedback...';
+            
+            try {
+                const response = await fetch('/refine-script', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: userRequest + '\n\nCurrent script:\n' + currentScript,
+                        conversation: conversationHistory,
+                        question_count: 99
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Check if AI provided a revised script
+                    const isScript = data.reply.includes('===') || 
+                                     data.reply.includes('SCENE') || 
+                                     data.reply.includes('CHARACTER') ||
+                                     data.reply.includes('VISUAL:');
+                    
+                    if (isScript && data.reply.length > 200) {
+                        // Update the editor with revised script
+                        editor.value = data.reply;
+                        refinedScript = data.reply;
+                        updateWordCount();
+                        responseDiv.textContent = 'Script updated with changes.';
+                    } else {
+                        // Show feedback as text
+                        responseDiv.innerHTML = escapeHtml(data.reply);
+                    }
+                    
+                    conversationHistory.push({ role: 'user', content: userRequest });
+                    conversationHistory.push({ role: 'assistant', content: data.reply });
+                } else {
+                    responseDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
+                }
+            } catch (error) {
+                responseDiv.textContent = 'Error getting feedback.';
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Get Feedback';
+            input.value = '';
         }
         
         function updateWordCount() {
