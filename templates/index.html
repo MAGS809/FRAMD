@@ -2655,10 +2655,20 @@
                 
                 // Use scenes from scene composer if available
                 if (scenes.length > 0) {
-                    scenesForRender = scenes.map(scene => ({
-                        video_url: scene.background,
-                        duration: 5
-                    })).filter(s => s.video_url);
+                    scenesForRender = scenes.map(scene => {
+                        // Extract URL from background object
+                        let videoUrl = null;
+                        if (scene.background) {
+                            videoUrl = scene.background.download_url || 
+                                       scene.background.url || 
+                                       scene.background.video_url ||
+                                       (typeof scene.background === 'string' ? scene.background : null);
+                        }
+                        return {
+                            video_url: videoUrl,
+                            duration: scene.duration || 5
+                        };
+                    }).filter(s => s.video_url);
                 }
                 
                 // Fallback to visual plan images if no scenes
