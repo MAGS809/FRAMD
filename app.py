@@ -3160,8 +3160,17 @@ def render_video():
                         timestamp_granularities=["word"]
                     )
                 
-                # Get word-level timestamps
-                words = getattr(transcription, 'words', [])
+                # Robust word extraction - handle both SDK response types
+                words = []
+                if hasattr(transcription, 'words') and transcription.words:
+                    words = transcription.words
+                elif hasattr(transcription, 'segments'):
+                    # Fallback: extract words from segments
+                    for segment in transcription.segments:
+                        if hasattr(segment, 'words'):
+                            words.extend(segment.words)
+                
+                print(f"Whisper returned {len(words)} word timestamps")
                 
                 if words:
                     # Get caption settings
@@ -3182,27 +3191,41 @@ def render_video():
                     # Font size based on resolution
                     fontsize = 56 if not preview_mode else 28
                     
-                    # Group words into phrases (3-5 words per caption for readability)
+                    # Group words into phrases (3-4 words per caption for readability)
                     phrases = []
                     current_phrase = []
                     current_start = None
+                    current_end = 0
                     
                     for word_data in words:
-                        word = word_data.get('word', word_data.word if hasattr(word_data, 'word') else '')
-                        start = word_data.get('start', word_data.start if hasattr(word_data, 'start') else 0)
-                        end = word_data.get('end', word_data.end if hasattr(word_data, 'end') else 0)
+                        # Handle both dict and object response types
+                        if isinstance(word_data, dict):
+                            word = word_data.get('word', '')
+                            start = word_data.get('start', 0)
+                            end = word_data.get('end', 0)
+                        else:
+                            word = getattr(word_data, 'word', '')
+                            start = getattr(word_data, 'start', 0)
+                            end = getattr(word_data, 'end', 0)
+                        
+                        # Normalize word (strip leading/trailing spaces)
+                        word = word.strip()
+                        if not word:
+                            continue
                         
                         if current_start is None:
                             current_start = start
                         
                         current_phrase.append(word)
+                        current_end = end
                         
                         # Break into phrases of 3-4 words for snappy captions
-                        if len(current_phrase) >= 4 or (len(current_phrase) >= 2 and word.endswith(('.', '!', '?', ','))):
+                        word_stripped = word.rstrip()
+                        if len(current_phrase) >= 4 or (len(current_phrase) >= 2 and word_stripped.endswith(('.', '!', '?', ','))):
                             phrases.append({
                                 'text': ' '.join(current_phrase),
                                 'start': current_start,
-                                'end': end
+                                'end': current_end
                             })
                             current_phrase = []
                             current_start = None
@@ -3212,7 +3235,7 @@ def render_video():
                         phrases.append({
                             'text': ' '.join(current_phrase),
                             'start': current_start,
-                            'end': words[-1].get('end', words[-1].end if hasattr(words[-1], 'end') else 0)
+                            'end': current_end
                         })
                     
                     # Build drawtext filters with precise timing
@@ -3221,11 +3244,15 @@ def render_video():
                         start_time = phrase['start']
                         end_time = phrase['end']
                         
-                        # Clean text for FFmpeg (escape special chars)
-                        clean_text = text.replace("\\", "\\\\\\\\").replace("'", "'\\\\\\''").replace(":", "\\\\:")
-                        clean_text = clean_text.replace("%", "\\\\%")
+                        # Proper FFmpeg drawtext escaping (level 1: text value, level 2: filter)
+                        # First escape backslashes, then single quotes, then colons
+                        clean_text = text
                         if caption_uppercase:
                             clean_text = clean_text.upper()
+                        # FFmpeg drawtext escaping: \ -> \\, ' -> \\', : -> \:
+                        clean_text = clean_text.replace("\\", "\\\\")
+                        clean_text = clean_text.replace("'", "\\'")
+                        clean_text = clean_text.replace(":", "\\:")
                         
                         # Build drawtext filter with timing
                         border_params = ""
