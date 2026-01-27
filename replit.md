@@ -35,8 +35,10 @@ Calligra is a thinking engine, not a content factory. Its purpose is to turn ide
 - **Red Flags**: No internet slang, memes, forced metaphors, or preachy tone.
 
 ### Visual Content
-- **Allowed Sources**: Pexels, Unsplash, Pixabay, Mixkit, Coverr, Wikimedia Commons.
+- **Primary Source**: Wikimedia Commons (documentary/archival - authentic, non-stock)
+- **Fallback Source**: Pexels (only if <6 results from Wikimedia)
 - **Criteria**: No celebrities, no brands, non-sexual.
+- **Search Ladder**: Wikimedia → Pexels fallback → Query expansion
 
 ### Political & Social
 - No ragebait, slogans, or demonization. Expose contradictions calmly.
