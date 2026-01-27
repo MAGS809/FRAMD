@@ -3290,7 +3290,8 @@
                 if (data.success && data.visual_board) {
                     visualBoard = data.visual_board;
                     showScenePicker(data.visual_board);
-                    document.getElementById('curate-section').style.display = 'none';
+                    const curateSection = document.getElementById('curate-section');
+                    if (curateSection) curateSection.style.display = 'none';
                 } else {
                     alert(data.error || 'Failed to curate visuals');
                 }
