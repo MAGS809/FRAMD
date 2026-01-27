@@ -163,6 +163,14 @@ The AI is configured to be:
 - Willing to challenge assumptions
 - Honest about uncomfortable truths
 
+## Floating AI Assistant
+- **"Tell Krakd your vision"** - Fixed golden tab at bottom of screen
+- **Popup Chat** - Slides up from bottom when clicked, with dark overlay
+- **Workflow Control** - Can change voice, toggle captions, adjust formats via natural language
+- **Quick Suggestions** - Chip buttons for common actions (deeper voice, add captions, TikTok format)
+- **Contextual Awareness** - Knows current script, selected formats, voice, and caption settings
+- **Defensive Checks** - All global variable references protected against undefined errors
+
 ## Voice System
 - **6 Standard Voices**: Alloy (neutral), Echo (deep male), Fable (British), Onyx (authoritative male), Nova (warm female), Shimmer (clear female)
 - **6 Goofy Characters**: Cartoon (silly animated), Drama King (theatrical), Robot (monotone), Surfer Dude (chill bro), Villain (evil maniacal), Grandma (sweet rambling)

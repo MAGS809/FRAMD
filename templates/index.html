@@ -2175,6 +2175,224 @@
             font-size: 1.5rem;
             line-height: 1;
         }
+        
+        /* Floating AI Assistant */
+        .ai-assistant-tab {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.95), rgba(255, 238, 50, 0.9));
+            border-radius: 20px 20px 0 0;
+            cursor: pointer;
+            box-shadow: 0 -4px 24px rgba(255, 214, 10, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-bottom: none;
+        }
+        .ai-assistant-tab:hover {
+            transform: translateX(-50%) translateY(-2px);
+            box-shadow: 0 -8px 32px rgba(255, 214, 10, 0.4);
+        }
+        .ai-assistant-tab .tab-icon {
+            font-size: 1.25rem;
+        }
+        .ai-assistant-tab .tab-text {
+            font-weight: 600;
+            color: #0a1f14;
+            font-size: 0.95rem;
+            letter-spacing: 0.01em;
+        }
+        .ai-assistant-tab.hidden {
+            transform: translateX(-50%) translateY(100%);
+            pointer-events: none;
+        }
+        
+        /* AI Assistant Popup */
+        .ai-assistant-popup {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            width: 100%;
+            max-width: 480px;
+            max-height: 70vh;
+            background: linear-gradient(180deg, #0d2818 0%, #0a1f14 100%);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-bottom: none;
+        }
+        .ai-assistant-popup.open {
+            transform: translateX(-50%) translateY(0);
+        }
+        .ai-popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 214, 10, 0.1);
+            background: rgba(255, 214, 10, 0.05);
+            border-radius: 20px 20px 0 0;
+        }
+        .ai-popup-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .ai-popup-title .krakd-icon {
+            font-size: 1.25rem;
+        }
+        .ai-popup-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.25rem;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        .ai-popup-close:hover {
+            color: var(--text-primary);
+        }
+        .ai-popup-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-height: 200px;
+            max-height: 40vh;
+        }
+        .ai-popup-message {
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            max-width: 85%;
+        }
+        .ai-popup-message.user {
+            background: rgba(255, 214, 10, 0.15);
+            color: var(--text-primary);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .ai-popup-message.assistant {
+            background: rgba(45, 106, 79, 0.3);
+            color: var(--text-primary);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .ai-popup-welcome {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 2rem 1rem;
+        }
+        .ai-popup-welcome .welcome-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .ai-popup-welcome h4 {
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .ai-popup-welcome p {
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        .ai-popup-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .ai-suggestion-chip {
+            padding: 0.5rem 0.875rem;
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .ai-suggestion-chip:hover {
+            background: rgba(255, 214, 10, 0.2);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+        .ai-popup-input-area {
+            padding: 1rem 1.25rem;
+            border-top: 1px solid rgba(255, 214, 10, 0.1);
+            display: flex;
+            gap: 0.5rem;
+        }
+        .ai-popup-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            font-family: inherit;
+        }
+        .ai-popup-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .ai-popup-send {
+            padding: 0.75rem 1.25rem;
+            background: var(--accent);
+            color: #0a1f14;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .ai-popup-send:hover {
+            background: var(--accent-hover);
+        }
+        .ai-popup-send:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Overlay when popup is open */
+        .ai-assistant-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .ai-assistant-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* Hide embedded timeline chat since we have floating assistant */
+        .timeline-ai-chat {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -4828,6 +5046,225 @@
                 closeCreditsModal();
             }
         });
+        
+        // =====================================================
+        // FLOATING AI ASSISTANT
+        // =====================================================
+        let aiAssistantOpen = false;
+        let aiAssistantMessages = [];
+        
+        function toggleAIAssistant() {
+            aiAssistantOpen = !aiAssistantOpen;
+            const popup = document.getElementById('ai-assistant-popup');
+            const tab = document.getElementById('ai-assistant-tab');
+            const overlay = document.getElementById('ai-assistant-overlay');
+            
+            if (aiAssistantOpen) {
+                popup.classList.add('open');
+                tab.classList.add('hidden');
+                overlay.classList.add('visible');
+                document.getElementById('ai-popup-input').focus();
+            } else {
+                popup.classList.remove('open');
+                tab.classList.remove('hidden');
+                overlay.classList.remove('visible');
+            }
+        }
+        
+        function closeAIAssistant() {
+            aiAssistantOpen = false;
+            document.getElementById('ai-assistant-popup').classList.remove('open');
+            document.getElementById('ai-assistant-tab').classList.remove('hidden');
+            document.getElementById('ai-assistant-overlay').classList.remove('visible');
+        }
+        
+        function useSuggestion(text) {
+            document.getElementById('ai-popup-input').value = text;
+            sendAIAssistantMessage();
+        }
+        
+        async function sendAIAssistantMessage() {
+            const input = document.getElementById('ai-popup-input');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            const messagesContainer = document.getElementById('ai-popup-messages');
+            const welcomeEl = messagesContainer.querySelector('.ai-popup-welcome');
+            if (welcomeEl) welcomeEl.remove();
+            
+            // Add user message
+            const userMsg = document.createElement('div');
+            userMsg.className = 'ai-popup-message user';
+            userMsg.textContent = message;
+            messagesContainer.appendChild(userMsg);
+            
+            aiAssistantMessages.push({ role: 'user', content: message });
+            input.value = '';
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Add thinking indicator
+            const thinkingMsg = document.createElement('div');
+            thinkingMsg.className = 'ai-popup-message assistant';
+            thinkingMsg.innerHTML = '<em>Thinking...</em>';
+            messagesContainer.appendChild(thinkingMsg);
+            
+            try {
+                // Build context about current state (with defensive checks)
+                let context = 'Current state: ';
+                if (typeof approvedScript !== 'undefined' && approvedScript || 
+                    typeof refinedScript !== 'undefined' && refinedScript) {
+                    context += 'Script ready. ';
+                }
+                if (typeof selectedFormats !== 'undefined' && selectedFormats && selectedFormats.length > 0) {
+                    context += `Formats: ${selectedFormats.join(', ')}. `;
+                }
+                if (typeof voiceSettings !== 'undefined' && voiceSettings && voiceSettings.voice) {
+                    context += `Voice: ${voiceSettings.voice}. `;
+                }
+                if (typeof captionSettings !== 'undefined' && captionSettings && captionSettings.enabled) {
+                    context += 'Captions enabled. ';
+                }
+                
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        context: context,
+                        conversation: aiAssistantMessages.slice(-6)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Remove thinking indicator
+                thinkingMsg.remove();
+                
+                if (data.success && data.reply) {
+                    // Check for action commands in reply
+                    const reply = data.reply;
+                    
+                    // Add assistant message
+                    const assistantMsg = document.createElement('div');
+                    assistantMsg.className = 'ai-popup-message assistant';
+                    assistantMsg.textContent = reply;
+                    messagesContainer.appendChild(assistantMsg);
+                    
+                    aiAssistantMessages.push({ role: 'assistant', content: reply });
+                    
+                    // Parse for commands
+                    parseAICommands(reply, message);
+                } else {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'ai-popup-message assistant';
+                    errorMsg.textContent = 'Something went wrong. Try again.';
+                    messagesContainer.appendChild(errorMsg);
+                }
+            } catch (error) {
+                thinkingMsg.remove();
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'ai-popup-message assistant';
+                errorMsg.textContent = 'Connection error. Try again.';
+                messagesContainer.appendChild(errorMsg);
+            }
+            
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        function parseAICommands(reply, userMessage) {
+            const lowerReply = reply.toLowerCase();
+            const lowerMsg = userMessage.toLowerCase();
+            
+            // Voice changes
+            const voices = ['alloy', 'echo', 'nova', 'onyx', 'shimmer', 'fable'];
+            for (const voice of voices) {
+                if (lowerMsg.includes(voice) || lowerReply.includes(`voice to ${voice}`)) {
+                    const voiceCard = document.querySelector(`.voice-card[data-voice="${voice}"]`);
+                    if (voiceCard && typeof selectVoice === 'function') {
+                        selectVoice(voiceCard);
+                        if (typeof showToast === 'function') showToast(`Voice changed to ${voice.charAt(0).toUpperCase() + voice.slice(1)}`);
+                    }
+                    break;
+                }
+            }
+            
+            // Caption toggle
+            const captionToggle = document.getElementById('caption-toggle');
+            if (lowerMsg.includes('caption') && (lowerMsg.includes('off') || lowerMsg.includes('disable'))) {
+                if (captionToggle) captionToggle.checked = false;
+                if (typeof updateCaptionPreview === 'function') updateCaptionPreview();
+                if (typeof showToast === 'function') showToast('Captions disabled');
+            } else if (lowerMsg.includes('caption') && (lowerMsg.includes('on') || lowerMsg.includes('enable'))) {
+                if (captionToggle) captionToggle.checked = true;
+                if (typeof updateCaptionPreview === 'function') updateCaptionPreview();
+                if (typeof showToast === 'function') showToast('Captions enabled');
+            }
+            
+            // Format changes
+            const formats = { 'tiktok': '9:16', 'reels': '9:16', 'shorts': '9:16', 'square': '1:1', 'landscape': '16:9', 'youtube': '16:9' };
+            for (const [keyword, format] of Object.entries(formats)) {
+                if (lowerMsg.includes(keyword)) {
+                    const formatOption = document.querySelector(`.format-option[data-format="${format}"]`);
+                    if (formatOption && !formatOption.classList.contains('selected') && typeof toggleFormatSelection === 'function') {
+                        toggleFormatSelection(formatOption);
+                        if (typeof showToast === 'function') showToast(`Added ${format} format`);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Handle Enter key in AI assistant input
+        document.addEventListener('DOMContentLoaded', function() {
+            const aiInput = document.getElementById('ai-popup-input');
+            if (aiInput) {
+                aiInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        sendAIAssistantMessage();
+                    }
+                });
+            }
+        });
     </script>
+    
+    <!-- Floating AI Assistant Tab -->
+    <div class="ai-assistant-tab" id="ai-assistant-tab" onclick="toggleAIAssistant()">
+        <span class="tab-icon">✨</span>
+        <span class="tab-text">Tell Krakd your vision</span>
+    </div>
+    
+    <!-- AI Assistant Overlay -->
+    <div class="ai-assistant-overlay" id="ai-assistant-overlay" onclick="closeAIAssistant()"></div>
+    
+    <!-- AI Assistant Popup -->
+    <div class="ai-assistant-popup" id="ai-assistant-popup">
+        <div class="ai-popup-header">
+            <div class="ai-popup-title">
+                <span class="krakd-icon">🧠</span>
+                <span>Krakd Assistant</span>
+            </div>
+            <button class="ai-popup-close" onclick="closeAIAssistant()">×</button>
+        </div>
+        <div class="ai-popup-messages" id="ai-popup-messages">
+            <div class="ai-popup-welcome">
+                <div class="welcome-icon">✨</div>
+                <h4>What's your vision?</h4>
+                <p>Tell me what you want to create and I'll help you build it. Or adjust anything about your video.</p>
+                <div class="ai-popup-suggestions">
+                    <div class="ai-suggestion-chip" onclick="useSuggestion('Use a deeper voice')">Deeper voice</div>
+                    <div class="ai-suggestion-chip" onclick="useSuggestion('Add captions with yellow text')">Add captions</div>
+                    <div class="ai-suggestion-chip" onclick="useSuggestion('Make it for TikTok')">TikTok format</div>
+                    <div class="ai-suggestion-chip" onclick="useSuggestion('Make the mood darker')">Darker mood</div>
+                </div>
+            </div>
+        </div>
+        <div class="ai-popup-input-area">
+            <input type="text" class="ai-popup-input" id="ai-popup-input" placeholder="Describe your vision...">
+            <button class="ai-popup-send" onclick="sendAIAssistantMessage()">Send</button>
+        </div>
+    </div>
 </body>
 </html>
