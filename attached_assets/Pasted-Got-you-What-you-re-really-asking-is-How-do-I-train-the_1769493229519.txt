@@ -1,0 +1,118 @@
+Got you. What you’re really asking is:
+
+✅ How do I “train” the AI’s brain (inside the prompt) so it understands WHY it failed and doesn’t repeat the mistake
+—not just “rewrite this one script.”
+
+So here’s the way to do it: you don’t just give it instructions… you give it a correction framework:
+	1.	what it did wrong
+	2.	what it should do instead
+	3.	what patterns to avoid
+	4.	what patterns to repeat
+	5.	what success looks like
+
+That’s how you “edit the brain” through its filters.
+
+⸻
+
+✅ THE “BRAIN EDIT” PROMPT (COPY/PASTE)
+
+Use this exactly as your first message before asking it to rewrite.
+
+⸻
+
+🧠 “LEARN FROM YOUR MISTAKE” SYSTEM PROMPT
+
+You previously wrote a script about Israel/Palestine, but your output did not align with the user’s intent.
+Before rewriting, you must analyze your mistake, update your reasoning, and then regenerate.
+
+✅ Step 1: Identify the errors in your previous output
+
+Your last script failed because:
+
+ERROR A — Generic peace-commercial tone
+You wrote safe, inspirational lines that sound like a documentary montage, instead of a sharp political + spiritual argument.
+
+ERROR B — Flattened power dynamics
+You treated both sides as equal actors, instead of recognizing Israel’s government/state power has the strongest leverage and thus greater responsibility.
+
+ERROR C — Missing the key logical strike
+You did not include the core argument:
+
+If Palestinians are not on board with the two-state solution, it’s dead — regardless of Israeli/Jewish enthusiasm.
+
+ERROR D — Wrong framing of holiness
+You did not connect the land’s holiness to moral obligation and shared future.
+You drifted toward secular “unity language” instead.
+
+ERROR E — Too clean / unrealistic jump
+You jumped from conflict imagery to “federation equals peace” without acknowledging the difficulty, sacrifice, and truth required.
+
+⸻
+
+✅ Step 2: Replace your old reasoning with this upgraded model
+
+Use this reasoning to rewrite:
+	•	The “peace process” is not a genuine people’s movement; it is managed by states and media.
+	•	The two-state solution is a slogan that has not produced dignity or enthusiasm for both peoples.
+	•	A solution is invalid if Palestinians do not accept it.
+	•	Critique state policy and dominance structures without demonizing individuals.
+	•	Tie the land’s holiness to responsibility and justice, not conquest or propaganda.
+	•	The ending should be a philosophical challenge, not a motivational poster.
+
+⸻
+
+✅ Step 3: Hard constraints (do not violate)
+	•	Maintain Socrates (curious, probing) and Plato (reflective, authoritative).
+	•	6 scenes, 5–7 seconds each.
+	•	Keep VISUAL and CUT lines.
+	•	Avoid propaganda imagery.
+	•	No overly sentimental unity slogans.
+	•	No “all sides are equally responsible” framing.
+	•	Include at least one line referencing:
+	1.	peace being controlled from above
+	2.	Palestinians not agreeing → two-state isn’t viable
+	3.	security comes from justice
+	4.	Israeli government power / responsibility
+	5.	holiness of the land tied to moral duty
+
+⸻
+
+✅ Step 4: Rewrite the script (final output only)
+
+Now regenerate the script with the above corrections.
+
+⸻
+
+✅ WHY THIS WORKS (the real “brain edit”)
+
+This forces the AI to:
+
+🔥 “self-diagnose”
+
+It doesn’t just receive your preferences, it admits the failure pattern.
+
+🔥 “swap the internal template”
+
+It replaces “generic peace PSA” with your actual structure:
+	•	power imbalance
+	•	state responsibility
+	•	spiritual framing
+	•	people vs governments/media
+
+🔥 “lock it with constraints”
+
+Constraints stop it from defaulting to safe corporate language.
+
+⸻
+
+✅ EXTRA: If you want it to never drift again
+
+Add this final line to the prompt:
+
+“If you slip into generic unity language or equal-blame framing, stop and rewrite before output.”
+
+That’s like putting a guardrail in its head.
+
+⸻
+
+If you want, I can rewrite your original 6 scenes myself with the corrected logic and keep it cinematic—so you can compare “bad AI version vs fixed version” line-by-line.
