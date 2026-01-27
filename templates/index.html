@@ -2261,37 +2261,103 @@
         
         async function generateVideo() {
             showLoading(true);
-            updateLoadingStatus('Generating voiceover...');
+            document.body.classList.add('loading');
             
             try {
-                const response = await fetch('/generate-video', {
+                // Step 1: Generate voiceover from script with character voices
+                updateLoadingStatus('Generating voiceover...');
+                
+                const voiceResponse = await fetch('/generate-voiceover-multi', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         script: currentScript,
-                        visual_board: currentVisualPlan,
-                        voice: selectedVoice,
-                        format: selectedFormat
+                        character_voices: characterVoices,
+                        custom_prompts: customVoicePrompts
                     })
                 });
                 
-                updateLoadingStatus('Assembling video...');
-                const data = await response.json();
+                const voiceData = await voiceResponse.json();
+                if (!voiceData.success) {
+                    throw new Error(voiceData.error || 'Voiceover generation failed');
+                }
+                
+                const audioPath = voiceData.audio_path;
+                
+                // Step 2: Build scenes array from visual plan or scene composer
+                updateLoadingStatus('Preparing scenes...');
+                
+                let scenesForRender = [];
+                
+                // Use scenes from scene composer if available
+                if (scenes.length > 0) {
+                    scenesForRender = scenes.map(scene => ({
+                        video_url: scene.background,
+                        duration: 5
+                    })).filter(s => s.video_url);
+                }
+                
+                // Fallback to visual plan images if no scenes
+                if (scenesForRender.length === 0 && currentVisualPlan && currentVisualPlan.curated_visuals) {
+                    scenesForRender = currentVisualPlan.curated_visuals.map(v => ({
+                        video_url: v.video_url || v.url,
+                        duration: 5
+                    })).filter(s => s.video_url);
+                }
+                
+                // If still no scenes, use any images from visual board
+                if (scenesForRender.length === 0 && currentVisualPlan) {
+                    const allVisuals = currentVisualPlan.images || currentVisualPlan.visuals || [];
+                    scenesForRender = allVisuals.slice(0, 6).map(v => ({
+                        video_url: v.video_url || v.url || v.image_url,
+                        duration: 5
+                    })).filter(s => s.video_url);
+                }
+                
+                if (scenesForRender.length === 0) {
+                    throw new Error('No visual content found. Please add scenes or curate visuals first.');
+                }
+                
+                // Step 3: Render final video with captions
+                updateLoadingStatus('Assembling video with captions...');
+                
+                const renderResponse = await fetch('/render-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scenes: scenesForRender,
+                        audio_path: audioPath,
+                        format: selectedFormat,
+                        script: currentScript,
+                        captions: {
+                            enabled: true,
+                            position: 'bottom',
+                            uppercase: true,
+                            outline: true,
+                            shadow: true,
+                            textColor: '#FFFFFF'
+                        }
+                    })
+                });
+                
+                const renderData = await renderResponse.json();
                 
                 showLoading(false);
+                document.body.classList.remove('loading');
                 
-                if (data.success) {
-                    document.getElementById('export-video').src = data.video_url;
+                if (renderData.success) {
+                    document.getElementById('export-video').src = renderData.video_path;
                     document.getElementById('step-review').classList.add('completed');
                     showStage('export');
                     showToast('Video ready!');
                 } else {
-                    showToast('Failed to generate video: ' + (data.error || 'Unknown error'));
+                    showToast('Failed to render video: ' + (renderData.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Generate error:', error);
                 showLoading(false);
-                showToast('Failed to generate video');
+                document.body.classList.remove('loading');
+                showToast('Error: ' + error.message);
             }
         }
         

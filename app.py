@@ -2884,6 +2884,7 @@ def generate_voiceover_multi():
             return jsonify({
                 'success': True,
                 'audio_url': f'/output/{filename}',
+                'audio_path': filepath,
                 'segments': len(audio_segments)
             })
         else:
