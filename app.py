@@ -651,41 +651,7 @@ def search_all_sources():
     except Exception as e:
         print(f"Wikimedia search error: {e}")
     
-    # FALLBACK 2: Search Pexels only if we have fewer than 6 results from Wikimedia
-    if len(all_results) < 6:
-        pexels_key = os.environ.get('PEXELS_API_KEY')
-        if pexels_key:
-            try:
-                # Try videos from Pexels
-                if media_type in ['video', 'all']:
-                    response = requests.get(
-                        'https://api.pexels.com/videos/search',
-                        headers={'Authorization': pexels_key},
-                        params={'query': query, 'per_page': 4, 'orientation': 'portrait'},
-                        timeout=10
-                    )
-                    for video in response.json().get('videos', []):
-                        video_files = video.get('video_files', [])
-                        best_file = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
-                        if best_file:
-                            all_results.append({
-                                'id': f"pexels_{video['id']}",
-                                'source': 'pexels',
-                                'source_page': video.get('url'),
-                                'download_url': best_file.get('link'),
-                                'thumbnail': video.get('image'),
-                                'title': 'Pexels Video',
-                                'content_type': 'video',
-                                'duration': video.get('duration'),
-                                'license': 'Pexels License',
-                                'license_url': 'https://www.pexels.com/license/',
-                                'attribution_required': False,
-                                'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
-                            })
-                
-                sources_searched.append('pexels')
-            except Exception as e:
-                print(f"Pexels search error: {e}")
+    # Note: Pexels removed - only using sources with explicit reuse rights (Wikimedia Commons, public domain)
     
     # FALLBACK 3: Query expansion if still too few results
     if len(all_results) < 4 and ' ' in query:
@@ -734,57 +700,7 @@ def search_all_sources():
     })
 
 
-@app.route('/search-pexels-videos', methods=['POST'])
-def search_pexels_videos():
-    """Search Pexels for videos - all Pexels content is free for commercial use."""
-    data = request.get_json()
-    query = data.get('query', '')
-    per_page = data.get('per_page', 10)
-    
-    pexels_key = os.environ.get('PEXELS_API_KEY')
-    if not pexels_key:
-        return jsonify({'success': False, 'error': 'Pexels API not configured'}), 500
-    
-    try:
-        response = requests.get(
-            'https://api.pexels.com/videos/search',
-            headers={'Authorization': pexels_key},
-            params={'query': query, 'per_page': per_page, 'orientation': 'portrait'}
-        )
-        data = response.json()
-        
-        videos = []
-        for video in data.get('videos', []):
-            # Find best quality video file (prefer 1080p portrait)
-            video_files = video.get('video_files', [])
-            best_file = None
-            for vf in video_files:
-                if vf.get('height', 0) >= 1080:
-                    best_file = vf
-                    break
-            if not best_file and video_files:
-                best_file = video_files[0]
-            
-            if best_file:
-                videos.append({
-                    'id': f"pexels_{video['id']}",
-                    'source': 'pexels',
-                    'source_page': video.get('url'),
-                    'download_url': best_file.get('link'),
-                    'thumbnail': video.get('image'),
-                    'duration': video.get('duration'),
-                    'resolution': f"{best_file.get('width')}x{best_file.get('height')}",
-                    'license': 'Pexels License',
-                    'license_url': 'https://www.pexels.com/license/',
-                    'commercial_use_allowed': True,
-                    'derivatives_allowed': True,
-                    'attribution_required': False,
-                    'attribution_text': f"Video by {video.get('user', {}).get('name', 'Unknown')} on Pexels"
-                })
-        
-        return jsonify({'success': True, 'videos': videos})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+# Pexels endpoint removed - only using Wikimedia Commons and public domain sources
 
 @app.route('/save-asset', methods=['POST'])
 def save_asset():
@@ -959,7 +875,6 @@ CRITICAL:
         )
         
         visual_board = json.loads(response.choices[0].message.content or '{}')
-        pexels_key = os.environ.get('PEXELS_API_KEY')
         
         # FALLBACK: Parse durations directly from script if AI missed them
         import re as duration_re
@@ -1020,44 +935,9 @@ CRITICAL:
                     section['suggested_videos'].append(asset)
                     seen_ids.add(asset['id'])
             
-            # STEP 2: Search external APIs if we need more options
+            # STEP 2: Search Wikimedia Commons if we need more options (Pexels removed - only legal sources)
             if len(section['suggested_videos']) < 4:
                 for query in section.get('search_queries', [])[:2]:
-                    # Search Pexels
-                    if pexels_key:
-                        try:
-                            resp = requests.get(
-                                'https://api.pexels.com/videos/search',
-                                headers={'Authorization': pexels_key},
-                                params={'query': query, 'per_page': 4, 'orientation': 'portrait'},
-                                timeout=10
-                            )
-                            videos = resp.json().get('videos', [])
-                            for v in videos[:3]:
-                                asset_id = f"pexels_{v['id']}"
-                                if asset_id in seen_ids:
-                                    continue
-                                    
-                                video_files = v.get('video_files', [])
-                                best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
-                                if best:
-                                    video_data = {
-                                        'id': asset_id,
-                                        'source': 'pexels',
-                                        'source_page': v.get('url'),
-                                        'thumbnail': v.get('image'),
-                                        'download_url': best.get('link'),
-                                        'duration': v.get('duration'),
-                                        'license': 'Pexels License',
-                                        'license_url': 'https://www.pexels.com/license/',
-                                        'attribution': f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels",
-                                        'from_cache': False
-                                    }
-                                    section['suggested_videos'].append(video_data)
-                                    seen_ids.add(asset_id)
-                        except:
-                            pass
-                    
                     # Search Wikimedia Commons for videos
                     try:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
@@ -1247,51 +1127,8 @@ def ingest_assets():
     
     saved = 0
     rejected = []
-    pexels_key = os.environ.get('PEXELS_API_KEY')
     
-    # Search Pexels
-    if source in ['all', 'pexels'] and pexels_key:
-        try:
-            resp = requests.get(
-                'https://api.pexels.com/videos/search',
-                headers={'Authorization': pexels_key},
-                params={'query': query, 'per_page': min(limit, 40)},
-                timeout=15
-            )
-            for v in resp.json().get('videos', []):
-                asset_id = f"pexels_{v['id']}"
-                if MediaAsset.query.get(asset_id):
-                    continue
-                    
-                video_files = v.get('video_files', [])
-                best = next((vf for vf in video_files if vf.get('height', 0) >= 720), video_files[0] if video_files else None)
-                if not best:
-                    rejected.append({'id': asset_id, 'reason': 'No suitable video file'})
-                    continue
-                
-                new_asset = MediaAsset(
-                    id=asset_id,
-                    source_page=v.get('url', ''),
-                    download_url=best.get('link', ''),
-                    thumbnail_url=v.get('image'),
-                    source='pexels',
-                    license='Pexels License',
-                    license_url='https://www.pexels.com/license/',
-                    commercial_use_allowed=True,
-                    derivatives_allowed=True,
-                    attribution_required=False,
-                    attribution_text=f"Video by {v.get('user', {}).get('name', 'Unknown')} on Pexels",
-                    content_type='video',
-                    duration_sec=v.get('duration'),
-                    resolution=f"{best.get('width', 0)}x{best.get('height', 0)}",
-                    tags=[query],
-                    safe_flags={'no_sexual': True, 'no_brands': True, 'no_celeb': True},
-                    status='safe'
-                )
-                db.session.add(new_asset)
-                saved += 1
-        except Exception as e:
-            rejected.append({'source': 'pexels', 'reason': str(e)})
+    # Note: Pexels removed - only using sources with explicit reuse rights
     
     # Search Wikimedia Commons
     if source in ['all', 'wikimedia_commons']:
@@ -1418,7 +1255,7 @@ def download_asset():
     
     # Security: Only allow downloads from approved domains
     from urllib.parse import urlparse
-    allowed_domains = ['pexels.com', 'videos.pexels.com', 'wikimedia.org', 'upload.wikimedia.org']
+    allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'archive.org', 'commons.wikimedia.org']
     parsed = urlparse(download_url)
     if not any(domain in parsed.netloc for domain in allowed_domains):
         return jsonify({'success': False, 'error': 'Download URL not from approved source'}), 403
@@ -2350,12 +2187,12 @@ def generate_video():
         
         temp_files = []
         
-        # Allowed domains for video downloads (security: prevent SSRF)
-        allowed_domains = ['pexels.com', 'videos.pexels.com', 'player.vimeo.com', 'pixabay.com', 'wikimedia.org', 'upload.wikimedia.org']
+        # Allowed domains for video downloads (security: prevent SSRF) - only legal sources
+        allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'commons.wikimedia.org', 'archive.org']
         
         if stock_videos and len(stock_videos) > 0:
             for i, video in enumerate(stock_videos[:5]):
-                video_url = video.get('download_url') or video.get('url') or video.get('video_url') or video.get('pexels_url')
+                video_url = video.get('download_url') or video.get('url') or video.get('video_url')
                 if video_url:
                     # Security: Only allow downloads from trusted domains
                     from urllib.parse import urlparse
