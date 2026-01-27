@@ -2026,7 +2026,7 @@ SCRIPT FORMAT (PLAIN TEXT SCREENPLAY):
                     TITLE HERE
 ================================================
 
-SCENE 1
+SCENE 1 [3-4s]
 EXT. LOCATION - TIME
 ________________________________________________
 
@@ -2035,9 +2035,9 @@ ________________________________________________
           centered and actor-ready.
 
                     VISUAL: keyword keyword keyword
+                    CUT: wide establishing shot, slow zoom
 
-
-SCENE 2  
+SCENE 2 [4-5s]
 INT. LOCATION - TIME
 ________________________________________________
 
@@ -2045,12 +2045,20 @@ ________________________________________________
           Next dialogue line here.
 
                     VISUAL: keyword keyword keyword
+                    CUT: medium shot, static hold
 
 
 ================================================
 CHARACTERS: Name1, Name2, Name3
 VOICES?
 ================================================
+
+SCENE EDITING RULES:
+- Each scene: [Xs] = suggested duration in seconds
+- CUT line: Describe the shot type (wide/medium/close-up) and motion (static/pan/zoom)
+- Match visual pacing to dialogue rhythm
+- Action scenes: 2-3s cuts. Emotional scenes: 5-7s holds.
+- Total video should be 30-60s for shorts format
 
 FORMATTING RULES:
 - Use ======= for title/footer bars
@@ -2994,21 +3002,23 @@ def render_video():
             }
         width, height = format_sizes.get(video_format, (360, 640) if preview_mode else (1080, 1920))
         
-        # Create file list for FFmpeg concat
-        list_path = f'output/clips_{output_id}.txt'
+        # Create file list for FFmpeg concat (use absolute paths)
+        list_path = os.path.abspath(f'output/clips_{output_id}.txt')
         with open(list_path, 'w') as f:
             for clip in clip_paths:
-                f.write(f"file '{os.path.basename(clip)}'\n")
+                f.write(f"file '{os.path.abspath(clip)}'\n")
         
         # First, concatenate clips
-        concat_path = f'output/concat_{output_id}.mp4'
+        concat_path = os.path.abspath(f'output/concat_{output_id}.mp4')
         concat_cmd = [
             'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
             '-i', list_path,
             '-c', 'copy',
             concat_path
         ]
-        subprocess.run(concat_cmd, cwd='output', capture_output=True, timeout=120)
+        result = subprocess.run(concat_cmd, capture_output=True, timeout=120)
+        if result.returncode != 0:
+            print(f"Concat error: {result.stderr.decode()}")
         
         # Now scale and crop to format, add audio
         ffmpeg_cmd = [
