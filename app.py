@@ -159,9 +159,9 @@ def get_stripe_credentials():
 
 # Token pricing
 TOKEN_PACKAGES = {
-    100: 500,    # 100 tokens = $5.00 (500 cents)
-    500: 2000,   # 500 tokens = $20.00 (2000 cents)
-    2000: 6000   # 2000 tokens = $60.00 (6000 cents)
+    100: 200,    # 100 tokens = $2.00 (200 cents) - 60% cheaper with Grok
+    500: 800,    # 500 tokens = $8.00 (800 cents) - 60% cheaper with Grok
+    2000: 2500   # 2000 tokens = $25.00 (2500 cents) - 58% cheaper with Grok
 }
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -619,8 +619,8 @@ def curate_visuals():
         return jsonify({'success': False, 'error': 'No script provided'}), 400
     
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
     )
     
     content_type = data.get('content_type', 'educational')
@@ -667,7 +667,7 @@ CRITICAL:
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="grok-2-1212",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_content}
@@ -1482,8 +1482,8 @@ def refine_script():
         video_transcript = reference.get('transcript')
     
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
     )
     
     system_prompt = """You are a professional scriptwriter.
@@ -1529,7 +1529,7 @@ Max 2 questions before writing. If the idea is clear, write immediately."""
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="grok-2-1212",
             messages=messages,
             max_tokens=1024
         )
@@ -1573,8 +1573,8 @@ def generate_formats():
     conversation = data.get('conversation', [])
     
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
     )
     
     context = "\n".join([f"{m['role']}: {m['content']}" for m in conversation[-6:]])
@@ -1653,7 +1653,7 @@ Output as JSON:
                 continue
             
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="grok-2-1212",
                 messages=[
                     {"role": "system", "content": "You are a content creation expert. Output valid JSON only."},
                     {"role": "user", "content": prompt}
@@ -1877,6 +1877,7 @@ def generate_voiceover():
     if not text:
         return jsonify({'error': 'No dialogue found in script'}), 400
     
+    # Use OpenAI for audio generation (Grok doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -1884,7 +1885,7 @@ def generate_voiceover():
     
     try:
         response = client.chat.completions.create(
-            model="gpt-audio",
+            model="gpt-4o-audio-preview",
             modalities=["text", "audio"],
             audio={"voice": voice, "format": "mp3"},
             messages=[
@@ -1928,6 +1929,7 @@ def preview_voice():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
+    # Use OpenAI for audio generation (Grok doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -1935,7 +1937,7 @@ def preview_voice():
     
     try:
         response = client.chat.completions.create(
-            model="gpt-audio",
+            model="gpt-4o-audio-preview",
             modalities=["text", "audio"],
             audio={"voice": voice, "format": "mp3"},
             messages=[
@@ -1976,8 +1978,8 @@ def detect_characters():
         return jsonify({'success': False, 'error': 'No script provided'}), 400
         
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
     )
     
     system_prompt = """Analyze the script and list all speaking characters.
@@ -1999,7 +2001,7 @@ OUTPUT FORMAT (JSON):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="grok-2-1212",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Detect characters in this script:\n\n{script}"}
@@ -2029,6 +2031,7 @@ def generate_voiceover_multi():
     if not script:
         return jsonify({'error': 'No script provided'}), 400
     
+    # Use OpenAI for audio generation (Grok doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
         base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
@@ -2091,7 +2094,7 @@ def generate_voiceover_multi():
                     break
             
             response = client.chat.completions.create(
-                model="gpt-audio",
+                model="gpt-4o-audio-preview",
                 modalities=["text", "audio"],
                 audio={"voice": voice, "format": "mp3"},
                 messages=[
@@ -2163,8 +2166,8 @@ def chat():
         return jsonify({'error': 'No message provided'}), 400
     
     client = OpenAI(
-        api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
-        base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
     )
     
     system_prompt = """You are a professional scriptwriter. Write like one.
@@ -2189,7 +2192,7 @@ Never explain what you're doing. Just write."""
     
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="grok-2-1212",
             messages=messages,
             max_tokens=2048
         )

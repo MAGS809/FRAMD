@@ -6,13 +6,20 @@ import requests
 from typing import Optional
 from openai import OpenAI
 
-AI_INTEGRATIONS_OPENAI_API_KEY = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
-AI_INTEGRATIONS_OPENAI_BASE_URL = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
+# Use Grok (xAI) as the main AI for text generation
+XAI_API_KEY = os.environ.get("XAI_API_KEY")
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
+# Grok client for text generation
 client = OpenAI(
-    api_key=AI_INTEGRATIONS_OPENAI_API_KEY,
-    base_url=AI_INTEGRATIONS_OPENAI_BASE_URL
+    api_key=XAI_API_KEY,
+    base_url="https://api.x.ai/v1"
+)
+
+# OpenAI client for audio transcription (Grok doesn't support audio)
+openai_client = OpenAI(
+    api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
+    base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
 )
 
 SYSTEM_GUARDRAILS = """You are Calligra - a thinking engine, not a content factory. Your purpose is to turn ideas into clear, honest posts while respecting the audience's intelligence.
@@ -63,7 +70,7 @@ def extract_audio(video_path: str, output_path: str) -> bool:
 def transcribe_audio(audio_path: str) -> dict:
     """Transcribe audio file and return transcript with timestamps."""
     with open(audio_path, 'rb') as audio_file:
-        response = client.audio.transcriptions.create(
+        response = openai_client.audio.transcriptions.create(
             model="gpt-4o-mini-transcribe",
             file=audio_file,
             response_format="verbose_json",
@@ -104,7 +111,7 @@ Focus on substance, not viral moments. Identify ideas worth exploring, not sound
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -147,7 +154,7 @@ Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_int
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -196,7 +203,7 @@ Only select clips that genuinely support the script. No filler."""
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -229,7 +236,7 @@ Keep it thoughtful, not clickbait. Output as JSON."""
     # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
     # do not change this unless explicitly requested by the user
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -400,7 +407,7 @@ Output JSON:
 }}"""
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -439,7 +446,7 @@ Output JSON with:
 }}"""
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": prompt}
@@ -547,7 +554,7 @@ Output as JSON:
 }}"""
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="grok-2-1212",
         messages=[
             {"role": "system", "content": SYSTEM_GUARDRAILS},
             {"role": "user", "content": refined_script_prompt}
