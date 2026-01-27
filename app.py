@@ -175,6 +175,75 @@ def extract_dialogue_only(script_text):
     return ' '.join(dialogue_lines)
 
 
+def extract_voice_actor_script(script_text):
+    """
+    Extract a clean voice actor script from the full screenplay.
+    Keeps: Scene headers (SCENE X), character names, dialogue
+    Removes: VISUAL tags, CUT directions, decorative lines, INT/EXT, bracketed directions
+    """
+    import re
+    
+    lines = script_text.split('\n')
+    voice_lines = []
+    
+    for line in lines:
+        stripped = line.strip()
+        
+        # Skip empty lines (we'll add spacing later)
+        if not stripped:
+            voice_lines.append('')
+            continue
+        
+        # Skip decorative separator lines (===, ---, ___)
+        if re.match(r'^[=_\-]{3,}$', stripped):
+            continue
+        
+        # Skip VISUAL: and CUT: lines
+        if stripped.startswith('VISUAL:') or stripped.startswith('CUT:'):
+            continue
+        
+        # Skip [VISUAL...], [CUT...], [FADE...] and other bracketed directions
+        if re.match(r'^\[', stripped):
+            continue
+        
+        # Skip INT./EXT. location lines
+        if stripped.startswith('INT.') or stripped.startswith('EXT.'):
+            continue
+        
+        # Skip CUT TO: transitions
+        if stripped.startswith('CUT TO'):
+            continue
+        
+        # Skip CHARACTERS: and VOICES? lines
+        if stripped.startswith('CHARACTERS:') or stripped.startswith('VOICES?'):
+            continue
+        
+        # Skip standalone title lines (all equals signs around text)
+        if stripped.startswith('===') or stripped.endswith('==='):
+            # Keep just the title text if present
+            title_match = re.match(r'^=+\s*(.+?)\s*=+$', stripped)
+            if title_match:
+                voice_lines.append(title_match.group(1).strip())
+            continue
+        
+        # Keep everything else (scene headers, character names, dialogue)
+        voice_lines.append(line)
+    
+    # Clean up multiple consecutive empty lines
+    result = []
+    prev_empty = False
+    for line in voice_lines:
+        if not line.strip():
+            if not prev_empty:
+                result.append('')
+            prev_empty = True
+        else:
+            result.append(line)
+            prev_empty = False
+    
+    return '\n'.join(result).strip()
+
+
 # Stripe Integration
 def get_stripe_credentials():
     """Fetch Stripe credentials from Replit connection API."""
@@ -2175,12 +2244,16 @@ Never explain what you're doing. Just write."""
         has_question = "?" in reply and not script_ready
         
         refined_script = None
+        voice_actor_script = None
         if script_ready:
             refined_script = reply
             if "SCRIPT READY:" in reply.upper():
                 parts = reply.upper().split("SCRIPT READY:")
                 if len(parts) > 1:
                     refined_script = reply[reply.upper().find("SCRIPT READY:") + 13:].strip()
+            
+            # Extract voice actor script (only dialogue and scene headers)
+            voice_actor_script = extract_voice_actor_script(refined_script or reply)
         
         return jsonify({
             'success': True,
@@ -2188,6 +2261,7 @@ Never explain what you're doing. Just write."""
             'has_question': has_question,
             'script_ready': script_ready,
             'refined_script': refined_script or reply,
+            'voice_actor_script': voice_actor_script,
             'video_path': video_path,
             'video_downloaded': video_path is not None
         })

@@ -1510,6 +1510,58 @@
             filter: brightness(1.1);
         }
         
+        /* Workflow action buttons (inline in chat) */
+        .workflow-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding: 1rem;
+            justify-content: center;
+            animation: slideInLeft 0.3s ease;
+        }
+        
+        .workflow-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+        }
+        
+        .workflow-btn.secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .workflow-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+        
+        .workflow-btn.primary {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 600;
+        }
+        
+        .workflow-btn.primary:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+        }
+        
+        /* Script display styling */
+        .script-display {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+        
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -2245,7 +2297,7 @@
             document.getElementById('file-preview').classList.remove('show');
         }
         
-        // Stage navigation
+        // Stage navigation with workflow guides
         function showStage(stage) {
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
@@ -2267,6 +2319,33 @@
             } else {
                 // On other stages, show floating chat toggle
                 chatToggle.classList.remove('hidden');
+            }
+            
+            // Add workflow guide for review stage (caption styling - step 5)
+            if (stage === 'review' && currentWorkflowStep >= 4 && currentWorkflowStep < 5) {
+                setTimeout(() => {
+                    currentWorkflowStep = 5;
+                    storeWorkflowPreference('caption_styling_started', true);
+                    
+                    const captionGuide = WORKFLOW_STEPS[5].guide;
+                    addMessage(captionGuide);
+                    conversationHistory.push({ role: 'assistant', content: captionGuide });
+                    saveConversation();
+                    renderChatPanelMessages();
+                }, 2000); // Show after scene review guide
+            }
+            
+            // Add workflow guide for export stage
+            if (stage === 'export' && currentWorkflowStep < 8) {
+                currentWorkflowStep = 8;
+                const guideMessage = WORKFLOW_STEPS[8].guide;
+                storeWorkflowPreference('export_started', true);
+                
+                // Add guide to chat panel
+                addMessage(guideMessage);
+                conversationHistory.push({ role: 'assistant', content: guideMessage });
+                saveConversation();
+                renderChatPanelMessages();
             }
         }
         
@@ -2364,6 +2443,25 @@
         // Start caption animation when page loads
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => updateCaptionPreview(), 500);
+            
+            // Track caption styling interactions for workflow step 5
+            let captionGuideShown = false;
+            const captionControls = document.querySelector('.caption-section');
+            if (captionControls) {
+                captionControls.addEventListener('click', () => {
+                    if (!captionGuideShown && currentWorkflowStep >= 4 && currentWorkflowStep < 5) {
+                        currentWorkflowStep = 5;
+                        captionGuideShown = true;
+                        storeWorkflowPreference('caption_styling_started', true);
+                        
+                        const captionGuide = WORKFLOW_STEPS[5].guide;
+                        addMessage(captionGuide);
+                        conversationHistory.push({ role: 'assistant', content: captionGuide });
+                        saveConversation();
+                        renderChatPanelMessages();
+                    }
+                }, { once: true });
+            }
         });
         
         // Character Casting
@@ -2641,6 +2739,21 @@
             
             console.log('Populated', scenes.length, 'scenes from visual board');
             renderScenes();
+            
+            // Advance to step 4 - Scene Review
+            if (currentWorkflowStep < 4 && scenes.length > 0) {
+                currentWorkflowStep = 4;
+                storeWorkflowPreference('scenes_populated', true);
+                
+                // Add guide message after a short delay
+                setTimeout(() => {
+                    const sceneGuide = WORKFLOW_STEPS[4].guide;
+                    addMessage(sceneGuide);
+                    conversationHistory.push({ role: 'assistant', content: sceneGuide });
+                    saveConversation();
+                    renderChatPanelMessages();
+                }, 1000);
+            }
         }
         
         // Get visuals for a specific scene section
@@ -2992,9 +3105,20 @@
                     // Check if script is ready
                     const isScript = reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:');
                     if (data.script_ready || (isScript && reply.length > 300)) {
+                        // Store full script for processing, but show voice actor version to user
                         currentScript = data.refined_script || reply;
                         
-                        // Show confirmation popup before moving to review
+                        // If we have a voice actor script, display that instead
+                        if (data.voice_actor_script) {
+                            // Update the displayed message with clean script
+                            const messages = document.querySelectorAll('#messages .message:not(.user)');
+                            if (messages.length > 0) {
+                                const lastMsg = messages[messages.length - 1];
+                                lastMsg.innerHTML = `<div class="script-display">${escapeHtml(data.voice_actor_script).replace(/\n/g, '<br>')}</div>`;
+                            }
+                        }
+                        
+                        // Show confirmation via chat (not modal)
                         showReviewConfirmation();
                     }
                 } else {
@@ -3011,21 +3135,65 @@
             sendBtn.disabled = false;
         }
         
-        // Show review confirmation popup
+        // Workflow step tracking (max 10 steps)
+        let currentWorkflowStep = 1;
+        const WORKFLOW_STEPS = {
+            1: { name: 'Script Writing', guide: null },
+            2: { name: 'Voice Assignment', guide: 'Your script is ready! Click on each scene to assign character voices, then drag scenes to reorder your timeline.' },
+            3: { name: 'Visual Curation', guide: 'Now let\'s find the perfect visuals. Click any scene thumbnail to browse and select matching footage.' },
+            4: { name: 'Scene Review', guide: 'Review your scenes. Click the play button to preview each section, or use the timeline to fine-tune timing.' },
+            5: { name: 'Caption Styling', guide: 'Style your captions using the color picker and toggle options. Preview how they\'ll appear on screen.' },
+            6: { name: 'Audio Preview', guide: 'Listen to your voiceover. Adjust pacing or re-generate if needed.' },
+            7: { name: 'Final Preview', guide: 'Watch your complete video preview. Make any final adjustments before export.' },
+            8: { name: 'Export', guide: 'Choose your aspect ratio and export quality. Your video will be ready to post!' }
+        };
+        
+        // Show review confirmation via chat (not modal)
         function showReviewConfirmation() {
-            const modal = document.createElement('div');
-            modal.className = 'review-confirm-modal';
-            modal.innerHTML = `
-                <div class="review-confirm-content">
-                    <h3>Script Ready!</h3>
-                    <p>Your script is complete. Ready to move to the Review phase where you can curate visuals, assign voices, and compose scenes?</p>
-                    <div class="review-confirm-actions">
-                        <button class="btn-secondary" onclick="this.closest('.review-confirm-modal').remove()">Keep Editing</button>
-                        <button class="btn-primary" onclick="proceedToReview()">Continue to Review</button>
-                    </div>
-                </div>
+            // Advance to step 2 - Voice Assignment
+            currentWorkflowStep = 2;
+            
+            // Add guide message via chat
+            const guideMessage = WORKFLOW_STEPS[2].guide;
+            setTimeout(() => {
+                addMessage(guideMessage);
+                conversationHistory.push({ role: 'assistant', content: guideMessage });
+                saveConversation();
+                renderChatPanelMessages();
+                
+                // Store workflow step preference
+                storeWorkflowPreference('script_completed', true);
+            }, 500);
+            
+            // Show inline action buttons
+            setTimeout(() => {
+                showWorkflowActions();
+            }, 1000);
+        }
+        
+        // Show workflow action buttons inline
+        function showWorkflowActions() {
+            const container = document.getElementById('messages');
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'workflow-actions message-animate-ai';
+            actionDiv.innerHTML = `
+                <button class="workflow-btn secondary" onclick="this.parentElement.remove()">Keep Editing</button>
+                <button class="workflow-btn primary" onclick="this.parentElement.remove(); proceedToReview()">Continue to Review</button>
             `;
-            document.body.appendChild(modal);
+            container.appendChild(actionDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        // Store workflow preference for AI learning
+        function storeWorkflowPreference(key, value) {
+            try {
+                const prefs = JSON.parse(localStorage.getItem('krakd_workflow_prefs') || '{}');
+                prefs[key] = value;
+                prefs.lastUpdated = Date.now();
+                localStorage.setItem('krakd_workflow_prefs', JSON.stringify(prefs));
+            } catch (e) {
+                console.warn('Could not store workflow preference:', e);
+            }
         }
         
         // Proceed to review after confirmation
@@ -3033,9 +3201,20 @@
             const modal = document.querySelector('.review-confirm-modal');
             if (modal) modal.remove();
             
+            // Advance to step 3 - Visual Curation
+            currentWorkflowStep = 3;
+            storeWorkflowPreference('visual_curation_started', true);
+            
             showToast('Curating visuals...');
             startLoading();
             await curateVisuals(currentScript);
+            
+            // After visuals are curated, show guide for visual selection
+            const guideMessage = WORKFLOW_STEPS[3].guide;
+            addMessage(guideMessage);
+            conversationHistory.push({ role: 'assistant', content: guideMessage });
+            saveConversation();
+            renderChatPanelMessages();
         }
         
         // Escape HTML to prevent XSS
@@ -3267,6 +3446,19 @@
                 
                 const audioPath = voiceData.audio_path;
                 
+                // Advance to step 6 - Audio Preview and show guide
+                if (currentWorkflowStep < 6) {
+                    currentWorkflowStep = 6;
+                    storeWorkflowPreference('audio_generated', true);
+                    
+                    // Show audio preview guide message
+                    const audioGuide = WORKFLOW_STEPS[6].guide;
+                    addMessage(audioGuide);
+                    conversationHistory.push({ role: 'assistant', content: audioGuide });
+                    saveConversation();
+                    renderChatPanelMessages();
+                }
+                
                 // Step 2: Build scenes array from visual plan or scene composer
                 updateLoadingStatus('Preparing scenes...');
                 
@@ -3334,6 +3526,18 @@
                 if (renderData.success) {
                     document.getElementById('export-video').src = renderData.video_path;
                     document.getElementById('step-review').classList.add('completed');
+                    
+                    // Advance to step 7 - Final Preview
+                    currentWorkflowStep = 7;
+                    storeWorkflowPreference('video_rendered', true);
+                    
+                    // Add guide message via chat panel
+                    const previewGuide = WORKFLOW_STEPS[7].guide;
+                    addMessage(previewGuide);
+                    conversationHistory.push({ role: 'assistant', content: previewGuide });
+                    saveConversation();
+                    renderChatPanelMessages();
+                    
                     showStage('export');
                     showToast('Video ready!');
                 } else {
