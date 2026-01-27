@@ -3007,21 +3007,50 @@ def render_video():
     os.makedirs('output', exist_ok=True)
     
     try:
-        # Download video clips and trim to specified duration
+        # Get audio duration to drive clip timing (audio-driven editing)
+        audio_duration = None
+        if audio_path and os.path.exists(audio_path):
+            try:
+                probe_cmd = [
+                    'ffprobe', '-v', 'error',
+                    '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1',
+                    audio_path
+                ]
+                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
+                if probe_result.returncode == 0:
+                    audio_duration = float(probe_result.stdout.strip())
+                    print(f"Voiceover duration: {audio_duration:.2f}s")
+            except Exception as e:
+                print(f"Could not get audio duration: {e}")
+        
+        # Calculate clip durations based on audio length
+        num_scenes = len([s for s in scenes if s.get('video_url')])
+        if audio_duration and num_scenes > 0:
+            # Distribute clips evenly across audio duration
+            base_clip_duration = audio_duration / num_scenes
+            print(f"Audio-driven clips: {base_clip_duration:.2f}s each for {num_scenes} scenes")
+        else:
+            base_clip_duration = None  # Fall back to scene-specified durations
+        
+        # Download video clips and trim to match audio
         clip_paths = []
         for i, scene in enumerate(scenes):
             video_url = scene.get('video_url', '')
             if not video_url:
                 continue
             
-            # Get scene duration (default 4 seconds if not specified)
-            duration = scene.get('duration_seconds', scene.get('duration', 4))
-            try:
-                duration = float(duration)
-                if duration <= 0 or duration > 30:
+            # Use audio-driven duration or fall back to scene duration
+            if base_clip_duration:
+                duration = base_clip_duration
+            else:
+                duration = scene.get('duration_seconds', scene.get('duration', 4))
+                try:
+                    duration = float(duration)
+                    if duration <= 0 or duration > 30:
+                        duration = 4
+                except:
                     duration = 4
-            except:
-                duration = 4
                 
             raw_path = f'output/raw_{output_id}_{i}.mp4'
             clip_path = f'output/clip_{output_id}_{i}.mp4'
