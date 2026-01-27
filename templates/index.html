@@ -1414,6 +1414,58 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <p style="color: var(--accent); margin: 1rem 0 0.5rem; font-weight: 500;">Goofy Characters</p>
+                    <div class="format-grid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                        <div class="format-card voice-card" data-voice="goofy_cartoon" onclick="selectVoice(this)">
+                            <div class="icon">🤪</div>
+                            <h3>Cartoon</h3>
+                            <p>Silly, animated</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_cartoon')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="goofy_dramatic" onclick="selectVoice(this)">
+                            <div class="icon">🎭</div>
+                            <h3>Drama King</h3>
+                            <p>Over-the-top theatrical</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_dramatic')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="goofy_robot" onclick="selectVoice(this)">
+                            <div class="icon">🤖</div>
+                            <h3>Robot</h3>
+                            <p>Monotone, mechanical</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_robot')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="goofy_surfer" onclick="selectVoice(this)">
+                            <div class="icon">🏄</div>
+                            <h3>Surfer Dude</h3>
+                            <p>Laid-back, chill bro</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_surfer')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="goofy_villain" onclick="selectVoice(this)">
+                            <div class="icon">😈</div>
+                            <h3>Villain</h3>
+                            <p>Evil, maniacal</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_villain')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                        <div class="format-card voice-card" data-voice="goofy_grandma" onclick="selectVoice(this)">
+                            <div class="icon">👵</div>
+                            <h3>Grandma</h3>
+                            <p>Sweet, rambling old lady</p>
+                            <button class="voice-preview-btn" onclick="event.stopPropagation(); previewVoice('goofy_grandma')">
+                                ▶ Preview
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 
                 <!-- Multi-character mode (shown when script has dialogue) -->
@@ -1577,7 +1629,13 @@
             fable: "Hello, I'm Fable. I have an expressive British accent.",
             onyx: "Hello, I'm Onyx. I have a deep, authoritative male voice.",
             nova: "Hello, I'm Nova. I have a warm, friendly female voice.",
-            shimmer: "Hello, I'm Shimmer. I have a clear, bright female voice."
+            shimmer: "Hello, I'm Shimmer. I have a clear, bright female voice.",
+            goofy_cartoon: "Woohoo! I'm a wacky cartoon character! Everything is SUPER exciting and I talk like THIS with lots of energy!",
+            goofy_dramatic: "In a world... where DRAMA is everything... ONE voice rises above... to deliver THIS message with THEATRICAL INTENSITY!",
+            goofy_robot: "Beep boop. I am a robot. I speak in a flat monotone voice. Processing human emotions. Error. Does not compute.",
+            goofy_surfer: "Duuude, what's up bro! I'm like, totally chill and everything is awesome, gnarly, and tubular, you know?",
+            goofy_villain: "Mwahahaha! I am the most EVIL voice you will ever hear! Tremble before my diabolical delivery!",
+            goofy_grandma: "Oh dearie, let me tell you something... back in my day, we didn't have all these fancy gadgets, you know?"
         };
         
         let currentPreviewAudio = null;
@@ -1684,14 +1742,20 @@
             const container = document.getElementById('character-voice-assignments');
             container.innerHTML = '';
             
-            const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+            const voices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer', 'goofy_cartoon', 'goofy_dramatic', 'goofy_robot', 'goofy_surfer', 'goofy_villain', 'goofy_grandma'];
             const voiceDescriptions = {
                 alloy: 'Neutral, versatile',
                 echo: 'Male, deep',
                 fable: 'British, expressive',
                 onyx: 'Male, authoritative',
                 nova: 'Female, warm',
-                shimmer: 'Female, clear'
+                shimmer: 'Female, clear',
+                goofy_cartoon: '🤪 Cartoon, silly',
+                goofy_dramatic: '🎭 Drama King',
+                goofy_robot: '🤖 Robot, monotone',
+                goofy_surfer: '🏄 Surfer Dude',
+                goofy_villain: '😈 Evil Villain',
+                goofy_grandma: '👵 Sweet Grandma'
             };
             
             characters.forEach((char, idx) => {

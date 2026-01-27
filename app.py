@@ -1857,6 +1857,41 @@ def generate_video():
         return jsonify({'error': str(e)}), 500
 
 
+GOOFY_VOICE_CONFIG = {
+    'goofy_cartoon': {
+        'base_voice': 'fable',
+        'prompt': "You are a wacky, over-the-top cartoon character! Speak with EXTREME enthusiasm, wild energy, and silly vocal inflections. Add dramatic pauses and emphasis on random words. Be animated and zany!"
+    },
+    'goofy_dramatic': {
+        'base_voice': 'onyx',
+        'prompt': "You are an EXTREMELY dramatic Shakespearean actor. Speak as if every word is the most important thing ever said. Add long dramatic pauses. Treat mundane topics like epic sagas. Be theatrical and grandiose!"
+    },
+    'goofy_robot': {
+        'base_voice': 'echo',
+        'prompt': "You are a robot with limited emotional processing. Speak in a flat, monotone voice. Occasionally add 'beep boop' or 'processing' between sentences. Be mechanical and literal."
+    },
+    'goofy_surfer': {
+        'base_voice': 'alloy',
+        'prompt': "You are a super chill surfer dude from California. Say 'dude', 'bro', 'gnarly', 'totally', and 'like' frequently. Be laid-back, relaxed, and use surfer slang. Everything is awesome to you!"
+    },
+    'goofy_villain': {
+        'base_voice': 'onyx',
+        'prompt': "You are an evil cartoon villain! Speak with a sinister, maniacal tone. Add evil laughs (mwahahaha) where appropriate. Be menacing but in a campy, over-the-top way. Relish in your villainy!"
+    },
+    'goofy_grandma': {
+        'base_voice': 'shimmer',
+        'prompt': "You are a sweet old grandmother. Speak slowly and warmly. Add 'dearie', 'sweetie', and 'back in my day' occasionally. Ramble a bit and be nurturing. Sound like you're offering cookies."
+    }
+}
+
+def get_voice_config(voice):
+    """Get base voice and system prompt for a voice type."""
+    if voice in GOOFY_VOICE_CONFIG:
+        config = GOOFY_VOICE_CONFIG[voice]
+        return config['base_voice'], config['prompt']
+    return voice, "You are a professional voiceover artist. Read the following script naturally and engagingly."
+
+
 @app.route('/generate-voiceover', methods=['POST'])
 def generate_voiceover():
     """Generate voiceover audio from script text."""
@@ -1877,6 +1912,9 @@ def generate_voiceover():
     if not text:
         return jsonify({'error': 'No dialogue found in script'}), 400
     
+    # Get base voice and prompt for goofy voices
+    base_voice, system_prompt = get_voice_config(voice)
+    
     # Use OpenAI for audio generation (Krakd doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
@@ -1887,9 +1925,9 @@ def generate_voiceover():
         response = client.chat.completions.create(
             model="gpt-4o-audio-preview",
             modalities=["text", "audio"],
-            audio={"voice": voice, "format": "mp3"},
+            audio={"voice": base_voice, "format": "mp3"},
             messages=[
-                {"role": "system", "content": "You are a professional voiceover artist. Read the following script naturally and engagingly."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Read this script: {text}"},
             ],
         )
@@ -1929,6 +1967,9 @@ def preview_voice():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
+    # Get base voice and prompt for goofy voices
+    base_voice, system_prompt = get_voice_config(voice)
+    
     # Use OpenAI for audio generation (Krakd doesn't support audio)
     client = OpenAI(
         api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
@@ -1939,9 +1980,9 @@ def preview_voice():
         response = client.chat.completions.create(
             model="gpt-4o-audio-preview",
             modalities=["text", "audio"],
-            audio={"voice": voice, "format": "mp3"},
+            audio={"voice": base_voice, "format": "mp3"},
             messages=[
-                {"role": "system", "content": "You are a voice actor. Speak naturally and warmly."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": text},
             ],
         )
@@ -2093,12 +2134,19 @@ def generate_voiceover_multi():
                     voice = val
                     break
             
+            # Get base voice and prompt for goofy voices
+            base_voice, goofy_prompt = get_voice_config(voice)
+            if voice in GOOFY_VOICE_CONFIG:
+                system_prompt = goofy_prompt + f" You are playing the character {char_name}. Just speak the line, no explanation."
+            else:
+                system_prompt = f"You are a voice actor playing {char_name}. Speak this line naturally and in character. Just speak the line, no explanation."
+            
             response = client.chat.completions.create(
                 model="gpt-4o-audio-preview",
                 modalities=["text", "audio"],
-                audio={"voice": voice, "format": "mp3"},
+                audio={"voice": base_voice, "format": "mp3"},
                 messages=[
-                    {"role": "system", "content": f"You are a voice actor playing {char_name}. Speak this line naturally and in character. Just speak the line, no explanation."},
+                    {"role": "system", "content": system_prompt},
                     {"role": "user", "content": text},
                 ],
             )

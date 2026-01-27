@@ -129,13 +129,19 @@ Response:
 }
 ```
 
-## AI Personality (Grok-Style)
+## AI Personality (Krakd)
 The AI is configured to be:
 - Direct and unfiltered - no corporate speak
 - Witty with dry intellectual humor
 - First principles reasoning
 - Willing to challenge assumptions
 - Honest about uncomfortable truths
+
+## Voice System
+- **6 Standard Voices**: Alloy (neutral), Echo (deep male), Fable (British), Onyx (authoritative male), Nova (warm female), Shimmer (clear female)
+- **6 Goofy Characters**: Cartoon (silly animated), Drama King (theatrical), Robot (monotone), Surfer Dude (chill bro), Villain (evil maniacal), Grandma (sweet rambling)
+- **Voice Previews**: Click "Preview" on any voice card to hear a sample
+- **Multi-Character Support**: Click "Detect Characters" to analyze script for multiple speakers and assign different voices to each
 
 ## Output Formats
 - 9:16 (Shorts/Reels/TikTok)
