@@ -4868,6 +4868,191 @@ def render_video():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/submit-feedback', methods=['POST'])
+def submit_feedback():
+    """Submit project feedback and get AI self-assessment."""
+    from models import ProjectFeedback, AILearning, Project
+    from flask_login import current_user
+    import os
+    from openai import OpenAI
+    
+    data = request.json
+    project_id = data.get('project_id')
+    
+    # Get user ID
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('anonymous_user_id', 'anonymous')
+    
+    # Build feedback summary for AI
+    ratings_summary = []
+    if data.get('script_rating'):
+        ratings_summary.append(f"Script: {data['script_rating']}")
+    if data.get('voice_rating'):
+        ratings_summary.append(f"Voice: {data['voice_rating']}")
+    if data.get('visuals_rating'):
+        ratings_summary.append(f"Visuals: {data['visuals_rating']}")
+    if data.get('soundfx_rating'):
+        ratings_summary.append(f"Sound FX: {data['soundfx_rating']}")
+    if data.get('overall_rating'):
+        ratings_summary.append(f"Overall: {data['overall_rating']}")
+    
+    user_feedback = data.get('feedback_text', '')
+    severity = data.get('severity', 'minor')
+    script_used = data.get('script', '')
+    
+    # Generate AI self-assessment
+    try:
+        client = OpenAI(
+            api_key=os.environ.get("XAI_API_KEY"),
+            base_url="https://api.x.ai/v1"
+        )
+        
+        reflection_prompt = f"""You are Echo Engine, an AI that creates video content. A user just finished a project and gave you feedback.
+
+User's Ratings:
+{chr(10).join(ratings_summary) if ratings_summary else 'No specific ratings given'}
+
+User's Notes:
+{user_feedback if user_feedback else 'No additional notes'}
+
+Severity Level: {severity}
+
+Script Used:
+{script_used[:500] if script_used else 'Not provided'}...
+
+Based on this feedback, provide TWO things:
+
+1. WHAT YOU LEARNED (2-3 sentences): Be specific and honest about what this teaches you about this user's preferences. Reference specific elements if possible.
+
+2. WHAT TO IMPROVE (2-3 sentences): Be honest about weaknesses and what you'll do differently next time.
+
+Also estimate how much you learned:
+- If feedback was mostly positive with minor notes: LOW learning (2-3%)
+- If feedback was mixed with specific critiques: MEDIUM learning (4-6%)  
+- If feedback was critical with actionable insights: HIGH learning (7-10%)
+
+Respond in this exact JSON format:
+{{"learned": "Your honest reflection on what you learned...", "improve": "What you will do differently...", "learning_points": 5}}
+
+Be genuine and humble. Don't be generic - reference specific aspects of THIS project."""
+
+        response = client.chat.completions.create(
+            model="grok-3-fast",
+            messages=[{"role": "user", "content": reflection_prompt}],
+            max_tokens=400
+        )
+        
+        reflection_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON response
+        import json
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', reflection_text)
+        if json_match:
+            reflection_data = json.loads(json_match.group())
+            ai_learned = reflection_data.get('learned', 'I processed your feedback.')
+            ai_to_improve = reflection_data.get('improve', 'I will apply these insights.')
+        else:
+            ai_learned = "I noted your feedback for future reference."
+            ai_to_improve = "I'll work on being more aligned with your preferences."
+            
+    except Exception as e:
+        print(f"AI reflection error: {e}")
+        ai_learned = "I received your feedback and will learn from it."
+        ai_to_improve = "I'll focus on improving based on your notes."
+    
+    # Calculate learning points server-side based on severity (2-10% range)
+    import random
+    if severity == 'critical':
+        learning_points = random.randint(7, 10)
+    elif severity == 'moderate':
+        learning_points = random.randint(4, 6)
+    else:
+        learning_points = random.randint(2, 3)
+    
+    # Get or create AI learning record
+    try:
+        ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+        was_already_unlocked = False
+        old_progress = 0
+        
+        if ai_learning:
+            old_progress = ai_learning.learning_progress
+            was_already_unlocked = ai_learning.can_auto_generate
+        else:
+            ai_learning = AILearning(
+                user_id=user_id,
+                total_projects=0,
+                successful_projects=0,
+                learning_progress=0,
+                learned_hooks=[],
+                learned_voices=[],
+                learned_styles=[],
+                learned_topics=[],
+                can_auto_generate=False
+            )
+            db.session.add(ai_learning)
+        
+        # Update learning progress
+        ai_learning.total_projects += 1
+        new_progress = min(ai_learning.learning_progress + learning_points, 100)
+        ai_learning.learning_progress = new_progress
+        
+        # Check for success (good overall rating)
+        if data.get('overall_rating') in ['great', 'ok']:
+            ai_learning.successful_projects += 1
+        
+        # Check if auto-generation should be unlocked
+        can_auto_generate = (
+            ai_learning.successful_projects >= 5 and 
+            ai_learning.learning_progress >= 50
+        )
+        ai_learning.can_auto_generate = can_auto_generate
+        
+        # Save feedback to database (project_id is nullable)
+        feedback = ProjectFeedback(
+            user_id=user_id,
+            project_id=project_id if project_id else None,
+            script_rating=data.get('script_rating'),
+            voice_rating=data.get('voice_rating'),
+            visuals_rating=data.get('visuals_rating'),
+            soundfx_rating=data.get('soundfx_rating'),
+            overall_rating=data.get('overall_rating'),
+            feedback_text=user_feedback,
+            severity=severity,
+            ai_learned=ai_learned,
+            ai_to_improve=ai_to_improve,
+            learning_points_gained=learning_points
+        )
+        db.session.add(feedback)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'ai_learned': ai_learned,
+            'ai_to_improve': ai_to_improve,
+            'learning_points_gained': learning_points,
+            'old_progress': old_progress,
+            'new_progress': new_progress,
+            'can_auto_generate': can_auto_generate,
+            'was_already_unlocked': was_already_unlocked
+        })
+        
+    except Exception as e:
+        print(f"Feedback save error: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': 'Failed to save feedback to database',
+            'ai_learned': ai_learned,
+            'ai_to_improve': ai_to_improve,
+            'learning_points_gained': 0
+        }), 500
+
+
 @app.route('/host-video', methods=['POST'])
 def host_video():
     """Host a video with a public shareable URL (Pro subscribers only)."""

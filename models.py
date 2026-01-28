@@ -164,3 +164,28 @@ class SwipeFeedback(db.Model):
     
     user = db.relationship('User', backref=db.backref('swipe_feedback', lazy='dynamic'))
     feed_item = db.relationship('FeedItem', backref=db.backref('feedback', lazy='dynamic'))
+
+
+class ProjectFeedback(db.Model):
+    __tablename__ = 'project_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    
+    script_rating = db.Column(db.String(20), nullable=True)
+    voice_rating = db.Column(db.String(20), nullable=True)
+    visuals_rating = db.Column(db.String(20), nullable=True)
+    soundfx_rating = db.Column(db.String(20), nullable=True)
+    overall_rating = db.Column(db.String(20), nullable=True)
+    
+    feedback_text = db.Column(db.Text, nullable=True)
+    severity = db.Column(db.String(20), default='minor')
+    
+    ai_learned = db.Column(db.Text, nullable=True)
+    ai_to_improve = db.Column(db.Text, nullable=True)
+    learning_points_gained = db.Column(db.Integer, default=0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('project_feedback', lazy='dynamic'))
+    project = db.relationship('Project', backref=db.backref('feedback', uselist=False))

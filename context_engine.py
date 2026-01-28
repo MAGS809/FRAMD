@@ -120,11 +120,88 @@ def get_user_context(user_id: str, limit: int = 10) -> str:
             
             if history_summary:
                 context_parts.append("Recent conversation context:\n" + "\n".join(history_summary))
+        
+        # Add learning insights from feedback
+        learning_context = get_learning_context(user_id)
+        if learning_context:
+            context_parts.append(learning_context)
     
     except Exception as e:
         print(f"Error fetching user context: {e}")
     
     return "\n\n".join(context_parts) if context_parts else ""
+
+
+def get_learning_context(user_id: str) -> str:
+    """
+    Get accumulated learnings from user feedback to inform AI behavior.
+    Returns insights the AI should apply when generating content.
+    """
+    from app import db
+    from models import ProjectFeedback, AILearning
+    
+    try:
+        # Get AI learning record
+        ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+        if not ai_learning or ai_learning.learning_progress < 5:
+            return ""
+        
+        learning_parts = []
+        
+        # Add overall learning progress
+        learning_parts.append(f"Learning Progress: {ai_learning.learning_progress}% (Projects: {ai_learning.total_projects}, Successful: {ai_learning.successful_projects})")
+        
+        if ai_learning.can_auto_generate:
+            learning_parts.append("Status: Ready for auto-generation")
+        
+        # Get recent feedback insights
+        recent_feedback = ProjectFeedback.query.filter_by(user_id=user_id).order_by(
+            ProjectFeedback.created_at.desc()
+        ).limit(5).all()
+        
+        if recent_feedback:
+            insights = []
+            patterns = {
+                'script': {'great': 0, 'ok': 0, 'weak': 0},
+                'voice': {'great': 0, 'ok': 0, 'weak': 0},
+                'visuals': {'great': 0, 'ok': 0, 'weak': 0},
+                'soundfx': {'great': 0, 'ok': 0, 'weak': 0}
+            }
+            
+            for fb in recent_feedback:
+                if fb.script_rating and fb.script_rating in patterns['script']:
+                    patterns['script'][fb.script_rating] += 1
+                if fb.voice_rating and fb.voice_rating in patterns['voice']:
+                    patterns['voice'][fb.voice_rating] += 1
+                if fb.visuals_rating and fb.visuals_rating in patterns['visuals']:
+                    patterns['visuals'][fb.visuals_rating] += 1
+                if fb.soundfx_rating and fb.soundfx_rating in patterns['soundfx']:
+                    patterns['soundfx'][fb.soundfx_rating] += 1
+                
+                # Collect specific improvement notes from AI
+                if fb.ai_to_improve and fb.severity in ['moderate', 'critical']:
+                    insights.append(fb.ai_to_improve)
+            
+            # Analyze patterns for guidance
+            pattern_guidance = []
+            for category, counts in patterns.items():
+                if counts['weak'] >= 2:
+                    pattern_guidance.append(f"- {category.upper()}: User frequently rates this weak - needs significant improvement")
+                elif counts['great'] >= 3:
+                    pattern_guidance.append(f"- {category.upper()}: User loves your {category} work - keep this style")
+            
+            if pattern_guidance:
+                learning_parts.append("Pattern Analysis:\n" + "\n".join(pattern_guidance))
+            
+            # Add recent improvement notes (limit to avoid bloat)
+            if insights:
+                learning_parts.append("Key Improvements to Apply:\n- " + "\n- ".join(insights[:3]))
+        
+        return "## LEARNED USER PREFERENCES:\n" + "\n".join(learning_parts) if learning_parts else ""
+    
+    except Exception as e:
+        print(f"Error fetching learning context: {e}")
+        return ""
 
 
 def save_conversation(user_id: str, role: str, content: str):

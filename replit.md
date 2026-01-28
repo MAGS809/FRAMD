@@ -148,6 +148,9 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Projects Dashboard**: Initial view showing all projects with AI learning card (before chat interface)
 - **AI Learning System**: Tracks successful projects to learn user's style (hooks, voices, topics)
 - **Auto-Generation Unlock**: After 5+ successful projects and 50% learning progress, Echo Engine can auto-generate
+- **Feedback System**: Export page feedback with category ratings (Script, Voice, Visuals, Sound FX, Overall)
+- **AI Self-Reflection**: On feedback submission, AI honestly assesses what it learned and what to improve
+- **Learning Progress**: Server-side calculation (minor: 2-3%, moderate: 4-6%, critical: 7-10% per project)
 - **Subscription Model**: Pro tier ($10/month) via Stripe for video generation and hosting
 - **Video Hosting**: Shareable public URLs for Pro subscribers with view tracking
 

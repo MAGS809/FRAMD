@@ -2512,6 +2512,275 @@
             object-fit: contain;
         }
         
+        /* Feedback Section Styles */
+        .feedback-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+        
+        .feedback-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 1.25rem;
+        }
+        
+        .feedback-icon {
+            font-size: 1.25rem;
+        }
+        
+        .feedback-categories {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .feedback-category {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .feedback-category-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+        
+        .feedback-options {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .feedback-btn {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .feedback-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .feedback-btn.selected {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--bg);
+        }
+        
+        .feedback-btn.selected[data-value="great"] {
+            background: #22c55e;
+            border-color: #22c55e;
+        }
+        
+        .feedback-btn.selected[data-value="ok"] {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .feedback-btn.selected[data-value="weak"] {
+            background: #ef4444;
+            border-color: #ef4444;
+        }
+        
+        .feedback-text-container {
+            margin-top: 1.25rem;
+        }
+        
+        .feedback-text-container textarea {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            resize: none;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .feedback-text-container textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .feedback-submit {
+            margin-top: 1rem;
+            width: 100%;
+        }
+        
+        /* AI Reflection Modal */
+        .reflection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .reflection-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .reflection-content {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 2rem;
+            max-width: 480px;
+            width: 90%;
+            border: 1px solid var(--border);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+        
+        .reflection-modal.show .reflection-content {
+            transform: scale(1);
+        }
+        
+        .reflection-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .reflection-avatar {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent), #ff6b6b);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .reflection-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .reflection-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .reflection-body {
+            margin-bottom: 1.5rem;
+        }
+        
+        .reflection-section {
+            margin-bottom: 1.25rem;
+        }
+        
+        .reflection-section-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        
+        .reflection-section-content {
+            font-size: 0.95rem;
+            color: var(--text);
+            line-height: 1.5;
+        }
+        
+        .learning-progress-bar {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: var(--bg);
+            border-radius: 12px;
+        }
+        
+        .learning-progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .learning-progress-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
+        .learning-progress-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .learning-progress-track {
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .learning-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #22c55e);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        .learning-gain {
+            text-align: center;
+            margin-top: 0.75rem;
+            font-size: 0.85rem;
+            color: #22c55e;
+            font-weight: 500;
+        }
+        
+        .reflection-close {
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        
+        .auto-gen-unlock {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.1), rgba(34, 197, 94, 0.1));
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .auto-gen-unlock-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+        
+        .auto-gen-unlock-desc {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+        
         /* Footer */
         footer {
             padding: 1rem 0;
@@ -3452,6 +3721,63 @@
                         <button class="btn btn-secondary" onclick="copyShareUrl()" style="padding: 0.5rem 1rem;">Copy</button>
                     </div>
                 </div>
+                
+                <!-- Feedback Section -->
+                <div class="feedback-section" id="feedback-section">
+                    <div class="feedback-header">
+                        <span class="feedback-icon">💬</span>
+                        <span>Help Echo Engine learn</span>
+                    </div>
+                    
+                    <div class="feedback-categories">
+                        <div class="feedback-category" data-category="script">
+                            <div class="feedback-category-label">Script</div>
+                            <div class="feedback-options">
+                                <button class="feedback-btn" data-value="great" onclick="setFeedback('script', 'great', this)">Great</button>
+                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('script', 'ok', this)">OK</button>
+                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('script', 'weak', this)">Weak</button>
+                            </div>
+                        </div>
+                        <div class="feedback-category" data-category="voice">
+                            <div class="feedback-category-label">Voice</div>
+                            <div class="feedback-options">
+                                <button class="feedback-btn" data-value="great" onclick="setFeedback('voice', 'great', this)">Great</button>
+                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('voice', 'ok', this)">OK</button>
+                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('voice', 'weak', this)">Weak</button>
+                            </div>
+                        </div>
+                        <div class="feedback-category" data-category="visuals">
+                            <div class="feedback-category-label">Visuals</div>
+                            <div class="feedback-options">
+                                <button class="feedback-btn" data-value="great" onclick="setFeedback('visuals', 'great', this)">Great</button>
+                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('visuals', 'ok', this)">OK</button>
+                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('visuals', 'weak', this)">Weak</button>
+                            </div>
+                        </div>
+                        <div class="feedback-category" data-category="soundfx">
+                            <div class="feedback-category-label">Sound FX</div>
+                            <div class="feedback-options">
+                                <button class="feedback-btn" data-value="great" onclick="setFeedback('soundfx', 'great', this)">Great</button>
+                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('soundfx', 'ok', this)">OK</button>
+                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('soundfx', 'weak', this)">Weak</button>
+                            </div>
+                        </div>
+                        <div class="feedback-category" data-category="overall">
+                            <div class="feedback-category-label">Overall</div>
+                            <div class="feedback-options">
+                                <button class="feedback-btn" data-value="great" onclick="setFeedback('overall', 'great', this)">Great</button>
+                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('overall', 'ok', this)">OK</button>
+                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('overall', 'weak', this)">Weak</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feedback-text-container">
+                        <textarea id="feedback-text" placeholder="What could be better? (optional)" rows="2"></textarea>
+                    </div>
+                    
+                    <button class="btn btn-accent feedback-submit" onclick="submitFeedbackAndReflect()">Submit & See What I Learned</button>
+                </div>
             </div>
         </div>
         
@@ -3459,6 +3785,53 @@
     </div>
     
     <div class="toast" id="toast"></div>
+    
+    <!-- AI Reflection Modal -->
+    <div class="reflection-modal" id="reflection-modal">
+        <div class="reflection-content">
+            <div class="reflection-header">
+                <div class="reflection-avatar">🧠</div>
+                <div>
+                    <div class="reflection-title">Echo Engine Reflection</div>
+                    <div class="reflection-subtitle">Here's what I learned from this project</div>
+                </div>
+            </div>
+            
+            <div class="reflection-body">
+                <div class="reflection-section">
+                    <div class="reflection-section-title">What I Learned</div>
+                    <div class="reflection-section-content" id="reflection-learned">
+                        Analyzing your feedback...
+                    </div>
+                </div>
+                
+                <div class="reflection-section">
+                    <div class="reflection-section-title">What I Can Improve</div>
+                    <div class="reflection-section-content" id="reflection-improve">
+                        Identifying areas for growth...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="learning-progress-bar">
+                <div class="learning-progress-header">
+                    <span class="learning-progress-label">Learning Progress</span>
+                    <span class="learning-progress-value" id="learning-progress-value">0%</span>
+                </div>
+                <div class="learning-progress-track">
+                    <div class="learning-progress-fill" id="learning-progress-fill" style="width: 0%"></div>
+                </div>
+                <div class="learning-gain" id="learning-gain" style="display: none;">+0% from this project</div>
+            </div>
+            
+            <div class="auto-gen-unlock" id="auto-gen-unlock" style="display: none;">
+                <div class="auto-gen-unlock-title">Auto-Generation Unlocked!</div>
+                <div class="auto-gen-unlock-desc">I've learned enough about your style to draft projects automatically.</div>
+            </div>
+            
+            <button class="btn btn-primary reflection-close" onclick="closeReflectionModal()">Continue</button>
+        </div>
+    </div>
     
     <!-- Loading overlay -->
     <div class="loading-overlay" id="loading-overlay">
@@ -5561,6 +5934,130 @@
                 a.download = 'framd-video.mp4';
                 a.click();
             }
+        }
+        
+        // Feedback System
+        const feedbackData = {
+            script: null,
+            voice: null,
+            visuals: null,
+            soundfx: null,
+            overall: null
+        };
+        
+        function setFeedback(category, value, btn) {
+            feedbackData[category] = value;
+            
+            // Update button states
+            const container = btn.closest('.feedback-category');
+            container.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+        
+        function resetFeedback() {
+            Object.keys(feedbackData).forEach(key => feedbackData[key] = null);
+            document.querySelectorAll('.feedback-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('feedback-text').value = '';
+        }
+        
+        async function submitFeedbackAndReflect() {
+            const feedbackText = document.getElementById('feedback-text').value;
+            
+            // Check if any feedback was given
+            const hasFeedback = Object.values(feedbackData).some(v => v !== null) || feedbackText.trim();
+            if (!hasFeedback) {
+                showToast('Please provide at least some feedback');
+                return;
+            }
+            
+            // Calculate severity based on ratings
+            let severity = 'minor';
+            const weakCount = Object.values(feedbackData).filter(v => v === 'weak').length;
+            if (weakCount >= 3 || feedbackData.overall === 'weak') {
+                severity = 'critical';
+            } else if (weakCount >= 1) {
+                severity = 'moderate';
+            }
+            
+            try {
+                // Submit feedback and get AI self-assessment
+                const response = await fetch('/submit-feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProjectId,
+                        script_rating: feedbackData.script,
+                        voice_rating: feedbackData.voice,
+                        visuals_rating: feedbackData.visuals,
+                        soundfx_rating: feedbackData.soundfx,
+                        overall_rating: feedbackData.overall,
+                        feedback_text: feedbackText,
+                        severity: severity,
+                        script: currentScript,
+                        voice_assignments: characterVoices,
+                        scenes: currentScenes
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    // Show reflection modal with AI's honest assessment
+                    showReflectionModal(data);
+                    resetFeedback();
+                } else {
+                    showToast(data.error || 'Failed to submit feedback');
+                }
+            } catch (err) {
+                console.error('Feedback submission error:', err);
+                showToast('Error submitting feedback');
+            }
+        }
+        
+        function showReflectionModal(data) {
+            const modal = document.getElementById('reflection-modal');
+            
+            // Update content
+            document.getElementById('reflection-learned').textContent = data.ai_learned || 'Processing...';
+            document.getElementById('reflection-improve').textContent = data.ai_to_improve || 'Still analyzing...';
+            
+            // Update progress bar
+            const progressValue = document.getElementById('learning-progress-value');
+            const progressFill = document.getElementById('learning-progress-fill');
+            const learningGain = document.getElementById('learning-gain');
+            
+            const oldProgress = data.old_progress || 0;
+            const newProgress = data.new_progress || 0;
+            const gain = data.learning_points_gained || 0;
+            
+            progressValue.textContent = `${newProgress}%`;
+            
+            // Animate progress bar
+            setTimeout(() => {
+                progressFill.style.width = `${newProgress}%`;
+            }, 100);
+            
+            // Show gain if any
+            if (gain > 0) {
+                learningGain.textContent = `+${gain}% from this project`;
+                learningGain.style.display = 'block';
+            } else {
+                learningGain.style.display = 'none';
+            }
+            
+            // Check for auto-generation unlock
+            const autoGenUnlock = document.getElementById('auto-gen-unlock');
+            if (data.can_auto_generate && !data.was_already_unlocked) {
+                autoGenUnlock.style.display = 'block';
+            } else {
+                autoGenUnlock.style.display = 'none';
+            }
+            
+            // Show modal
+            modal.classList.add('show');
+        }
+        
+        function closeReflectionModal() {
+            document.getElementById('reflection-modal').classList.remove('show');
         }
         
         async function hostAndShare() {
