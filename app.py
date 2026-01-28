@@ -3132,18 +3132,76 @@ OUTPUT FORMAT (JSON):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/generate-stage-directions', methods=['POST'])
+def generate_stage_directions():
+    """Generate stage directions from a script using AI."""
+    from openai import OpenAI
+    import os
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'success': False, 'error': 'No script provided'}), 400
+    
+    client = OpenAI(
+        api_key=os.environ.get("XAI_API_KEY"),
+        base_url="https://api.x.ai/v1"
+    )
+    
+    prompt = f"""Analyze this script and generate stage directions (audio effects, pauses, transitions).
+
+SCRIPT:
+{script}
+
+Generate stage directions using these formats:
+- [PAUSE 1s] - silence/pause for specified duration
+- [BEAT] - short dramatic pause
+- [DRAMATIC MUSIC] - add tension
+- [UPLIFTING MUSIC] - positive energy
+- [SOUND: description] - specific sound effect
+- [SILENCE 2s] - extended silence
+- [TRANSITION] - scene change marker
+
+Rules:
+1. Place directions at appropriate emotional moments
+2. Don't overdo it - 3-6 directions per 30 seconds
+3. Match the script's tone
+4. Consider pacing and emphasis
+
+Output ONLY the stage directions, one per line, in order of appearance.
+Include a brief note about where each should occur."""
+    
+    try:
+        response = client.chat.completions.create(
+            model="grok-3",
+            messages=[
+                {"role": "system", "content": "You are an audio director for short-form video content."},
+                {"role": "user", "content": prompt}
+            ],
+            max_completion_tokens=1024
+        )
+        
+        directions = response.choices[0].message.content or ""
+        return jsonify({'success': True, 'directions': directions})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/generate-voiceover-multi', methods=['POST'])
 def generate_voiceover_multi():
-    """Generate voiceover with multiple character voices."""
+    """Generate voiceover with multiple character voices and stage directions."""
     from openai import OpenAI
     import base64
     import uuid
     from pydub import AudioSegment
     import io
+    import re as regex
     
     data = request.get_json()
     script = data.get('script', '')
     character_voices = data.get('character_voices', {})
+    stage_directions = data.get('stage_directions', '')
     
     if not script:
         return jsonify({'error': 'No script provided'}), 400
@@ -3243,12 +3301,64 @@ def generate_voiceover_multi():
             audio_bytes = response.content
             audio_segments.append(audio_bytes)
         
-        # Combine all audio segments
+        # Parse stage directions to extract timing effects
+        def parse_stage_directions(directions_text):
+            """Parse stage directions into actionable effects."""
+            effects = []
+            if not directions_text:
+                return effects
+            
+            for line in directions_text.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                
+                # Parse [PAUSE Xs] - e.g., [PAUSE 1s], [PAUSE 2s]
+                pause_match = regex.search(r'\[PAUSE\s*(\d+(?:\.\d+)?)\s*s?\]', line, regex.IGNORECASE)
+                if pause_match:
+                    effects.append({'type': 'pause', 'duration': float(pause_match.group(1)) * 1000})
+                    continue
+                
+                # Parse [BEAT] - short dramatic pause (500ms)
+                if '[BEAT]' in line.upper():
+                    effects.append({'type': 'pause', 'duration': 500})
+                    continue
+                
+                # Parse [SILENCE Xs]
+                silence_match = regex.search(r'\[SILENCE\s*(\d+(?:\.\d+)?)\s*s?\]', line, regex.IGNORECASE)
+                if silence_match:
+                    effects.append({'type': 'pause', 'duration': float(silence_match.group(1)) * 1000})
+                    continue
+                
+                # Parse [TRANSITION] - 1 second pause
+                if '[TRANSITION]' in line.upper():
+                    effects.append({'type': 'pause', 'duration': 1000})
+                    continue
+            
+            return effects
+        
+        direction_effects = parse_stage_directions(stage_directions)
+        
+        # Combine all audio segments with stage direction effects
         if audio_segments:
             combined = AudioSegment.empty()
-            for seg_bytes in audio_segments:
+            effect_index = 0
+            
+            for i, seg_bytes in enumerate(audio_segments):
                 seg = AudioSegment.from_mp3(io.BytesIO(seg_bytes))
-                combined += seg + AudioSegment.silent(duration=300)  # 300ms pause between lines
+                combined += seg
+                
+                # Add standard pause between lines
+                pause_duration = 300
+                
+                # Apply stage direction effect if available
+                if effect_index < len(direction_effects):
+                    effect = direction_effects[effect_index]
+                    if effect['type'] == 'pause':
+                        pause_duration = max(pause_duration, int(effect['duration']))
+                    effect_index += 1
+                
+                combined += AudioSegment.silent(duration=pause_duration)
             
             filename = f"voiceover_multi_{uuid.uuid4().hex[:8]}.mp3"
             filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
@@ -3258,7 +3368,8 @@ def generate_voiceover_multi():
                 'success': True,
                 'audio_url': f'/output/{filename}',
                 'audio_path': filepath,
-                'segments': len(audio_segments)
+                'segments': len(audio_segments),
+                'effects_applied': len(direction_effects)
             })
         else:
             return jsonify({'error': 'No audio segments generated'}), 500
