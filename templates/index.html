@@ -3671,13 +3671,13 @@
         let currentWorkflowStep = 1;
         const WORKFLOW_STEPS = {
             1: { name: 'Script Writing', guide: null, action: null },
-            2: { name: 'Voice Assignment', guide: 'Your script is ready! Assign character voices to each scene, then click Continue when you\'re set.', action: { label: 'Continue to Visuals', fn: 'proceedToReview' } },
-            3: { name: 'Visual Curation', guide: 'Finding the perfect visuals for your script...', action: null },
-            4: { name: 'Scene Review', guide: 'Your scenes are ready! Review the timeline and arrange your clips. When everything looks good, click Generate.', action: { label: 'Generate Video', fn: 'generateVideo' } },
-            5: { name: 'Caption Styling', guide: 'Style your captions using the color picker and toggle options.', action: null },
-            6: { name: 'Audio Preview', guide: 'Voiceover generated! Processing your video now...', action: null },
-            7: { name: 'Final Preview', guide: 'Your video is ready! Watch the preview and download when you\'re happy.', action: { label: 'Download Video', fn: 'downloadVideo' } },
-            8: { name: 'Export', guide: 'Your video is ready to share!', action: { label: 'Start New Project', fn: 'startOver' } }
+            2: { name: 'Voice Assignment', guide: 'Script ready. Assign voices, then continue.', action: { label: 'Continue to Visuals', fn: 'proceedToReview' } },
+            3: { name: 'Visual Curation', guide: 'Finding visuals...', action: null },
+            4: { name: 'Scene Review', guide: 'Scenes ready. Review and generate.', action: { label: 'Generate Video', fn: 'generateVideo' } },
+            5: { name: 'Caption Styling', guide: 'Style your captions.', action: null },
+            6: { name: 'Audio Preview', guide: 'Processing video...', action: null },
+            7: { name: 'Final Preview', guide: 'Done. Preview and download.', action: { label: 'Download Video', fn: 'downloadVideo' } },
+            8: { name: 'Export', guide: 'Ready to share.', action: { label: 'Start New Project', fn: 'startOver' } }
         };
         
         // Render a guide message with optional action button
