@@ -869,7 +869,13 @@ Only include TRUE anchors. A 60-second script might have 3-5 anchors, not 15."""
     try:
         content = response.choices[0].message.content or "{}"
         result = json.loads(content)
-        return result.get('anchors', result) if isinstance(result, dict) else result
+        # Handle both {"anchors": [...]} and direct array formats
+        if isinstance(result, dict):
+            anchors = result.get('anchors', [])
+            return anchors if isinstance(anchors, list) else []
+        elif isinstance(result, list):
+            return result
+        return []
     except json.JSONDecodeError:
         return []
 
