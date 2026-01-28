@@ -46,3 +46,53 @@ class UserPreference(db.Model):
     style_preferences = db.Column(db.JSON, default={})
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class Project(db.Model):
+    __tablename__ = 'projects'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(db.String(50), default='draft')
+    script = db.Column(db.Text, nullable=True)
+    visual_plan = db.Column(db.JSON, nullable=True)
+    voice_assignments = db.Column(db.JSON, nullable=True)
+    caption_settings = db.Column(db.JSON, nullable=True)
+    video_path = db.Column(db.String(500), nullable=True)
+    is_successful = db.Column(db.Boolean, default=False)
+    success_score = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('projects', lazy='dynamic'))
+
+
+class AILearning(db.Model):
+    __tablename__ = 'ai_learning'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    total_projects = db.Column(db.Integer, default=0)
+    successful_projects = db.Column(db.Integer, default=0)
+    learning_progress = db.Column(db.Integer, default=0)
+    learned_hooks = db.Column(db.JSON, default=list)
+    learned_voices = db.Column(db.JSON, default=list)
+    learned_styles = db.Column(db.JSON, default=list)
+    learned_topics = db.Column(db.JSON, default=list)
+    can_auto_generate = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('ai_learning', uselist=False))
+
+
+class GlobalPattern(db.Model):
+    __tablename__ = 'global_patterns'
+    id = db.Column(db.Integer, primary_key=True)
+    pattern_type = db.Column(db.String(50), nullable=False)
+    pattern_data = db.Column(db.JSON, nullable=False)
+    success_count = db.Column(db.Integer, default=0)
+    usage_count = db.Column(db.Integer, default=0)
+    success_rate = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
