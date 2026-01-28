@@ -4335,17 +4335,46 @@ def render_video():
                 print(f"Concat error: {result.stderr.decode()}")
         
         # Now scale and crop to format, add audio
-        ffmpeg_cmd = [
+        # Two-pass approach to avoid complex filter chain issues
+        # Pass 1: Combine video + audio into a temp file
+        # Pass 2: Add captions (if enabled)
+        
+        has_audio = audio_path and os.path.exists(audio_path)
+        temp_combined = os.path.abspath(f'output/temp_combined_{output_id}.mp4')
+        
+        # Pass 1: Combine video + audio with scaling
+        pass1_cmd = [
             'ffmpeg', '-y',
             '-i', concat_path,
         ]
+        if has_audio:
+            pass1_cmd.extend(['-i', audio_path])
         
-        # Add audio if available
-        if audio_path and os.path.exists(audio_path):
-            ffmpeg_cmd.extend(['-i', audio_path])
+        # Apply scaling
+        pass1_cmd.extend([
+            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+        ])
         
-        # Build video filter chain
-        video_filters = [f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}']
+        if has_audio:
+            pass1_cmd.extend(['-c:a', 'aac', '-b:a', '128k', '-shortest'])
+        else:
+            pass1_cmd.extend(['-an'])
+        
+        pass1_cmd.append(temp_combined)
+        
+        print(f"Pass 1: Combining video + audio...")
+        pass1_result = subprocess.run(pass1_cmd, capture_output=True, timeout=180)
+        
+        if pass1_result.returncode != 0:
+            print(f"Pass 1 failed: {pass1_result.stderr.decode()[:500]}")
+            # Fallback: just copy concat file
+            import shutil
+            if os.path.exists(concat_path):
+                shutil.copy(concat_path, temp_combined)
+        
+        # Pass 2: Add captions if enabled
+        caption_filters = []
         
         # Add word-synced captions if enabled and audio exists
         if captions_enabled and audio_path and os.path.exists(audio_path):
@@ -4441,17 +4470,18 @@ def render_video():
                         })
                     
                     # Build drawtext filters with precise timing
+                    caption_filters = []
                     for phrase in phrases:
                         text = phrase['text']
                         start_time = phrase['start']
                         end_time = phrase['end']
                         
-                        # Proper FFmpeg drawtext escaping (level 1: text value, level 2: filter)
-                        # First escape backslashes, then single quotes, then colons
+                        # Proper FFmpeg drawtext text escaping
                         clean_text = text
                         if caption_uppercase:
                             clean_text = clean_text.upper()
-                        # FFmpeg drawtext escaping: \ -> \\, ' -> \\', : -> \:
+                        # Escape special characters for FFmpeg drawtext text value
+                        # Order matters: backslash first, then quotes, then colons
                         clean_text = clean_text.replace("\\", "\\\\")
                         clean_text = clean_text.replace("'", "\\'")
                         clean_text = clean_text.replace(":", "\\:")
@@ -4463,8 +4493,8 @@ def render_video():
                         if caption_shadow:
                             border_params += ":shadowcolor=black@0.7:shadowx=3:shadowy=3"
                         
-                        # Escape commas in enable expression (FFmpeg filter chain parsing)
-                        # Use \, to escape commas inside enable expression
+                        # In filter_complex, commas inside between() must be escaped with backslash
+                        # to prevent them being parsed as filter chain separators
                         drawtext = (
                             f"drawtext=text='{clean_text}'"
                             f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -4474,36 +4504,58 @@ def render_video():
                             f"{border_params}"
                             f":enable='between(t\\,{start_time:.3f}\\,{end_time:.3f})'"
                         )
-                        video_filters.append(drawtext)
+                        caption_filters.append(drawtext)
                     
-                    print(f"Added {len(phrases)} word-synced caption phrases")
+                    print(f"Added {len(caption_filters)} word-synced caption phrases")
                 else:
                     print("No word timestamps returned from Whisper")
                     
             except Exception as e:
                 print(f"Whisper transcription failed, skipping captions: {e}")
         
-        # Apply video filters
-        ffmpeg_cmd.extend([
-            '-vf', ','.join(video_filters),
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-        ])
-        
-        if audio_path and os.path.exists(audio_path):
-            ffmpeg_cmd.extend(['-c:a', 'aac', '-b:a', '128k', '-shortest'])
-        else:
-            ffmpeg_cmd.extend(['-an'])
-        
-        ffmpeg_cmd.append(output_path)
-        
-        result = subprocess.run(ffmpeg_cmd, capture_output=True, timeout=180)
-        
-        if result.returncode != 0:
-            print(f"FFmpeg error: {result.stderr.decode()}")
-            # Fallback - just use first clip
-            if clip_paths:
+        # Pass 2: Add captions to the combined video (if any)
+        if caption_filters and os.path.exists(temp_combined):
+            print(f"Pass 2: Adding {len(caption_filters)} captions...")
+            
+            # Build caption filter chain - join with commas, each drawtext is separate
+            # Since we're only doing captions now (no mixing with complex filters),
+            # we can use -vf with proper escaping
+            caption_chain = ",".join(caption_filters)
+            
+            pass2_cmd = [
+                'ffmpeg', '-y',
+                '-i', temp_combined,
+                '-vf', caption_chain,
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                '-c:a', 'copy',
+                output_path
+            ]
+            
+            pass2_result = subprocess.run(pass2_cmd, capture_output=True, timeout=300)
+            
+            if pass2_result.returncode != 0:
+                error_msg = pass2_result.stderr.decode()[:1000]
+                print(f"Pass 2 (captions) failed: {error_msg}")
+                # Fallback: use pass 1 output without captions
                 import shutil
-                shutil.copy(clip_paths[0], output_path)
+                shutil.copy(temp_combined, output_path)
+                print("Using video without captions as fallback")
+            else:
+                print("Pass 2 succeeded - captions added")
+        else:
+            # No captions - just use pass 1 output
+            import shutil
+            if os.path.exists(temp_combined):
+                shutil.copy(temp_combined, output_path)
+            elif os.path.exists(concat_path):
+                shutil.copy(concat_path, output_path)
+        
+        # Cleanup temp combined file
+        try:
+            if os.path.exists(temp_combined):
+                os.remove(temp_combined)
+        except:
+            pass
         
         # Cleanup temp files
         for clip in clip_paths:
