@@ -669,6 +669,29 @@ ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'C
 # License validation - HARD REJECT list (checked FIRST)
 REJECTED_LICENSE_PATTERNS = ['nc', 'nd', 'editorial', 'all rights reserved', 'getty', 'shutterstock']
 
+# NSFW content blocklist - reject any media with these terms in title/description/categories
+NSFW_BLOCKLIST = [
+    'nude', 'nudity', 'naked', 'nsfw', 'xxx', 'porn', 'pornograph', 'erotic', 'erotica',
+    'sex', 'sexual', 'genital', 'penis', 'vagina', 'breast', 'nipple', 'topless',
+    'underwear', 'lingerie', 'bra', 'panties', 'fetish', 'bondage', 'bdsm',
+    'adult content', 'explicit', 'mature content', '18+', 'r-rated',
+    'playboy', 'hustler', 'penthouse', 'onlyfans',
+    'stripper', 'striptease', 'burlesque', 'provocative',
+    'masturbat', 'orgasm', 'intercourse', 'coitus',
+    'hentai', 'ecchi', 'yaoi', 'yuri',
+    'stockings', 'garter', 'corset', 'thong', 'bikini model',
+    'pin-up', 'pinup', 'glamour model', 'glamor model',
+    'body paint', 'body-paint', 'implied nude'
+]
+
+def is_nsfw_content(title, description='', categories=None):
+    """Check if content appears to be NSFW based on title, description, and categories."""
+    text_to_check = f"{title} {description} {' '.join(categories or [])}".lower()
+    for term in NSFW_BLOCKLIST:
+        if term in text_to_check:
+            return True, f"Blocked: contains '{term}'"
+    return False, None
+
 # License whitelist for Wikimedia Commons
 WIKIMEDIA_ALLOWED_LICENSES = [
     'cc0', 'cc-zero', 'public domain', 'pd',
@@ -772,6 +795,15 @@ def search_wikimedia():
             if not is_valid:
                 continue
             
+            # NSFW content filter
+            title = page.get('title', '')
+            description_raw = extmeta.get('ImageDescription', {}).get('value', '')
+            categories = extmeta.get('Categories', {}).get('value', '').split('|') if extmeta.get('Categories', {}).get('value') else []
+            is_nsfw, nsfw_reason = is_nsfw_content(title, description_raw, categories)
+            if is_nsfw:
+                print(f"[NSFW Filter] Blocked: {title} - {nsfw_reason}")
+                continue
+            
             # Get attribution
             artist_html = extmeta.get('Artist', {}).get('value', 'Unknown')
             artist = re.sub('<[^<]+?>', '', artist_html).strip()
@@ -859,6 +891,15 @@ def search_wikimedia_videos():
             
             is_valid, our_license, _ = validate_license(license_short)
             if not is_valid:
+                continue
+            
+            # NSFW content filter
+            title = page.get('title', '')
+            description_raw = extmeta.get('ImageDescription', {}).get('value', '')
+            categories = extmeta.get('Categories', {}).get('value', '').split('|') if extmeta.get('Categories', {}).get('value') else []
+            is_nsfw, nsfw_reason = is_nsfw_content(title, description_raw, categories)
+            if is_nsfw:
+                print(f"[NSFW Filter] Blocked video: {title} - {nsfw_reason}")
                 continue
             
             artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
@@ -997,6 +1038,15 @@ def search_all_sources():
             if not is_valid:
                 continue
             
+            # NSFW content filter
+            title = page.get('title', '')
+            description_raw = extmeta.get('ImageDescription', {}).get('value', '')
+            categories = extmeta.get('Categories', {}).get('value', '').split('|') if extmeta.get('Categories', {}).get('value') else []
+            is_nsfw, nsfw_reason = is_nsfw_content(title, description_raw, categories)
+            if is_nsfw:
+                print(f"[NSFW Filter] Blocked in all-sources: {title} - {nsfw_reason}")
+                continue
+            
             artist = re.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
             
             all_results.append({
@@ -1042,6 +1092,14 @@ def search_all_sources():
                 license_short = extmeta.get('LicenseShortName', {}).get('value', '')
                 is_valid, our_license, _ = validate_license(license_short)
                 if is_valid:
+                    # NSFW content filter for fallback results
+                    title = page.get('title', '')
+                    description_raw = extmeta.get('ImageDescription', {}).get('value', '')
+                    categories = extmeta.get('Categories', {}).get('value', '').split('|') if extmeta.get('Categories', {}).get('value') else []
+                    is_nsfw, _ = is_nsfw_content(title, description_raw, categories)
+                    if is_nsfw:
+                        continue
+                    
                     all_results.append({
                         'id': f"wikimedia_{page.get('pageid')}",
                         'source': 'wikimedia_commons',
@@ -1386,6 +1444,15 @@ CRITICAL:
                             is_valid, our_license, rejection = validate_license(license_short)
                             if not is_valid:
                                 print(f"[Wikimedia] Rejected {asset_id}: {rejection}")
+                                continue
+                            
+                            # NSFW content filter
+                            title = page.get('title', '')
+                            description_raw = extmeta.get('ImageDescription', {}).get('value', '')
+                            categories = extmeta.get('Categories', {}).get('value', '').split('|') if extmeta.get('Categories', {}).get('value') else []
+                            is_nsfw, nsfw_reason = is_nsfw_content(title, description_raw, categories)
+                            if is_nsfw:
+                                print(f"[NSFW Filter] Blocked in curation: {title} - {nsfw_reason}")
                                 continue
                             
                             artist = regex.sub('<[^<]+?>', '', extmeta.get('Artist', {}).get('value', 'Unknown')).strip()
@@ -2960,22 +3027,34 @@ def generate_video():
     import uuid
     import subprocess
     import requests
-    from models import Subscription
+    from models import Subscription, User
     from flask_login import current_user
     
     user_id = None
+    is_dev_mode = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEV_MODE') == 'true'
+    
     if current_user.is_authenticated:
         user_id = current_user.id
     else:
         user_id = session.get('dev_user_id')
     
-    sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
-    if not sub or not sub.is_active():
-        return jsonify({
-            'error': 'Pro subscription required',
-            'requires_subscription': True,
-            'message': 'Video generation requires a Pro subscription ($10/month)'
-        }), 403
+    # Dev mode (server-side flag): fully free
+    if is_dev_mode:
+        print("[generate-video] Dev mode - free access")
+    else:
+        # Check subscription only (free tier deducted in render-video to avoid double-charge)
+        sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+        user = User.query.get(user_id) if user_id else None
+        
+        has_active_sub = sub and sub.is_active()
+        has_free_generation = user and hasattr(user, 'free_video_generations') and (user.free_video_generations or 0) > 0
+        
+        if not has_active_sub and not has_free_generation:
+            return jsonify({
+                'error': 'Pro subscription required',
+                'requires_subscription': True,
+                'message': 'Video generation requires a Pro subscription ($10/month). Your free generation has been used.'
+            }), 403
     
     data = request.get_json()
     voiceover_url = data.get('voiceover_url')
@@ -3968,22 +4047,40 @@ def render_video():
     import subprocess
     import uuid
     import urllib.request
-    from models import Subscription
+    from models import Subscription, User
     from flask_login import current_user
     
     user_id = None
+    is_dev_mode = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEV_MODE') == 'true'
+    
     if current_user.is_authenticated:
         user_id = current_user.id
     else:
         user_id = session.get('dev_user_id')
     
-    sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
-    if not sub or not sub.is_active():
-        return jsonify({
-            'error': 'Pro subscription required',
-            'requires_subscription': True,
-            'message': 'Video rendering requires a Pro subscription ($10/month)'
-        }), 403
+    # Dev mode (server-side flag): fully free
+    if is_dev_mode:
+        print("[render-video] Dev mode - free access")
+    else:
+        # Check subscription or free tier
+        sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+        user = User.query.get(user_id) if user_id else None
+        
+        has_active_sub = sub and sub.is_active()
+        has_free_generation = user and hasattr(user, 'free_video_generations') and (user.free_video_generations or 0) > 0
+        
+        if not has_active_sub and not has_free_generation:
+            return jsonify({
+                'error': 'Pro subscription required',
+                'requires_subscription': True,
+                'message': 'Video rendering requires a Pro subscription ($10/month). Your free generation has been used.'
+            }), 403
+        
+        # Deduct free generation if using free tier (only here to avoid double-charge)
+        if not has_active_sub and has_free_generation:
+            user.free_video_generations = max(0, (user.free_video_generations or 1) - 1)
+            db.session.commit()
+            print(f"[render-video] Used free generation for user {user_id}, remaining: {user.free_video_generations}")
     
     data = request.get_json()
     scenes = data.get('scenes', [])

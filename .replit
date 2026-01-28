@@ -38,3 +38,8 @@ externalPort = 80
 
 [deployment]
 deploymentTarget = "cloudrun"
+
+[userenv]
+
+[userenv.development]
+DEV_MODE = "true"

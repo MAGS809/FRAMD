@@ -151,12 +151,13 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Video Hosting**: Shareable public URLs for Pro subscribers with view tracking
 
 **Subscription System:**
-- **Free Tier**: Script writing, visual curation, scene composition
-- **Pro Tier ($10/month)**: Video generation, hosting with shareable links, no limits
+- **Free Tier**: Script writing, visual curation, scene composition, 1 free video generation
+- **Pro Tier ($10/month)**: Unlimited video generation, hosting with shareable links
 - **Stripe Integration**: Subscription checkout, webhook handling for lifecycle events
-- **Gated Features**: /generate-video and /render-video require active Pro subscription
+- **Gated Features**: /generate-video and /render-video require Pro subscription or free tier credit
 - **Video Hosting**: /host-video creates public shareable URLs at /v/<public_id>
-- **Dev Mode Support**: All project/learning APIs work for both authenticated users and dev mode
+- **Dev Mode Support**: Set DEV_MODE=true for fully free video generation in development
+- **NSFW Content Filter**: Comprehensive blocklist prevents inappropriate images from Wikimedia Commons
 
 **Discover Feed (Tinder-Style):**
 - **Swipeable Cards**: Browse AI-generated content with drag gestures (like Tinder)
