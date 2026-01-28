@@ -4234,17 +4234,105 @@ def render_video():
             for clip in clip_paths:
                 f.write(f"file '{os.path.abspath(clip)}'\n")
         
-        # First, concatenate clips
+        # Get actual durations of each clip for accurate transitions
+        clip_durations = []
+        for clip in clip_paths:
+            try:
+                probe_cmd = [
+                    'ffprobe', '-v', 'error',
+                    '-show_entries', 'format=duration',
+                    '-of', 'default=noprint_wrappers=1:nokey=1',
+                    os.path.abspath(clip)
+                ]
+                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
+                if probe_result.returncode == 0:
+                    clip_durations.append(float(probe_result.stdout.strip()))
+                else:
+                    clip_durations.append(4.0)  # Default fallback
+            except:
+                clip_durations.append(4.0)
+        
+        # First, concatenate clips with crossfade transitions
         concat_path = os.path.abspath(f'output/concat_{output_id}.mp4')
-        concat_cmd = [
-            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
-            '-i', list_path,
-            '-c', 'copy',
-            concat_path
-        ]
-        result = subprocess.run(concat_cmd, capture_output=True, timeout=120)
-        if result.returncode != 0:
-            print(f"Concat error: {result.stderr.decode()}")
+        
+        if len(clip_paths) > 1:
+            # Use xfade filter for smooth transitions between clips
+            transition_duration = 0.5  # 0.5 second crossfade
+            
+            # Build complex filter for xfade transitions with pre-scaling
+            inputs = []
+            for i, clip in enumerate(clip_paths):
+                inputs.extend(['-i', os.path.abspath(clip)])
+            
+            # Build xfade filter chain with scaling to normalize all clips
+            filter_parts = []
+            
+            # First, scale all inputs to the target size
+            for i in range(len(clip_paths)):
+                filter_parts.append(f"[{i}:v]scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,fps=30[s{i}]")
+            
+            # Calculate cumulative offsets based on actual clip durations
+            # Guard against clips shorter than transition duration
+            transition_duration = min(transition_duration, min(clip_durations) * 0.8) if min(clip_durations) < 1 else transition_duration
+            
+            if len(clip_paths) == 2:
+                # Simple case: 2 clips
+                offset = max(0.1, clip_durations[0] - transition_duration)
+                filter_parts.append(f"[s0][s1]xfade=transition=fade:duration={transition_duration}:offset={offset:.2f}[v]")
+            else:
+                # Multiple clips: chain xfade filters
+                cumulative_duration = 0
+                for i in range(len(clip_paths) - 1):
+                    if i == 0:
+                        # First transition
+                        cumulative_duration = max(0.1, clip_durations[0] - transition_duration)
+                        filter_parts.append(f"[s0][s1]xfade=transition=fade:duration={transition_duration}:offset={cumulative_duration:.2f}[v1]")
+                    elif i == len(clip_paths) - 2:
+                        # Last transition
+                        cumulative_duration += max(0.1, clip_durations[i] - transition_duration)
+                        filter_parts.append(f"[v{i}][s{i+1}]xfade=transition=fade:duration={transition_duration}:offset={cumulative_duration:.2f}[v]")
+                    else:
+                        # Middle transitions
+                        cumulative_duration += max(0.1, clip_durations[i] - transition_duration)
+                        filter_parts.append(f"[v{i}][s{i+1}]xfade=transition=fade:duration={transition_duration}:offset={cumulative_duration:.2f}[v{i+1}]")
+            
+            xfade_filter = ";".join(filter_parts)
+            
+            concat_cmd = ['ffmpeg', '-y'] + inputs + [
+                '-filter_complex', xfade_filter,
+                '-map', '[v]',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+                concat_path
+            ]
+            result = subprocess.run(concat_cmd, capture_output=True, timeout=180)
+            
+            if result.returncode != 0:
+                print(f"Xfade error: {result.stderr.decode()[:500]}")
+                # Fallback to concat with fade-in/fade-out per clip
+                concat_cmd = [
+                    'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+                    '-i', list_path,
+                    '-c', 'copy',
+                    concat_path
+                ]
+                result = subprocess.run(concat_cmd, capture_output=True, timeout=120)
+                if result.returncode != 0:
+                    print(f"Concat fallback error: {result.stderr.decode()}")
+                else:
+                    print("Used simple concat (xfade failed)")
+            else:
+                print(f"Added fade transitions between {len(clip_paths)} clips")
+        else:
+            # Single clip - just copy it
+            concat_cmd = [
+                'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+                '-i', list_path,
+                '-c', 'copy',
+                concat_path
+            ]
+            result = subprocess.run(concat_cmd, capture_output=True, timeout=120)
+            if result.returncode != 0:
+                print(f"Concat error: {result.stderr.decode()}")
         
         # Now scale and crop to format, add audio
         ffmpeg_cmd = [
@@ -4375,6 +4463,8 @@ def render_video():
                         if caption_shadow:
                             border_params += ":shadowcolor=black@0.7:shadowx=3:shadowy=3"
                         
+                        # Escape commas in enable expression (FFmpeg filter chain parsing)
+                        # Use \, to escape commas inside enable expression
                         drawtext = (
                             f"drawtext=text='{clean_text}'"
                             f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -4382,7 +4472,7 @@ def render_video():
                             f":fontcolor=#{caption_color}"
                             f":x=(w-text_w)/2:y={y_pos}"
                             f"{border_params}"
-                            f":enable='between(t,{start_time:.3f},{end_time:.3f})'"
+                            f":enable='between(t\\,{start_time:.3f}\\,{end_time:.3f})'"
                         )
                         video_filters.append(drawtext)
                     
