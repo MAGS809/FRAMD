@@ -175,6 +175,257 @@ def extract_dialogue_only(script_text):
     return ' '.join(dialogue_lines)
 
 
+def generate_sound_effect(effect_type, output_path, duration=1.0):
+    """
+    Generate a sound effect using FFmpeg synthesis.
+    Returns the path to the generated audio file.
+    
+    Supported effect types:
+    - whoosh: Quick transition swoosh
+    - impact: Deep bass hit
+    - tension: Rising drone
+    - reveal: Bright chime/sting
+    - alarm: Alert/warning tone
+    - heartbeat: Rhythmic pulse
+    - static: Radio/TV static
+    - beep: Simple notification
+    - rumble: Low rumble/earthquake
+    - wind: Ambient wind
+    """
+    import subprocess
+    
+    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else 'output', exist_ok=True)
+    
+    # FFmpeg anoisesrc uses 'color' and 'amplitude' (not 'c' and 'a')
+    # Use -filter_complex for complex filter graphs
+    effect_commands = {
+        'whoosh': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'anoisesrc=d={duration}:color=pink:amplitude=0.3,afade=t=in:d=0.05,afade=t=out:d={duration*0.8}:st={duration*0.2},highpass=f=800,lowpass=f=4000',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'impact': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=60:d={duration},afade=t=out:d={duration*0.9}:st=0.1,volume=2',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'tension': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=80:d={duration},tremolo=f=5:d=0.5,afade=t=in:d={duration*0.3},afade=t=out:d={duration*0.3}:st={duration*0.7}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'reveal': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=880:d={duration},afade=t=in:d=0.05,afade=t=out:d={duration*0.5}:st={duration*0.5},volume=0.5',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'alarm': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=800:d={duration},tremolo=f=8:d=0.9,afade=t=out:d=0.1:st={duration-0.1}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'heartbeat': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=50:d={duration},tremolo=f=1.5:d=0.9,afade=t=in:d=0.1,afade=t=out:d=0.2:st={max(0.1, duration-0.2)}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'static': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'anoisesrc=d={duration}:color=white:amplitude=0.2,bandpass=f=2000:width_type=h:w=1000',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'beep': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'sine=f=1000:d={min(duration, 0.3)},afade=t=in:d=0.01,afade=t=out:d=0.05:st={max(0.01, min(duration, 0.3)-0.05)}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'rumble': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'anoisesrc=d={duration}:color=brown:amplitude=0.4,lowpass=f=120,afade=t=in:d={duration*0.2},afade=t=out:d={duration*0.3}:st={duration*0.7}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+        'wind': [
+            'ffmpeg', '-y', '-f', 'lavfi',
+            '-i', f'anoisesrc=d={duration}:color=pink:amplitude=0.15,lowpass=f=600,afade=t=in:d={duration*0.3},afade=t=out:d={duration*0.3}:st={duration*0.7}',
+            '-c:a', 'aac', '-b:a', '128k', output_path
+        ],
+    }
+    
+    # Default to whoosh if effect type not found
+    cmd = effect_commands.get(effect_type.lower(), effect_commands['whoosh'])
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, timeout=30)
+        if result.returncode == 0 and os.path.exists(output_path):
+            return output_path
+        else:
+            print(f"SFX generation failed for {effect_type}: {result.stderr.decode()[:200]}")
+            return None
+    except Exception as e:
+        print(f"SFX generation error: {e}")
+        return None
+
+
+def parse_sfx_from_directions(script_text, stage_directions=''):
+    """
+    Parse [SOUND: description] tags from script and stage directions.
+    Returns a list of sound effect requests with estimated timing.
+    """
+    import re
+    
+    sfx_requests = []
+    combined_text = f"{script_text}\n{stage_directions}"
+    
+    # Map common descriptions to effect types
+    description_to_effect = {
+        'whoosh': 'whoosh',
+        'swoosh': 'whoosh',
+        'transition': 'whoosh',
+        'swipe': 'whoosh',
+        'impact': 'impact',
+        'hit': 'impact',
+        'boom': 'impact',
+        'thud': 'impact',
+        'punch': 'impact',
+        'tension': 'tension',
+        'suspense': 'tension',
+        'drone': 'tension',
+        'rising': 'tension',
+        'reveal': 'reveal',
+        'sting': 'reveal',
+        'chime': 'reveal',
+        'discovery': 'reveal',
+        'alarm': 'alarm',
+        'alert': 'alarm',
+        'warning': 'alarm',
+        'siren': 'alarm',
+        'heartbeat': 'heartbeat',
+        'heart': 'heartbeat',
+        'pulse': 'heartbeat',
+        'static': 'static',
+        'noise': 'static',
+        'interference': 'static',
+        'beep': 'beep',
+        'notification': 'beep',
+        'ping': 'beep',
+        'rumble': 'rumble',
+        'earthquake': 'rumble',
+        'thunder': 'rumble',
+        'bass': 'rumble',
+        'wind': 'wind',
+        'breeze': 'wind',
+        'atmosphere': 'wind',
+    }
+    
+    # Find all [SOUND: description] tags
+    sound_pattern = re.compile(r'\[SOUND:\s*([^\]]+)\]', re.IGNORECASE)
+    
+    lines = combined_text.split('\n')
+    line_position = 0
+    
+    for line in lines:
+        matches = sound_pattern.findall(line)
+        for description in matches:
+            description_lower = description.lower().strip()
+            
+            # Find matching effect type
+            effect_type = 'whoosh'  # default
+            for keyword, effect in description_to_effect.items():
+                if keyword in description_lower:
+                    effect_type = effect
+                    break
+            
+            # Parse duration if specified (e.g., "whoosh 2s")
+            duration = 1.0
+            duration_match = re.search(r'(\d+(?:\.\d+)?)\s*s', description_lower)
+            if duration_match:
+                duration = float(duration_match.group(1))
+            
+            sfx_requests.append({
+                'description': description.strip(),
+                'effect_type': effect_type,
+                'duration': duration,
+                'position': line_position  # Approximate position in script
+            })
+        
+        line_position += 1
+    
+    return sfx_requests
+
+
+def mix_sfx_into_audio(voiceover_path, sfx_requests, output_path, total_script_lines=None):
+    """
+    Generate sound effects and mix them into the voiceover audio.
+    SFX are placed based on their relative position in the script.
+    """
+    import subprocess
+    from pydub import AudioSegment
+    
+    if not sfx_requests or not os.path.exists(voiceover_path):
+        # No SFX to add, copy original
+        if os.path.exists(voiceover_path):
+            import shutil
+            shutil.copy(voiceover_path, output_path)
+        return output_path
+    
+    try:
+        # Load voiceover
+        voiceover = AudioSegment.from_file(voiceover_path)
+        total_duration_ms = len(voiceover)
+        
+        print(f"Mixing {len(sfx_requests)} sound effects into {total_duration_ms/1000:.1f}s audio")
+        
+        # Calculate max position from all SFX for proper proportioning
+        max_position = max(sfx['position'] for sfx in sfx_requests) if sfx_requests else 1
+        if total_script_lines and total_script_lines > max_position:
+            max_position = total_script_lines
+        max_position = max(1, max_position)  # Avoid division by zero
+        
+        # Generate and overlay each SFX
+        for i, sfx in enumerate(sfx_requests):
+            # Calculate position based on script line position
+            # This maps the line position to a timestamp in the audio
+            position_ratio = sfx['position'] / max_position
+            # Place SFX at the proportional position, accounting for effect duration
+            sfx_duration_ms = sfx['duration'] * 1000
+            start_ms = int(position_ratio * max(0, total_duration_ms - sfx_duration_ms))
+            
+            # Generate the sound effect
+            sfx_path = f"output/sfx_temp_{i}_{uuid.uuid4().hex[:6]}.m4a"
+            generated_path = generate_sound_effect(sfx['effect_type'], sfx_path, sfx['duration'])
+            
+            if generated_path and os.path.exists(generated_path):
+                try:
+                    sfx_audio = AudioSegment.from_file(generated_path)
+                    # Reduce SFX volume so it doesn't overpower voice
+                    sfx_audio = sfx_audio - 6  # -6dB
+                    
+                    # Overlay at calculated position
+                    voiceover = voiceover.overlay(sfx_audio, position=start_ms)
+                    print(f"  Added {sfx['effect_type']} at {start_ms/1000:.1f}s")
+                except Exception as e:
+                    print(f"  Failed to overlay SFX {i}: {e}")
+                finally:
+                    # Cleanup temp file
+                    try:
+                        os.remove(generated_path)
+                    except:
+                        pass
+        
+        # Export mixed audio
+        voiceover.export(output_path, format='mp3', bitrate='192k')
+        print(f"SFX mixed audio saved to {output_path}")
+        return output_path
+        
+    except Exception as e:
+        print(f"SFX mixing failed: {e}")
+        # Return original on failure
+        import shutil
+        if os.path.exists(voiceover_path):
+            shutil.copy(voiceover_path, output_path)
+        return output_path
+
+
 def extract_voice_actor_script(script_text, character_filter=None):
     """
     Extract a clean voice actor script from the full screenplay.
@@ -3687,19 +3938,32 @@ SCRIPT:
 {script}
 
 Generate stage directions using these formats:
+
+TIMING:
 - [PAUSE 1s] - silence/pause for specified duration
-- [BEAT] - short dramatic pause
-- [DRAMATIC MUSIC] - add tension
-- [UPLIFTING MUSIC] - positive energy
-- [SOUND: description] - specific sound effect
+- [BEAT] - short dramatic pause (0.5s)
 - [SILENCE 2s] - extended silence
-- [TRANSITION] - scene change marker
+- [TRANSITION] - scene change (1s pause)
+
+SOUND EFFECTS (auto-generated and mixed into final video):
+- [SOUND: whoosh] - transition swoosh
+- [SOUND: impact] - deep bass hit for emphasis
+- [SOUND: tension] - suspenseful rising drone
+- [SOUND: reveal] - bright discovery chime
+- [SOUND: alarm] - alert/warning tone
+- [SOUND: heartbeat] - rhythmic pulse
+- [SOUND: static] - radio interference
+- [SOUND: beep] - notification ping
+- [SOUND: rumble] - low rumble/thunder
+- [SOUND: wind] - ambient atmosphere
+
+Add duration: [SOUND: tension 2s] for longer effects.
 
 Rules:
-1. Place directions at appropriate emotional moments
-2. Don't overdo it - 3-6 directions per 30 seconds
-3. Match the script's tone
-4. Consider pacing and emphasis
+1. Place SFX at key emotional moments (reveals, transitions, emphasis)
+2. 3-6 sound effects per script is ideal - don't overdo it
+3. Match the script's tone (tension vs reveal, impact vs whoosh)
+4. SFX are automatically generated and mixed into the final video
 
 Output ONLY the stage directions, one per line, in order of appearance.
 Include a brief note about where each should occur."""
@@ -4108,6 +4372,7 @@ def render_video():
     captions_enabled = captions_data.get('enabled', False) if isinstance(captions_data, dict) else bool(captions_data)
     caption_settings = captions_data if isinstance(captions_data, dict) else {}
     script_text = data.get('script', '')  # Script text for subtitles
+    stage_directions = data.get('stage_directions', '')  # Stage directions with SFX
     preview_mode = data.get('preview', False)  # Quick preview at lower resolution
     
     if not scenes:
@@ -4121,6 +4386,18 @@ def render_video():
     os.makedirs('output', exist_ok=True)
     
     try:
+        # Parse Sound FX from script and stage directions, then mix into audio
+        sfx_requests = parse_sfx_from_directions(script_text, stage_directions)
+        
+        if sfx_requests and audio_path and os.path.exists(audio_path):
+            print(f"[render-video] Found {len(sfx_requests)} sound effects to mix")
+            # Calculate total script lines for accurate SFX positioning
+            total_lines = len((script_text + '\n' + stage_directions).split('\n'))
+            # Mix SFX into a new audio file
+            mixed_audio_path = f'output/audio_with_sfx_{output_id}.mp3'
+            audio_path = mix_sfx_into_audio(audio_path, sfx_requests, mixed_audio_path, total_lines)
+            print(f"[render-video] SFX mixed into: {audio_path}")
+        
         # Get audio duration to drive clip timing (audio-driven editing)
         audio_duration = None
         if audio_path and os.path.exists(audio_path):
@@ -4566,6 +4843,14 @@ def render_video():
         try:
             os.remove(list_path)
             os.remove(concat_path)
+        except:
+            pass
+        
+        # Cleanup mixed SFX audio if created
+        try:
+            mixed_audio_path = f'output/audio_with_sfx_{output_id}.mp3'
+            if os.path.exists(mixed_audio_path):
+                os.remove(mixed_audio_path)
         except:
             pass
         
