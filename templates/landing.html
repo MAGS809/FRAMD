@@ -226,6 +226,33 @@
             color: var(--text-dim);
         }
         
+        .feature-pro {
+            position: relative;
+            border-color: rgba(255, 214, 10, 0.4);
+            background: rgba(255, 214, 10, 0.05);
+        }
+        
+        .feature-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-header .feature-icon {
+            margin-bottom: 0;
+        }
+        
+        .pro-badge {
+            background: var(--text);
+            color: var(--bg);
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            letter-spacing: 0.05em;
+        }
+        
         .voices {
             padding: 3rem 0;
             text-align: center;
@@ -285,8 +312,8 @@
         </header>
         
         <section class="hero">
-            <h1>Turn ideas into<br>ready-to-post videos</h1>
-            <p>Paste a link, transcript, or raw idea. Krakd thinks, writes, and assembles cinematic clips with AI voiceovers and captions.</p>
+            <h1>Let AI generate your content.<br>So you can work on better things.</h1>
+            <p>Getting the AI to create your content for you means everything stays as original to your message as possible. No generic filler. No time wasted.</p>
             
             <div class="auth-buttons">
                 <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary">
@@ -332,37 +359,25 @@
         </script>
         
         <section class="features">
-            <h2>Everything you need to create</h2>
+            <h2>Core Features</h2>
             <div class="feature-grid">
                 <div class="feature">
-                    <div class="feature-icon">🧠</div>
-                    <h3>AI Script Writer</h3>
-                    <p>Krakd analyzes your input, reasons through the message, and generates punchy, human-sounding scripts.</p>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">🎭</div>
-                    <h3>Character Voices</h3>
-                    <p>8 punchy voice personas — from News Anchor to Stand-up Comedian. Assign different voices to different characters.</p>
-                </div>
-                <div class="feature">
                     <div class="feature-icon">✂️</div>
-                    <h3>Smart Cutouts</h3>
-                    <p>Background removal extracts subjects from any image. Layer characters over custom backgrounds.</p>
+                    <h3>Clipping</h3>
+                    <p>Paste any link or transcript. Krakd extracts the core message, cuts the noise, and gives you clip-ready segments in seconds.</p>
                 </div>
                 <div class="feature">
-                    <div class="feature-icon">🎨</div>
-                    <h3>AI Character Generator</h3>
-                    <p>Generate custom characters and personas with AI. Perfect for consistent visual storytelling.</p>
+                    <div class="feature-icon">🎯</div>
+                    <h3>Personalized Builder</h3>
+                    <p>The AI learns your voice, your hooks, your style. Every piece of content stays true to your message — not some template.</p>
                 </div>
-                <div class="feature">
-                    <div class="feature-icon">📐</div>
-                    <h3>Multi-Format Export</h3>
-                    <p>9:16 Reels, 1:1 Square, 16:9 Wide. Word-synced captions styled to your brand.</p>
-                </div>
-                <div class="feature">
-                    <div class="feature-icon">🎬</div>
-                    <h3>Scene-by-Scene Builder</h3>
-                    <p>Choose backgrounds, add character layers, preview each scene before rendering.</p>
+                <div class="feature feature-pro">
+                    <div class="feature-header">
+                        <div class="feature-icon">🎬</div>
+                        <span class="pro-badge">PRO</span>
+                    </div>
+                    <h3>Post-Generator</h3>
+                    <p>Full video assembly with AI voiceovers, word-synced captions, and multi-format export. From idea to post-ready in one click.</p>
                 </div>
             </div>
         </section>
