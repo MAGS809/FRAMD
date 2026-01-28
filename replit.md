@@ -179,7 +179,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 
 **Character Voice Personas:**
 1. News Anchor - Professional, authoritative newsroom delivery
-2. Wolf Businessman - Intense, Jordan Belfort-style motivational energy
+2. Crazy American - Over-the-top, loud, enthusiastic patriotic energy
 3. Power Businesswoman - Sharp, no-nonsense executive authority
 4. Club Promoter - High-energy hype and excitement
 5. Stand-up Comedian - Timing-based humor, Chappelle/Carrey style
