@@ -534,17 +534,27 @@ def create_subscription():
 @app.route('/subscription-status', methods=['GET'])
 def subscription_status():
     """Check current user's subscription status."""
-    from models import Subscription
+    from models import Subscription, User
     from flask_login import current_user
     
+    # Dev mode always has Pro access
+    if session.get('dev_mode'):
+        return jsonify({'tier': 'pro', 'status': 'active', 'is_pro': True, 'lifetime': True})
+    
     user_id = None
+    user_email = None
     if current_user.is_authenticated:
         user_id = current_user.id
+        user_email = current_user.email
     else:
         user_id = session.get('dev_user_id')
     
     if not user_id:
         return jsonify({'tier': 'free', 'status': 'inactive', 'is_pro': False})
+    
+    # Lifetime Pro for specific email
+    if user_email and user_email.lower() == 'alonbenmeir9@gmail.com':
+        return jsonify({'tier': 'pro', 'status': 'active', 'is_pro': True, 'lifetime': True})
     
     sub = Subscription.query.filter_by(user_id=user_id).first()
     if sub and sub.is_active():
