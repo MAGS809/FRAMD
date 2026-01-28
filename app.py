@@ -2416,6 +2416,7 @@ def dev_mode():
 @app.route('/logout')
 def logout():
     from flask_login import logout_user
+    from flask import redirect
     logout_user()
     session.clear()
     return redirect('/')
