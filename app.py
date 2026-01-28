@@ -4183,8 +4183,8 @@ def get_feed_items():
 
 @app.route('/feed/generate', methods=['POST'])
 def generate_feed_content():
-    """Generate AI content for the feed based on trending topics or user preferences."""
-    from models import FeedItem, AILearning
+    """Generate AI content for the feed based on user's existing projects."""
+    from models import FeedItem, AILearning, Project
     from flask_login import current_user
     
     user_id = None
@@ -4194,7 +4194,16 @@ def generate_feed_content():
         user_id = session.get('dev_user_id')
     
     data = request.get_json() or {}
-    topic = data.get('topic', 'trending news')
+    
+    user_projects = []
+    if user_id:
+        projects = Project.query.filter_by(user_id=user_id).order_by(Project.updated_at.desc()).limit(5).all()
+        for p in projects:
+            if p.script:
+                user_projects.append({
+                    'title': p.title,
+                    'script': p.script[:500]
+                })
     
     user_preferences = None
     if user_id:
@@ -4219,7 +4228,24 @@ def generate_feed_content():
             recent_feedback = [f.feedback_text for f in feedback_entries]
     
     try:
-        system_prompt = """You are a short-form video script generator. Create a punchy, engaging script for a 30-60 second video.
+        if user_projects:
+            system_prompt = """You are a short-form video script generator. Based on the user's existing projects and style, create a NEW script idea that matches their voice and interests.
+
+The user has created these projects:
+""" + "\n".join([f"- {p['title']}: {p['script'][:200]}..." for p in user_projects[:3]])
+            
+            system_prompt += """
+
+Create a fresh script idea inspired by their style but on a new angle or topic.
+
+Return JSON with:
+- title: Catchy title (max 60 chars)
+- script: The full script with clear hooks and pacing
+- hook_style: The hook type used (question, stat, story, controversy)
+- topic: The main topic category
+- inspiration: Brief note on which project inspired this"""
+        else:
+            system_prompt = """You are a short-form video script generator. Create a punchy, engaging script for a 30-60 second video.
         
 Return JSON with:
 - title: Catchy title (max 60 chars)
@@ -4244,11 +4270,13 @@ Return JSON with:
         if personalization_notes:
             system_prompt += "\n\nUser preferences to incorporate:\n" + "\n".join(personalization_notes)
         
+        prompt_message = "Create a new script idea" if user_projects else "Create a viral short-form script about: trending news"
+        
         response = xai_client.chat.completions.create(
             model="grok-3",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Create a viral short-form script about: {topic}"}
+                {"role": "user", "content": prompt_message}
             ],
             response_format={"type": "json_object"}
         )

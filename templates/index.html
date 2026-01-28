@@ -100,8 +100,66 @@
         
         .header-left {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+        
+        .menu-toggle {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        
+        .menu-toggle:hover {
+            background: var(--panel);
+            color: var(--accent);
+        }
+        
+        .nav-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            margin-top: 0.5rem;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.5rem;
+            min-width: 160px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+        }
+        
+        .nav-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .nav-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        
+        .nav-menu-item:hover {
+            background: rgba(255, 214, 10, 0.1);
+            color: var(--accent);
         }
         
         .header-right {
@@ -2897,8 +2955,40 @@
     <div class="app">
         <header>
             <div class="header-left">
+                <div class="menu-toggle" onclick="toggleNavMenu()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </div>
                 <div class="brand">Framd <span class="pro-badge" id="pro-badge">PRO</span></div>
                 <div class="tagline">powered by Krakd</div>
+                <div class="nav-menu" id="nav-menu">
+                    <a href="/" class="nav-menu-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
+                        </svg>
+                        Home
+                    </a>
+                    <a href="#" class="nav-menu-item" onclick="goToProjects(); toggleNavMenu();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/>
+                            <rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/>
+                            <rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Projects
+                    </a>
+                    <a href="#" class="nav-menu-item" onclick="goToDiscover(); toggleNavMenu();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        Discover
+                    </a>
+                </div>
             </div>
             <div class="header-right">
                 <button class="dashboard-toggle" onclick="goToProjects()">
@@ -5673,6 +5763,19 @@
             btn.disabled = false;
             btn.textContent = 'Generate More Content';
         }
+        
+        function toggleNavMenu() {
+            const menu = document.getElementById('nav-menu');
+            menu.classList.toggle('active');
+        }
+        
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('nav-menu');
+            const toggle = document.querySelector('.menu-toggle');
+            if (menu && !menu.contains(e.target) && !toggle.contains(e.target)) {
+                menu.classList.remove('active');
+            }
+        });
         
         function goToDiscover() {
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
