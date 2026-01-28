@@ -6,7 +6,7 @@
     <title>Framd</title>
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&family=Bebas+Neue&family=Oswald:wght@700&family=Montserrat:wght@900&family=Poppins:wght@800&family=Anton&family=Roboto+Condensed:wght@700&family=Archivo+Black&family=Bangers&display=swap');
         
         * {
             margin: 0;
@@ -2297,6 +2297,50 @@
         .toggle-pill input {
             display: none;
         }
+        .font-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        @media (max-width: 480px) {
+            .font-selector {
+                grid-template-columns: 1fr;
+            }
+        }
+        .font-option {
+            display: flex;
+            flex-direction: column;
+            padding: 0.6rem 0.8rem;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .font-option:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-1px);
+        }
+        .font-option.selected {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--accent);
+        }
+        .font-option-preview {
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 0.2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .font-option-name {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-dim);
+            font-family: 'Inter', sans-serif;
+        }
         .caption-phone-frame {
             background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
             border-radius: 24px;
@@ -3269,6 +3313,43 @@
                     <div class="caption-container">
                         <div class="caption-controls">
                             <div class="caption-control-group">
+                                <div class="caption-control-label">Font</div>
+                                <div class="font-selector" id="font-selector">
+                                    <div class="font-option selected" data-font="'Bebas Neue', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Bebas Neue', sans-serif;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Bebas Neue</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Montserrat', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Montserrat', sans-serif; font-weight: 900;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Montserrat</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Anton', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Anton', sans-serif;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Anton</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Oswald', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Oswald', sans-serif; font-weight: 700;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Oswald</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Poppins', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Poppins', sans-serif; font-weight: 800;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Poppins</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Bangers', cursive" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Bangers', cursive;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Bangers</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Archivo Black', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Archivo Black', sans-serif;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Archivo Black</div>
+                                    </div>
+                                    <div class="font-option" data-font="'Roboto Condensed', sans-serif" onclick="selectCaptionFont(this)">
+                                        <div class="font-option-preview" style="font-family: 'Roboto Condensed', sans-serif; font-weight: 700;">THE QUICK FOX</div>
+                                        <div class="font-option-name">Roboto Condensed</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="caption-control-group">
                                 <div class="caption-control-label">Text Color</div>
                                 <div class="caption-colors" id="caption-colors">
                                     <div class="color-preset selected" data-color="#FFFFFF" style="background:#FFFFFF" onclick="selectCaptionColor(this)" title="White"></div>
@@ -3282,7 +3363,7 @@
                                 </div>
                             </div>
                             <div class="caption-control-group">
-                                <div class="caption-control-label">Style</div>
+                                <div class="caption-control-label">Effects</div>
                                 <div class="caption-toggles">
                                     <label class="toggle-pill active" onclick="toggleCaptionPill(this)">
                                         <input type="checkbox" id="caption-shadow" checked> Shadow
@@ -3298,8 +3379,8 @@
                         </div>
                         <div class="caption-phone-frame">
                             <div class="caption-preview" id="caption-preview">
-                                <div class="caption-preview-label">Preview</div>
-                                <div class="caption-text-preview shadow outline" id="caption-text-preview" style="color:#FFFFFF">
+                                <div class="caption-preview-label">Live Preview</div>
+                                <div class="caption-text-preview shadow outline" id="caption-text-preview" style="color:#FFFFFF; font-family: 'Bebas Neue', sans-serif;">
                                     <span class="caption-word">THE</span> <span class="caption-word highlight">QUICK</span> <span class="caption-word">BROWN</span> <span class="caption-word">FOX</span>
                                 </div>
                             </div>
@@ -4093,12 +4174,20 @@
         
         // Caption settings
         let selectedCaptionColor = '#FFFFFF';
+        let selectedCaptionFont = "'Bebas Neue', sans-serif";
         let captionAnimationInterval = null;
         
         function selectCaptionColor(el) {
             document.querySelectorAll('.color-preset').forEach(c => c.classList.remove('selected'));
             el.classList.add('selected');
             selectedCaptionColor = el.dataset.color;
+            updateCaptionPreview();
+        }
+        
+        function selectCaptionFont(el) {
+            document.querySelectorAll('.font-option').forEach(f => f.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedCaptionFont = el.dataset.font;
             updateCaptionPreview();
         }
         
@@ -4120,6 +4209,7 @@
             const isUppercase = document.getElementById('caption-uppercase')?.checked ?? true;
             
             preview.style.color = selectedCaptionColor;
+            preview.style.fontFamily = selectedCaptionFont;
             preview.classList.toggle('shadow', hasShadow);
             preview.classList.toggle('outline', hasOutline);
             
