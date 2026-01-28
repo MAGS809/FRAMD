@@ -132,3 +132,34 @@ class HostedVideo(db.Model):
     
     user = db.relationship('User', backref=db.backref('hosted_videos', lazy='dynamic'))
     project = db.relationship('Project', backref=db.backref('hosted_video', uselist=False))
+
+
+class FeedItem(db.Model):
+    __tablename__ = 'feed_items'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True)
+    content_type = db.Column(db.String(50), nullable=False)
+    title = db.Column(db.String(255), nullable=False)
+    script = db.Column(db.Text, nullable=True)
+    visual_preview = db.Column(db.String(500), nullable=True)
+    video_path = db.Column(db.String(500), nullable=True)
+    topic = db.Column(db.String(100), nullable=True)
+    hook_style = db.Column(db.String(50), nullable=True)
+    voice_style = db.Column(db.String(50), nullable=True)
+    is_global = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('feed_items', lazy='dynamic'))
+
+
+class SwipeFeedback(db.Model):
+    __tablename__ = 'swipe_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    feed_item_id = db.Column(db.Integer, db.ForeignKey('feed_items.id'), nullable=False)
+    action = db.Column(db.String(20), nullable=False)
+    feedback_text = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('swipe_feedback', lazy='dynamic'))
+    feed_item = db.relationship('FeedItem', backref=db.backref('feedback', lazy='dynamic'))

@@ -586,6 +586,344 @@
             text-transform: capitalize;
         }
         
+        /* Discover Feed Styles */
+        .discover-container {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .discover-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0 1rem;
+        }
+        
+        .discover-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .back-btn, .liked-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+        
+        .back-btn:hover, .liked-btn:hover {
+            color: var(--accent);
+        }
+        
+        .swipe-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            min-height: 400px;
+        }
+        
+        .swipe-cards {
+            position: relative;
+            width: 100%;
+            max-width: 360px;
+            height: 480px;
+        }
+        
+        .swipe-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            cursor: grab;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+            overflow: hidden;
+        }
+        
+        .swipe-card:active {
+            cursor: grabbing;
+        }
+        
+        .swipe-card.loading-card {
+            justify-content: center;
+            align-items: center;
+            color: var(--text-secondary);
+        }
+        
+        .swipe-card.empty-card {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .swipe-card-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .swipe-card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            line-height: 1.3;
+        }
+        
+        .swipe-card-script {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+        }
+        
+        .swipe-card-meta {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        
+        .swipe-card-tag {
+            background: rgba(255, 214, 10, 0.15);
+            color: var(--accent);
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .swipe-overlay {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3rem;
+            font-weight: 700;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        
+        .swipe-overlay.like {
+            right: 1rem;
+            color: #4CAF50;
+            border: 4px solid #4CAF50;
+        }
+        
+        .swipe-overlay.skip {
+            left: 1rem;
+            color: #f44336;
+            border: 4px solid #f44336;
+        }
+        
+        .swipe-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .swipe-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--panel);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        
+        .swipe-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .skip-btn {
+            color: #f44336;
+        }
+        
+        .skip-btn:hover {
+            background: rgba(244, 67, 54, 0.1);
+            border-color: #f44336;
+        }
+        
+        .like-btn {
+            color: #4CAF50;
+        }
+        
+        .like-btn:hover {
+            background: rgba(76, 175, 80, 0.1);
+            border-color: #4CAF50;
+        }
+        
+        .feedback-btn {
+            width: 48px;
+            height: 48px;
+            color: var(--accent);
+        }
+        
+        .feedback-btn:hover {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--accent);
+        }
+        
+        .feedback-hint {
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-faint);
+            margin-top: 1rem;
+        }
+        
+        .generate-more-btn {
+            margin-top: 1rem;
+            align-self: center;
+        }
+        
+        /* Feedback Modal */
+        .feedback-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .feedback-modal.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .feedback-modal-content {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(20px);
+            transition: transform 0.3s;
+        }
+        
+        .feedback-modal.active .feedback-modal-content {
+            transform: translateY(0);
+        }
+        
+        .feedback-modal h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        
+        .feedback-modal textarea {
+            width: 100%;
+            min-height: 100px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text-primary);
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 1rem;
+        }
+        
+        .feedback-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        /* Liked Items Sidebar */
+        .liked-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 100%;
+            max-width: 400px;
+            height: 100%;
+            background: var(--bg);
+            border-left: 1px solid var(--border);
+            z-index: 900;
+            transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .liked-sidebar.active {
+            right: 0;
+        }
+        
+        .liked-sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .liked-sidebar-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+        
+        .liked-items-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        
+        .liked-item {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .liked-item:hover {
+            border-color: var(--accent);
+        }
+        
+        .liked-item-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .liked-item-preview {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
         /* Messages area */
         .messages {
             flex: 1;
@@ -2641,6 +2979,13 @@
                 <div class="dashboard-welcome">
                     <h1>Your Projects</h1>
                     <p>Create videos that think before they speak.</p>
+                    <button class="btn btn-secondary discover-feed-btn" onclick="goToDiscover()" style="margin-top: 1rem;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem;">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        Discover Content
+                    </button>
                 </div>
                 
                 <div class="ai-learning-card">
@@ -2678,6 +3023,57 @@
                         <span>New Project</span>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <!-- DISCOVER FEED STAGE -->
+        <div class="stage" id="stage-discover">
+            <div class="discover-container">
+                <div class="discover-header">
+                    <button class="back-btn" onclick="goToProjects()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <h2>Discover</h2>
+                    <button class="liked-btn" onclick="showLikedItems()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--accent)" stroke="var(--accent)" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="swipe-container" id="swipe-container">
+                    <div class="swipe-cards" id="swipe-cards">
+                        <div class="swipe-card loading-card">
+                            <div class="loading-spinner"></div>
+                            <p>Loading content...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="swipe-actions">
+                        <button class="swipe-btn skip-btn" onclick="swipeCard('skip')">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/>
+                                <line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                        </button>
+                        <button class="swipe-btn feedback-btn" onclick="openFeedbackModal()">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                        </button>
+                        <button class="swipe-btn like-btn" onclick="swipeCard('like')">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="feedback-hint">Swipe or tap to rate. Give feedback to improve AI.</div>
+                </div>
+                
+                <button class="btn btn-secondary generate-more-btn" onclick="generateMoreContent()">Generate More Content</button>
             </div>
         </div>
         
@@ -5071,6 +5467,291 @@
                     }
                 });
         });
+        
+        // ===== DISCOVER FEED FUNCTIONALITY =====
+        let feedItems = [];
+        let currentCardIndex = 0;
+        let isDragging = false;
+        let startX = 0;
+        let currentX = 0;
+        
+        async function loadFeedItems() {
+            try {
+                const response = await fetch('/feed/items');
+                const data = await response.json();
+                feedItems = data.items || [];
+                currentCardIndex = 0;
+                renderCards();
+            } catch (error) {
+                console.error('Error loading feed:', error);
+                document.getElementById('swipe-cards').innerHTML = `
+                    <div class="swipe-card empty-card">
+                        <p>Could not load content. Try again later.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function renderCards() {
+            const container = document.getElementById('swipe-cards');
+            if (!feedItems.length || currentCardIndex >= feedItems.length) {
+                container.innerHTML = `
+                    <div class="swipe-card empty-card">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 1rem; opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 15h8M9 9h.01M15 9h.01"/>
+                        </svg>
+                        <p>No more content to discover!</p>
+                        <p style="font-size: 0.85rem; margin-top: 0.5rem;">Generate more or check back later.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const visibleCards = feedItems.slice(currentCardIndex, currentCardIndex + 3);
+            container.innerHTML = visibleCards.map((item, i) => `
+                <div class="swipe-card" data-index="${currentCardIndex + i}" data-id="${item.id}" style="z-index: ${10 - i}; transform: scale(${1 - i * 0.05}) translateY(${i * 10}px);">
+                    <div class="swipe-overlay like">LIKE</div>
+                    <div class="swipe-overlay skip">SKIP</div>
+                    <div class="swipe-card-content">
+                        <div class="swipe-card-title">${escapeHtml(item.title)}</div>
+                        <div class="swipe-card-script">${escapeHtml(item.script || '')}</div>
+                    </div>
+                    <div class="swipe-card-meta">
+                        ${item.topic ? `<span class="swipe-card-tag">${escapeHtml(item.topic)}</span>` : ''}
+                        ${item.hook_style ? `<span class="swipe-card-tag">${escapeHtml(item.hook_style)}</span>` : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            const topCard = container.querySelector('.swipe-card');
+            if (topCard) {
+                setupCardDrag(topCard);
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function setupCardDrag(card) {
+            card.addEventListener('mousedown', startDrag);
+            card.addEventListener('touchstart', startDrag, { passive: true });
+            
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('touchmove', onDrag, { passive: false });
+            
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+        
+        function startDrag(e) {
+            isDragging = true;
+            startX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+            currentX = startX;
+        }
+        
+        function onDrag(e) {
+            if (!isDragging) return;
+            
+            currentX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+            const diff = currentX - startX;
+            const card = document.querySelector('.swipe-card[data-index="' + currentCardIndex + '"]');
+            
+            if (card) {
+                const rotation = diff * 0.05;
+                card.style.transform = `translateX(${diff}px) rotate(${rotation}deg)`;
+                card.style.transition = 'none';
+                
+                const likeOverlay = card.querySelector('.swipe-overlay.like');
+                const skipOverlay = card.querySelector('.swipe-overlay.skip');
+                
+                if (diff > 50) {
+                    likeOverlay.style.opacity = Math.min((diff - 50) / 100, 1);
+                    skipOverlay.style.opacity = 0;
+                } else if (diff < -50) {
+                    skipOverlay.style.opacity = Math.min((-diff - 50) / 100, 1);
+                    likeOverlay.style.opacity = 0;
+                } else {
+                    likeOverlay.style.opacity = 0;
+                    skipOverlay.style.opacity = 0;
+                }
+            }
+        }
+        
+        function endDrag(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const diff = currentX - startX;
+            const card = document.querySelector('.swipe-card[data-index="' + currentCardIndex + '"]');
+            
+            if (card) {
+                card.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                
+                if (diff > 100) {
+                    swipeCard('like');
+                } else if (diff < -100) {
+                    swipeCard('skip');
+                } else {
+                    card.style.transform = '';
+                    const likeOverlay = card.querySelector('.swipe-overlay.like');
+                    const skipOverlay = card.querySelector('.swipe-overlay.skip');
+                    if (likeOverlay) likeOverlay.style.opacity = 0;
+                    if (skipOverlay) skipOverlay.style.opacity = 0;
+                }
+            }
+        }
+        
+        async function swipeCard(action, feedback = '') {
+            const card = document.querySelector('.swipe-card[data-index="' + currentCardIndex + '"]');
+            if (!card) return;
+            
+            const itemId = card.dataset.id;
+            
+            card.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s';
+            card.style.transform = action === 'like' ? 'translateX(150%) rotate(30deg)' : 'translateX(-150%) rotate(-30deg)';
+            card.style.opacity = '0';
+            
+            try {
+                await fetch('/feed/swipe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_id: itemId, action: action, feedback: feedback })
+                });
+            } catch (error) {
+                console.error('Error recording swipe:', error);
+            }
+            
+            setTimeout(() => {
+                currentCardIndex++;
+                renderCards();
+            }, 300);
+        }
+        
+        function openFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            modal.classList.add('active');
+            document.getElementById('feedback-text').value = '';
+            document.getElementById('feedback-text').focus();
+        }
+        
+        function closeFeedbackModal() {
+            document.getElementById('feedback-modal').classList.remove('active');
+        }
+        
+        async function submitFeedback() {
+            const feedbackText = document.getElementById('feedback-text').value.trim();
+            closeFeedbackModal();
+            if (feedbackText) {
+                await swipeCard('like', feedbackText);
+            }
+        }
+        
+        async function generateMoreContent() {
+            const btn = document.querySelector('.generate-more-btn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            
+            try {
+                const topics = ['technology', 'business', 'science', 'culture', 'health', 'politics'];
+                const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+                
+                await fetch('/feed/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: randomTopic })
+                });
+                
+                await loadFeedItems();
+            } catch (error) {
+                console.error('Error generating content:', error);
+            }
+            
+            btn.disabled = false;
+            btn.textContent = 'Generate More Content';
+        }
+        
+        function goToDiscover() {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById('stage-discover').classList.add('active');
+            loadFeedItems();
+        }
+        
+        async function showLikedItems() {
+            const sidebar = document.getElementById('liked-sidebar');
+            sidebar.classList.add('active');
+            
+            const list = document.getElementById('liked-items-list');
+            list.innerHTML = '<div class="loading-spinner"></div>';
+            
+            try {
+                const response = await fetch('/feed/liked');
+                const data = await response.json();
+                
+                if (!data.items || data.items.length === 0) {
+                    list.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">No liked items yet. Swipe right on content you love!</p>';
+                    return;
+                }
+                
+                list.innerHTML = data.items.map(item => `
+                    <div class="liked-item" onclick="useAsDraft(${item.id}, '${escapeHtml(item.title)}', '${escapeHtml(item.script || '').replace(/'/g, "\\'")}')">
+                        <div class="liked-item-title">${escapeHtml(item.title)}</div>
+                        <div class="liked-item-preview">${escapeHtml(item.script || '')}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                list.innerHTML = '<p style="text-align: center; color: var(--text-secondary);">Could not load liked items.</p>';
+            }
+        }
+        
+        function closeLikedSidebar() {
+            document.getElementById('liked-sidebar').classList.remove('active');
+        }
+        
+        function useAsDraft(itemId, title, script) {
+            closeLikedSidebar();
+            goToProjects();
+            startNewProject();
+            setTimeout(() => {
+                const input = document.getElementById('composer-input');
+                if (input) {
+                    input.value = `Create a video with this script:\n\n${script}`;
+                    autoResize(input);
+                }
+            }, 500);
+        }
     </script>
+    
+    <!-- Feedback Modal -->
+    <div class="feedback-modal" id="feedback-modal" onclick="if(event.target === this) closeFeedbackModal()">
+        <div class="feedback-modal-content">
+            <h3>Give Feedback</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.9rem;">What could make this content better? Your feedback helps the AI improve.</p>
+            <textarea id="feedback-text" placeholder="e.g., Hook is too long, needs more punch, different topic angle..."></textarea>
+            <div class="feedback-modal-actions">
+                <button class="btn btn-secondary" onclick="closeFeedbackModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitFeedback()">Submit & Like</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Liked Items Sidebar -->
+    <div class="liked-sidebar" id="liked-sidebar">
+        <div class="liked-sidebar-header">
+            <h3>Liked Content</h3>
+            <button class="back-btn" onclick="closeLikedSidebar()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+            </button>
+        </div>
+        <div class="liked-items-list" id="liked-items-list">
+            <p style="text-align: center; color: var(--text-secondary);">Loading...</p>
+        </div>
+    </div>
 </body>
 </html>

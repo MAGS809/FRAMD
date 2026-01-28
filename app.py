@@ -4138,5 +4138,234 @@ def view_hosted_video(public_id):
     return render_template('video_view.html', video=video)
 
 
+@app.route('/feed/items', methods=['GET'])
+def get_feed_items():
+    """Get AI-generated content for the swipe feed."""
+    from models import FeedItem, SwipeFeedback
+    from flask_login import current_user
+    from sqlalchemy import or_
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    already_swiped = []
+    if user_id:
+        already_swiped = [f.feed_item_id for f in SwipeFeedback.query.filter_by(user_id=user_id).all()]
+    
+    query = FeedItem.query
+    if user_id:
+        query = query.filter(or_(FeedItem.is_global == True, FeedItem.user_id == user_id))
+    else:
+        query = query.filter(FeedItem.is_global == True)
+    
+    if already_swiped:
+        query = query.filter(FeedItem.id.notin_(already_swiped))
+    
+    items = query.order_by(FeedItem.created_at.desc()).limit(20).all()
+    
+    return jsonify({
+        'items': [{
+            'id': item.id,
+            'content_type': item.content_type,
+            'title': item.title,
+            'script': item.script,
+            'visual_preview': item.visual_preview,
+            'video_path': item.video_path,
+            'topic': item.topic,
+            'hook_style': item.hook_style,
+            'voice_style': item.voice_style
+        } for item in items]
+    })
+
+
+@app.route('/feed/generate', methods=['POST'])
+def generate_feed_content():
+    """Generate AI content for the feed based on trending topics or user preferences."""
+    from models import FeedItem, AILearning
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json() or {}
+    topic = data.get('topic', 'trending news')
+    
+    user_preferences = None
+    if user_id:
+        learning = AILearning.query.filter_by(user_id=user_id).first()
+        if learning:
+            user_preferences = {
+                'hooks': learning.learned_hooks,
+                'voices': learning.learned_voices,
+                'styles': learning.learned_styles,
+                'topics': learning.learned_topics
+            }
+    
+    recent_feedback = None
+    if user_id:
+        from models import SwipeFeedback
+        feedback_entries = SwipeFeedback.query.filter(
+            SwipeFeedback.user_id == user_id,
+            SwipeFeedback.feedback_text != None,
+            SwipeFeedback.feedback_text != ''
+        ).order_by(SwipeFeedback.created_at.desc()).limit(5).all()
+        if feedback_entries:
+            recent_feedback = [f.feedback_text for f in feedback_entries]
+    
+    try:
+        system_prompt = """You are a short-form video script generator. Create a punchy, engaging script for a 30-60 second video.
+        
+Return JSON with:
+- title: Catchy title (max 60 chars)
+- script: The full script with clear hooks and pacing
+- hook_style: The hook type used (question, stat, story, controversy)
+- topic: The main topic category"""
+
+        personalization_notes = []
+        if user_preferences:
+            if user_preferences.get('hooks'):
+                personalization_notes.append(f"Hook styles they like: {', '.join(user_preferences['hooks'][:3])}")
+            if user_preferences.get('topics'):
+                personalization_notes.append(f"Topics they enjoy: {', '.join(user_preferences['topics'][:3])}")
+            if user_preferences.get('voices'):
+                personalization_notes.append(f"Voice styles they prefer: {', '.join(user_preferences['voices'][:3])}")
+            if user_preferences.get('styles'):
+                personalization_notes.append(f"Content styles they like: {', '.join(user_preferences['styles'][:3])}")
+        
+        if recent_feedback:
+            personalization_notes.append(f"Recent feedback on content: {'; '.join(recent_feedback[:3])}")
+        
+        if personalization_notes:
+            system_prompt += "\n\nUser preferences to incorporate:\n" + "\n".join(personalization_notes)
+        
+        response = xai_client.chat.completions.create(
+            model="grok-3",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Create a viral short-form script about: {topic}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        
+        feed_item = FeedItem(
+            user_id=user_id,
+            content_type='script',
+            title=result.get('title', topic)[:255],
+            script=result.get('script', ''),
+            topic=result.get('topic', topic)[:100],
+            hook_style=result.get('hook_style', 'question')[:50],
+            is_global=user_id is None
+        )
+        db.session.add(feed_item)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'item': {
+                'id': feed_item.id,
+                'title': feed_item.title,
+                'script': feed_item.script,
+                'topic': feed_item.topic,
+                'hook_style': feed_item.hook_style
+            }
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/feed/swipe', methods=['POST'])
+def record_swipe():
+    """Record a swipe action (like/skip) and optional feedback."""
+    from models import SwipeFeedback, FeedItem, AILearning
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'User required'}), 401
+    
+    data = request.get_json()
+    item_id = data.get('item_id')
+    action = data.get('action')
+    feedback_text = data.get('feedback', '')
+    
+    if not item_id or action not in ['like', 'skip']:
+        return jsonify({'error': 'Invalid swipe data'}), 400
+    
+    item = FeedItem.query.get(item_id)
+    if not item:
+        return jsonify({'error': 'Item not found'}), 404
+    
+    feedback = SwipeFeedback(
+        user_id=user_id,
+        feed_item_id=item_id,
+        action=action,
+        feedback_text=feedback_text
+    )
+    db.session.add(feedback)
+    
+    if action == 'like':
+        learning = AILearning.query.filter_by(user_id=user_id).first()
+        if not learning:
+            learning = AILearning(user_id=user_id)
+            db.session.add(learning)
+        
+        if item.hook_style and item.hook_style not in (learning.learned_hooks or []):
+            hooks = learning.learned_hooks or []
+            hooks.append(item.hook_style)
+            learning.learned_hooks = hooks[-10:]
+        
+        if item.topic and item.topic not in (learning.learned_topics or []):
+            topics = learning.learned_topics or []
+            topics.append(item.topic)
+            learning.learned_topics = topics[-10:]
+    
+    db.session.commit()
+    
+    return jsonify({'success': True, 'action': action})
+
+
+@app.route('/feed/liked', methods=['GET'])
+def get_liked_items():
+    """Get user's liked feed items."""
+    from models import SwipeFeedback, FeedItem
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'items': []})
+    
+    liked = SwipeFeedback.query.filter_by(user_id=user_id, action='like').order_by(SwipeFeedback.created_at.desc()).all()
+    item_ids = [l.feed_item_id for l in liked]
+    items = FeedItem.query.filter(FeedItem.id.in_(item_ids)).all() if item_ids else []
+    
+    return jsonify({
+        'items': [{
+            'id': item.id,
+            'title': item.title,
+            'script': item.script,
+            'topic': item.topic,
+            'hook_style': item.hook_style
+        } for item in items]
+    })
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

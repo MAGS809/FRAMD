@@ -158,6 +158,15 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Video Hosting**: /host-video creates public shareable URLs at /v/<public_id>
 - **Dev Mode Support**: All project/learning APIs work for both authenticated users and dev mode
 
+**Discover Feed (Tinder-Style):**
+- **Swipeable Cards**: Browse AI-generated content with drag gestures (like Tinder)
+- **Actions**: Swipe right to like, left to skip, or give text feedback
+- **Feedback Modal**: Users can describe what to improve for better AI learning
+- **Liked Collection**: Sidebar shows all liked content that can be used as drafts
+- **AI Personalization**: Swipe data feeds into AI learning (hooks, topics, styles, voices)
+- **Privacy Scoping**: Feed shows only global items OR user's own items
+- **Generate More**: Users can request new AI content on trending topics
+
 **Guided Workflow Steps (Max 8) - Echo Engine Controls All:**
 1. Script Writing - User chats with Echo Engine to generate script
 2. Voice Assignment - Guide with "Continue to Visuals" action button
