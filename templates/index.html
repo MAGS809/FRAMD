@@ -2662,7 +2662,9 @@
         <!-- REVIEW STAGE -->
         <div class="stage" id="stage-review">
             <div class="review-content" id="review-content">
-                <div class="section-title">Your Script <span class="token-cost-badge">Free</span></div>
+                <div class="section-title">Your Script <span class="token-cost-badge">Free</span>
+                    <button class="btn btn-secondary btn-sm rebuild-btn" onclick="rebuildScript()" style="margin-left:auto;">Rebuild Script</button>
+                </div>
                 <div class="script-display">
                     <pre id="script-text">Script will appear here after AI generates it...</pre>
                 </div>
@@ -2976,6 +2978,9 @@
             currentProjectId = null;
             conversationHistory = [];
             saveConversation();
+            
+            // Clear last project input for rebuild functionality
+            localStorage.removeItem('lastProjectInput');
             
             // Switch to create stage
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
@@ -3606,6 +3611,58 @@
             }
         }
         
+        async function rebuildScript() {
+            // Get the original input that created this script
+            const originalInput = localStorage.getItem('lastProjectInput') || '';
+            if (!originalInput) {
+                showToast('No original input found. Start a new project instead.');
+                return;
+            }
+            
+            showNotification('Rebuilding script and visuals...', 'info');
+            startLoading();
+            
+            try {
+                // Step 1: Regenerate script via chat
+                const chatResp = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message: `Rewrite this as a fresh video script with different angles and hooks:\n\n${originalInput}`,
+                        conversation: []
+                    })
+                });
+                
+                const chatData = await chatResp.json();
+                if (chatData.reply) {
+                    currentScript = chatData.reply;
+                    document.getElementById('script-text').textContent = chatData.reply;
+                    
+                    // Step 2: Re-curate visuals for new script
+                    showNotification('Curating new visuals...', 'info');
+                    const curateResp = await fetch('/curate-visuals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ script: currentScript })
+                    });
+                    
+                    const curateData = await curateResp.json();
+                    if (curateData.success && curateData.visual_board) {
+                        populateScenesFromVisualBoard(curateData.visual_board);
+                        renderSceneComposer();
+                        showToast('Script and visuals rebuilt!');
+                    }
+                } else {
+                    showToast('Failed to rebuild script');
+                }
+            } catch (err) {
+                console.error('Rebuild error:', err);
+                showToast('Error rebuilding script');
+            } finally {
+                stopLoading();
+            }
+        }
+        
         function renderCastingPanel(characters) {
             const container = document.getElementById('casting-characters');
             const voiceOptions = `
@@ -3827,9 +3884,12 @@
                 const sceneId = sceneIdCounter++;
                 // Extract a short label from script segment
                 let label = section.setting || `Scene ${idx + 1}`;
-                if (section.script_segment) {
-                    // Take first ~40 chars of script segment
-                    label = section.script_segment.substring(0, 40) + (section.script_segment.length > 40 ? '...' : '');
+                if (section.scene_label) {
+                    // Use concise scene label (max 25 chars)
+                    label = section.scene_label;
+                } else if (section.script_segment) {
+                    // Fallback: take first ~25 chars of script segment
+                    label = section.script_segment.substring(0, 25) + (section.script_segment.length > 25 ? '...' : '');
                 }
                 
                 scenes.push({
@@ -4132,6 +4192,11 @@
             let message = input.value.trim();
             
             if (!message && !uploadedFile) return;
+            
+            // Save original input for rebuild functionality
+            if (message && !localStorage.getItem('lastProjectInput')) {
+                localStorage.setItem('lastProjectInput', message);
+            }
             
             sendBtn.disabled = true;
             startLoading();

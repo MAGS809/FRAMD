@@ -934,6 +934,7 @@ OUTPUT FORMAT (JSON):
   },
   "sections": [
     {
+      "scene_label": "Boardroom - isolation",
       "script_segment": "The actual dialogue from this part...",
       "setting": "empty boardroom",
       "mood": "tense",
@@ -946,6 +947,11 @@ OUTPUT FORMAT (JSON):
     }
   ]
 }
+
+SCENE LABEL FORMAT:
+- Maximum 25 characters
+- Format: "Visual Type - Subject" (e.g., "Archival - harbor", "Stock - office", "Documentary - protest")
+- Be descriptive but ultra-concise
 
 CRITICAL: 
 - search_queries = specific terms for API search

@@ -123,6 +123,63 @@
             height: 20px;
         }
         
+        /* AI Toggle */
+        .ai-toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--text-faint);
+            border-radius: 12px;
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .ai-toggle-label {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+        }
+        
+        .ai-toggle {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .ai-toggle.active {
+            background: #90EE90;
+        }
+        
+        .ai-toggle-handle {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .ai-toggle.active .ai-toggle-handle {
+            left: 25px;
+        }
+        
+        .ai-toggle-status {
+            font-size: 0.75rem;
+            color: #90EE90;
+            font-weight: 500;
+        }
+        
         .features {
             padding: 3rem 0;
         }
@@ -242,7 +299,37 @@
                 </a>
                 <a href="/dev" class="btn btn-secondary">Continue as Dev</a>
             </div>
+            
+            <div class="ai-toggle-container">
+                <span class="ai-toggle-label">Echo Engine AI</span>
+                <div class="ai-toggle active" id="ai-toggle" onclick="toggleAI()">
+                    <div class="ai-toggle-handle"></div>
+                </div>
+                <span class="ai-toggle-status" id="ai-status">ON</span>
+            </div>
         </section>
+        
+        <script>
+            function toggleAI() {
+                const toggle = document.getElementById('ai-toggle');
+                const status = document.getElementById('ai-status');
+                toggle.classList.toggle('active');
+                const isActive = toggle.classList.contains('active');
+                status.textContent = isActive ? 'ON' : 'OFF';
+                status.style.color = isActive ? '#90EE90' : 'var(--text-dim)';
+                localStorage.setItem('echoEngineAI', isActive ? 'on' : 'off');
+            }
+            
+            // Load saved preference
+            document.addEventListener('DOMContentLoaded', () => {
+                const saved = localStorage.getItem('echoEngineAI');
+                if (saved === 'off') {
+                    document.getElementById('ai-toggle').classList.remove('active');
+                    document.getElementById('ai-status').textContent = 'OFF';
+                    document.getElementById('ai-status').style.color = 'var(--text-dim)';
+                }
+            });
+        </script>
         
         <section class="features">
             <h2>Everything you need to create</h2>
