@@ -138,18 +138,19 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Character Generation**: DALL-E integration for AI-generated characters
 - **Conversation Memory**: AI learns from user patterns and preferences
 - **Persistent Chat Panel**: Floating chat with cross-tab sync via localStorage, animated message entrance
-- **Step-by-Step Workflow**: 8-step guided process with chat prompts at each transition
+- **Step-by-Step Workflow**: 8-step guided process entirely controlled by Echo Engine chat
 - **Voice Actor Script Display**: Users only see clean dialogue (no VISUAL/CUT directions)
+- **Chat-Driven Transitions**: No manual navigation - Echo Engine controls all stage transitions via inline action buttons
 
-**Guided Workflow Steps (Max 8):**
-1. Script Writing - AI generates script through chat
-2. Voice Assignment - Guide appears when script is ready
-3. Visual Curation - Guide after AI curates matching footage
-4. Scene Review - Guide when scenes are populated in timeline
-5. Caption Styling - Guide when entering caption controls
-6. Audio Preview - Guide when voiceover is generated
-7. Final Preview - Guide when video render completes
-8. Export - Guide when entering export stage
+**Guided Workflow Steps (Max 8) - Echo Engine Controls All:**
+1. Script Writing - User chats with Echo Engine to generate script
+2. Voice Assignment - Guide with "Continue to Visuals" action button
+3. Visual Curation - Echo Engine curates matching footage automatically
+4. Scene Review - Guide with "Generate Video" action button
+5. Caption Styling - Guide when entering review stage
+6. Audio Preview - Echo Engine processes voiceover
+7. Final Preview - Guide with "Download Video" action button
+8. Export - Guide with "Start New Project" action button
 
 **Character Voice Personas:**
 1. News Anchor - Professional, authoritative newsroom delivery
