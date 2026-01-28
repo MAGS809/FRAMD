@@ -936,6 +936,242 @@ Be CONSERVATIVE. Don't over-clip. If the flow is good, keep it continuous."""
         return []
 
 
+def classify_content_type(script: str, thesis: str = "") -> dict:
+    """
+    Classify content as informative, comedic, or inspiring.
+    This determines the visual composition approach.
+    """
+    prompt = f"""Analyze this content and classify its type.
+
+SCRIPT:
+{script[:2000]}
+
+THESIS (if available):
+{thesis}
+
+Content types:
+1. INFORMATIVE - Educational, analytical, news-style. Audience expects to LEARN something.
+   Visual approach: Text callouts, data overlays, article screenshots, source citations, split-screen comparisons
+   
+2. COMEDIC - Humor-driven, entertainment-focused. Audience expects to be AMUSED.
+   Visual approach: Quick cuts, reaction overlays, meme-style text pops, exaggerated visuals
+   
+3. INSPIRING - Motivational, emotional, aspirational. Audience expects to FEEL something.
+   Visual approach: Cinematic backgrounds, quote overlays, dramatic pacing, powerful imagery
+
+Output JSON:
+{{
+    "content_type": "informative/comedic/inspiring",
+    "confidence": 0.0-1.0,
+    "reasoning": "Brief explanation of why this classification",
+    "visual_style": {{
+        "primary_layer": "background/overlay/split-screen",
+        "text_treatment": "callouts/meme-style/quotes",
+        "pacing": "steady/quick-cuts/dramatic",
+        "suggested_overlays": ["list of overlay types that would work"]
+    }},
+    "composition_hints": ["specific visual ideas for this content"]
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3-fast",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=1024
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
+        
+        # Validate and normalize content_type to valid values
+        valid_types = ["informative", "comedic", "inspiring"]
+        content_type = result.get("content_type", "informative").lower()
+        if content_type not in valid_types:
+            # Default to informative for unknown types
+            content_type = "informative"
+        result["content_type"] = content_type
+        
+        return result
+    except json.JSONDecodeError:
+        return {"content_type": "informative", "confidence": 0.5}
+
+
+def build_visual_layers(script: str, content_classification: dict, anchors: list = None) -> dict:
+    """
+    Build a multi-layer visual composition based on content type.
+    Returns layer definitions that FFmpeg can composite.
+    """
+    content_type = content_classification.get("content_type", "informative")
+    visual_style = content_classification.get("visual_style", {})
+    
+    # Base layer templates per content type
+    layer_templates = {
+        "informative": {
+            "background": {"type": "subtle", "opacity": 0.7, "blur": True},
+            "overlays": [
+                {"type": "text_callout", "position": "lower_third", "style": "clean"},
+                {"type": "data_popup", "position": "center", "animation": "fade_in"},
+                {"type": "source_citation", "position": "bottom", "style": "minimal"}
+            ],
+            "text_style": "professional",
+            "transitions": "smooth_fade"
+        },
+        "comedic": {
+            "background": {"type": "dynamic", "opacity": 1.0, "blur": False},
+            "overlays": [
+                {"type": "reaction_pop", "position": "corner", "style": "bold"},
+                {"type": "meme_text", "position": "center", "animation": "zoom_in"},
+                {"type": "sound_effect_visual", "position": "floating", "style": "fun"}
+            ],
+            "text_style": "impact",
+            "transitions": "quick_cut"
+        },
+        "inspiring": {
+            "background": {"type": "cinematic", "opacity": 0.9, "blur": False},
+            "overlays": [
+                {"type": "quote_overlay", "position": "center", "style": "elegant"},
+                {"type": "gradient_fade", "position": "bottom", "animation": "slow_reveal"}
+            ],
+            "text_style": "serif_elegant",
+            "transitions": "dramatic_fade"
+        }
+    }
+    
+    template = layer_templates.get(content_type, layer_templates["informative"])
+    
+    # Build actual layers with timing based on script structure
+    layers = {
+        "background_layer": template["background"],
+        "overlay_layers": [],
+        "text_layers": [],
+        "effect_layers": [],
+        "composition_order": ["background", "overlays", "text", "effects"],
+        "content_type": content_type,
+        "text_style": template["text_style"],
+        "transitions": template["transitions"]
+    }
+    
+    # Add overlays based on anchors if available
+    if anchors:
+        for i, anchor in enumerate(anchors):
+            anchor_type = anchor.get("anchor_type", "CLAIM")
+            position = anchor.get("position", i + 1)
+            
+            if content_type == "informative":
+                if anchor_type == "EVIDENCE":
+                    layers["overlay_layers"].append({
+                        "type": "data_popup",
+                        "content": anchor.get("anchor_text", ""),
+                        "timing": f"anchor_{position}",
+                        "position": "center_right",
+                        "animation": "slide_in"
+                    })
+                elif anchor_type == "CLAIM":
+                    layers["text_layers"].append({
+                        "type": "callout",
+                        "content": anchor.get("anchor_text", ""),
+                        "timing": f"anchor_{position}",
+                        "position": "lower_third",
+                        "style": "highlight"
+                    })
+            elif content_type == "inspiring":
+                if anchor_type in ["HOOK", "CLOSER"]:
+                    layers["text_layers"].append({
+                        "type": "quote_overlay",
+                        "content": anchor.get("anchor_text", ""),
+                        "timing": f"anchor_{position}",
+                        "position": "center",
+                        "style": "dramatic"
+                    })
+    
+    # Add composition hints from classification
+    layers["composition_hints"] = content_classification.get("composition_hints", [])
+    layers["suggested_overlays"] = visual_style.get("suggested_overlays", [])
+    
+    return layers
+
+
+def generate_visual_plan(script: str, thesis: str, anchors: list = None) -> dict:
+    """
+    Generate a complete visual plan for a script.
+    Combines content classification with layer building.
+    """
+    # Step 1: Classify content type
+    classification = classify_content_type(script, thesis)
+    
+    # Step 2: Build layer structure
+    layers = build_visual_layers(script, classification, anchors)
+    
+    # Step 3: Generate specific visual suggestions
+    prompt = f"""Based on this script and classification, suggest specific visuals.
+
+SCRIPT:
+{script[:1500]}
+
+CONTENT TYPE: {classification.get('content_type', 'informative')}
+VISUAL STYLE: {classification.get('visual_style', {})}
+
+Generate specific visual assets needed:
+
+For INFORMATIVE content, include:
+- Article/source screenshots to fetch
+- Data visualizations to create
+- Text callouts with specific wording
+
+For COMEDIC content, include:
+- Reaction images/clips
+- Meme-style text overlays
+- Visual gags that match the humor
+
+For INSPIRING content, include:
+- Cinematic footage types
+- Quote overlays with exact text
+- Emotional imagery descriptions
+
+Output JSON:
+{{
+    "background_assets": [
+        {{"description": "what to search for", "timing": "when to show", "purpose": "why this visual"}}
+    ],
+    "overlay_assets": [
+        {{"type": "text_callout/data_popup/quote/reaction", "content": "exact text or description", "timing": "when", "position": "where"}}
+    ],
+    "article_screenshots": [
+        {{"search_query": "what article to find", "purpose": "why this source", "timing": "when to show"}}
+    ],
+    "text_callouts": [
+        {{"text": "exact callout text", "timing": "when", "style": "highlight/subtle/dramatic"}}
+    ]
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=2048
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        visual_assets = json.loads(content)
+    except json.JSONDecodeError:
+        visual_assets = {}
+    
+    return {
+        "classification": classification,
+        "layers": layers,
+        "assets": visual_assets,
+        "composition_ready": True
+    }
+
+
 def generate_thesis_driven_script(thesis: dict, user_context: str = "", learned_patterns: dict = None) -> dict:
     """
     Generate a script that serves a specific thesis.
@@ -1242,7 +1478,15 @@ Output JSON:
         if result.get('status') == 'ready':
             learnings = learn_from_source_content(user_input, result.get('recommended_clips', []))
             result['learnings'] = learnings
-        return {"mode": "clip", "result": result}
+            
+            # Add content classification for clips too
+            thesis_statement = result.get('thesis', {}).get('thesis_statement', '')
+            if thesis_statement:
+                classification = classify_content_type(user_input[:1500], thesis_statement)
+                result['content_type'] = classification.get('content_type', 'informative')
+                result['visual_style'] = classification.get('visual_style', {})
+        
+        return {"mode": "clip", "result": result, "status": "ready"}
     
     else:
         thesis = extract_thesis(user_input, "idea")
@@ -1277,6 +1521,13 @@ Output JSON:
         anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
         thought_changes = detect_thought_changes(script.get('full_script', ''))
         
+        # Classify content type and generate visual plan
+        visual_plan = generate_visual_plan(
+            script.get('full_script', ''),
+            thesis.get('thesis_statement', ''),
+            anchors
+        )
+        
         return {
             "mode": "create",
             "status": "ready",
@@ -1284,7 +1535,9 @@ Output JSON:
             "script": script,
             "anchors": anchors,
             "thought_changes": thought_changes,
-            "learned_patterns_applied": bool(learned_patterns)
+            "learned_patterns_applied": bool(learned_patterns),
+            "content_type": visual_plan.get("classification", {}).get("content_type", "informative"),
+            "visual_plan": visual_plan
         }
 
 

@@ -212,5 +212,55 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Wikimedia Commons**: Primary source for visual content
 - **Pexels**: Fallback source for visual content
 
+---
+
+## Content-Aware Visual Composition System
+
+**Content Types (3 categories):**
+1. **Informative** (educational, analytical, news) - Text callouts, data overlays, article screenshots, source citations, split-screen comparisons
+2. **Comedic** - Quick cuts, reaction overlays, meme-style text pops, exaggerated visuals
+3. **Inspiring** - Cinematic backgrounds, quote overlays, dramatic pacing, powerful imagery
+
+**Visual Layer System:**
+- Background layer (subtle/dynamic/cinematic based on content type)
+- Overlay layers (data popups, reactions, quotes)
+- Text layers (callouts, captions, citations)
+- Effect layers (transitions, animations)
+
+**Composition Templates:**
+- AI classifies content type from thesis + script tone
+- Each type has pre-defined layer templates
+- Anchors determine when overlays appear
+- Background-only is opt-out, not default
+
+---
+
+## UI Future Improvements (Saved for Reference)
+
+**Speed/Sleekness Goals:**
+1. Express Mode - One input, one output (thesis + script + visuals in one shot)
+2. Auto-voice assignment - AI picks best voice based on content tone
+3. Instant visual curation - Auto-fetch visuals inline, not behind tabs
+4. Progress rail - Slim vertical indicator for workflow position
+
+**Clutter Reduction:**
+1. Hide mode selector by default - AI auto-detects
+2. Collapse thesis/anchors - Single line at top, expand on click
+3. Remove step numbers - Continuous flow, not wizard
+4. Fewer buttons - One primary action per stage
+
+**Key Design Principles:**
+- Single canvas flow reduces cognitive load
+- Chat as control surface (not bolted on)
+- Intelligence visible, not hidden (anchors + layers)
+- Minimalism serves clarity, not aesthetics
+
+**Warnings:**
+- Don't let canvas get too tall without anchors (add sticky headers later)
+- Make "what to do next" obvious (inline action buttons)
+- Don't overexpose advanced controls early
+
+---
+
 ## Final Brand Principle
 **Clarity over noise. Meaning over metrics. Thought before output.**

@@ -4627,6 +4627,38 @@ def get_source_learnings():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/classify-content', methods=['POST'])
+def classify_content():
+    """Classify content type and generate visual plan."""
+    from context_engine import classify_content_type, generate_visual_plan, identify_anchors
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    thesis = data.get('thesis', '')
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    try:
+        # Get anchors for the script
+        anchors = identify_anchors(script, thesis)
+        
+        # Generate full visual plan
+        visual_plan = generate_visual_plan(script, thesis, anchors)
+        
+        return jsonify({
+            'success': True,
+            'classification': visual_plan.get('classification', {}),
+            'content_type': visual_plan.get('classification', {}).get('content_type', 'informative'),
+            'layers': visual_plan.get('layers', {}),
+            'assets': visual_plan.get('assets', {}),
+            'anchors': anchors
+        })
+    except Exception as e:
+        logging.error(f"Content classification error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/process-full', methods=['POST'])
 def process_full():
     """Full pipeline: upload -> transcribe -> analyze -> script -> clips"""
