@@ -330,9 +330,93 @@ def create_checkout_session():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/create-subscription', methods=['POST'])
+def create_subscription():
+    """Create a Stripe subscription checkout session for Pro tier ($10/month)."""
+    try:
+        from models import Subscription
+        from flask_login import current_user
+        
+        _, secret_key = get_stripe_credentials()
+        if not secret_key:
+            return jsonify({'error': 'Payment not configured'}), 500
+        
+        stripe.api_key = secret_key
+        
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        domain = domains.split(',')[0] if domains else 'localhost:5000'
+        protocol = 'https' if 'replit' in domain else 'http'
+        base_url = f"{protocol}://{domain}"
+        
+        user_id = None
+        if current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            user_id = session.get('dev_user_id', 'dev_user')
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Framd Pro',
+                        'description': 'Unlimited video generation & hosting - $10/month',
+                    },
+                    'unit_amount': 1000,
+                    'recurring': {
+                        'interval': 'month',
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=f'{base_url}/?subscription=success',
+            cancel_url=f'{base_url}/?subscription=canceled',
+            metadata={
+                'user_id': user_id,
+                'plan': 'pro'
+            }
+        )
+        
+        return jsonify({'url': checkout_session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/subscription-status', methods=['GET'])
+def subscription_status():
+    """Check current user's subscription status."""
+    from models import Subscription
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'tier': 'free', 'status': 'inactive', 'is_pro': False})
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if sub and sub.is_active():
+        return jsonify({
+            'tier': sub.tier,
+            'status': sub.status,
+            'is_pro': True,
+            'current_period_end': sub.current_period_end.isoformat() if sub.current_period_end else None
+        })
+    
+    return jsonify({'tier': 'free', 'status': 'inactive', 'is_pro': False})
+
+
 @app.route('/stripe-webhook', methods=['POST'])
 def stripe_webhook():
     """Handle Stripe webhook events."""
+    from models import Subscription
+    from datetime import datetime
+    
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')
     
@@ -349,13 +433,53 @@ def stripe_webhook():
     
     if event['type'] == 'checkout.session.completed':
         session_data = event['data']['object']
-        token_amount = int(session_data.get('metadata', {}).get('token_amount', 0))
         
-        if token_amount > 0:
-            token_entry = UserTokens.query.first()
-            if token_entry:
-                token_entry.balance += token_amount
+        if session_data.get('mode') == 'subscription':
+            user_id = session_data.get('metadata', {}).get('user_id')
+            subscription_id = session_data.get('subscription')
+            customer_id = session_data.get('customer')
+            
+            if user_id:
+                sub = Subscription.query.filter_by(user_id=user_id).first()
+                if not sub:
+                    sub = Subscription(user_id=user_id)
+                    db.session.add(sub)
+                
+                sub.stripe_customer_id = customer_id
+                sub.stripe_subscription_id = subscription_id
+                sub.tier = 'pro'
+                sub.status = 'active'
                 db.session.commit()
+        else:
+            token_amount = int(session_data.get('metadata', {}).get('token_amount', 0))
+            if token_amount > 0:
+                token_entry = UserTokens.query.first()
+                if token_entry:
+                    token_entry.balance += token_amount
+                    db.session.commit()
+    
+    elif event['type'] == 'customer.subscription.updated':
+        subscription_data = event['data']['object']
+        stripe_sub_id = subscription_data.get('id')
+        status = subscription_data.get('status')
+        period_end = subscription_data.get('current_period_end')
+        
+        sub = Subscription.query.filter_by(stripe_subscription_id=stripe_sub_id).first()
+        if sub:
+            sub.status = 'active' if status == 'active' else 'inactive'
+            if period_end:
+                sub.current_period_end = datetime.fromtimestamp(period_end)
+            db.session.commit()
+    
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription_data = event['data']['object']
+        stripe_sub_id = subscription_data.get('id')
+        
+        sub = Subscription.query.filter_by(stripe_subscription_id=stripe_sub_id).first()
+        if sub:
+            sub.status = 'canceled'
+            sub.tier = 'free'
+            db.session.commit()
     
     return jsonify({'received': True})
 
@@ -2673,6 +2797,22 @@ def generate_video():
     import uuid
     import subprocess
     import requests
+    from models import Subscription
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+    if not sub or not sub.is_active():
+        return jsonify({
+            'error': 'Pro subscription required',
+            'requires_subscription': True,
+            'message': 'Video generation requires a Pro subscription ($10/month)'
+        }), 403
     
     data = request.get_json()
     voiceover_url = data.get('voiceover_url')
@@ -3539,6 +3679,22 @@ def render_video():
     import subprocess
     import uuid
     import urllib.request
+    from models import Subscription
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+    if not sub or not sub.is_active():
+        return jsonify({
+            'error': 'Pro subscription required',
+            'requires_subscription': True,
+            'message': 'Video rendering requires a Pro subscription ($10/month)'
+        }), 403
     
     data = request.get_json()
     scenes = data.get('scenes', [])
@@ -3879,6 +4035,107 @@ def render_video():
     except Exception as e:
         print(f"Render error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/host-video', methods=['POST'])
+def host_video():
+    """Host a video with a public shareable URL (Pro subscribers only)."""
+    import uuid
+    from models import Subscription, HostedVideo
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+    if not sub or not sub.is_active():
+        return jsonify({
+            'error': 'Pro subscription required',
+            'requires_subscription': True
+        }), 403
+    
+    data = request.get_json()
+    video_path = data.get('video_path')
+    title = data.get('title', 'Untitled Video')
+    project_id = data.get('project_id')
+    
+    if not video_path:
+        return jsonify({'error': 'Video path required'}), 400
+    
+    public_id = uuid.uuid4().hex[:12]
+    
+    hosted = HostedVideo(
+        user_id=user_id,
+        project_id=project_id,
+        title=title,
+        public_id=public_id,
+        video_path=video_path
+    )
+    db.session.add(hosted)
+    db.session.commit()
+    
+    domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+    domain = domains.split(',')[0] if domains else 'localhost:5000'
+    protocol = 'https' if 'replit' in domain else 'http'
+    
+    return jsonify({
+        'success': True,
+        'public_id': public_id,
+        'share_url': f'{protocol}://{domain}/v/{public_id}',
+        'title': title
+    })
+
+
+@app.route('/my-hosted-videos', methods=['GET'])
+def my_hosted_videos():
+    """Get list of user's hosted videos."""
+    from models import HostedVideo
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'videos': []})
+    
+    videos = HostedVideo.query.filter_by(user_id=user_id).order_by(HostedVideo.created_at.desc()).all()
+    
+    domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+    domain = domains.split(',')[0] if domains else 'localhost:5000'
+    protocol = 'https' if 'replit' in domain else 'http'
+    
+    return jsonify({
+        'videos': [{
+            'id': v.id,
+            'title': v.title,
+            'public_id': v.public_id,
+            'share_url': f'{protocol}://{domain}/v/{v.public_id}',
+            'views': v.views,
+            'is_public': v.is_public,
+            'created_at': v.created_at.isoformat()
+        } for v in videos]
+    })
+
+
+@app.route('/v/<public_id>')
+def view_hosted_video(public_id):
+    """Public video view page."""
+    from models import HostedVideo
+    
+    video = HostedVideo.query.filter_by(public_id=public_id, is_public=True).first()
+    if not video:
+        return "Video not found", 404
+    
+    video.views += 1
+    db.session.commit()
+    
+    return render_template('video_view.html', video=video)
 
 
 if __name__ == '__main__':

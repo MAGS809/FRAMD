@@ -96,3 +96,39 @@ class GlobalPattern(db.Model):
     success_rate = db.Column(db.Float, default=0.0)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class Subscription(db.Model):
+    __tablename__ = 'subscriptions'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), unique=True, nullable=False)
+    stripe_customer_id = db.Column(db.String(255), nullable=True)
+    stripe_subscription_id = db.Column(db.String(255), nullable=True)
+    tier = db.Column(db.String(20), default='free')
+    status = db.Column(db.String(20), default='inactive')
+    current_period_end = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('subscription', uselist=False))
+    
+    def is_active(self):
+        return self.status == 'active' and self.tier == 'pro'
+
+
+class HostedVideo(db.Model):
+    __tablename__ = 'hosted_videos'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    title = db.Column(db.String(255), nullable=False)
+    public_id = db.Column(db.String(64), unique=True, nullable=False)
+    video_path = db.Column(db.String(500), nullable=False)
+    thumbnail_path = db.Column(db.String(500), nullable=True)
+    views = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('hosted_videos', lazy='dynamic'))
+    project = db.relationship('Project', backref=db.backref('hosted_video', uselist=False))

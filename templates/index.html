@@ -2079,6 +2079,86 @@
             z-index: 1000;
         }
         
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        
+        .upgrade-modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .upgrade-modal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upgrade-modal p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+        
+        .upgrade-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1rem;
+        }
+        
+        .upgrade-price span {
+            font-size: 1rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+        
+        .upgrade-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        
+        .upgrade-features li {
+            padding: 0.5rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+        
+        .upgrade-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+        
+        .upgrade-modal .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pro-badge {
+            background: linear-gradient(135deg, #ffd60a 0%, #ffaa00 100%);
+            color: #000;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            display: none;
+        }
+        
         /* Review Confirmation Modal */
         .review-confirm-modal {
             position: fixed;
@@ -2479,7 +2559,7 @@
     <div class="app">
         <header>
             <div class="header-left">
-                <div class="brand">Framd</div>
+                <div class="brand">Framd <span class="pro-badge" id="pro-badge">PRO</span></div>
                 <div class="tagline">powered by Krakd</div>
             </div>
             <div class="header-right">
@@ -2800,7 +2880,15 @@
                     <video id="export-video" controls></video>
                 </div>
                 <button class="btn btn-primary" onclick="downloadVideo()">Download</button>
+                <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="hostAndShare()">Host & Share</button>
                 <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="startOver()">Start New</button>
+                <div id="share-url-container" style="display: none; margin-top: 1rem;">
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Share URL:</div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="share-url-input" readonly style="flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem; color: var(--text); font-size: 0.85rem;">
+                        <button class="btn btn-secondary" onclick="copyShareUrl()" style="padding: 0.5rem 1rem;">Copy</button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -2864,6 +2952,7 @@
         let tokenBalance = 120;
         let chatPanelOpen = false;
         let unreadMessages = 0;
+        let isPro = false;
         
         // Current project tracking
         let currentProjectId = null;
@@ -2873,12 +2962,67 @@
         document.addEventListener('DOMContentLoaded', () => {
             restoreConversation();
             loadDashboardProjects();
+            checkSubscriptionStatus();
             // Show chat panel on non-create stages
             const currentStage = document.querySelector('.stage.active')?.id;
             if (currentStage !== 'stage-create' && currentStage !== 'stage-projects') {
                 document.getElementById('chat-toggle').classList.remove('hidden');
             }
         });
+        
+        async function checkSubscriptionStatus() {
+            try {
+                const resp = await fetch('/subscription-status');
+                const data = await resp.json();
+                isPro = data.is_pro === true;
+                updateSubscriptionUI();
+            } catch (err) {
+                console.log('Could not check subscription status');
+            }
+        }
+        
+        function updateSubscriptionUI() {
+            const badge = document.getElementById('pro-badge');
+            if (badge) {
+                badge.style.display = isPro ? 'inline-flex' : 'none';
+            }
+        }
+        
+        async function startSubscription() {
+            try {
+                showNotification('Redirecting to checkout...', 'info');
+                const resp = await fetch('/create-subscription', { method: 'POST' });
+                const data = await resp.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    showToast(data.error || 'Could not start checkout');
+                }
+            } catch (err) {
+                showToast('Error starting subscription');
+            }
+        }
+        
+        function showUpgradePrompt() {
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal-content upgrade-modal">
+                    <h2>Upgrade to Pro</h2>
+                    <p>Video generation requires a Pro subscription.</p>
+                    <div class="upgrade-price">$10<span>/month</span></div>
+                    <ul class="upgrade-features">
+                        <li>Unlimited video generation</li>
+                        <li>Host videos with shareable links</li>
+                        <li>No watermarks</li>
+                        <li>Priority processing</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="startSubscription(); this.closest('.modal-overlay').remove();">Subscribe Now</button>
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();">Maybe Later</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
         
         // === PROJECT DASHBOARD FUNCTIONS ===
         
@@ -4659,6 +4803,11 @@
         }
         
         async function generateVideo() {
+            // Check subscription status first
+            if (!isPro) {
+                showUpgradePrompt();
+                return;
+            }
             // Check if stage directions are empty
             if (!checkStageDirections()) {
                 openStageDirectionsConfirm();
@@ -4781,6 +4930,8 @@
                     
                     showStage('export');
                     showToast('Video ready!');
+                } else if (renderData.requires_subscription) {
+                    showUpgradePrompt();
                 } else {
                     showToast('Failed to render video: ' + (renderData.error || 'Unknown error'));
                 }
@@ -4801,6 +4952,53 @@
                 a.download = 'framd-video.mp4';
                 a.click();
             }
+        }
+        
+        async function hostAndShare() {
+            const video = document.getElementById('export-video');
+            if (!video.src) {
+                showToast('No video to host');
+                return;
+            }
+            
+            if (!isPro) {
+                showUpgradePrompt();
+                return;
+            }
+            
+            try {
+                showNotification('Hosting your video...', 'info');
+                const resp = await fetch('/host-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_path: video.src,
+                        title: currentScript ? currentScript.substring(0, 50) + '...' : 'My Framd Video',
+                        project_id: currentProjectId
+                    })
+                });
+                
+                const data = await resp.json();
+                if (data.success) {
+                    document.getElementById('share-url-input').value = data.share_url;
+                    document.getElementById('share-url-container').style.display = 'block';
+                    showToast('Video hosted! Share link ready.');
+                } else if (data.requires_subscription) {
+                    showUpgradePrompt();
+                } else {
+                    showToast(data.error || 'Failed to host video');
+                }
+            } catch (err) {
+                console.error('Host error:', err);
+                showToast('Error hosting video');
+            }
+        }
+        
+        function copyShareUrl() {
+            const input = document.getElementById('share-url-input');
+            input.select();
+            document.execCommand('copy');
+            showToast('Link copied!');
         }
         
         // Start over

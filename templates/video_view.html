@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ video.title }} - Framd</title>
+    <meta property="og:title" content="{{ video.title }}">
+    <meta property="og:type" content="video.other">
+    <meta property="og:video" content="{{ video.video_path }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .video-container {
+            max-width: 400px;
+            width: 100%;
+            background: #111;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+        
+        video {
+            width: 100%;
+            display: block;
+        }
+        
+        .video-info {
+            padding: 1.5rem;
+        }
+        
+        .video-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .video-meta {
+            color: #888;
+            font-size: 0.875rem;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .brand {
+            margin-top: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .brand a {
+            color: #ffd60a;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .brand a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="video-container">
+        <video controls autoplay playsinline>
+            <source src="{{ video.video_path }}" type="video/mp4">
+            Your browser does not support video playback.
+        </video>
+        <div class="video-info">
+            <div class="video-title">{{ video.title }}</div>
+            <div class="video-meta">
+                <span>{{ video.views }} views</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="brand">
+        Made with <a href="/">Framd</a>
+    </div>
+</body>
+</html>
