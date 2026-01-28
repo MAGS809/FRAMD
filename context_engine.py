@@ -765,6 +765,523 @@ Output as JSON:
     }
 
 
+def extract_thesis(content: str, content_type: str = "idea") -> dict:
+    """
+    Extract the core thesis from any content - ideas, transcripts, or scripts.
+    The thesis is the single central idea that everything else must serve.
+    """
+    prompt = f"""Analyze this {content_type} and extract the SINGLE CORE THESIS.
+
+CONTENT:
+{content[:8000]}
+
+A thesis is NOT:
+- A topic ("politics", "technology")
+- A summary of multiple points
+- A vague observation
+
+A thesis IS:
+- One specific claim or insight
+- Something that can be argued for or against
+- The central idea that all other points should support
+
+Output JSON:
+{{
+    "thesis_statement": "One clear sentence stating the core claim",
+    "thesis_type": "one of [argument, observation, revelation, challenge, question]",
+    "core_claim": "The underlying truth being asserted",
+    "target_audience": "Who needs to hear this and why",
+    "intended_impact": "What should change in the viewer's mind",
+    "confidence": 0.0-1.0 confidence score,
+    "requires_clarification": true/false,
+    "clarification_question": "If unclear, what ONE question would clarify the thesis"
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=1024
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {"thesis_statement": "", "confidence": 0.0, "requires_clarification": True}
+
+
+def identify_anchors(script: str, thesis: str) -> list:
+    """
+    Identify anchor points in a script - key statements that structure the argument.
+    Anchors are the pillars that hold up the thesis.
+    """
+    prompt = f"""Analyze this script and identify the ANCHOR POINTS.
+
+THESIS (the core claim this script must prove):
+{thesis}
+
+SCRIPT:
+{script}
+
+Anchor points are:
+- Key statements that DIRECTLY support the thesis
+- Moments that structure the argument (not every sentence)
+- The "pillars" - remove them and the argument collapses
+
+Types of anchors:
+- HOOK: First statement that grabs attention and hints at thesis
+- CLAIM: Direct assertion supporting thesis
+- EVIDENCE: Fact or example that proves a claim
+- PIVOT: Transition to new supporting point
+- COUNTER: Acknowledgment of opposing view (strengthens argument)
+- CLOSER: Final statement that reinforces thesis
+
+Output JSON array:
+[
+    {{
+        "anchor_text": "The exact text of this anchor",
+        "anchor_type": "HOOK/CLAIM/EVIDENCE/PIVOT/COUNTER/CLOSER",
+        "position": 1,
+        "supports_thesis": true/false,
+        "is_hook": true/false,
+        "is_closer": true/false,
+        "visual_intent": "What visual would support this moment",
+        "emotional_beat": "tension/relief/revelation/challenge/resolution"
+    }}
+]
+
+Only include TRUE anchors. A 60-second script might have 3-5 anchors, not 15."""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=2048
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
+        return result.get('anchors', result) if isinstance(result, dict) else result
+    except json.JSONDecodeError:
+        return []
+
+
+def detect_thought_changes(content: str, content_type: str = "script") -> list:
+    """
+    Detect thought transitions in content - potential clip points.
+    Only marks as clip-worthy if cutting improves clarity/retention.
+    """
+    prompt = f"""Analyze this {content_type} for THOUGHT CHANGES.
+
+CONTENT:
+{content}
+
+A thought change occurs when:
+- The argument shifts to a new point
+- A counter-argument is introduced
+- The emotional register changes
+- A revelation or payoff arrives
+- A new example or evidence begins
+
+For EACH thought change, evaluate:
+1. Would cutting here IMPROVE clarity? (not just "is this a transition")
+2. Would cutting here IMPROVE retention? (does a cut serve the viewer)
+3. If continuous flow works better, mark should_clip as false
+
+Output JSON array:
+[
+    {{
+        "position": percentage through content (0.0-1.0),
+        "from_idea": "What idea/point is ending",
+        "to_idea": "What idea/point is beginning",
+        "transition_type": "pivot/revelation/counter/escalation/resolution",
+        "should_clip": true/false,
+        "clip_reasoning": "Why cutting here helps (or why continuous is better)",
+        "clarity_improvement": 0.0-1.0 (how much clearer with cut),
+        "retention_improvement": 0.0-1.0 (how much more engaging with cut)
+    }}
+]
+
+Be CONSERVATIVE. Don't over-clip. If the flow is good, keep it continuous."""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=2048
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
+        return result.get('thought_changes', result) if isinstance(result, dict) else result
+    except json.JSONDecodeError:
+        return []
+
+
+def generate_thesis_driven_script(thesis: dict, user_context: str = "", learned_patterns: dict = None) -> dict:
+    """
+    Generate a script that serves a specific thesis.
+    Every line must trace back to proving/exploring the core claim.
+    """
+    learning_section = ""
+    if learned_patterns:
+        learning_section = f"""
+LEARNED FROM YOUR PREVIOUS CONTENT:
+- Hook styles that work: {learned_patterns.get('hooks', 'None yet')}
+- Pacing preferences: {learned_patterns.get('pacing', 'Default')}
+- Structure patterns: {learned_patterns.get('structure', 'Standard')}
+- Voice/style: {learned_patterns.get('style', 'Default')}
+"""
+
+    prompt = f"""Write a SHORT-FORM VIDEO SCRIPT that serves this thesis.
+
+THESIS: {thesis.get('thesis_statement', '')}
+CORE CLAIM: {thesis.get('core_claim', '')}
+TARGET AUDIENCE: {thesis.get('target_audience', 'General')}
+INTENDED IMPACT: {thesis.get('intended_impact', 'Make viewer think')}
+
+{learning_section}
+
+{user_context}
+
+RULES:
+1. EVERY line must serve the thesis - no tangents, no filler
+2. HOOK must hint at thesis without giving it away
+3. ANCHORS must be clearly structured (claim → evidence → payoff)
+4. THOUGHT CHANGES only where they improve clarity
+5. CLOSER must bring viewer back to core claim
+
+Output JSON:
+{{
+    "full_script": "Complete script text",
+    "hook": "Opening 3-second hook",
+    "anchors": ["List of anchor statements in the script"],
+    "thought_change_points": ["List of positions where cuts would help"],
+    "closer": "Final statement",
+    "tone": "calm/urgent/ironic/analytical/reflective",
+    "visual_direction": "Overall visual approach",
+    "estimated_duration": "30/45/60 seconds",
+    "thesis_reinforcement": "How the script proves the thesis"
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=2048
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {}
+
+
+def process_source_for_clipping(transcript: str, source_url: str = None) -> dict:
+    """
+    Process source material for intelligent clipping.
+    Extracts thesis, finds anchors, detects thought changes, suggests clips.
+    """
+    thesis = extract_thesis(transcript, "transcript")
+    
+    if thesis.get('requires_clarification', False):
+        return {
+            "status": "needs_clarification",
+            "thesis": thesis,
+            "question": thesis.get('clarification_question', 'What is the main point you want to make?')
+        }
+    
+    prompt = f"""Analyze this transcript for CLIPPING.
+
+TRANSCRIPT:
+{transcript[:10000]}
+
+EXTRACTED THESIS: {thesis.get('thesis_statement', '')}
+
+Find the BEST CLIP-WORTHY MOMENTS that:
+1. Most powerfully express the thesis
+2. Stand alone as complete thoughts
+3. Would grab attention in first 3 seconds
+4. Have natural start/end points
+
+For each potential clip:
+- Extract the exact text
+- Note timestamp position (percentage)
+- Rate how well it serves the thesis
+- Suggest any cuts that improve clarity
+
+Output JSON:
+{{
+    "thesis": {{thesis details}},
+    "recommended_clips": [
+        {{
+            "clip_text": "Exact text of recommended clip",
+            "start_position": 0.0-1.0,
+            "end_position": 0.0-1.0,
+            "thesis_alignment": 0.0-1.0,
+            "hook_potential": 0.0-1.0,
+            "standalone_quality": 0.0-1.0,
+            "suggested_cuts": ["positions where internal cuts help"],
+            "visual_suggestion": "What visuals would enhance this"
+        }}
+    ],
+    "overall_quality": 0.0-1.0,
+    "total_potential_clips": number
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=3000
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        result = json.loads(content)
+        result['status'] = 'ready'
+        return result
+    except json.JSONDecodeError:
+        return {"status": "error", "thesis": thesis, "recommended_clips": []}
+
+
+def learn_from_source_content(transcript: str, clips_extracted: list, user_feedback: dict = None) -> dict:
+    """
+    Learn from clipped content to improve future generation.
+    Extracts hooks, pacing, structure, and style patterns.
+    """
+    prompt = f"""Analyze this SOURCE CONTENT for LEARNING.
+
+ORIGINAL TRANSCRIPT:
+{transcript[:6000]}
+
+CLIPS THAT WERE EXTRACTED:
+{json.dumps(clips_extracted, indent=2)[:3000]}
+
+USER FEEDBACK (if any):
+{json.dumps(user_feedback) if user_feedback else 'None provided'}
+
+Extract PATTERNS that should inform future content generation:
+
+1. HOOK PATTERNS: What makes the openings work?
+2. PACING PATTERNS: Sentence length, rhythm, pauses
+3. STRUCTURE PATTERNS: How arguments are built
+4. STYLE PATTERNS: Tone, word choice, personality
+
+Output JSON:
+{{
+    "learned_hooks": [
+        {{"pattern": "description", "example": "from content", "effectiveness": 0.0-1.0}}
+    ],
+    "learned_pacing": {{
+        "avg_sentence_length": "short/medium/long",
+        "rhythm_style": "punchy/flowing/varied",
+        "pause_usage": "frequent/occasional/rare"
+    }},
+    "learned_structure": {{
+        "opening_style": "description",
+        "argument_flow": "description",
+        "closing_style": "description"
+    }},
+    "learned_style": {{
+        "tone": "description",
+        "personality_markers": ["list of voice traits"],
+        "word_choice": "simple/complex/technical"
+    }},
+    "key_insights": ["What makes this content effective"],
+    "apply_to_generation": ["Specific guidance for future scripts"]
+}}"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=2048
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {}
+
+
+def get_source_learning_context(user_id: str) -> str:
+    """
+    Get accumulated learnings from all source content the user has clipped.
+    This feeds into generation to make scripts match their preferred style.
+    """
+    from app import db
+    from models import SourceContent
+    
+    try:
+        sources = SourceContent.query.filter_by(user_id=user_id).order_by(
+            SourceContent.created_at.desc()
+        ).limit(10).all()
+        
+        if not sources:
+            return ""
+        
+        learning_parts = []
+        
+        all_hooks = []
+        all_pacing = []
+        all_structure = []
+        all_style = []
+        
+        for src in sources:
+            if src.learned_hooks:
+                all_hooks.extend(src.learned_hooks if isinstance(src.learned_hooks, list) else [src.learned_hooks])
+            if src.learned_pacing:
+                all_pacing.append(src.learned_pacing)
+            if src.learned_structure:
+                all_structure.append(src.learned_structure)
+            if src.learned_style:
+                all_style.append(src.learned_style)
+        
+        if all_hooks:
+            top_hooks = sorted(all_hooks, key=lambda x: x.get('effectiveness', 0) if isinstance(x, dict) else 0, reverse=True)[:3]
+            learning_parts.append(f"Effective hook patterns: {json.dumps(top_hooks)}")
+        
+        if all_style:
+            learning_parts.append(f"Preferred style: {json.dumps(all_style[0])}")
+        
+        if all_pacing:
+            learning_parts.append(f"Pacing preferences: {json.dumps(all_pacing[0])}")
+        
+        return "## LEARNED FROM YOUR CLIPPED CONTENT:\n" + "\n".join(learning_parts) if learning_parts else ""
+    
+    except Exception as e:
+        print(f"Error fetching source learning context: {e}")
+        return ""
+
+
+def unified_content_engine(user_input: str, user_id: str, mode: str = "auto") -> dict:
+    """
+    Unified engine that handles both creation and clipping through one interface.
+    
+    Modes:
+    - auto: AI determines if this is creation or clipping based on input
+    - create: Force script creation mode
+    - clip: Force clipping mode (expects transcript/link)
+    """
+    detection_prompt = f"""Analyze this user input and determine what they're trying to do.
+
+INPUT:
+{user_input[:2000]}
+
+Are they:
+1. CREATING: Starting from an idea, asking for a script
+2. CLIPPING: Providing source material (transcript, link, video) to extract clips from
+3. REFINING: Adjusting existing content
+
+Output JSON:
+{{
+    "mode": "create/clip/refine",
+    "detected_thesis": "If thesis is clear, state it. Otherwise null",
+    "source_type": "If clipping: transcript/link/idea. If creating: null",
+    "needs_clarification": true/false,
+    "clarification_question": "If unclear, what to ask"
+}}"""
+
+    if mode == "auto":
+        response = client.chat.completions.create(
+            model="grok-3-fast",
+            messages=[
+                {"role": "system", "content": "You analyze user intent for a video content system."},
+                {"role": "user", "content": detection_prompt}
+            ],
+            response_format={"type": "json_object"},
+            max_completion_tokens=512
+        )
+        
+        try:
+            content = response.choices[0].message.content or "{}"
+            detection = json.loads(content)
+            mode = detection.get('mode', 'create')
+        except:
+            mode = 'create'
+            detection = {}
+    else:
+        detection = {"mode": mode}
+    
+    user_context = get_user_context(user_id)
+    source_learning = get_source_learning_context(user_id)
+    full_context = f"{user_context}\n\n{source_learning}" if source_learning else user_context
+    
+    if mode == "clip":
+        result = process_source_for_clipping(user_input)
+        if result.get('status') == 'ready':
+            learnings = learn_from_source_content(user_input, result.get('recommended_clips', []))
+            result['learnings'] = learnings
+        return {"mode": "clip", "result": result}
+    
+    else:
+        thesis = extract_thesis(user_input, "idea")
+        
+        if thesis.get('requires_clarification', False):
+            return {
+                "mode": "create",
+                "status": "needs_clarification", 
+                "thesis": thesis,
+                "question": thesis.get('clarification_question', 'What is the main point you want to make?')
+            }
+        
+        learned_patterns = {}
+        try:
+            from models import SourceContent
+            from app import db
+            sources = SourceContent.query.filter_by(user_id=user_id).limit(5).all()
+            if sources:
+                for src in sources:
+                    if src.learned_hooks:
+                        learned_patterns['hooks'] = src.learned_hooks
+                    if src.learned_pacing:
+                        learned_patterns['pacing'] = src.learned_pacing
+                    if src.learned_structure:
+                        learned_patterns['structure'] = src.learned_structure
+                    if src.learned_style:
+                        learned_patterns['style'] = src.learned_style
+        except:
+            pass
+        
+        script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
+        anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
+        thought_changes = detect_thought_changes(script.get('full_script', ''))
+        
+        return {
+            "mode": "create",
+            "status": "ready",
+            "thesis": thesis,
+            "script": script,
+            "anchors": anchors,
+            "thought_changes": thought_changes,
+            "learned_patterns_applied": bool(learned_patterns)
+        }
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:

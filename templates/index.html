@@ -2512,6 +2512,268 @@
             object-fit: contain;
         }
         
+        /* Mode Selector Styles */
+        .mode-selector {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .mode-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .mode-btn:hover {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: rgba(255, 214, 10, 0.3);
+            color: var(--text);
+        }
+        
+        .mode-btn.active {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .mode-btn svg {
+            opacity: 0.7;
+        }
+        
+        .mode-btn.active svg {
+            opacity: 1;
+        }
+        
+        /* Thesis Panel Styles */
+        .thesis-panel {
+            padding: 14px 16px;
+            background: rgba(255, 214, 10, 0.05);
+            border-bottom: 1px solid rgba(255, 214, 10, 0.2);
+        }
+        
+        .thesis-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        
+        .thesis-icon svg {
+            stroke: var(--accent);
+        }
+        
+        .thesis-edit-btn {
+            margin-left: auto;
+            padding: 4px 10px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .thesis-edit-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .thesis-content {
+            font-size: 15px;
+            line-height: 1.5;
+            color: var(--text);
+        }
+        
+        .thesis-placeholder {
+            color: var(--muted);
+            font-style: italic;
+        }
+        
+        .thesis-meta {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .thesis-type, .thesis-confidence {
+            font-size: 11px;
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            color: var(--muted);
+        }
+        
+        /* Anchors Panel Styles */
+        .anchors-panel {
+            padding: 12px 16px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .anchors-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        
+        .anchor-count {
+            background: var(--accent);
+            color: var(--bg);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+        }
+        
+        .anchors-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .anchor-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 6px;
+            border-left: 3px solid var(--accent);
+        }
+        
+        .anchor-type {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 6px;
+            background: rgba(255, 214, 10, 0.15);
+            border-radius: 4px;
+            color: var(--accent);
+            white-space: nowrap;
+        }
+        
+        .anchor-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.4;
+        }
+        
+        /* Clip Suggestions Panel */
+        .clips-panel {
+            padding: 14px 16px;
+            background: rgba(59, 130, 246, 0.05);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        .clips-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        
+        .clip-item {
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #3b82f6;
+        }
+        
+        .clip-text {
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.5;
+            margin-bottom: 8px;
+        }
+        
+        .clip-meta {
+            display: flex;
+            gap: 10px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+        
+        .clip-score {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .clip-score-bar {
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .clip-score-fill {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 2px;
+        }
+        
+        .use-clip-btn {
+            padding: 6px 12px;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 4px;
+            color: #3b82f6;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .use-clip-btn:hover {
+            background: rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Learning Badge */
+        .learning-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            background: rgba(16, 185, 129, 0.15);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #10b981;
+        }
+        
+        .learning-badge svg {
+            width: 12px;
+            height: 12px;
+        }
+
         /* Feedback Section Styles */
         .feedback-section {
             margin-top: 1rem;
@@ -3479,9 +3741,68 @@
         
         <!-- CREATE STAGE -->
         <div class="stage" id="stage-create">
+            <!-- Mode Selector -->
+            <div class="mode-selector" id="mode-selector">
+                <button class="mode-btn active" data-mode="auto" onclick="setContentMode('auto')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4l3 3"/>
+                    </svg>
+                    Auto
+                </button>
+                <button class="mode-btn" data-mode="create" onclick="setContentMode('create')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    Create
+                </button>
+                <button class="mode-btn" data-mode="clip" onclick="setContentMode('clip')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <path d="M10 10l4 4m0-4l-4 4"/>
+                    </svg>
+                    Clip
+                </button>
+            </div>
+            
+            <!-- Thesis Display Panel (hidden by default) -->
+            <div class="thesis-panel" id="thesis-panel" style="display:none;">
+                <div class="thesis-header">
+                    <span class="thesis-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                    </span>
+                    Core Thesis
+                    <button class="thesis-edit-btn" onclick="editThesis()" title="Edit thesis">Edit</button>
+                </div>
+                <div class="thesis-content" id="thesis-content">
+                    <span class="thesis-placeholder">Thesis will be extracted from your input...</span>
+                </div>
+                <div class="thesis-meta" id="thesis-meta" style="display:none;">
+                    <span class="thesis-type" id="thesis-type"></span>
+                    <span class="thesis-confidence" id="thesis-confidence"></span>
+                </div>
+            </div>
+            
+            <!-- Anchors Display (hidden by default) -->
+            <div class="anchors-panel" id="anchors-panel" style="display:none;">
+                <div class="anchors-header">
+                    <span>Script Anchors</span>
+                    <span class="anchor-count" id="anchor-count">0</span>
+                </div>
+                <div class="anchors-list" id="anchors-list"></div>
+            </div>
+            
             <div class="messages" id="messages">
                 <div class="message ai">
-                    <div class="message-content">What would you like to create?</div>
+                    <div class="message-content">What would you like to create? Paste an idea, a transcript to clip, or a link.</div>
                 </div>
             </div>
             
@@ -3891,6 +4212,176 @@
         let chatPanelOpen = false;
         let unreadMessages = 0;
         let isPro = false;
+        
+        // Unified Engine State
+        let contentMode = 'auto'; // auto, create, clip
+        let currentThesis = null;
+        let currentAnchors = [];
+        let currentThoughtChanges = [];
+        let clipSuggestions = [];
+        let learnedPatternsApplied = false;
+        
+        // Mode Selection
+        function setContentMode(mode) {
+            contentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            const placeholder = document.getElementById('composer-input');
+            if (mode === 'create') {
+                placeholder.placeholder = 'Describe your idea or thesis...';
+            } else if (mode === 'clip') {
+                placeholder.placeholder = 'Paste a transcript or source material...';
+            } else {
+                placeholder.placeholder = 'Paste a link, transcript, or idea...';
+            }
+        }
+        
+        // Thesis Display
+        function displayThesis(thesis) {
+            currentThesis = thesis;
+            const panel = document.getElementById('thesis-panel');
+            const content = document.getElementById('thesis-content');
+            const meta = document.getElementById('thesis-meta');
+            const typeEl = document.getElementById('thesis-type');
+            const confEl = document.getElementById('thesis-confidence');
+            
+            if (thesis && thesis.thesis_statement) {
+                panel.style.display = 'block';
+                content.innerHTML = thesis.thesis_statement;
+                
+                if (thesis.thesis_type || thesis.confidence) {
+                    meta.style.display = 'flex';
+                    typeEl.textContent = thesis.thesis_type || 'general';
+                    confEl.textContent = thesis.confidence ? `${Math.round(thesis.confidence * 100)}% confident` : '';
+                }
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+        
+        // Anchors Display
+        function displayAnchors(anchors) {
+            currentAnchors = anchors || [];
+            const panel = document.getElementById('anchors-panel');
+            const list = document.getElementById('anchors-list');
+            const count = document.getElementById('anchor-count');
+            
+            if (currentAnchors.length > 0) {
+                panel.style.display = 'block';
+                count.textContent = currentAnchors.length;
+                list.innerHTML = currentAnchors.map(anchor => `
+                    <div class="anchor-item">
+                        <span class="anchor-type">${anchor.anchor_type || 'CLAIM'}</span>
+                        <span class="anchor-text">${anchor.anchor_text || ''}</span>
+                    </div>
+                `).join('');
+            } else {
+                panel.style.display = 'none';
+            }
+        }
+        
+        // Display Clip Suggestions
+        function displayClipSuggestions(clips) {
+            clipSuggestions = clips || [];
+            
+            // Remove existing clips panel if present
+            const existingPanel = document.getElementById('clips-panel');
+            if (existingPanel) existingPanel.remove();
+            
+            if (clipSuggestions.length > 0) {
+                const clipsHtml = `
+                    <div class="clips-panel" id="clips-panel">
+                        <div class="clips-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                <path d="M10 10l4 4m0-4l-4 4"/>
+                            </svg>
+                            Suggested Clips (${clipSuggestions.length})
+                        </div>
+                        ${clipSuggestions.slice(0, 5).map((clip, i) => `
+                            <div class="clip-item">
+                                <div class="clip-text">${clip.clip_text ? clip.clip_text.substring(0, 200) + '...' : 'Clip ' + (i+1)}</div>
+                                <div class="clip-meta">
+                                    <span class="clip-score">
+                                        Thesis: 
+                                        <span class="clip-score-bar"><span class="clip-score-fill" style="width:${(clip.thesis_alignment || 0.5) * 100}%"></span></span>
+                                    </span>
+                                    <span class="clip-score">
+                                        Hook: 
+                                        <span class="clip-score-bar"><span class="clip-score-fill" style="width:${(clip.hook_potential || 0.5) * 100}%"></span></span>
+                                    </span>
+                                    <button class="use-clip-btn" onclick="useClip(${i})">Use This</button>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                
+                const thesisPanel = document.getElementById('thesis-panel');
+                thesisPanel.insertAdjacentHTML('afterend', clipsHtml);
+            }
+        }
+        
+        // Use a suggested clip
+        function useClip(index) {
+            const clip = clipSuggestions[index];
+            if (clip && clip.clip_text) {
+                currentScript = clip.clip_text;
+                document.getElementById('script-text').textContent = clip.clip_text;
+                
+                // Move to review stage
+                addMessage(`Using clip ${index + 1}. Let's refine it for your video.`);
+                showReviewConfirmation();
+            }
+        }
+        
+        // Edit Thesis
+        function editThesis() {
+            const current = currentThesis?.thesis_statement || '';
+            const newThesis = prompt('Edit the core thesis:', current);
+            if (newThesis && newThesis !== current) {
+                currentThesis = { ...currentThesis, thesis_statement: newThesis, is_user_confirmed: true };
+                displayThesis(currentThesis);
+                addMessage(`Thesis updated: "${newThesis}". Regenerating with this focus.`);
+            }
+        }
+        
+        // Handle Unified Engine Response
+        function handleUnifiedResponse(result) {
+            if (result.status === 'needs_clarification') {
+                // AI needs clarification
+                const question = result.question || 'What is the main point you want to make?';
+                addMessage(question);
+                if (result.thesis) displayThesis(result.thesis);
+            } else if (result.status === 'ready') {
+                if (result.mode === 'clip') {
+                    // Clipping mode - show suggested clips
+                    displayThesis(result.result?.thesis);
+                    displayClipSuggestions(result.result?.recommended_clips);
+                    
+                    const clipCount = result.result?.recommended_clips?.length || 0;
+                    const learnNote = result.result?.learnings ? ' Learning from this content...' : '';
+                    addMessage(`Found ${clipCount} potential clips.${learnNote} Select one to use as your script.`);
+                } else {
+                    // Create mode - show thesis, anchors, script
+                    displayThesis(result.thesis);
+                    displayAnchors(result.anchors);
+                    
+                    if (result.script?.full_script) {
+                        currentScript = result.script.full_script;
+                        document.getElementById('script-text').textContent = result.script.full_script;
+                        
+                        const learnNote = result.learned_patterns_applied ? 
+                            ' <span class="learning-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Applied learned patterns</span>' : '';
+                        
+                        addMessage(`Script ready with ${result.anchors?.length || 0} anchor points.${learnNote}`, false, true);
+                        showReviewConfirmation();
+                    }
+                }
+            }
+        }
         
         // Current project tracking
         let currentProjectId = null;
@@ -5351,47 +5842,100 @@
             renderChatPanelMessages();
             
             try {
-                const response = await fetch('/refine-script', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: fullMessage,
-                        conversation: conversationHistory
-                    })
-                });
+                // Use unified engine for long messages (likely transcripts) or when clip mode is active
+                const isLongInput = fullMessage.length > 500;
+                const useUnified = contentMode === 'clip' || (contentMode === 'auto' && isLongInput);
                 
-                const data = await response.json();
-                removeTypingIndicator();
-                
-                if (data.success) {
-                    const reply = data.reply || data.refined_script;
-                    addMessage(reply);
-                    conversationHistory.push({ role: 'assistant', content: reply });
-                    saveConversation();
-                    renderChatPanelMessages();
-                    showUnreadBadge();
+                if (useUnified) {
+                    // Use unified engine for thesis extraction and clipping
+                    const unifiedResponse = await fetch('/unified-engine', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            input: fullMessage,
+                            mode: contentMode
+                        })
+                    });
                     
-                    // Check if script is ready
-                    const isScript = reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:');
-                    if (data.script_ready || (isScript && reply.length > 300)) {
-                        // Store full script for processing, but show voice actor version to user
-                        currentScript = data.refined_script || reply;
+                    const unifiedData = await unifiedResponse.json();
+                    removeTypingIndicator();
+                    
+                    if (unifiedData.success && unifiedData.result) {
+                        handleUnifiedResponse(unifiedData.result);
                         
-                        // If we have a voice actor script, display that instead
-                        if (data.voice_actor_script) {
-                            // Update the displayed message with clean script
-                            const messages = document.querySelectorAll('#messages .message:not(.user)');
-                            if (messages.length > 0) {
-                                const lastMsg = messages[messages.length - 1];
-                                lastMsg.innerHTML = `<div class="script-display">${escapeHtml(data.voice_actor_script).replace(/\n/g, '<br>')}</div>`;
-                            }
+                        // Create a meaningful message based on mode
+                        let responseMsg = 'Processing complete.';
+                        if (unifiedData.result.mode === 'clip') {
+                            const clipCount = unifiedData.result.result?.recommended_clips?.length || 0;
+                            responseMsg = clipCount > 0 ? `Found ${clipCount} clip-worthy moments.` : 'Analyzed content for clipping.';
+                        } else if (unifiedData.result.mode === 'create') {
+                            responseMsg = unifiedData.result.script?.full_script ? 'Script ready.' : 'Content analyzed.';
                         }
                         
-                        // Show confirmation via chat (not modal)
-                        showReviewConfirmation();
+                        conversationHistory.push({ role: 'assistant', content: responseMsg });
+                        saveConversation();
+                        renderChatPanelMessages();
+                        showUnreadBadge();
+                    } else {
+                        addMessage('Could not process content. Try rephrasing or switching to Create mode.');
                     }
                 } else {
-                    addMessage('Something went wrong. Please try again.');
+                    // Standard script refinement flow
+                    const response = await fetch('/refine-script', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: fullMessage,
+                            conversation: conversationHistory
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    removeTypingIndicator();
+                    
+                    if (data.success) {
+                        const reply = data.reply || data.refined_script;
+                        addMessage(reply);
+                        conversationHistory.push({ role: 'assistant', content: reply });
+                        saveConversation();
+                        renderChatPanelMessages();
+                        showUnreadBadge();
+                        
+                        // Check if script is ready
+                        const isScript = reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:');
+                        if (data.script_ready || (isScript && reply.length > 300)) {
+                            // Store full script for processing, but show voice actor version to user
+                            currentScript = data.refined_script || reply;
+                            
+                            // Extract thesis from the script
+                            try {
+                                const thesisRes = await fetch('/extract-thesis', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ content: reply, content_type: 'script' })
+                                });
+                                const thesisData = await thesisRes.json();
+                                if (thesisData.success) {
+                                    displayThesis(thesisData.thesis);
+                                }
+                            } catch(e) { console.log('Thesis extraction skipped'); }
+                            
+                            // If we have a voice actor script, display that instead
+                            if (data.voice_actor_script) {
+                                // Update the displayed message with clean script
+                                const messages = document.querySelectorAll('#messages .message:not(.user)');
+                                if (messages.length > 0) {
+                                    const lastMsg = messages[messages.length - 1];
+                                    lastMsg.innerHTML = `<div class="script-display">${escapeHtml(data.voice_actor_script).replace(/\n/g, '<br>')}</div>`;
+                                }
+                            }
+                            
+                            // Show confirmation via chat (not modal)
+                            showReviewConfirmation();
+                        }
+                    } else {
+                        addMessage('Something went wrong. Please try again.');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);

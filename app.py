@@ -18,7 +18,10 @@ import io
 from context_engine import (
     extract_audio, transcribe_audio, analyze_ideas,
     generate_script, find_clip_timestamps, generate_captions,
-    cut_video_clip, concatenate_clips
+    cut_video_clip, concatenate_clips,
+    extract_thesis, identify_anchors, detect_thought_changes,
+    generate_thesis_driven_script, process_source_for_clipping,
+    learn_from_source_content, unified_content_engine
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -4197,74 +4200,95 @@ def build_post():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Direct chat with Krakd AI with conversation memory."""
+    """Direct chat with Krakd AI with conversation memory and unified content engine."""
     from openai import OpenAI
-    from context_engine import save_conversation, build_personalized_prompt
+    from context_engine import save_conversation, build_personalized_prompt, get_source_learning_context
     from flask_login import current_user
     import os
     
     data = request.get_json()
     message = data.get('message')
     conversation = data.get('conversation', [])
+    use_unified_engine = data.get('use_unified_engine', False)
+    mode = data.get('mode', 'auto')
     
     user_id = current_user.id if current_user.is_authenticated else 'dev_user'
     
     if not message:
         return jsonify({'error': 'No message provided'}), 400
     
+    if use_unified_engine:
+        try:
+            result = unified_content_engine(message, user_id, mode)
+            return jsonify({
+                'success': True,
+                'unified_result': result,
+                'mode': result.get('mode', 'create')
+            })
+        except Exception as e:
+            logging.error(f"Unified engine error in chat: {e}")
+    
     client = OpenAI(
         api_key=os.environ.get("XAI_API_KEY"),
         base_url="https://api.x.ai/v1"
     )
     
-    system_prompt = """You are Krakd — a thinking system that produces post-ready content.
+    source_learning = get_source_learning_context(user_id)
+    
+    system_prompt = """You are Krakd — a unified thinking and clipping system.
 
 PURPOSE:
 Turn ideas, transcripts, or source material into clear, honest, human-feeling content.
-Optimize for clarity, integrity, and resonance — never outrage or spectacle.
+You can BOTH create from ideas AND clip from source material.
+
+THESIS-DRIVEN ARCHITECTURE:
+Every piece of content you create must serve ONE CORE THESIS.
+Before generating anything, identify or confirm the thesis.
+If the user's input is unclear, ask ONE clarifying question about their core claim.
+
+ANCHOR-BASED SCRIPTS:
+Structure arguments around ANCHOR POINTS:
+- HOOK: First statement that grabs attention
+- CLAIM: Direct assertions supporting thesis
+- EVIDENCE: Facts or examples proving claims
+- PIVOT: Transitions to new supporting points
+- CLOSER: Final statement reinforcing thesis
+
+THOUGHT-CHANGE CLIPPING:
+When analyzing content for clips:
+- Identify where ideas shift
+- Only recommend cuts that IMPROVE clarity or retention
+- If continuous flow works better, keep it continuous
+
+MODES:
+1. CREATE MODE: User gives idea → You extract thesis → Generate anchor-based script
+2. CLIP MODE: User gives transcript/source → You find thesis → Suggest clips at thought-changes
 
 CORE PHILOSOPHY:
 1. Language matters more than volume — say the right thing, not more things
 2. Ideas fail when ignored, not when challenged — explain resistance precisely
-3. Stability without legitimacy does not last
-4. Coexistence is logic, not sentiment — durable outcomes from shared stakes
-5. Discourse ≠ politics — reason and explain, don't perform identity theater
-
-BEFORE WRITING (MANDATORY):
-1. What is the core claim being made?
-2. What is being misunderstood or ignored?
-3. Who needs to understand this — and why might they resist?
-4. What wording would reduce resistance instead of escalating it?
-If unclear, ask ONE concise clarifying question before proceeding.
+3. Coexistence is logic, not sentiment — durable outcomes from shared stakes
 
 TONE (STRICT):
 - Calm, clear, grounded, subtly witty when appropriate, confident without arrogance
-- NEVER: sarcastic, smug, preachy, outraged, juvenile, crude, sexual, graphic, meme-brained
-- If humor appears, it is sly, intelligent, and brief — never the point
-- If content gets graphic: "The story gets graphic here — we're skipping that part."
+- NEVER: sarcastic, smug, preachy, outraged, juvenile, crude, sexual, graphic
 
 SCRIPT FORMAT:
 - INT./EXT. scene headings, CHARACTER NAMES in caps, no markdown
 - Include [VISUAL: description] notes for B-roll throughout
-- Dialogue tight. Cut filler words.
-- Every line logically leads to the next
-- Ending closes the loop (return to core idea)
-
-POLITICAL/SOCIAL RULES:
-- Recognize power imbalances — don't flatten dynamics with "both sides" framing
-- Critique state policy and dominance structures without demonizing individuals
-- A solution is invalid if affected peoples do not accept it
+- Every line serves the thesis
+- Ending closes the loop
 
 OUTPUT STANDARD:
 - Intentional — every line has a reason
 - Restrained — no excess, no padding
-- Human-written — natural flow, not model-shaped
+- Human-written — natural flow
 - Punchy — clarity without dilution
 
-FAIL CONDITION:
-If output could be mistaken for generic social media commentary, activist slogans, empty neutrality, or AI filler — redo it.
-
 Never explain what you're doing. Just write."""
+
+    if source_learning:
+        system_prompt += f"\n\n{source_learning}"
 
     personalized_prompt = build_personalized_prompt(user_id, system_prompt)
     
@@ -4291,6 +4315,315 @@ Never explain what you're doing. Just write."""
             'conversation': messages + [{"role": "assistant", "content": reply}]
         })
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/unified-engine', methods=['POST'])
+def unified_engine():
+    """
+    Unified content engine - handles both creation and clipping in one interface.
+    Automatically detects mode from input, or accepts explicit mode parameter.
+    """
+    from flask_login import current_user
+    from models import SourceContent, ProjectThesis, ScriptAnchor, ThoughtChange, Project
+    
+    data = request.get_json()
+    user_input = data.get('input', '')
+    mode = data.get('mode', 'auto')
+    project_id = data.get('project_id')
+    
+    user_id = current_user.id if current_user.is_authenticated else 'dev_user'
+    
+    if not user_input:
+        return jsonify({'error': 'No input provided'}), 400
+    
+    try:
+        result = unified_content_engine(user_input, user_id, mode)
+        
+        if result.get('status') == 'ready':
+            if result.get('mode') == 'clip':
+                source = SourceContent(
+                    user_id=user_id,
+                    content_type='transcript',
+                    transcript=user_input[:10000],
+                    extracted_thesis=result.get('result', {}).get('thesis', {}).get('thesis_statement'),
+                    extracted_anchors=result.get('result', {}).get('recommended_clips', []),
+                    learned_hooks=result.get('result', {}).get('learnings', {}).get('learned_hooks'),
+                    learned_pacing=result.get('result', {}).get('learnings', {}).get('learned_pacing'),
+                    learned_structure=result.get('result', {}).get('learnings', {}).get('learned_structure'),
+                    learned_style=result.get('result', {}).get('learnings', {}).get('learned_style')
+                )
+                db.session.add(source)
+                db.session.commit()
+                result['source_id'] = source.id
+            
+            elif result.get('mode') == 'create' and project_id:
+                thesis_data = result.get('thesis', {})
+                thesis = ProjectThesis(
+                    project_id=project_id,
+                    user_id=user_id,
+                    thesis_statement=thesis_data.get('thesis_statement', ''),
+                    thesis_type=thesis_data.get('thesis_type'),
+                    core_claim=thesis_data.get('core_claim'),
+                    target_audience=thesis_data.get('target_audience'),
+                    intended_impact=thesis_data.get('intended_impact'),
+                    confidence_score=thesis_data.get('confidence', 1.0)
+                )
+                db.session.add(thesis)
+                
+                for i, anchor in enumerate(result.get('anchors', [])):
+                    if isinstance(anchor, dict):
+                        anchor_obj = ScriptAnchor(
+                            project_id=project_id,
+                            anchor_text=anchor.get('anchor_text', ''),
+                            anchor_type=anchor.get('anchor_type', 'CLAIM'),
+                            position=anchor.get('position', i),
+                            supports_thesis=anchor.get('supports_thesis', True),
+                            is_hook=anchor.get('is_hook', False),
+                            is_closer=anchor.get('is_closer', False),
+                            visual_intent=anchor.get('visual_intent'),
+                            emotional_beat=anchor.get('emotional_beat')
+                        )
+                        db.session.add(anchor_obj)
+                
+                for tc in result.get('thought_changes', []):
+                    if isinstance(tc, dict):
+                        tc_obj = ThoughtChange(
+                            project_id=project_id,
+                            position=tc.get('position', 0),
+                            from_idea=tc.get('from_idea'),
+                            to_idea=tc.get('to_idea'),
+                            transition_type=tc.get('transition_type', 'pivot'),
+                            should_clip=tc.get('should_clip', False),
+                            clip_reasoning=tc.get('clip_reasoning'),
+                            clarity_improvement=tc.get('clarity_improvement'),
+                            retention_improvement=tc.get('retention_improvement')
+                        )
+                        db.session.add(tc_obj)
+                
+                db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Unified engine error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/extract-thesis', methods=['POST'])
+def api_extract_thesis():
+    """Extract thesis from content."""
+    data = request.get_json()
+    content = data.get('content', '')
+    content_type = data.get('content_type', 'idea')
+    
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
+    
+    try:
+        thesis = extract_thesis(content, content_type)
+        return jsonify({
+            'success': True,
+            'thesis': thesis
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/identify-anchors', methods=['POST'])
+def api_identify_anchors():
+    """Identify anchor points in a script."""
+    data = request.get_json()
+    script = data.get('script', '')
+    thesis = data.get('thesis', '')
+    
+    if not script or not thesis:
+        return jsonify({'error': 'Script and thesis required'}), 400
+    
+    try:
+        anchors = identify_anchors(script, thesis)
+        return jsonify({
+            'success': True,
+            'anchors': anchors
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/detect-thought-changes', methods=['POST'])
+def api_detect_thought_changes():
+    """Detect thought transitions in content."""
+    data = request.get_json()
+    content = data.get('content', '')
+    content_type = data.get('content_type', 'script')
+    
+    if not content:
+        return jsonify({'error': 'No content provided'}), 400
+    
+    try:
+        changes = detect_thought_changes(content, content_type)
+        return jsonify({
+            'success': True,
+            'thought_changes': changes
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/clip-source', methods=['POST'])
+def clip_source():
+    """Process source material for intelligent clipping."""
+    from flask_login import current_user
+    from models import SourceContent
+    
+    data = request.get_json()
+    transcript = data.get('transcript', '')
+    source_url = data.get('source_url')
+    
+    user_id = current_user.id if current_user.is_authenticated else 'dev_user'
+    
+    if not transcript:
+        return jsonify({'error': 'No transcript provided'}), 400
+    
+    try:
+        result = process_source_for_clipping(transcript, source_url)
+        
+        if result.get('status') == 'ready':
+            learnings = learn_from_source_content(transcript, result.get('recommended_clips', []))
+            
+            source = SourceContent(
+                user_id=user_id,
+                content_type='transcript',
+                source_url=source_url,
+                transcript=transcript[:10000],
+                extracted_thesis=result.get('thesis', {}).get('thesis_statement'),
+                extracted_anchors=result.get('recommended_clips', []),
+                extracted_thought_changes=result.get('thought_changes', []),
+                learned_hooks=learnings.get('learned_hooks'),
+                learned_pacing=learnings.get('learned_pacing'),
+                learned_structure=learnings.get('learned_structure'),
+                learned_style=learnings.get('learned_style'),
+                clips_generated=len(result.get('recommended_clips', [])),
+                quality_score=result.get('overall_quality')
+            )
+            db.session.add(source)
+            db.session.commit()
+            
+            result['source_id'] = source.id
+            result['learnings'] = learnings
+        
+        return jsonify({
+            'success': True,
+            'result': result
+        })
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Clip source error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-thesis-script', methods=['POST'])
+def api_generate_thesis_script():
+    """Generate a thesis-driven script."""
+    from flask_login import current_user
+    from context_engine import get_user_context, get_source_learning_context
+    from models import SourceContent
+    
+    data = request.get_json()
+    thesis = data.get('thesis', {})
+    
+    user_id = current_user.id if current_user.is_authenticated else 'dev_user'
+    
+    if not thesis or not thesis.get('thesis_statement'):
+        return jsonify({'error': 'Thesis statement required'}), 400
+    
+    try:
+        user_context = get_user_context(user_id)
+        source_learning = get_source_learning_context(user_id)
+        full_context = f"{user_context}\n\n{source_learning}" if source_learning else user_context
+        
+        learned_patterns = {}
+        try:
+            sources = SourceContent.query.filter_by(user_id=user_id).limit(5).all()
+            for src in sources:
+                if src.learned_hooks:
+                    learned_patterns['hooks'] = src.learned_hooks
+                if src.learned_pacing:
+                    learned_patterns['pacing'] = src.learned_pacing
+                if src.learned_structure:
+                    learned_patterns['structure'] = src.learned_structure
+                if src.learned_style:
+                    learned_patterns['style'] = src.learned_style
+        except:
+            pass
+        
+        script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
+        anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
+        thought_changes = detect_thought_changes(script.get('full_script', ''))
+        
+        return jsonify({
+            'success': True,
+            'script': script,
+            'anchors': anchors,
+            'thought_changes': thought_changes,
+            'learned_patterns_applied': bool(learned_patterns)
+        })
+    except Exception as e:
+        logging.error(f"Generate thesis script error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-source-learnings', methods=['GET'])
+def get_source_learnings():
+    """Get accumulated learnings from all clipped content."""
+    from flask_login import current_user
+    from models import SourceContent
+    
+    user_id = current_user.id if current_user.is_authenticated else 'dev_user'
+    
+    try:
+        sources = SourceContent.query.filter_by(user_id=user_id).order_by(
+            SourceContent.created_at.desc()
+        ).limit(20).all()
+        
+        learnings = {
+            'total_sources': len(sources),
+            'total_clips_generated': sum(s.clips_generated or 0 for s in sources),
+            'hooks': [],
+            'pacing': None,
+            'structure': None,
+            'style': None
+        }
+        
+        for src in sources:
+            if src.learned_hooks:
+                if isinstance(src.learned_hooks, list):
+                    learnings['hooks'].extend(src.learned_hooks)
+                else:
+                    learnings['hooks'].append(src.learned_hooks)
+            if src.learned_pacing and not learnings['pacing']:
+                learnings['pacing'] = src.learned_pacing
+            if src.learned_structure and not learnings['structure']:
+                learnings['structure'] = src.learned_structure
+            if src.learned_style and not learnings['style']:
+                learnings['style'] = src.learned_style
+        
+        if learnings['hooks']:
+            learnings['hooks'] = sorted(
+                [h for h in learnings['hooks'] if isinstance(h, dict)],
+                key=lambda x: x.get('effectiveness', 0),
+                reverse=True
+            )[:5]
+        
+        return jsonify({
+            'success': True,
+            'learnings': learnings
+        })
+    except Exception as e:
+        logging.error(f"Get source learnings error: {e}")
         return jsonify({'error': str(e)}), 500
 
 

@@ -189,3 +189,102 @@ class ProjectFeedback(db.Model):
     
     user = db.relationship('User', backref=db.backref('project_feedback', lazy='dynamic'))
     project = db.relationship('Project', backref=db.backref('feedback', uselist=False))
+
+
+class SourceContent(db.Model):
+    """Source material submitted for clipping - videos, transcripts, links."""
+    __tablename__ = 'source_content'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    
+    content_type = db.Column(db.String(50), nullable=False)
+    source_url = db.Column(db.Text, nullable=True)
+    transcript = db.Column(db.Text, nullable=True)
+    file_path = db.Column(db.String(500), nullable=True)
+    
+    extracted_thesis = db.Column(db.Text, nullable=True)
+    extracted_anchors = db.Column(db.JSON, nullable=True)
+    extracted_thought_changes = db.Column(db.JSON, nullable=True)
+    
+    learned_hooks = db.Column(db.JSON, nullable=True)
+    learned_pacing = db.Column(db.JSON, nullable=True)
+    learned_structure = db.Column(db.JSON, nullable=True)
+    learned_style = db.Column(db.JSON, nullable=True)
+    
+    clips_generated = db.Column(db.Integer, default=0)
+    quality_score = db.Column(db.Float, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('source_content', lazy='dynamic'))
+
+
+class ProjectThesis(db.Model):
+    """Core thesis that drives a project - the single idea everything else serves."""
+    __tablename__ = 'project_thesis'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    
+    thesis_statement = db.Column(db.Text, nullable=False)
+    thesis_type = db.Column(db.String(50), nullable=True)
+    core_claim = db.Column(db.Text, nullable=True)
+    target_audience = db.Column(db.Text, nullable=True)
+    intended_impact = db.Column(db.Text, nullable=True)
+    
+    confidence_score = db.Column(db.Float, default=1.0)
+    is_user_confirmed = db.Column(db.Boolean, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    project = db.relationship('Project', backref=db.backref('thesis', uselist=False))
+    user = db.relationship('User', backref=db.backref('theses', lazy='dynamic'))
+
+
+class ScriptAnchor(db.Model):
+    """Key anchor points in a script - statements the argument builds around."""
+    __tablename__ = 'script_anchors'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    
+    anchor_text = db.Column(db.Text, nullable=False)
+    anchor_type = db.Column(db.String(50), nullable=False)
+    position = db.Column(db.Integer, nullable=False)
+    
+    supports_thesis = db.Column(db.Boolean, default=True)
+    is_hook = db.Column(db.Boolean, default=False)
+    is_closer = db.Column(db.Boolean, default=False)
+    
+    visual_intent = db.Column(db.String(100), nullable=True)
+    emotional_beat = db.Column(db.String(50), nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    project = db.relationship('Project', backref=db.backref('anchors', lazy='dynamic'))
+
+
+class ThoughtChange(db.Model):
+    """Detected thought transitions in content - potential clip points."""
+    __tablename__ = 'thought_changes'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    source_content_id = db.Column(db.Integer, db.ForeignKey('source_content.id'), nullable=True)
+    
+    position = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.Float, nullable=True)
+    
+    from_idea = db.Column(db.Text, nullable=True)
+    to_idea = db.Column(db.Text, nullable=True)
+    transition_type = db.Column(db.String(50), nullable=False)
+    
+    should_clip = db.Column(db.Boolean, default=False)
+    clip_reasoning = db.Column(db.Text, nullable=True)
+    clarity_improvement = db.Column(db.Float, nullable=True)
+    retention_improvement = db.Column(db.Float, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    project = db.relationship('Project', backref=db.backref('project_thought_changes', lazy='dynamic'))
+    source_content = db.relationship('SourceContent', backref=db.backref('detected_thought_changes', lazy='dynamic'))

@@ -127,6 +127,11 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 **Technical Implementations:**
 - **Flask Web Application**: `app.py` handles REST API endpoints
 - **Context Engine**: `context_engine.py` manages the core processing pipeline with conversation memory
+- **Unified Content Engine**: Single AI brain handles both creation AND clipping modes
+- **Thesis-Driven Architecture**: Every piece of content serves ONE core thesis - extracted or user-confirmed
+- **Anchor-Based Scripts**: Scripts structured around anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER)
+- **Thought-Change Detection**: AI identifies thought transitions and clips ONLY when it improves clarity/retention
+- **Clipper Learning**: AI learns hooks, pacing, structure, and style from clipped source material
 - **AI Reasoning**: 4-question framework before generating output
 - **Short-Form Content Mastery**: AI understands 3-second rule, message compression, hook formulas, punchy delivery
 - **Legal Media Asset Library**: Stores links with full licensing metadata (CC0, Public Domain, CC BY, etc.)
