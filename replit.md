@@ -147,6 +147,15 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Projects Dashboard**: Initial view showing all projects with AI learning card (before chat interface)
 - **AI Learning System**: Tracks successful projects to learn user's style (hooks, voices, topics)
 - **Auto-Generation Unlock**: After 5+ successful projects and 50% learning progress, Echo Engine can auto-generate
+- **Subscription Model**: Pro tier ($10/month) via Stripe for video generation and hosting
+- **Video Hosting**: Shareable public URLs for Pro subscribers with view tracking
+
+**Subscription System:**
+- **Free Tier**: Script writing, visual curation, scene composition
+- **Pro Tier ($10/month)**: Video generation, hosting with shareable links, no limits
+- **Stripe Integration**: Subscription checkout, webhook handling for lifecycle events
+- **Gated Features**: /generate-video and /render-video require active Pro subscription
+- **Video Hosting**: /host-video creates public shareable URLs at /v/<public_id>
 - **Dev Mode Support**: All project/learning APIs work for both authenticated users and dev mode
 
 **Guided Workflow Steps (Max 8) - Echo Engine Controls All:**
