@@ -165,6 +165,22 @@
             color: var(--accent);
         }
         
+        .nav-menu-item.logout-btn {
+            background: var(--accent);
+            color: var(--bg);
+            font-weight: 600;
+            margin-top: 0.5rem;
+        }
+        
+        .nav-menu-item.logout-btn:hover {
+            background: #e6c009;
+            color: var(--bg);
+        }
+        
+        .nav-menu-item.logout-btn svg {
+            stroke: var(--bg);
+        }
+        
         .header-right {
             display: flex;
             align-items: center;
@@ -3035,6 +3051,14 @@
                         </svg>
                         Discover
                     </a>
+                    <a href="/logout" class="nav-menu-item logout-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                        Logout
+                    </a>
                 </div>
             </div>
             <div class="header-right">
@@ -5298,11 +5322,11 @@
         async function generateStageDirections() {
             const script = currentScript || document.getElementById('script-text').textContent;
             if (!script || script.includes('Script will appear')) {
-                showNotification('Generate a script first', 'error');
+                showToast('Generate a script first');
                 return;
             }
             
-            showNotification('Generating stage directions...', 'info');
+            showToast('Generating stage directions...');
             
             try {
                 const response = await fetch('/generate-stage-directions', {
@@ -5316,12 +5340,12 @@
                     document.getElementById('stage-directions-input').value = data.directions;
                     stageDirections = data.directions;
                     updateSpendingTracker(3);
-                    showNotification('Stage directions generated!', 'success');
+                    showToast('Stage directions generated!');
                 } else {
-                    showNotification(data.error || 'Failed to generate directions', 'error');
+                    showToast(data.error || 'Failed to generate directions');
                 }
             } catch (err) {
-                showNotification('Error generating directions', 'error');
+                showToast('Error generating directions');
             }
         }
         

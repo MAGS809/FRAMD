@@ -2413,6 +2413,13 @@ def dev_mode():
     session['dev_mode'] = True
     return render_template('index.html', user=None, dev_mode=True)
 
+@app.route('/logout')
+def logout():
+    from flask_login import logout_user
+    logout_user()
+    session.clear()
+    return redirect('/')
+
 
 @app.route('/download-reference', methods=['POST'])
 def download_reference():
