@@ -1775,20 +1775,38 @@ def health_check():
 
 # === PROJECT & AI LEARNING ENDPOINTS ===
 
+def get_user_id():
+    """Get user ID - supports both authenticated users and dev mode."""
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return current_user.id
+    if session.get('dev_mode'):
+        return 'dev_user'
+    return None
+
+
 @app.route('/projects', methods=['GET'])
 def get_projects():
     """Get all projects for the current user."""
-    from flask_login import current_user
-    from models import Project, AILearning
+    from models import Project, AILearning, User
     
-    if not current_user.is_authenticated:
-        return jsonify({'error': 'Not authenticated'}), 401
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'projects': [], 'ai_learning': {'learning_progress': 0, 'total_projects': 0, 'successful_projects': 0, 'can_auto_generate': False}})
     
-    projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.updated_at.desc()).all()
+    # Ensure dev user exists
+    if user_id == 'dev_user':
+        dev_user = User.query.filter_by(id='dev_user').first()
+        if not dev_user:
+            dev_user = User(id='dev_user', first_name='Developer', tokens=1000)
+            db.session.add(dev_user)
+            db.session.commit()
     
-    ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+    projects = Project.query.filter_by(user_id=user_id).order_by(Project.updated_at.desc()).all()
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     if not ai_learning:
-        ai_learning = AILearning(user_id=current_user.id)
+        ai_learning = AILearning(user_id=user_id)
         db.session.add(ai_learning)
         db.session.commit()
     
@@ -1815,25 +1833,33 @@ def get_projects():
 @app.route('/projects', methods=['POST'])
 def create_project():
     """Create a new project."""
-    from flask_login import current_user
-    from models import Project, AILearning
+    from models import Project, AILearning, User
     
-    if not current_user.is_authenticated:
+    user_id = get_user_id()
+    if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Ensure dev user exists
+    if user_id == 'dev_user':
+        dev_user = User.query.filter_by(id='dev_user').first()
+        if not dev_user:
+            dev_user = User(id='dev_user', first_name='Developer', tokens=1000)
+            db.session.add(dev_user)
+            db.session.commit()
     
     data = request.get_json() or {}
     name = data.get('name', 'Untitled Project')
     description = data.get('description', '')
     
     project = Project(
-        user_id=current_user.id,
+        user_id=user_id,
         name=name,
         description=description,
         status='draft'
     )
     db.session.add(project)
     
-    ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     if ai_learning:
         ai_learning.total_projects += 1
     
@@ -1852,13 +1878,13 @@ def create_project():
 @app.route('/projects/<int:project_id>', methods=['GET'])
 def get_project(project_id):
     """Get a specific project."""
-    from flask_login import current_user
     from models import Project
     
-    if not current_user.is_authenticated:
+    user_id = get_user_id()
+    if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
     
-    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     if not project:
         return jsonify({'error': 'Project not found'}), 404
     
@@ -1882,13 +1908,13 @@ def get_project(project_id):
 @app.route('/projects/<int:project_id>', methods=['PUT'])
 def update_project(project_id):
     """Update a project."""
-    from flask_login import current_user
     from models import Project
     
-    if not current_user.is_authenticated:
+    user_id = get_user_id()
+    if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
     
-    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     if not project:
         return jsonify({'error': 'Project not found'}), 404
     
@@ -1919,14 +1945,14 @@ def update_project(project_id):
 @app.route('/projects/<int:project_id>/mark-successful', methods=['POST'])
 def mark_project_successful(project_id):
     """Mark a project as successful - rewards the AI for learning."""
-    from flask_login import current_user
     from models import Project, AILearning, GlobalPattern
     import json
     
-    if not current_user.is_authenticated:
+    user_id = get_user_id()
+    if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
     
-    project = Project.query.filter_by(id=project_id, user_id=current_user.id).first()
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
     if not project:
         return jsonify({'error': 'Project not found'}), 404
     
@@ -1937,7 +1963,7 @@ def mark_project_successful(project_id):
     project.success_score = success_score
     project.status = 'completed'
     
-    ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     if ai_learning:
         ai_learning.successful_projects += 1
         
@@ -1983,15 +2009,15 @@ def mark_project_successful(project_id):
 @app.route('/ai-learning', methods=['GET'])
 def get_ai_learning():
     """Get the AI learning progress for the current user."""
-    from flask_login import current_user
     from models import AILearning
     
-    if not current_user.is_authenticated:
-        return jsonify({'error': 'Not authenticated'}), 401
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'learning_progress': 0, 'total_projects': 0, 'successful_projects': 0, 'can_auto_generate': False})
     
-    ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     if not ai_learning:
-        ai_learning = AILearning(user_id=current_user.id)
+        ai_learning = AILearning(user_id=user_id)
         db.session.add(ai_learning)
         db.session.commit()
     

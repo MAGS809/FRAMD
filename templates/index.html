@@ -398,6 +398,194 @@
             opacity: 0.5;
         }
         
+        /* Projects Dashboard Stage */
+        .projects-dashboard {
+            padding: 2rem 1rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .dashboard-welcome {
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-welcome h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .dashboard-welcome p {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+        
+        .ai-learning-card {
+            background: linear-gradient(135deg, rgba(255,214,10,0.1), rgba(255,214,10,0.03));
+            border: 1px solid rgba(255,214,10,0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .learning-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .learning-card-icon {
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+        
+        .learning-card-info {
+            flex: 1;
+        }
+        
+        .learning-card-info h3 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .learning-card-status {
+            font-size: 0.8rem;
+            color: var(--accent);
+        }
+        
+        .learning-card-percent {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .learning-card-bar {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .learning-card-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #ffb700);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .learning-card-stats {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        
+        .learning-card-stats strong {
+            color: var(--text);
+        }
+        
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .project-card-new {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            background: rgba(255,214,10,0.05);
+            border: 2px dashed rgba(255,214,10,0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 150px;
+        }
+        
+        .project-card-new:hover {
+            background: rgba(255,214,10,0.1);
+            border-color: rgba(255,214,10,0.5);
+        }
+        
+        .new-project-icon {
+            color: var(--accent);
+        }
+        
+        .project-card-new span {
+            color: var(--accent);
+            font-weight: 500;
+        }
+        
+        .project-card-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .project-card-item:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+        
+        .project-card-item.successful {
+            border-color: rgba(76,175,80,0.3);
+            background: linear-gradient(135deg, rgba(76,175,80,0.08), rgba(76,175,80,0.02));
+        }
+        
+        .project-card-title {
+            font-weight: 500;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .project-card-title .success-badge {
+            font-size: 0.65rem;
+            background: rgba(76,175,80,0.2);
+            color: #4caf50;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+        }
+        
+        .project-card-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        
+        .project-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--text-faint);
+        }
+        
+        .project-card-status {
+            text-transform: capitalize;
+        }
+        
         /* Messages area */
         .messages {
             flex: 1;
@@ -2129,7 +2317,7 @@
                 <div class="tagline">powered by Krakd</div>
             </div>
             <div class="header-right">
-                <button class="dashboard-toggle" onclick="toggleDashboard()">
+                <button class="dashboard-toggle" onclick="goToProjects()">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="7" height="7"/>
                         <rect x="14" y="3" width="7" height="7"/>
@@ -2201,8 +2389,54 @@
             </div>
         </div>
         
+        <!-- PROJECTS DASHBOARD STAGE (Initial View) -->
+        <div class="stage active" id="stage-projects">
+            <div class="projects-dashboard">
+                <div class="dashboard-welcome">
+                    <h1>Your Projects</h1>
+                    <p>Create videos that think before they speak.</p>
+                </div>
+                
+                <div class="ai-learning-card">
+                    <div class="learning-card-header">
+                        <div class="learning-card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                                <path d="M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <div class="learning-card-info">
+                            <h3>Echo Engine Learning</h3>
+                            <span class="learning-card-status" id="dashboard-learning-status">Learning your style...</span>
+                        </div>
+                        <div class="learning-card-percent" id="dashboard-learning-percent">0%</div>
+                    </div>
+                    <div class="learning-card-bar">
+                        <div class="learning-card-progress" id="dashboard-learning-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="learning-card-stats">
+                        <span><strong id="dashboard-total-projects">0</strong> projects</span>
+                        <span><strong id="dashboard-successful-projects">0</strong> successful</span>
+                    </div>
+                </div>
+                
+                <div class="projects-grid" id="dashboard-projects-grid">
+                    <div class="project-card-new" onclick="startNewProject()">
+                        <div class="new-project-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                        </div>
+                        <span>New Project</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- CREATE STAGE -->
-        <div class="stage active" id="stage-create">
+        <div class="stage" id="stage-create">
             <div class="messages" id="messages">
                 <div class="message ai">
                     <div class="message-content">What would you like to create?</div>
@@ -2430,15 +2664,152 @@
         // Restore conversation from localStorage on page load
         document.addEventListener('DOMContentLoaded', () => {
             restoreConversation();
-            loadAILearningProgress();
+            loadDashboardProjects();
             // Show chat panel on non-create stages
             const currentStage = document.querySelector('.stage.active')?.id;
-            if (currentStage !== 'stage-create') {
+            if (currentStage !== 'stage-create' && currentStage !== 'stage-projects') {
                 document.getElementById('chat-toggle').classList.remove('hidden');
             }
         });
         
         // === PROJECT DASHBOARD FUNCTIONS ===
+        
+        // Load projects for the main dashboard (initial view)
+        async function loadDashboardProjects() {
+            const grid = document.getElementById('dashboard-projects-grid');
+            if (!grid) return;
+            
+            try {
+                const response = await fetch('/projects');
+                let projects = [];
+                let learning = { learning_progress: 0, total_projects: 0, successful_projects: 0, can_auto_generate: false };
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    projects = data.projects || [];
+                    learning = data.ai_learning || learning;
+                }
+                
+                // Update learning card
+                updateDashboardLearning(learning);
+                
+                // Render project cards
+                renderDashboardProjects(projects);
+            } catch (err) {
+                console.warn('Could not load projects:', err);
+                // Still show empty state
+                renderDashboardProjects([]);
+                updateDashboardLearning({ learning_progress: 0, total_projects: 0, successful_projects: 0 });
+            }
+        }
+        
+        function renderDashboardProjects(projects) {
+            const grid = document.getElementById('dashboard-projects-grid');
+            if (!grid) return;
+            
+            // Start with the "New Project" card
+            let html = `
+                <div class="project-card-new" onclick="startNewProject()">
+                    <div class="new-project-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </div>
+                    <span>New Project</span>
+                </div>
+            `;
+            
+            // Add existing projects
+            projects.forEach(p => {
+                html += `
+                    <div class="project-card-item ${p.is_successful ? 'successful' : ''}" onclick="openProject(${p.id})">
+                        <div class="project-card-title">
+                            ${escapeHtml(p.name)}
+                            ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
+                        </div>
+                        <div class="project-card-desc">${escapeHtml(p.description || 'No description')}</div>
+                        <div class="project-card-footer">
+                            <span class="project-card-status">${p.status}</span>
+                            <span>${formatDate(p.updated_at)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            grid.innerHTML = html;
+        }
+        
+        function updateDashboardLearning(learning) {
+            const status = document.getElementById('dashboard-learning-status');
+            const percent = document.getElementById('dashboard-learning-percent');
+            const bar = document.getElementById('dashboard-learning-bar');
+            const total = document.getElementById('dashboard-total-projects');
+            const successful = document.getElementById('dashboard-successful-projects');
+            
+            if (percent) percent.textContent = (learning.learning_progress || 0) + '%';
+            if (bar) bar.style.width = (learning.learning_progress || 0) + '%';
+            if (total) total.textContent = learning.total_projects || 0;
+            if (successful) successful.textContent = learning.successful_projects || 0;
+            
+            if (status) {
+                if (learning.can_auto_generate) {
+                    status.textContent = 'Ready to auto-generate!';
+                } else if ((learning.learning_progress || 0) >= 50) {
+                    status.textContent = 'Learning fast...';
+                } else {
+                    status.textContent = 'Learning your style...';
+                }
+            }
+            
+            // Also update header badge
+            updateAILearningUI(learning);
+        }
+        
+        function startNewProject() {
+            currentProjectId = null;
+            conversationHistory = [];
+            saveConversation();
+            
+            // Switch to create stage
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById('stage-create').classList.add('active');
+            
+            // Clear and reset messages
+            const messagesEl = document.getElementById('messages');
+            if (messagesEl) {
+                messagesEl.innerHTML = '<div class="message ai"><div class="message-content">What would you like to create?</div></div>';
+            }
+        }
+        
+        async function openProject(projectId) {
+            try {
+                const response = await fetch('/projects/' + projectId);
+                if (response.ok) {
+                    const project = await response.json();
+                    currentProjectId = projectId;
+                    
+                    // Restore project state
+                    if (project.script) currentScript = project.script;
+                    if (project.visual_plan) currentVisualPlan = project.visual_plan;
+                    
+                    // Switch to create stage
+                    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+                    document.getElementById('stage-create').classList.add('active');
+                    
+                    // Show welcome back message
+                    addMessage(`Continuing project: ${project.name}`, false);
+                }
+            } catch (err) {
+                console.error('Error opening project:', err);
+            }
+        }
+        
+        function goToProjects() {
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById('stage-projects').classList.add('active');
+            loadDashboardProjects();
+        }
         
         function toggleDashboard() {
             const overlay = document.getElementById('dashboard-overlay');

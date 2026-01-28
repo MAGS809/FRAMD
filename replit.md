@@ -141,6 +141,10 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Step-by-Step Workflow**: 8-step guided process entirely controlled by Echo Engine chat
 - **Voice Actor Script Display**: Users only see clean dialogue (no VISUAL/CUT directions)
 - **Chat-Driven Transitions**: No manual navigation - Echo Engine controls all stage transitions via inline action buttons
+- **Projects Dashboard**: Initial view showing all projects with AI learning card (before chat interface)
+- **AI Learning System**: Tracks successful projects to learn user's style (hooks, voices, topics)
+- **Auto-Generation Unlock**: After 5+ successful projects and 50% learning progress, Echo Engine can auto-generate
+- **Dev Mode Support**: All project/learning APIs work for both authenticated users and dev mode
 
 **Guided Workflow Steps (Max 8) - Echo Engine Controls All:**
 1. Script Writing - User chats with Echo Engine to generate script
