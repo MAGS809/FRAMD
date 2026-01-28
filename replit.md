@@ -135,6 +135,9 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Output Formats**: 9:16, 1:1, 4:5, 16:9 aspect ratios
 - **Scene Composer**: Background picker with character layer system
 - **Background Removal**: Pillow-based subject extraction with character tabs
+- **Stage Directions**: Separate AI-generated audio direction layer with [PAUSE], [BEAT], [SILENCE], [TRANSITION] effects
+- **Token Cost System**: Per-feature token costs displayed as badges (Voice: 5, Captions: 2, Scene Composer: 4, Stage Directions: 3)
+- **Spending Tracker**: Session-based token usage display in footer
 - **Character Generation**: DALL-E integration for AI-generated characters
 - **Conversation Memory**: AI learns from user patterns and preferences
 - **Persistent Chat Panel**: Floating chat with cross-tab sync via localStorage, animated message entrance
