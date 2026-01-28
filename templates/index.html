@@ -2691,7 +2691,7 @@
                     </div>
                 </div>
                 
-                <div class="section-title">Voice Casting & Characters <span class="token-cost-badge">5 tokens</span> <span id="voice-count" class="voice-count"></span></div>
+                <div class="section-title">Voice Casting & Characters <span class="token-cost-badge" id="voice-token-badge" style="display: none;">5 tokens</span> <span id="voice-count" class="voice-count"></span></div>
                 <div class="casting-panel" id="casting-panel">
                     <div class="casting-characters" id="casting-characters">
                         <div class="character-cast">
@@ -3665,6 +3665,16 @@
         
         function renderCastingPanel(characters) {
             const container = document.getElementById('casting-characters');
+            const tokenBadge = document.getElementById('voice-token-badge');
+            
+            // Show/hide token badge based on character count
+            if (characters.length > 0) {
+                tokenBadge.style.display = 'inline-block';
+                tokenBadge.textContent = `${characters.length * 5} tokens`;
+            } else {
+                tokenBadge.style.display = 'none';
+            }
+            
             const voiceOptions = `
                 <option value="news_anchor">News Anchor</option>
                 <option value="wolf_businessman">Wolf Businessman</option>
