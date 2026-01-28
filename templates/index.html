@@ -3285,12 +3285,13 @@
                             <polyline points="10 9 9 9 8 9"/>
                         </svg>
                     </span>
-                    Stage Directions
+                    Stage Directions & Sound FX
                     <span class="token-cost-badge">3 tokens</span>
+                    <span class="token-cost-badge" id="sfx-token-badge" style="display: none; margin-left: 4px;">+2 SFX</span>
                 </div>
                 <div class="stage-directions-panel" id="stage-directions-panel">
-                    <div class="stage-directions-info">Effects like [PAUSE], [DRAMATIC MUSIC], [BEAT] will be applied to audio.</div>
-                    <textarea class="stage-directions-input" id="stage-directions-input" placeholder="[PAUSE 1s]&#10;[BEAT]&#10;[DRAMATIC MUSIC]&#10;[SOUND: door slam]&#10;[SILENCE 2s]"></textarea>
+                    <div class="stage-directions-info">Timing: [PAUSE], [BEAT], [SILENCE]. Sound FX: [SOUND: whoosh], [SOUND: impact], [SOUND: tension], [SOUND: reveal]. SFX are auto-mixed into final video.</div>
+                    <textarea class="stage-directions-input" id="stage-directions-input" placeholder="[PAUSE 1s]&#10;[BEAT]&#10;[SOUND: whoosh]&#10;[SOUND: impact]&#10;[SOUND: tension 2s]&#10;[SILENCE 2s]" oninput="updateSfxTokenBadge()"></textarea>
                     <div class="stage-directions-actions">
                         <button class="btn btn-secondary btn-sm" onclick="generateStageDirections()">Generate Directions — 3 tokens</button>
                     </div>
@@ -5319,8 +5320,41 @@
             voiceCasting: 5,
             captions: 2,
             sceneComposer: 4,
+            soundFx: 2,  // Per SFX in the video
             videoGeneration: 15
         };
+        
+        // Count SFX in stage directions and update badge/cost
+        function countSoundFx() {
+            const input = document.getElementById('stage-directions-input');
+            if (!input) return 0;
+            const matches = input.value.match(/\[SOUND:/gi);
+            return matches ? matches.length : 0;
+        }
+        
+        function updateSfxTokenBadge() {
+            const sfxCount = countSoundFx();
+            const badge = document.getElementById('sfx-token-badge');
+            if (badge) {
+                if (sfxCount > 0) {
+                    badge.style.display = 'inline-flex';
+                    badge.textContent = `+${sfxCount * TOKEN_COSTS.soundFx} SFX`;
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+            updateTotalTokenCost();
+        }
+        
+        function updateTotalTokenCost() {
+            const sfxCount = countSoundFx();
+            const sfxCost = sfxCount * TOKEN_COSTS.soundFx;
+            const totalCost = TOKEN_COSTS.videoGeneration + sfxCost;
+            const costEl = document.getElementById('token-cost');
+            if (costEl) {
+                costEl.textContent = totalCost;
+            }
+        }
         
         // Stage Directions Functions
         async function generateStageDirections() {
@@ -5344,6 +5378,7 @@
                     document.getElementById('stage-directions-input').value = data.directions;
                     stageDirections = data.directions;
                     updateSpendingTracker(3);
+                    updateSfxTokenBadge();  // Update SFX count and total cost
                     showToast('Stage directions generated!');
                 } else {
                     showToast(data.error || 'Failed to generate directions');
@@ -5391,8 +5426,11 @@
             showLoading(true);
             document.body.classList.add('loading');
             
-            // Track token spending for video generation
-            updateSpendingTracker(TOKEN_COSTS.videoGeneration);
+            // Track token spending for video generation (includes SFX costs)
+            const sfxCount = countSoundFx();
+            const sfxCost = sfxCount * TOKEN_COSTS.soundFx;
+            const totalCost = TOKEN_COSTS.videoGeneration + sfxCost;
+            updateSpendingTracker(totalCost);
             
             try {
                 // Step 1: Generate voiceover from script with character voices

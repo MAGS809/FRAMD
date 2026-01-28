@@ -136,7 +136,8 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Scene Composer**: Background picker with character layer system
 - **Background Removal**: Pillow-based subject extraction with character tabs
 - **Stage Directions**: Separate AI-generated audio direction layer with [PAUSE], [BEAT], [SILENCE], [TRANSITION] effects
-- **Token Cost System**: Per-feature token costs displayed as badges (Voice: 5, Captions: 2, Scene Composer: 4, Stage Directions: 3)
+- **Token Cost System**: Per-feature token costs displayed as badges (Voice: 5, Captions: 2, Scene Composer: 4, Stage Directions: 3, Sound FX: 2 per effect)
+- **Sound FX System**: 10 synthesized effects (whoosh, impact, tension, reveal, alarm, heartbeat, static, beep, rumble, wind) auto-mixed into final video via [SOUND: type] tags
 - **Spending Tracker**: Session-based token usage display in footer
 - **Character Generation**: DALL-E integration for AI-generated characters
 - **Conversation Memory**: AI learns from user patterns and preferences
