@@ -175,11 +175,12 @@ def extract_dialogue_only(script_text):
     return ' '.join(dialogue_lines)
 
 
-def extract_voice_actor_script(script_text):
+def extract_voice_actor_script(script_text, character_filter=None):
     """
     Extract a clean voice actor script from the full screenplay.
-    Keeps: Scene headers (SCENE X), character names, dialogue
-    Removes: VISUAL tags, CUT directions, decorative lines, INT/EXT, bracketed directions
+    If character_filter is provided, only include lines for that character.
+    
+    Returns clean dialogue only - what the voice actor reads.
     """
     import re
     
@@ -191,7 +192,6 @@ def extract_voice_actor_script(script_text):
         
         # Skip empty lines (we'll add spacing later)
         if not stripped:
-            voice_lines.append('')
             continue
         
         # Skip decorative separator lines (===, ---, ___)
@@ -202,12 +202,8 @@ def extract_voice_actor_script(script_text):
         if stripped.startswith('VISUAL:') or stripped.startswith('CUT:'):
             continue
         
-        # Skip [VISUAL...], [CUT...], [FADE...] and other bracketed directions
-        if re.match(r'^\[', stripped):
-            continue
-        
-        # Skip INT./EXT. location lines
-        if stripped.startswith('INT.') or stripped.startswith('EXT.'):
+        # Skip scene directions
+        if stripped.startswith('SCENE ') or stripped.startswith('INT.') or stripped.startswith('EXT.'):
             continue
         
         # Skip CUT TO: transitions
@@ -218,16 +214,47 @@ def extract_voice_actor_script(script_text):
         if stripped.startswith('CHARACTERS:') or stripped.startswith('VOICES?'):
             continue
         
-        # Skip standalone title lines (all equals signs around text)
+        # Skip title lines
         if stripped.startswith('===') or stripped.endswith('==='):
-            # Keep just the title text if present
-            title_match = re.match(r'^=+\s*(.+?)\s*=+$', stripped)
-            if title_match:
-                voice_lines.append(title_match.group(1).strip())
             continue
         
-        # Keep everything else (scene headers, character names, dialogue)
-        voice_lines.append(line)
+        # Direction keywords to skip
+        direction_keywords = {'VISUAL', 'CUT', 'FADE', 'SCENE', 'INT', 'EXT', 'TITLE'}
+        
+        # Match [CHARACTER NAME]: dialogue pattern (case-insensitive, allows punctuation)
+        bracket_match = re.match(r'^\[([A-Za-z][A-Za-z0-9\s_\.\-\']+)\]:\s*(.+)$', stripped)
+        if bracket_match:
+            character = bracket_match.group(1).strip().upper()
+            dialogue = bracket_match.group(2).strip()
+            
+            if character in direction_keywords:
+                continue
+            
+            # If filtering by character, only include their lines
+            if character_filter:
+                if character == character_filter.upper():
+                    voice_lines.append(dialogue)
+            else:
+                # Include all dialogue (no character labels for voice actor)
+                voice_lines.append(dialogue)
+            continue
+        
+        # Match CHARACTER NAME: dialogue pattern (no brackets, case-insensitive)
+        colon_match = re.match(r'^([A-Za-z][A-Za-z0-9\s_\.\-\']+):\s*(.+)$', stripped)
+        if colon_match:
+            character = colon_match.group(1).strip().upper()
+            dialogue = colon_match.group(2).strip()
+            if character not in direction_keywords:
+                if character_filter:
+                    if character == character_filter.upper():
+                        voice_lines.append(dialogue)
+                else:
+                    voice_lines.append(dialogue)
+            continue
+        
+        # Skip [VISUAL...], [CUT...], [FADE...] directions
+        if re.match(r'^\[', stripped):
+            continue
     
     # Clean up multiple consecutive empty lines
     result = []
@@ -242,6 +269,126 @@ def extract_voice_actor_script(script_text):
             prev_empty = False
     
     return '\n'.join(result).strip()
+
+
+def parse_character_lines(script_text):
+    """
+    Parse a multi-character script and extract lines per character.
+    Expected format: [CHARACTER NAME]: dialogue text
+    Also handles mixed case and punctuation in character names.
+    
+    Returns list of dicts with order preserved:
+    [{'character': 'NEWS ANCHOR', 'line': 'The market crashed.', 'order': 0}, ...]
+    """
+    import re
+    
+    character_lines = []
+    order = 0
+    
+    # Direction keywords to skip (case-insensitive)
+    direction_keywords = {'VISUAL', 'CUT', 'FADE', 'SCENE', 'INT', 'EXT', 'TITLE', 'CUT TO', 'FADE TO'}
+    
+    for line in script_text.split('\n'):
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Skip decorative/direction lines
+        if re.match(r'^[=_\-]{3,}$', line):
+            continue
+        if line.upper().startswith('[VISUAL') or line.upper().startswith('[CUT') or line.upper().startswith('[FADE'):
+            continue
+        if line.upper().startswith('VISUAL:') or line.upper().startswith('CUT:'):
+            continue
+        if line.upper().startswith('SCENE ') or line.upper().startswith('INT.') or line.upper().startswith('EXT.'):
+            continue
+        if line.upper().startswith('CHARACTERS:') or line.upper().startswith('VOICES?'):
+            continue
+        
+        # Match [CHARACTER NAME]: dialogue pattern (case-insensitive, allows punctuation)
+        bracket_match = re.match(r'^\[([A-Za-z][A-Za-z0-9\s_\.\-\']+)\]:\s*(.+)$', line)
+        if bracket_match:
+            character = bracket_match.group(1).strip().upper()  # Normalize to uppercase
+            dialogue = bracket_match.group(2).strip()
+            if dialogue and character not in direction_keywords:
+                character_lines.append({
+                    'character': character,
+                    'line': dialogue,
+                    'order': order
+                })
+                order += 1
+            continue
+        
+        # Match CHARACTER NAME: dialogue pattern (no brackets, case-insensitive)
+        colon_match = re.match(r'^([A-Za-z][A-Za-z0-9\s_\.\-\']+):\s*(.+)$', line)
+        if colon_match:
+            character = colon_match.group(1).strip().upper()  # Normalize to uppercase
+            dialogue = colon_match.group(2).strip()
+            # Exclude direction keywords
+            if character not in direction_keywords:
+                if dialogue:
+                    character_lines.append({
+                        'character': character,
+                        'line': dialogue,
+                        'order': order
+                    })
+                    order += 1
+    
+    return character_lines
+
+
+def get_character_voice_map(voice_assignments):
+    """
+    Map character names to their assigned voice personas.
+    voice_assignments is a dict like {'NEWS ANCHOR': 'news_anchor', 'WOLF': 'wolf_businessman'}
+    """
+    return voice_assignments if voice_assignments else {}
+
+
+def assemble_audio_clips(clip_paths, output_path):
+    """
+    Assemble multiple audio clips into a single file in order.
+    Uses FFmpeg filter_complex for reliable MP3 concatenation with re-encoding.
+    """
+    import subprocess
+    
+    if not clip_paths:
+        return None
+    
+    if len(clip_paths) == 1:
+        import shutil
+        shutil.copy(clip_paths[0], output_path)
+        return output_path
+    
+    try:
+        # Build filter_complex for reliable concat with re-encoding
+        inputs = []
+        filter_parts = []
+        
+        for i, clip in enumerate(clip_paths):
+            inputs.extend(['-i', clip])
+            filter_parts.append(f'[{i}:a]')
+        
+        filter_str = ''.join(filter_parts) + f'concat=n={len(clip_paths)}:v=0:a=1[out]'
+        
+        cmd = [
+            'ffmpeg', '-y',
+            *inputs,
+            '-filter_complex', filter_str,
+            '-map', '[out]',
+            '-c:a', 'libmp3lame', '-q:a', '2',
+            output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(f"FFmpeg concat error: {result.stderr}")
+            return None
+        
+        return output_path
+    except Exception as e:
+        print(f"Audio assembly error: {e}")
+        return None
 
 
 # Stripe Integration
@@ -2552,28 +2699,35 @@ SCENE 1 [3-4s]
 EXT. LOCATION - TIME
 ________________________________________________
 
-                    CHARACTER NAME
-          Dialogue line goes here. Keep it
-          centered and actor-ready.
+[CHARACTER NAME]: Dialogue line goes here. Keep it punchy.
 
-                    VISUAL: keyword keyword keyword
-                    CUT: wide establishing shot, slow zoom
+VISUAL: keyword keyword keyword
+CUT: wide establishing shot, slow zoom
 
 SCENE 2 [4-5s]
 INT. LOCATION - TIME
 ________________________________________________
 
-                    CHARACTER NAME
-          Next dialogue line here.
+[SECOND CHARACTER]: Next dialogue line here.
 
-                    VISUAL: keyword keyword keyword
-                    CUT: medium shot, static hold
+[CHARACTER NAME]: Response dialogue here.
+
+VISUAL: keyword keyword keyword
+CUT: medium shot, static hold
 
 
 ================================================
-CHARACTERS: Name1, Name2, Name3
+CHARACTERS: Name1, Name2
 VOICES?
 ================================================
+
+DIALOGUE FORMAT (CRITICAL):
+- ALWAYS use [CHARACTER NAME]: dialogue format
+- Character names in CAPS inside square brackets
+- Dialogue follows the colon on the same line
+- This enables automatic voice detection and assignment
+- Example: [NEWS ANCHOR]: The market crashed today.
+- Example: [WOLF]: Time to buy the dip!
 
 SCENE EDITING RULES:
 - Each scene: [Xs] = suggested duration in seconds
@@ -2646,6 +2800,13 @@ Never explain what you're doing. Just write."""
             # Extract voice actor script (only dialogue and scene headers)
             voice_actor_script = extract_voice_actor_script(refined_script or reply)
         
+        # Parse character lines for multi-character voice generation
+        character_lines = []
+        characters_detected = []
+        if refined_script or reply:
+            character_lines = parse_character_lines(refined_script or reply)
+            characters_detected = list(set(entry['character'] for entry in character_lines))
+        
         return jsonify({
             'success': True,
             'reply': reply,
@@ -2653,6 +2814,8 @@ Never explain what you're doing. Just write."""
             'script_ready': script_ready,
             'refined_script': refined_script or reply,
             'voice_actor_script': voice_actor_script,
+            'character_lines': character_lines,
+            'characters_detected': characters_detected,
             'video_path': video_path,
             'video_downloaded': video_path is not None
         })
@@ -3204,6 +3367,132 @@ def preview_voice():
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-multi-character-voiceover', methods=['POST'])
+def generate_multi_character_voiceover():
+    """
+    Generate voiceover for multi-character script.
+    Each character's lines are generated separately with their assigned voice,
+    then assembled in script order.
+    """
+    from openai import OpenAI
+    import uuid
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    voice_assignments = data.get('voice_assignments', {})
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    # Parse character lines from script
+    character_lines = parse_character_lines(script)
+    
+    if not character_lines:
+        return jsonify({'error': 'No character dialogue found in script'}), 400
+    
+    # Use OpenAI for audio generation
+    client = OpenAI(
+        api_key=os.environ.get("OPENAI_API_KEY")
+    )
+    
+    clip_paths = []
+    clip_info = []
+    
+    try:
+        for entry in character_lines:
+            character = entry['character']
+            line = entry['line']
+            order = entry['order']
+            
+            # Get assigned voice for this character
+            # Try exact match first, then normalized character name
+            voice_key = voice_assignments.get(character) or voice_assignments.get(character.upper())
+            if not voice_key:
+                # Default to 'alloy' for unassigned characters
+                base_voice = 'alloy'
+            else:
+                base_voice, _ = get_voice_config(voice_key)
+            
+            # Generate audio for this line
+            response = client.audio.speech.create(
+                model="tts-1-hd",
+                voice=base_voice,
+                input=line,
+                speed=1.25
+            )
+            
+            # Save individual clip
+            clip_filename = f"clip_{order}_{uuid.uuid4().hex[:6]}.mp3"
+            clip_filepath = os.path.join(app.config['OUTPUT_FOLDER'], clip_filename)
+            response.stream_to_file(clip_filepath)
+            
+            clip_paths.append(clip_filepath)
+            clip_info.append({
+                'character': character,
+                'line': line,
+                'order': order,
+                'voice': voice_key,
+                'clip_url': f'/output/{clip_filename}'
+            })
+        
+        # Assemble all clips into final audio
+        final_filename = f"voiceover_multi_{uuid.uuid4().hex[:8]}.mp3"
+        final_filepath = os.path.join(app.config['OUTPUT_FOLDER'], final_filename)
+        
+        assembled = assemble_audio_clips(clip_paths, final_filepath)
+        
+        if not assembled:
+            return jsonify({'error': 'Failed to assemble audio clips'}), 500
+        
+        # Calculate duration estimate
+        total_words = sum(len(entry['line'].split()) for entry in character_lines)
+        
+        return jsonify({
+            'success': True,
+            'audio_url': f'/output/{final_filename}',
+            'audio_path': final_filepath,
+            'clips': clip_info,
+            'characters_detected': list(set(e['character'] for e in character_lines)),
+            'duration_estimate': total_words / 2.5
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/extract-character-lines', methods=['POST'])
+def extract_character_lines_endpoint():
+    """
+    Extract character lines from a script for preview/editing.
+    Returns parsed lines showing which character says what.
+    """
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    character_lines = parse_character_lines(script)
+    
+    # Group lines by character for UI display
+    by_character = {}
+    for entry in character_lines:
+        char = entry['character']
+        if char not in by_character:
+            by_character[char] = []
+        by_character[char].append({
+            'line': entry['line'],
+            'order': entry['order']
+        })
+    
+    return jsonify({
+        'success': True,
+        'lines': character_lines,
+        'by_character': by_character,
+        'characters': list(by_character.keys())
+    })
 
 
 @app.route('/detect-characters', methods=['POST'])
