@@ -46,8 +46,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>403</h1>
-        <p>Access denied. Please sign in to continue.</p>
+        <h1>Login Error</h1>
+        <p>Invalid authentication request. This can happen if:</p>
+        <ul style="text-align: left; max-width: 400px; margin: 0 auto 2rem; color: rgba(255, 214, 10, 0.7); line-height: 1.8;">
+            <li>The page was refreshed during login</li>
+            <li>Your browser blocked cookies</li>
+            <li>The login session timed out</li>
+        </ul>
+        <p style="margin-bottom: 2rem;">Please try again.</p>
+        <a href="/auth/replit_auth" style="margin-right: 1rem;">Try Again</a>
         <a href="/">Go Home</a>
     </div>
 </body>
