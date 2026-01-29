@@ -7439,55 +7439,11 @@
             }
         }
         
-        // Display visual layers
+        // Display visual layers - HIDDEN for now (adds complexity, doesn't show actual images)
         function displayVisualLayers(visualPlan) {
-            if (!visualPlan || !visualPlan.layers) return;
-            
-            const layers = visualPlan.layers;
-            const contentType = layers.content_type || 'informative';
-            
-            // Remove existing layers panel
-            const existingPanel = document.getElementById('visual-layers-panel');
-            if (existingPanel) existingPanel.remove();
-            
-            // Build layers display
-            const overlayLayers = layers.overlay_layers || [];
-            const textLayers = layers.text_layers || [];
-            
-            if (overlayLayers.length === 0 && textLayers.length === 0) return;
-            
-            const layersHtml = `
-                <div class="visual-layers" id="visual-layers-panel">
-                    <div class="layers-header">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                            <polyline points="2 17 12 22 22 17"/>
-                            <polyline points="2 12 12 17 22 12"/>
-                        </svg>
-                        Visual Layers (${contentType})
-                    </div>
-                    ${overlayLayers.slice(0, 3).map(layer => `
-                        <div class="layer-item">
-                            <span class="layer-icon">O</span>
-                            <span class="layer-type">${layer.type || 'Overlay'}</span>
-                            <span class="layer-timing">${layer.timing || ''}</span>
-                        </div>
-                    `).join('')}
-                    ${textLayers.slice(0, 3).map(layer => `
-                        <div class="layer-item">
-                            <span class="layer-icon">T</span>
-                            <span class="layer-type">${layer.type || 'Text'}</span>
-                            <span class="layer-timing">${layer.timing || ''}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            
-            // Insert after anchors panel
-            const anchorsPanel = document.getElementById('anchors-panel');
-            if (anchorsPanel) {
-                anchorsPanel.insertAdjacentHTML('afterend', layersHtml);
-            }
+            // Visual layers panel removed to simplify UI
+            // The actual curated images are shown in the scene-composer after curate-visuals is called
+            return;
         }
     </script>
 </body>
