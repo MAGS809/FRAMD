@@ -88,8 +88,21 @@
         
         .header-left {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
+        }
+        
+        .back-to-projects {
+            font-size: 11px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: color 0.15s;
+            display: none;
+        }
+        
+        .back-to-projects:hover {
+            color: var(--gold);
         }
         
         .brand {
@@ -5128,6 +5141,7 @@
         <header>
             <div class="header-left">
                 <div class="brand" onclick="goToProjects()">Framd <span class="pro-badge" id="pro-badge">PRO</span></div>
+                <div class="back-to-projects" id="back-to-projects" onclick="goToProjects()">← Back to projects</div>
             </div>
             <div class="header-center">
                 <div class="project-name-display empty" id="project-name-display" onclick="goToProjects()">Select a project</div>
@@ -6844,6 +6858,9 @@
                     const chatBar = document.getElementById('bottom-chat-bar');
                     if (chatBar) chatBar.style.display = 'block';
                     
+                    // Show back link
+                    document.getElementById('back-to-projects').style.display = 'block';
+                    
                     // Show welcome back message
                     addMessage(`Continuing project: ${project.name}`, false);
                 }
@@ -6859,6 +6876,7 @@
             if (chatBar) chatBar.style.display = 'none';
             currentProjectId = null;
             updateProjectNameDisplay(null);
+            document.getElementById('back-to-projects').style.display = 'none';
             loadDashboardProjects();
         }
         
@@ -8343,6 +8361,7 @@
                     if (createData.success) {
                         currentProjectId = createData.project.id;
                         updateProjectNameDisplay(projectName);
+                        document.getElementById('back-to-projects').style.display = 'block';
                         console.log('Project created:', projectName);
                     }
                 } catch (err) {
