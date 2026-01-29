@@ -2671,6 +2671,10 @@ def index():
         return render_template('index.html', user=current_user)
     return render_template('landing.html')
 
+@app.route('/pricing')
+def pricing():
+    return render_template('pricing.html')
+
 @app.route('/dev')
 def dev_mode():
     session['dev_mode'] = True
