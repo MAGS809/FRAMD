@@ -253,6 +253,68 @@
             letter-spacing: 0.05em;
         }
         
+        .features {
+            padding: 3rem 0;
+            text-align: center;
+        }
+        
+        .features h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--text-faint);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        
+        .feature-card:hover {
+            border-color: var(--text-dim);
+            transform: translateY(-2px);
+        }
+        
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        
+        .feature-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .feature-card h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-card p {
+            font-size: 0.875rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 700px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .voices {
             padding: 3rem 0;
             text-align: center;
@@ -333,6 +395,57 @@
                     <div class="ai-toggle-handle"></div>
                 </div>
                 <span class="ai-toggle-status" id="ai-status">ON</span>
+            </div>
+        </section>
+        
+        <section class="features">
+            <h2>Core Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="23 7 16 12 23 17 23 7"/>
+                            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                        </svg>
+                    </div>
+                    <h3>Clip-to-Post Workflow</h3>
+                    <p>Transform long-form content into viral clips. Paste a transcript or link and let AI extract the best moments.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="12" y1="18" x2="12" y2="12"/>
+                            <line x1="9" y1="15" x2="15" y2="15"/>
+                        </svg>
+                    </div>
+                    <h3>Thesis-Driven Scripts</h3>
+                    <p>Every script is built around a core thesis. Clear arguments, logical flow, no filler.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <h3>Idea-Aware Visuals</h3>
+                    <p>AI selects visuals based on the message, not scene settings. Authentic footage that resonates.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </div>
+                    <h3>Premium Voiceovers</h3>
+                    <p>Enthusiastic, confident delivery with ElevenLabs voices. Hook your audience from the first word.</p>
+                </div>
             </div>
         </section>
         
