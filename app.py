@@ -3148,6 +3148,62 @@ def generate_script_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/validate-loop', methods=['POST'])
+def validate_loop_endpoint():
+    """Validate how well a script closes back to its thesis."""
+    from context_engine import validate_loop_score
+    
+    data = request.get_json()
+    thesis = data.get('thesis')
+    script = data.get('script')
+    
+    if not thesis or not script:
+        return jsonify({'error': 'Missing thesis or script'}), 400
+    
+    try:
+        result = validate_loop_score(thesis, script)
+        return jsonify({
+            'success': True,
+            **result
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/scene-visuals', methods=['POST'])
+def get_scene_visuals_endpoint():
+    """Get AI-curated visual suggestions for a specific scene."""
+    from context_engine import get_scene_visuals, search_pexels_safe
+    
+    data = request.get_json()
+    scene_text = data.get('scene_text')
+    scene_type = data.get('scene_type', 'CLAIM')
+    keywords = data.get('keywords', [])
+    
+    if not scene_text:
+        return jsonify({'error': 'Missing scene_text'}), 400
+    
+    try:
+        visual_suggestions = get_scene_visuals(scene_text, scene_type, keywords)
+        
+        images = []
+        for query in visual_suggestions.get('search_queries', [])[:2]:
+            try:
+                results = search_pexels_safe(query)
+                if results:
+                    images.extend(results[:3])
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'suggestions': visual_suggestions,
+            'images': images[:6]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/find-clips', methods=['POST'])
 def find_clips():
     data = request.get_json()

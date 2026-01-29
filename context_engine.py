@@ -346,6 +346,106 @@ Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_int
         return {}
 
 
+def validate_loop_score(thesis: str, script: dict) -> dict:
+    """Validate how well the script closes back to the thesis. Returns loop score and fix suggestions."""
+    full_script = script.get('full_script', '')
+    closing = script.get('closing', '')
+    
+    prompt = f"""Analyze how well this script "closes the loop" back to its thesis.
+
+THESIS: {thesis}
+
+FULL SCRIPT:
+{full_script}
+
+CLOSING LINE: {closing}
+
+A strong loop means:
+1. The ending explicitly reconnects to the thesis
+2. The viewer's understanding moves toward the thesis
+3. No clip ends on evidence or contrast without meaning resolution
+
+Score this script's loop closure from 0.0 to 1.0 where:
+- 0.0-0.3: Weak loop - ending drifts from thesis, needs rewrite
+- 0.4-0.6: Moderate loop - connection exists but could be stronger
+- 0.7-0.85: Strong loop - clear reconnection to thesis
+- 0.86-1.0: Excellent loop - thesis is reinforced powerfully
+
+Output JSON with:
+- "loop_score": float (0.0-1.0)
+- "loop_strength": "weak" | "moderate" | "strong" | "excellent"
+- "analysis": Brief explanation of the connection (2-3 sentences)
+- "issues": Array of specific problems if score < 0.7
+- "suggested_fix": If score < 0.7, propose a rewritten closing line that better connects to thesis
+- "fix_type": "rewrite_landing" | "extend_ending" | "add_reframe" | null"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=1024
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {
+            "loop_score": 0.5,
+            "loop_strength": "moderate",
+            "analysis": "Unable to analyze loop closure",
+            "issues": [],
+            "suggested_fix": None,
+            "fix_type": None
+        }
+
+
+def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -> dict:
+    """Get AI-curated visual suggestions for a specific scene/anchor."""
+    keywords_str = ", ".join(keywords) if keywords else ""
+    
+    prompt = f"""Suggest visual content for this scene in a video script.
+
+SCENE TYPE: {scene_type}
+SCENE TEXT: {scene_text}
+KEYWORDS: {keywords_str}
+
+Think about what visual would best support this moment in the script.
+Consider: documentary footage, archival imagery, maps, diagrams, or atmospheric shots.
+
+Output JSON with:
+- "visual_concept": One sentence describing the ideal visual
+- "search_queries": Array of 3 specific search queries for Pexels/Wikimedia
+- "visual_style": "documentary" | "atmospheric" | "archival" | "diagram" | "portrait" | "b-roll"
+- "motion": "static" | "slow_pan" | "zoom" | "dynamic"
+- "mood": Brief mood description"""
+
+    response = client.chat.completions.create(
+        model="grok-3",
+        messages=[
+            {"role": "system", "content": SYSTEM_GUARDRAILS},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"},
+        max_completion_tokens=512
+    )
+    
+    try:
+        content = response.choices[0].message.content or "{}"
+        return json.loads(content)
+    except json.JSONDecodeError:
+        return {
+            "visual_concept": "Supportive visual for this scene",
+            "search_queries": ["abstract background", "documentary footage"],
+            "visual_style": "atmospheric",
+            "motion": "static",
+            "mood": "neutral"
+        }
+
+
 def find_clip_timestamps(script: dict, transcript_segments: list) -> list:
     """Find the best transcript segments that support the script."""
     segments_text = "\n".join([

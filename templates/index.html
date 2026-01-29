@@ -3508,7 +3508,7 @@
             padding: 12px 16px;
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            max-height: 150px;
+            max-height: 300px;
             overflow-y: auto;
         }
         
@@ -3535,7 +3535,294 @@
         .anchors-list {
             display: flex;
             flex-direction: column;
+        }
+        
+        .scene-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        
+        .scene-item:hover {
+            background: rgba(255,255,255,0.05);
+            border-color: var(--gold);
+        }
+        
+        .scene-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .scene-number {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            color: var(--bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .scene-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+        
+        .scene-type {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gold);
+        }
+        
+        .scene-text {
+            font-size: 13px;
+            color: var(--text);
+            opacity: 0.9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .scene-right {
+            flex-shrink: 0;
+            margin-left: 12px;
+        }
+        
+        .scene-visual-preview {
+            width: 48px;
+            height: 48px;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        
+        .scene-visual-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .scene-visual-empty {
+            font-size: 10px;
+            color: var(--muted);
+            text-align: center;
+        }
+        
+        .scene-visual-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 2000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .scene-visual-popup.show {
+            display: flex;
+        }
+        
+        .scene-visual-popup-inner {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .scene-visual-popup-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .scene-visual-popup-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: var(--text);
+        }
+        
+        .scene-visual-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 20px;
+        }
+        
+        .scene-visual-concept {
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--gold);
+            background: rgba(255,214,10,0.05);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .scene-visual-grid {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        .visual-option {
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+            transition: all 0.15s ease;
+        }
+        
+        .visual-option:hover {
+            border-color: var(--gold);
+        }
+        
+        .visual-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .visual-option-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px 8px 8px;
+            font-size: 11px;
+            color: white;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        
+        .visual-option:hover .visual-option-overlay {
+            opacity: 1;
+        }
+        
+        .loading-visuals, .no-visuals {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-size: 14px;
             gap: 6px;
+        }
+        
+        .loop-score-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            margin: 8px 0;
+        }
+        
+        .loop-score-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+        
+        .loop-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--muted);
+        }
+        
+        .loop-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .loop-strength {
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.05);
+            color: var(--muted);
+        }
+        
+        .loop-analysis {
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            opacity: 0.9;
+        }
+        
+        .loop-issues {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(248,113,113,0.1);
+            border-radius: 6px;
+            font-size: 12px;
+            color: #f87171;
+        }
+        
+        .loop-fix {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255,214,10,0.08);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--gold);
+        }
+        
+        .loop-apply-fix {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 6px 12px;
+            background: var(--gold);
+            color: var(--bg);
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .loop-apply-fix:hover {
+            opacity: 0.9;
         }
         
         .anchor-item {
@@ -5059,6 +5346,15 @@
         
         <!-- CREATE STAGE - Chat Only -->
         <div class="stage" id="stage-create">
+            <!-- Anchors/Scenes Panel (shows after script generation) -->
+            <div class="anchors-panel" id="anchors-panel" style="display: none;">
+                <div class="anchors-header">
+                    <span>Scenes</span>
+                    <span class="anchor-count" id="anchor-count">0</span>
+                </div>
+                <div class="anchors-list" id="anchors-list"></div>
+            </div>
+            
             <div class="chat-messages-container">
                 <div class="messages" id="messages">
                 </div>
@@ -5114,6 +5410,20 @@
                 <div class="image-placement-actions">
                     <button class="image-placement-cancel" onclick="cancelImagePlacement()">Cancel</button>
                     <button class="image-placement-confirm" onclick="confirmImagePlacement()">Use Image</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scene Visual Picker Popup -->
+        <div class="scene-visual-popup" id="scene-visual-popup">
+            <div class="scene-visual-popup-inner">
+                <div class="scene-visual-popup-header">
+                    <h3 id="scene-visual-title">Scene 1: HOOK</h3>
+                    <button class="scene-visual-close" onclick="closeSceneVisualPopup()">&times;</button>
+                </div>
+                <div class="scene-visual-concept" id="scene-visual-concept"></div>
+                <div class="scene-visual-grid" id="scene-visual-grid">
+                    <div class="loading-visuals">Finding visuals...</div>
                 </div>
             </div>
         </div>
@@ -5712,7 +6022,90 @@
             }
         }
         
-        // Anchors Display
+        // Loop Score Validation
+        async function validateLoopScore(thesis, script) {
+            try {
+                const response = await fetch('/validate-loop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ thesis, script })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    displayLoopScore(data);
+                }
+                return data;
+            } catch (err) {
+                console.error('Loop validation error:', err);
+                return null;
+            }
+        }
+        
+        // Display Loop Score in chat
+        function displayLoopScore(loopData) {
+            const score = loopData.loop_score || 0;
+            const strength = loopData.loop_strength || 'unknown';
+            const analysis = loopData.analysis || '';
+            const issues = loopData.issues || [];
+            const suggestedFix = loopData.suggested_fix;
+            
+            let scoreColor = '#4ade80';
+            if (score < 0.4) scoreColor = '#f87171';
+            else if (score < 0.7) scoreColor = '#fbbf24';
+            
+            let html = `
+                <div class="loop-score-card">
+                    <div class="loop-score-header">
+                        <span class="loop-label">Loop Score</span>
+                        <span class="loop-value" style="color: ${scoreColor}">${Math.round(score * 100)}%</span>
+                        <span class="loop-strength">${strength}</span>
+                    </div>
+                    <div class="loop-analysis">${analysis}</div>
+            `;
+            
+            if (issues.length > 0) {
+                html += `<div class="loop-issues"><strong>Issues:</strong> ${issues.join(', ')}</div>`;
+            }
+            
+            if (suggestedFix && score < 0.7) {
+                html += `
+                    <div class="loop-fix">
+                        <strong>Suggested fix:</strong> ${suggestedFix}
+                        <button class="loop-apply-fix" onclick="applyLoopFix('${suggestedFix.replace(/'/g, "\\'")}')">Apply Fix</button>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            
+            addMessage('assistant', html);
+        }
+        
+        function applyLoopFix(newClosing) {
+            if (currentScript) {
+                currentScript.closing = newClosing;
+                
+                // Update the full script with new closing if possible
+                if (currentScript.full_script) {
+                    const lines = currentScript.full_script.split('\n');
+                    if (lines.length > 0) {
+                        lines[lines.length - 1] = newClosing;
+                        currentScript.full_script = lines.join('\n');
+                        document.getElementById('script-text').textContent = currentScript.full_script;
+                        displayScriptInEditor(currentScript.full_script);
+                    }
+                }
+                
+                addMessage('Applied the suggested fix. Your closing now better connects to the thesis.');
+            }
+        }
+        
+        // Scene visuals state
+        let sceneVisuals = {};
+        let activeSceneIndex = null;
+        
+        // Anchors Display - Scenes List Format
         function displayAnchors(anchors) {
             currentAnchors = anchors || [];
             const panel = document.getElementById('anchors-panel');
@@ -5722,15 +6115,93 @@
             if (currentAnchors.length > 0) {
                 panel.style.display = 'block';
                 count.textContent = currentAnchors.length;
-                list.innerHTML = currentAnchors.map(anchor => `
-                    <div class="anchor-item">
-                        <span class="anchor-type">${anchor.anchor_type || 'CLAIM'}</span>
-                        <span class="anchor-text">${anchor.anchor_text || ''}</span>
+                list.innerHTML = currentAnchors.map((anchor, idx) => `
+                    <div class="scene-item" data-scene="${idx}" onclick="openSceneVisuals(${idx})">
+                        <div class="scene-left">
+                            <span class="scene-number">${idx + 1}</span>
+                            <div class="scene-info">
+                                <span class="scene-type">${anchor.anchor_type || 'SCENE'}</span>
+                                <span class="scene-text">${(anchor.anchor_text || '').substring(0, 80)}${(anchor.anchor_text || '').length > 80 ? '...' : ''}</span>
+                            </div>
+                        </div>
+                        <div class="scene-right">
+                            <div class="scene-visual-preview" id="scene-visual-${idx}">
+                                ${sceneVisuals[idx] ? `<img src="${sceneVisuals[idx].url}" alt="Scene visual">` : '<span class="scene-visual-empty">+ Visual</span>'}
+                            </div>
+                        </div>
                     </div>
                 `).join('');
             } else {
                 panel.style.display = 'none';
             }
+        }
+        
+        // Open visual picker for a scene
+        async function openSceneVisuals(sceneIndex) {
+            activeSceneIndex = sceneIndex;
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) return;
+            
+            const popup = document.getElementById('scene-visual-popup');
+            const title = document.getElementById('scene-visual-title');
+            const grid = document.getElementById('scene-visual-grid');
+            const concept = document.getElementById('scene-visual-concept');
+            
+            title.textContent = `Scene ${sceneIndex + 1}: ${anchor.anchor_type || 'SCENE'}`;
+            grid.innerHTML = '<div class="loading-visuals">Finding visuals...</div>';
+            concept.textContent = '';
+            popup.classList.add('show');
+            
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: anchor.anchor_type || 'CLAIM',
+                        keywords: anchor.keywords || []
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    concept.textContent = data.suggestions?.visual_concept || '';
+                    
+                    if (data.images && data.images.length > 0) {
+                        grid.innerHTML = data.images.map((img, i) => `
+                            <div class="visual-option" onclick="selectSceneVisual(${sceneIndex}, '${img.url || img.src?.medium || ''}', '${img.photographer || 'Unknown'}')">
+                                <img src="${img.url || img.src?.medium || ''}" alt="Visual option ${i+1}">
+                                <div class="visual-option-overlay">Select</div>
+                            </div>
+                        `).join('');
+                    } else {
+                        grid.innerHTML = '<div class="no-visuals">No visuals found. Try different keywords.</div>';
+                    }
+                } else {
+                    grid.innerHTML = '<div class="no-visuals">Could not load visuals.</div>';
+                }
+            } catch (err) {
+                console.error('Scene visuals error:', err);
+                grid.innerHTML = '<div class="no-visuals">Error loading visuals.</div>';
+            }
+        }
+        
+        // Select a visual for a scene
+        function selectSceneVisual(sceneIndex, url, photographer) {
+            sceneVisuals[sceneIndex] = { url, photographer };
+            
+            const preview = document.getElementById(`scene-visual-${sceneIndex}`);
+            if (preview) {
+                preview.innerHTML = `<img src="${url}" alt="Scene visual">`;
+            }
+            
+            closeSceneVisualPopup();
+        }
+        
+        // Close visual popup
+        function closeSceneVisualPopup() {
+            document.getElementById('scene-visual-popup').classList.remove('show');
+            activeSceneIndex = null;
         }
         
         // Display Clip Suggestions
@@ -5831,7 +6302,7 @@
                     }
                     
                     if (result.script?.full_script) {
-                        currentScript = result.script.full_script;
+                        currentScript = result.script;
                         document.getElementById('script-text').textContent = result.script.full_script;
                         
                         // Also update the document editor
@@ -5849,6 +6320,11 @@
                         
                         addMessage(`${contentTypeLabel}Script ready with ${result.anchors?.length || 0} anchor points.${learnNote}`, false, true);
                         showReviewConfirmation();
+                        
+                        // Validate loop score against thesis
+                        if (result.thesis?.thesis_statement) {
+                            validateLoopScore(result.thesis.thesis_statement, result.script);
+                        }
                     }
                 }
             }
