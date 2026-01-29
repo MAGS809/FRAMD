@@ -108,16 +108,74 @@ with app.app_context():
 def extract_dialogue_only(script_text):
     """
     Filter script to only include spoken dialogue lines.
-    Removes visual directions, stage directions, scene headers, and parentheticals.
+    Removes visual directions, stage directions, scene headers, parentheticals, and AI meta-commentary.
     Voice AI reads only the spoken words - no headers, no directions, no bold text.
     """
     import re
     
     dialogue_lines = []
+    in_script = False  # Track when we've entered actual script content
+    
+    # AI meta-commentary patterns to skip (at start of script before actual content)
+    ai_meta_patterns = [
+        r'^Understood\.?',
+        r'^I\'ll',
+        r'^Here\'s',
+        r'^Let me',
+        r'^This script',
+        r'^The script',
+        r'^I\'ve',
+        r'^I can',
+        r'^Sure',
+        r'^Absolutely',
+        r'^Of course',
+        r'^Great',
+        r'^Perfect',
+        r'^Now',
+        r'^Alright',
+        r'^Okay',
+        r'^The tone',
+        r'^The humor',
+        r'^The visuals',
+        r'^This uses',
+        r'^Let me know',
+        r'^Would you like',
+        r'^The message',
+        r'^exaggerated personas',
+        r'^comic-book',
+    ]
     
     for line in script_text.split('\n'):
         line = line.strip()
         if not line:
+            continue
+        
+        # Detect when actual script content starts (SCENE, [NARRATOR], character lines)
+        if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE) or re.match(r'^\[.+\]:', line):
+            in_script = True
+        
+        # Skip AI meta-commentary before script starts
+        if not in_script:
+            is_meta = False
+            for pattern in ai_meta_patterns:
+                if re.match(pattern, line, re.IGNORECASE):
+                    is_meta = True
+                    break
+            if is_meta:
+                continue
+            # Also skip long prose lines before script (AI explanations)
+            if len(line) > 100 and not re.match(r'^\[', line):
+                continue
+        
+        # Skip AI meta-commentary after script ends too
+        if re.match(r'^This script uses', line, re.IGNORECASE):
+            in_script = False
+            continue
+        if re.match(r'^Let me know if', line, re.IGNORECASE):
+            continue
+        if re.match(r'^Would you like', line, re.IGNORECASE):
+            continue
+        if 'Let me know' in line or 'Would you like' in line:
             continue
         
         # Skip visual directions [VISUAL: ...]
@@ -152,6 +210,10 @@ def extract_dialogue_only(script_text):
         
         # Skip all-caps short lines (character name headers like "NARRATOR")
         if re.match(r'^[A-Z\s]{2,25}$', line) and not any(c.islower() for c in line):
+            continue
+        
+        # Skip location/setting lines like "HOLY LAND ARENA" or "ARENA DEBATE STAGE"
+        if re.match(r'^[A-Z\s\-]+$', line) and len(line) < 40:
             continue
         
         # Remove inline parentheticals but keep the rest
@@ -4257,10 +4319,37 @@ def generate_voiceover_multi():
         # Voice AI reads ONLY the spoken dialogue - no headers, no directions
         lines = []
         current_char = 'NARRATOR'
+        in_script = False
+        
+        # AI meta-commentary patterns to skip
+        ai_meta_patterns = [
+            r'^Understood\.?', r'^I\'ll', r'^Here\'s', r'^Let me', r'^This script',
+            r'^The script', r'^I\'ve', r'^I can', r'^Sure', r'^Absolutely',
+            r'^Of course', r'^Great', r'^Perfect', r'^Now', r'^Alright', r'^Okay',
+            r'^The tone', r'^The humor', r'^The visuals', r'^This uses',
+            r'^Let me know', r'^Would you like', r'^The message',
+        ]
         
         for line in script.split('\n'):
             line = line.strip()
             if not line:
+                continue
+            
+            # Detect when actual script content starts
+            if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE) or re.match(r'^\[.+\]:', line):
+                in_script = True
+            
+            # Skip AI meta-commentary before script starts
+            if not in_script:
+                is_meta = any(re.match(p, line, re.IGNORECASE) for p in ai_meta_patterns)
+                if is_meta or (len(line) > 100 and not re.match(r'^\[', line)):
+                    continue
+            
+            # Skip AI meta-commentary after script ends
+            if re.match(r'^This script uses', line, re.IGNORECASE):
+                in_script = False
+                continue
+            if 'Let me know' in line or 'Would you like' in line:
                 continue
             
             # Skip visual directions [VISUAL: ...], [CUT TO:], [FADE], etc.
@@ -4289,8 +4378,8 @@ def generate_voiceover_multi():
             if re.match(r'^\([^)]+\)$', line):
                 continue
             
-            # Skip all-caps short lines (character name headers like "NARRATOR" on their own line)
-            if re.match(r'^[A-Z\s]{2,25}$', line) and not any(c.islower() for c in line):
+            # Skip all-caps short lines (location headers like "HOLY LAND ARENA")
+            if re.match(r'^[A-Z\s\-]{2,40}$', line) and not any(c.islower() for c in line):
                 continue
             
             # Remove inline parentheticals
