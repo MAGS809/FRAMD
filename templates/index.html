@@ -1604,39 +1604,6 @@
             height: 12px;
         }
         
-        /* Status Indicator (subtle, not chat messages) */
-        .status-indicator {
-            position: fixed;
-            bottom: 70px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 0.4rem 1rem;
-            font-size: 0.75rem;
-            color: var(--text-dim);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            z-index: 99;
-        }
-        
-        .status-indicator.visible {
-            opacity: 1;
-        }
-        
-        .status-indicator .spinner {
-            width: 12px;
-            height: 12px;
-            border: 2px solid var(--text-faint);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
         
         @keyframes spin {
             to { transform: rotate(360deg); }
@@ -4907,12 +4874,6 @@
             </div>
         </div>
         
-        <!-- Status Indicator (subtle, not chat) -->
-        <div class="status-indicator" id="status-indicator">
-            <div class="spinner"></div>
-            <span id="status-text">Processing...</span>
-        </div>
-        
         <!-- Stage Directions Confirmation Modal -->
         <div class="confirm-modal" id="stage-directions-confirm">
             <div class="confirm-content">
@@ -5438,14 +5399,11 @@
         }
         
         function showStatus(text) {
-            const indicator = document.getElementById('status-indicator');
-            const textEl = document.getElementById('status-text');
-            textEl.textContent = text;
-            indicator.classList.add('visible');
+            // Status indicator removed - no-op
         }
         
         function hideStatus() {
-            document.getElementById('status-indicator').classList.remove('visible');
+            // Status indicator removed - no-op
         }
         
         // Timeline Button Handlers
