@@ -4144,6 +4144,10 @@ OUTPUT FORMAT (JSON):
         
         characters = result.get('characters', [])
         
+        # Default to NARRATOR if no characters detected
+        if not characters:
+            characters = [{"name": "NARRATOR", "personality": "Calm, authoritative", "sample_line": "Let me tell you a story..."}]
+        
         # Sanitize character data to prevent JS errors
         for char in characters:
             if 'sample_line' in char:
