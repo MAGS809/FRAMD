@@ -7257,6 +7257,7 @@
         // Add message to chat (allowHtml for workflow buttons)
         function addMessage(content, isUser = false, allowHtml = false) {
             const messages = document.getElementById('messages');
+            if (!messages) return; // No chat panel in simplified UI
             const msg = document.createElement('div');
             msg.className = 'message ' + (isUser ? 'user' : 'ai');
             msg.innerHTML = `<div class="message-content">${allowHtml ? content : escapeHtml(content)}</div>`;
@@ -7266,6 +7267,7 @@
         
         function addTypingIndicator() {
             const messages = document.getElementById('messages');
+            if (!messages) return; // No chat panel in simplified UI
             const msg = document.createElement('div');
             msg.className = 'message ai';
             msg.id = 'typing';
