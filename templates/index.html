@@ -6076,17 +6076,6 @@
                     stepDots += `<div class="workflow-step-dot ${dotClass}" title="${getStepName(i)}"></div>`;
                 }
                 
-                // Build auto-generate button
-                const isLocked = !autoGenerateConfidence.is_unlocked;
-                const autoGenBtn = `
-                    <button class="auto-generate-btn ${isLocked ? 'locked' : ''}" 
-                            onclick="handleAutoGenerate(${p.id}, event)"
-                            title="${isLocked ? autoGenerateConfidence.progress_message : 'Generate content using AI learning'}">
-                        <span class="sparkle-icon">${isLocked ? '🔒' : '✦'}</span>
-                        ${isLocked ? autoGenerateConfidence.progress_message : 'Auto-Generate'}
-                    </button>
-                `;
-                
                 const projectName = p.name || 'Untitled Project';
                 const projectDesc = p.description || 'No description';
                 
@@ -6105,7 +6094,6 @@
                         </div>
                         <div class="project-card-desc">${escapeHtml(projectDesc)}</div>
                         <div class="project-workflow-steps">${stepDots}</div>
-                        ${autoGenBtn}
                         <div class="project-card-footer">
                             <span class="project-card-status">${isGenerating ? 'Generating...' : (p.status || 'draft')}</span>
                             <span>${formatDate(p.updated_at)}</span>
