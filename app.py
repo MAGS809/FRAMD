@@ -4518,9 +4518,12 @@ def generate_voiceover_multi():
                 
                 combined += AudioSegment.silent(duration=pause_duration)
             
+            # Boost volume by 6dB for louder, clearer audio
+            combined = combined + 6
+            
             filename = f"voiceover_multi_{uuid.uuid4().hex[:8]}.mp3"
             filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-            combined.export(filepath, format='mp3')
+            combined.export(filepath, format='mp3', bitrate='192k')
             
             return jsonify({
                 'success': True,
