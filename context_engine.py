@@ -792,6 +792,41 @@ def search_stock_videos(keywords: list[str], per_page: int = 5) -> list[dict]:
     return all_videos
 
 
+def search_pexels_safe(query: str, per_page: int = 6) -> list[dict]:
+    """Search Pexels for copyright-free stock images matching query."""
+    if not PEXELS_API_KEY:
+        return []
+    
+    headers = {"Authorization": PEXELS_API_KEY}
+    url = "https://api.pexels.com/v1/search"
+    params = {
+        "query": query,
+        "per_page": per_page,
+        "orientation": "landscape"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            images = []
+            for photo in data.get("photos", []):
+                images.append({
+                    "id": photo.get("id"),
+                    "url": photo.get("src", {}).get("large2x") or photo.get("src", {}).get("large"),
+                    "thumbnail": photo.get("src", {}).get("medium"),
+                    "photographer": photo.get("photographer", "Unknown"),
+                    "pexels_url": photo.get("url"),
+                    "alt": photo.get("alt", query),
+                    "attribution": f"Photo by {photo.get('photographer', 'Unknown')} on Pexels"
+                })
+            return images
+    except Exception as e:
+        print(f"Error searching Pexels for '{query}': {e}")
+    
+    return []
+
+
 def build_post_from_script(user_script: str) -> dict:
     """Full pipeline: take user's script idea, extract keywords, find stock footage, build post."""
     keywords_data = extract_keywords_from_script(user_script)
