@@ -210,6 +210,30 @@ class ProjectFeedback(db.Model):
     project = db.relationship('Project', backref=db.backref('feedback', uselist=False))
 
 
+class GeneratorSettings(db.Model):
+    """User-configurable settings for auto-generation"""
+    __tablename__ = 'generator_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), unique=True, nullable=False)
+    
+    # Content controls
+    tone = db.Column(db.String(50), default='neutral')  # neutral, passionate, calm, urgent, witty
+    format_type = db.Column(db.String(50), default='explainer')  # explainer, opinion, story, breakdown
+    target_length = db.Column(db.Integer, default=45)  # seconds: 35-75
+    voice_style = db.Column(db.String(50), default='news_anchor')  # maps to character persona
+    
+    # Topic preferences (JSON list of enabled topics)
+    enabled_topics = db.Column(db.JSON, default=list)  # e.g., ["politics", "tech", "culture"]
+    
+    # Auto-generation toggle
+    auto_enabled = db.Column(db.Boolean, default=False)  # User toggle (can only enable when unlocked)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('generator_settings', uselist=False))
+
+
 class SourceContent(db.Model):
     """Source material submitted for clipping - videos, transcripts, links."""
     __tablename__ = 'source_content'
