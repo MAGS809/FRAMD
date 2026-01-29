@@ -1082,6 +1082,19 @@
             overflow: hidden;
         }
         
+        /* Chat messages container - full page chat */
+        .chat-messages-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            padding-bottom: 100px;
+            overflow-y: auto;
+        }
+        
         /* Messages area */
         .messages {
             flex: 1;
@@ -4488,6 +4501,10 @@
         
         <!-- CREATE STAGE - Chat Only -->
         <div class="stage" id="stage-create">
+            <div class="chat-messages-container">
+                <div class="messages" id="messages">
+                </div>
+            </div>
         </div>
         
         <!-- Fixed Bottom Chat Bar - Sleek, Full Width -->
@@ -5492,11 +5509,21 @@
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
             document.getElementById('stage-create').classList.add('active');
             
+            // Show the chat bar
+            const chatBar = document.getElementById('bottom-chat-bar');
+            if (chatBar) chatBar.style.display = 'block';
+            
             // Clear and reset messages
             const messagesEl = document.getElementById('messages');
             if (messagesEl) {
-                messagesEl.innerHTML = '<div class="message ai"><div class="message-content">What would you like to create?</div></div>';
+                messagesEl.innerHTML = '';
             }
+            
+            // Focus the input
+            setTimeout(() => {
+                const input = document.getElementById('composer-input');
+                if (input) input.focus();
+            }, 100);
         }
         
         async function openProject(projectId) {
@@ -5513,6 +5540,10 @@
                     // Switch to create stage
                     document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
                     document.getElementById('stage-create').classList.add('active');
+                    
+                    // Show the chat bar
+                    const chatBar = document.getElementById('bottom-chat-bar');
+                    if (chatBar) chatBar.style.display = 'block';
                     
                     // Show welcome back message
                     addMessage(`Continuing project: ${project.name}`, false);
