@@ -1,35 +1,15 @@
 # Framd
 
 ## Overview
-Framd (powered by Krakd) is a high-end post-assembler. It transforms raw links, ideas, and transcripts into cinematic clips and structured posts.
+Framd (powered by Krakd) is a high-end post-assembler designed to transform raw links, ideas, and transcripts into cinematic clips and structured posts. The project aims to create clear, honest, human-feeling content that respects complexity. It optimizes for clarity, integrity, and resonance, prioritizing quality over virality or spectacle. The business vision is to provide a platform for generating impactful, thought-provoking short-form content.
 
-## Core Principle
-- **Krakd** - No clip exists without a script.
-- **Reasoning** - No script exists without thinking.
-
-## UI Design
-- **Brand**: Framd (powered by Krakd)
-- **Typography**: Space Grotesk for brand name, Inter for body text
-- **Style**: Minimal, modern LLM-style UI
-- **Tabs**: Clean pill-style navigation
-- **Panels**: Subtle borders, minimal glassmorphism
-
----
-
-## AI Constitution — Core Instructions (Locked)
-
-### Purpose
-This AI exists to turn ideas, transcripts, or source material into clear, honest, human-feeling content (video scripts, posts, or short narratives) that respects complexity without hiding behind it.
-
-It does not optimize for outrage, virality-for-its-own-sake, or spectacle.
-It optimizes for clarity, integrity, and resonance.
-
+## User Preferences
 ### Core Philosophy
-1. **Language matters more than volume** — The goal is not to say more — it is to say the right thing.
-2. **Ideas fail when ignored, not when challenged** — If a group or ideology resists, explain why — precisely, concretely, without caricature.
-3. **Stability without legitimacy does not last** — Systems that prioritize order over inclusion eventually fracture.
-4. **Coexistence is not sentiment — it is logic** — Durable outcomes come from shared stakes, not dominance.
-5. **Discourse ≠ politics** — Reason, explain, frame. Do not perform politics as theater or identity signaling.
+1. Language matters more than volume — The goal is not to say more — it is to say the right thing.
+2. Ideas fail when ignored, not when challenged — If a group or ideology resists, explain why — precisely, concretely, without caricature.
+3. Stability without legitimacy does not last — Systems that prioritize order over inclusion eventually fracture.
+4. Coexistence is not sentiment — it is logic — Durable outcomes come from shared stakes, not dominance.
+5. Discourse ≠ politics — Reason, explain, frame. Do not perform politics as theater or identity signaling.
 
 ### Thinking Before Writing (Mandatory)
 Before producing output, determine:
@@ -73,14 +53,6 @@ If content becomes graphic: "The story gets graphic here — we're skipping that
 
 If output feels flashy, vague, performative, or inflated — it has failed.
 
-### What This AI Is Not
-- Not a meme generator
-- Not a ragebait engine
-- Not a random clipper
-- Not a personality simulator
-
-It is a thinking system that produces post-ready content.
-
 ### Fail Condition
 If the output could be mistaken for:
 - Generic social media commentary
@@ -99,173 +71,43 @@ Then the task must be re-done.
 
 If slipping into generic unity language or equal-blame framing, stop and rewrite before output.
 
----
-
-## Core Workflow (DO NOT BREAK)
-**Script → Visual Intent → Safe Assets → Edit → Post**
-- Every visual exists to serve the script.
-- No "cut first, think later".
-
-## Visual Content Sourcing
-- **Primary Source**: Wikimedia Commons (documentary/archival - authentic, non-stock)
-- **Fallback Source**: Pexels (only if <6 results from Wikimedia)
-- **Criteria**: No celebrities, no brands, non-sexual
-- **Search Ladder**: Wikimedia → Pexels fallback → Query expansion
-
----
-
 ## System Architecture
 
-**UI Design (Apple-Inspired):**
-- **Typography**: Inter font family (300-700 weights)
-- **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents
-- **Glassmorphism**: Panels use backdrop-filter blur with subtle transparency
-- **Animations**: Smooth cubic-bezier transitions (0.4, 0, 0.2, 1)
-- **Components**: Apple-style segmented controls, floating token panel
-- **Layout**: Centered 720px max-width container with generous spacing
+**UI/UX Design:**
+- **Brand**: Framd (powered by Krakd) with Space Grotesk and Inter typography.
+- **Style**: Minimal, modern LLM-style UI with subtle glassmorphism and Apple-inspired elements.
+- **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents.
+- **Layout**: Centered 720px max-width container, clean pill-style navigation, and smooth cubic-bezier animations.
+- **Workflow**: A guided 8-step process controlled by an "Echo Engine" chat interface, with no manual navigation. All stage transitions are chat-driven via inline action buttons.
+- **Discover Feed**: Tinder-style swipeable cards for browsing AI-generated content, allowing users to like, skip, and provide feedback for AI personalization.
 
 **Technical Implementations:**
-- **Flask Web Application**: `app.py` handles REST API endpoints
-- **Context Engine**: `context_engine.py` manages the core processing pipeline with conversation memory
-- **Unified Content Engine**: Single AI brain handles both creation AND clipping modes
-- **Thesis-Driven Architecture**: Every piece of content serves ONE core thesis - extracted or user-confirmed
-- **Anchor-Based Scripts**: Scripts structured around anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER)
-- **Thought-Change Detection**: AI identifies thought transitions and clips ONLY when it improves clarity/retention
-- **Clipper Learning**: AI learns hooks, pacing, structure, and style from clipped source material
-- **AI Reasoning**: 4-question framework before generating output
-- **Short-Form Content Mastery**: AI understands 3-second rule, message compression, hook formulas, punchy delivery
-- **Legal Media Asset Library**: Stores links with full licensing metadata (CC0, Public Domain, CC BY, etc.)
-- **Voice System**: 8 punchy character personas with multi-character script support
-- **Caption System**: Word-synced captions via FFmpeg drawtext filters with dynamic phone-frame preview
-- **Output Formats**: 9:16, 1:1, 4:5, 16:9 aspect ratios
-- **Scene Composer**: Background picker with character layer system
-- **Background Removal**: Pillow-based subject extraction with character tabs
-- **Stage Directions**: Separate AI-generated audio direction layer with [PAUSE], [BEAT], [SILENCE], [TRANSITION] effects
-- **Token Cost System**: Per-feature token costs displayed as badges (Voice: 5, Captions: 2, Scene Composer: 4, Stage Directions: 3, Sound FX: 2 per effect)
-- **Sound FX System**: 10 synthesized effects (whoosh, impact, tension, reveal, alarm, heartbeat, static, beep, rumble, wind) auto-mixed into final video via [SOUND: type] tags
-- **Spending Tracker**: Session-based token usage display in footer
-- **Character Generation**: DALL-E integration for AI-generated characters
-- **Conversation Memory**: AI learns from user patterns and preferences
-- **Persistent Chat Panel**: Floating chat with cross-tab sync via localStorage, animated message entrance
-- **Step-by-Step Workflow**: 8-step guided process entirely controlled by Echo Engine chat
-- **Voice Actor Script Display**: Users only see clean dialogue (no VISUAL/CUT directions)
-- **Chat-Driven Transitions**: No manual navigation - Echo Engine controls all stage transitions via inline action buttons
-- **Projects Dashboard**: Initial view showing all projects with AI learning card (before chat interface)
-- **AI Learning System**: Tracks successful projects to learn user's style (hooks, voices, topics)
-- **Auto-Generation Unlock**: After 5+ successful projects and 50% learning progress, Echo Engine can auto-generate
-- **Feedback System**: Export page feedback with category ratings (Script, Voice, Visuals, Sound FX, Overall)
-- **AI Self-Reflection**: On feedback submission, AI honestly assesses what it learned and what to improve
-- **Learning Progress**: Server-side calculation (minor: 2-3%, moderate: 4-6%, critical: 7-10% per project)
-- **Subscription Model**: Pro tier ($10/month) via Stripe for video generation and hosting
-- **Video Hosting**: Shareable public URLs for Pro subscribers with view tracking
-
-**Subscription System:**
-- **Free Tier**: Script writing, visual curation, scene composition, 1 free video generation
-- **Pro Tier ($10/month)**: Unlimited video generation, hosting with shareable links
-- **Stripe Integration**: Subscription checkout, webhook handling for lifecycle events
-- **Gated Features**: /generate-video and /render-video require Pro subscription or free tier credit
-- **Video Hosting**: /host-video creates public shareable URLs at /v/<public_id>
-- **Dev Mode Support**: Set DEV_MODE=true for fully free video generation in development
-- **NSFW Content Filter**: Comprehensive blocklist prevents inappropriate images from Wikimedia Commons
-
-**Discover Feed (Tinder-Style):**
-- **Swipeable Cards**: Browse AI-generated content with drag gestures (like Tinder)
-- **Actions**: Swipe right to like, left to skip, or give text feedback
-- **Feedback Modal**: Users can describe what to improve for better AI learning
-- **Liked Collection**: Sidebar shows all liked content that can be used as drafts
-- **AI Personalization**: Swipe data feeds into AI learning (hooks, topics, styles, voices)
-- **Privacy Scoping**: Feed shows only global items OR user's own items
-- **Generate More**: Users can request new AI content on trending topics
-
-**Guided Workflow Steps (Max 8) - Echo Engine Controls All:**
-1. Script Writing - User chats with Echo Engine to generate script
-2. Voice Assignment - Guide with "Continue to Visuals" action button
-3. Visual Curation - Echo Engine curates matching footage automatically
-4. Scene Review - Guide with "Generate Video" action button
-5. Caption Styling - Guide when entering review stage
-6. Audio Preview - Echo Engine processes voiceover
-7. Final Preview - Guide with "Download Video" action button
-8. Export - Guide with "Start New Project" action button
-
-**Character Voice Personas:**
-1. News Anchor - Professional, authoritative newsroom delivery
-2. Crazy American - Over-the-top, loud, enthusiastic patriotic energy
-3. Power Businesswoman - Sharp, no-nonsense executive authority
-4. Club Promoter - High-energy hype and excitement
-5. Stand-up Comedian - Timing-based humor, Chappelle/Carrey style
-6. Conspiracy Theorist - Urgent, paranoid truth-revealer
-7. Movie Trailer Guy - Epic, dramatic, tension-building
-8. Custom Voice - Professional voiceover artist
-
-**Responsive Design:**
-- Desktop: Full layout with all features
-- Tablet (768px): Adapted grids, stacked casting controls
-- Mobile (480px): Single-column layouts, touch-friendly buttons
-- Small devices (360px): Wrapped navigation, simplified controls
+- **Flask Web Application**: `app.py` serves as the backend for REST API endpoints.
+- **Context Engine**: `context_engine.py` manages the core processing pipeline and conversation memory.
+- **Unified Content Engine**: A single AI brain handles both content creation and clipping modes.
+- **Thesis-Driven Architecture**: Content is structured around a single core thesis, with scripts built on anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
+- **AI Reasoning**: A 4-question framework guides content generation.
+- **Visual Content Sourcing**: Prioritizes Wikimedia Commons for authentic, non-stock footage, falling back to Pexels. Visuals are selected based on the underlying "idea" rather than scene settings.
+- **Legal Media Asset Library**: Stores links with full licensing metadata.
+- **Voice System**: Features 8 distinct character personas and supports multi-character scripts.
+- **Caption System**: Word-synced captions rendered via FFmpeg drawtext filters with dynamic phone-frame preview.
+- **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
+- **Scene Composer**: Enables background picking and character layering with Pillow-based background removal.
+- **Stage Directions**: AI-generated audio direction layer with effects like [PAUSE], [BEAT], [SILENCE], [TRANSITION].
+- **Sound FX System**: 10 synthesized effects (e.g., whoosh, impact) are auto-mixed into videos using [SOUND: type] tags.
+- **Token Cost System**: Displays per-feature token costs, with a session-based spending tracker.
+- **Character Generation**: DALL-E integration for AI-generated characters.
+- **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
+- **Subscription Model**: Free tier for script writing and basic features; Pro tier ($10/month) for unlimited video generation and hosting via Stripe.
+- **NSFW Content Filter**: Blocks inappropriate images from visual sources.
 
 ## External Dependencies
 - **Python 3.11**
-- **Krakd AI**: (powered by xAI grok-3) for chat, script generation, visual curation
-- **OpenAI**: For audio transcription and voiceover (tts-1-hd)
-- **FFmpeg**: For video/audio processing and caption rendering
-- **Stripe**: For token purchase checkout sessions
-- **Wikimedia Commons**: Primary source for visual content
-- **Pexels**: Fallback source for visual content
-
----
-
-## Content-Aware Visual Composition System
-
-**Content Types (3 categories):**
-1. **Informative** (educational, analytical, news) - Text callouts, data overlays, article screenshots, source citations, split-screen comparisons
-2. **Comedic** - Quick cuts, reaction overlays, meme-style text pops, exaggerated visuals
-3. **Inspiring** - Cinematic backgrounds, quote overlays, dramatic pacing, powerful imagery
-
-**Idea-Driven Visual System (NEW):**
-- Visuals are selected based on the IDEA being discussed, not the scene setting
-- Each section shows a one-sentence summary of the argument being made
-- Search queries use conceptual terms (liberation, conflict, unity) not locations (living room, office)
-- User sees the idea and chooses from visuals that represent that idea
-
-**Visual Selection Flow:**
-1. AI extracts core idea from each script section
-2. Generates search queries based on the idea (not setting)
-3. User picks from idea-relevant visual options
-4. Character layer removed for simplicity
-
-**Mode Detection:**
-- Auto/Create/Clip tabs are hidden
-- AI auto-detects mode from user input
-- No manual mode switching needed
-
----
-
-## UI Future Improvements (Saved for Reference)
-
-**Speed/Sleekness Goals:**
-1. Express Mode - One input, one output (thesis + script + visuals in one shot)
-2. Auto-voice assignment - AI picks best voice based on content tone
-3. Instant visual curation - Auto-fetch visuals inline, not behind tabs
-4. Progress rail - Slim vertical indicator for workflow position
-
-**Clutter Reduction:**
-1. Hide mode selector by default - AI auto-detects
-2. Collapse thesis/anchors - Single line at top, expand on click
-3. Remove step numbers - Continuous flow, not wizard
-4. Fewer buttons - One primary action per stage
-
-**Key Design Principles:**
-- Single canvas flow reduces cognitive load
-- Chat as control surface (not bolted on)
-- Intelligence visible, not hidden (anchors + layers)
-- Minimalism serves clarity, not aesthetics
-
-**Warnings:**
-- Don't let canvas get too tall without anchors (add sticky headers later)
-- Make "what to do next" obvious (inline action buttons)
-- Don't overexpose advanced controls early
-
----
-
-## Final Brand Principle
-**Clarity over noise. Meaning over metrics. Thought before output.**
+- **Krakd AI**: (powered by xAI grok-3) for chat, script generation, and visual curation.
+- **ElevenLabs**: Primary Text-to-Speech (TTS) engine for voiceovers.
+- **OpenAI**: Fallback for audio transcription and voiceover.
+- **FFmpeg**: For video/audio processing and caption rendering.
+- **Stripe**: For subscription management and payment processing.
+- **Wikimedia Commons**: Primary source for visual content.
+- **Pexels**: Fallback source for visual content.
+- **DALL-E**: For AI-generated character images.

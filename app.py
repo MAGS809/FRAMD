@@ -3583,57 +3583,71 @@ def generate_video():
 CHARACTER_VOICE_CONFIG = {
     'news_anchor': {
         'base_voice': 'onyx',
+        'elevenlabs_voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - deep authoritative
         'prompt': "You are a professional news anchor delivering breaking news. Speak with authority, gravitas, and measured pacing. Be serious, credible, and commanding. Use the classic newsroom delivery style."
     },
     'crazy_american': {
         'base_voice': 'echo',
+        'elevenlabs_voice_id': 'ODq5zmih8GrVes37Dizd',  # Patrick - energetic male
         'prompt': "You are an over-the-top, loud, enthusiastic American. Speak with maximum energy, patriotic fervor, and wild enthusiasm. Everything is AMAZING and THE BEST. Use phrases like 'USA! USA!', 'This is incredible!', 'Let's GO!'. Be loud, proud, and unapologetically hyped!"
     },
     'power_businesswoman': {
         'base_voice': 'nova',
+        'elevenlabs_voice_id': 'EXAVITQu4vr4xnSDxMaL',  # Sarah - confident female
         'prompt': "You are a powerful female executive - confident, sharp, no-nonsense. Speak with authority and precision. Every word is deliberate. You command respect and radiate competence. Think Sheryl Sandberg meets Miranda Priestly."
     },
     'club_promoter': {
         'base_voice': 'alloy',
+        'elevenlabs_voice_id': 'TX3LPaxmHKxFdv7VOQHJ',  # Liam - young energetic
         'prompt': "You are an energetic club promoter hyping up the crowd! Speak with infectious energy, excitement, and urgency. Build hype! Use phrases like 'let's go', 'are you ready', 'this is gonna be huge'. Be the life of the party!"
     },
     'standup_comedian': {
         'base_voice': 'fable',
+        'elevenlabs_voice_id': 'VR6AewLTigWG4xSOukaG',  # Arnold - expressive character
         'prompt': "You are a stand-up comedian in the style of Dave Chappelle and Jim Carrey. Speak with perfect comedic timing, dramatic pauses, and expressive delivery. Find the absurdity in everything. Be irreverent but intelligent."
     },
     'conspiracy_theorist': {
         'base_voice': 'echo',
+        'elevenlabs_voice_id': 'N2lVS1w4EtoT3dr4eOWO',  # Callum - intense whisper
         'prompt': "You are an intense conspiracy theorist who has uncovered THE TRUTH. Speak with urgency and paranoia. Lower your voice for the 'secret' parts. Everything is connected. Use phrases like 'think about it', 'they don't want you to know'."
     },
     'movie_trailer': {
         'base_voice': 'onyx',
+        'elevenlabs_voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - deep dramatic
         'prompt': "You are the epic movie trailer voice. Deep, resonant, dramatic. Build tension with pauses. Every line lands like a dramatic reveal. Use phrases like 'In a world where...', 'One man...', 'This summer...'. Be EPIC!"
     },
     'custom': {
         'base_voice': 'alloy',
+        'elevenlabs_voice_id': 'JBFqnCBsd6RMkjVDRZzb',  # George - versatile narrator
         'prompt': "You are a professional voiceover artist. Read the following script naturally and engagingly with perfect pacing and clarity."
     }
 }
 
+ELEVENLABS_VOICE_SETTINGS = {
+    'stability': 0.3,
+    'similarity_boost': 0.8,
+    'style': 0.7,
+    'use_speaker_boost': True
+}
+
 def get_voice_config(voice):
-    """Get base voice and system prompt for a voice type."""
+    """Get base voice, ElevenLabs voice ID, and system prompt for a voice type."""
     if voice in CHARACTER_VOICE_CONFIG:
         config = CHARACTER_VOICE_CONFIG[voice]
-        return config['base_voice'], config['prompt']
-    return voice, "You are a professional voiceover artist. Read the following script naturally and engagingly."
+        return config['base_voice'], config.get('elevenlabs_voice_id', 'JBFqnCBsd6RMkjVDRZzb'), config['prompt']
+    return voice, 'JBFqnCBsd6RMkjVDRZzb', "You are a professional voiceover artist. Read the following script naturally and engagingly."
 
 
 @app.route('/generate-voiceover', methods=['POST'])
 def generate_voiceover():
-    """Generate voiceover audio from script text."""
-    from openai import OpenAI
-    import base64
+    """Generate voiceover audio from script text using ElevenLabs (primary) or OpenAI (fallback)."""
     import os
     import uuid
     
     data = request.get_json()
     text = data.get('text', '')
     voice = data.get('voice', 'alloy')
+    use_elevenlabs = data.get('use_elevenlabs', True)
     
     if not text:
         return jsonify({'error': 'No text provided'}), 400
@@ -3643,21 +3657,69 @@ def generate_voiceover():
     if not text:
         return jsonify({'error': 'No dialogue found in script'}), 400
     
-    # Get base voice and prompt for goofy voices
-    base_voice, system_prompt = get_voice_config(voice)
+    # Get voice config
+    base_voice, elevenlabs_voice_id, system_prompt = get_voice_config(voice)
     
-    # Use OpenAI for audio generation - direct API with user's OpenAI key
-    client = OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY")
-    )
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     
+    # Try ElevenLabs first for premium enthusiastic voices
+    if use_elevenlabs and elevenlabs_key:
+        try:
+            from elevenlabs.client import ElevenLabs
+            
+            client = ElevenLabs(api_key=elevenlabs_key)
+            
+            # Generate with enthusiastic, confident voice settings
+            audio = client.text_to_speech.convert(
+                text=text,
+                voice_id=elevenlabs_voice_id,
+                model_id="eleven_multilingual_v2",
+                output_format="mp3_44100_128",
+                voice_settings={
+                    "stability": ELEVENLABS_VOICE_SETTINGS['stability'],
+                    "similarity_boost": ELEVENLABS_VOICE_SETTINGS['similarity_boost'],
+                    "style": ELEVENLABS_VOICE_SETTINGS['style'],
+                    "use_speaker_boost": ELEVENLABS_VOICE_SETTINGS['use_speaker_boost']
+                }
+            )
+            
+            filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
+            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            
+            # Write audio chunks to file
+            audio_written = False
+            with open(filepath, 'wb') as f:
+                for chunk in audio:
+                    if isinstance(chunk, bytes):
+                        f.write(chunk)
+                        audio_written = True
+            
+            # Verify file was written and has content
+            if audio_written and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                return jsonify({
+                    'success': True,
+                    'audio_path': filepath,
+                    'audio_url': f'/output/{filename}',
+                    'duration_estimate': len(text.split()) / 2.5,
+                    'engine': 'elevenlabs'
+                })
+            else:
+                print("ElevenLabs produced empty audio, falling back to OpenAI")
+                
+        except Exception as e:
+            print(f"ElevenLabs error, falling back to OpenAI: {e}")
+    
+    # Fallback to OpenAI TTS
     try:
-        # Use the TTS API endpoint
+        from openai import OpenAI
+        
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
         response = client.audio.speech.create(
             model="tts-1-hd",
             voice=base_voice,
             input=text,
-            speed=1.25  # Faster pacing for punchy delivery
+            speed=1.25
         )
         
         filename = f"voiceover_{uuid.uuid4().hex[:8]}.mp3"
@@ -3668,7 +3730,8 @@ def generate_voiceover():
             'success': True,
             'audio_path': filepath,
             'audio_url': f'/output/{filename}',
-            'duration_estimate': len(text.split()) / 2.5
+            'duration_estimate': len(text.split()) / 2.5,
+            'engine': 'openai'
         })
             
     except Exception as e:
@@ -3677,9 +3740,7 @@ def generate_voiceover():
 
 @app.route('/preview-voice', methods=['POST'])
 def preview_voice():
-    """Generate a short voice preview sample."""
-    from openai import OpenAI
-    import base64
+    """Generate a short voice preview sample using ElevenLabs (primary) or OpenAI (fallback)."""
     import uuid
     
     data = request.get_json()
@@ -3689,21 +3750,65 @@ def preview_voice():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
-    # Get base voice and prompt for goofy voices
-    base_voice, system_prompt = get_voice_config(voice)
+    # Get voice config
+    base_voice, elevenlabs_voice_id, system_prompt = get_voice_config(voice)
     
-    # Use OpenAI for audio generation - direct API with user's OpenAI key
-    client = OpenAI(
-        api_key=os.environ.get("OPENAI_API_KEY")
-    )
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     
+    # Try ElevenLabs first
+    if elevenlabs_key:
+        try:
+            from elevenlabs.client import ElevenLabs
+            
+            client = ElevenLabs(api_key=elevenlabs_key)
+            
+            audio = client.text_to_speech.convert(
+                text=text,
+                voice_id=elevenlabs_voice_id,
+                model_id="eleven_flash_v2_5",  # Fast model for preview
+                output_format="mp3_44100_128",
+                voice_settings={
+                    "stability": ELEVENLABS_VOICE_SETTINGS['stability'],
+                    "similarity_boost": ELEVENLABS_VOICE_SETTINGS['similarity_boost'],
+                    "style": ELEVENLABS_VOICE_SETTINGS['style'],
+                    "use_speaker_boost": ELEVENLABS_VOICE_SETTINGS['use_speaker_boost']
+                }
+            )
+            
+            filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
+            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            
+            audio_written = False
+            with open(filepath, 'wb') as f:
+                for chunk in audio:
+                    if isinstance(chunk, bytes):
+                        f.write(chunk)
+                        audio_written = True
+            
+            # Verify file was written and has content
+            if audio_written and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                return jsonify({
+                    'success': True,
+                    'audio_url': f'/output/{filename}',
+                    'engine': 'elevenlabs'
+                })
+            else:
+                print("ElevenLabs preview produced empty audio, falling back to OpenAI")
+                
+        except Exception as e:
+            print(f"ElevenLabs preview error, falling back to OpenAI: {e}")
+    
+    # Fallback to OpenAI
     try:
-        # Use the TTS API endpoint
+        from openai import OpenAI
+        
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
         response = client.audio.speech.create(
             model="tts-1",
             voice=base_voice,
             input=text,
-            speed=1.25  # Faster pacing for punchy delivery
+            speed=1.25
         )
         
         filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
@@ -3762,30 +3867,76 @@ def generate_multi_character_voiceover():
             if not voice_key:
                 # Default to 'alloy' for unassigned characters
                 base_voice = 'alloy'
+                elevenlabs_voice_id = 'JBFqnCBsd6RMkjVDRZzb'
             else:
-                base_voice, _ = get_voice_config(voice_key)
+                base_voice, elevenlabs_voice_id, _ = get_voice_config(voice_key)
             
-            # Generate audio for this line
-            response = client.audio.speech.create(
-                model="tts-1-hd",
-                voice=base_voice,
-                input=line,
-                speed=1.25
-            )
+            # Try ElevenLabs first
+            elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+            generated = False
             
-            # Save individual clip
-            clip_filename = f"clip_{order}_{uuid.uuid4().hex[:6]}.mp3"
-            clip_filepath = os.path.join(app.config['OUTPUT_FOLDER'], clip_filename)
-            response.stream_to_file(clip_filepath)
+            if elevenlabs_key:
+                try:
+                    from elevenlabs.client import ElevenLabs as ElevenLabsClient
+                    
+                    el_client = ElevenLabsClient(api_key=elevenlabs_key)
+                    audio = el_client.text_to_speech.convert(
+                        text=line,
+                        voice_id=elevenlabs_voice_id,
+                        model_id="eleven_multilingual_v2",
+                        output_format="mp3_44100_128",
+                        voice_settings={
+                            "stability": ELEVENLABS_VOICE_SETTINGS['stability'],
+                            "similarity_boost": ELEVENLABS_VOICE_SETTINGS['similarity_boost'],
+                            "style": ELEVENLABS_VOICE_SETTINGS['style'],
+                            "use_speaker_boost": ELEVENLABS_VOICE_SETTINGS['use_speaker_boost']
+                        }
+                    )
+                    
+                    clip_filename = f"clip_{order}_{uuid.uuid4().hex[:6]}.mp3"
+                    clip_filepath = os.path.join(app.config['OUTPUT_FOLDER'], clip_filename)
+                    
+                    with open(clip_filepath, 'wb') as f:
+                        for chunk in audio:
+                            if isinstance(chunk, bytes):
+                                f.write(chunk)
+                    
+                    clip_paths.append(clip_filepath)
+                    clip_info.append({
+                        'character': character,
+                        'line': line,
+                        'order': order,
+                        'voice': voice_key,
+                        'clip_url': f'/output/{clip_filename}',
+                        'engine': 'elevenlabs'
+                    })
+                    generated = True
+                except Exception as e:
+                    print(f"ElevenLabs multi-char error: {e}")
             
-            clip_paths.append(clip_filepath)
-            clip_info.append({
-                'character': character,
-                'line': line,
-                'order': order,
-                'voice': voice_key,
-                'clip_url': f'/output/{clip_filename}'
-            })
+            # Fallback to OpenAI
+            if not generated:
+                response = client.audio.speech.create(
+                    model="tts-1-hd",
+                    voice=base_voice,
+                    input=line,
+                    speed=1.25
+                )
+                
+                # Save individual clip
+                clip_filename = f"clip_{order}_{uuid.uuid4().hex[:6]}.mp3"
+                clip_filepath = os.path.join(app.config['OUTPUT_FOLDER'], clip_filename)
+                response.stream_to_file(clip_filepath)
+                
+                clip_paths.append(clip_filepath)
+                clip_info.append({
+                    'character': character,
+                    'line': line,
+                    'order': order,
+                    'voice': voice_key,
+                    'clip_url': f'/output/{clip_filename}',
+                    'engine': 'openai'
+                })
         
         # Assemble all clips into final audio
         final_filename = f"voiceover_multi_{uuid.uuid4().hex[:8]}.mp3"
@@ -4084,19 +4235,49 @@ def generate_voiceover_multi():
                     voice = val
                     break
             
-            # Get base voice for this character
-            base_voice, _ = get_voice_config(voice)
+            # Get voice config for this character
+            base_voice, elevenlabs_voice_id, _ = get_voice_config(voice)
             
-            # Use TTS API for each character's line
-            response = client.audio.speech.create(
-                model="tts-1-hd",
-                voice=base_voice,
-                input=text,
-                speed=1.25  # Faster pacing for punchy delivery
-            )
+            # Try ElevenLabs first for premium voices
+            elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+            audio_bytes = None
             
-            # Get audio bytes
-            audio_bytes = response.content
+            if elevenlabs_key:
+                try:
+                    from elevenlabs.client import ElevenLabs as ElevenLabsClient
+                    
+                    el_client = ElevenLabsClient(api_key=elevenlabs_key)
+                    audio = el_client.text_to_speech.convert(
+                        text=text,
+                        voice_id=elevenlabs_voice_id,
+                        model_id="eleven_multilingual_v2",
+                        output_format="mp3_44100_128",
+                        voice_settings={
+                            "stability": ELEVENLABS_VOICE_SETTINGS['stability'],
+                            "similarity_boost": ELEVENLABS_VOICE_SETTINGS['similarity_boost'],
+                            "style": ELEVENLABS_VOICE_SETTINGS['style'],
+                            "use_speaker_boost": ELEVENLABS_VOICE_SETTINGS['use_speaker_boost']
+                        }
+                    )
+                    
+                    # Collect bytes from generator
+                    audio_bytes = b''
+                    for chunk in audio:
+                        if isinstance(chunk, bytes):
+                            audio_bytes += chunk
+                except Exception as e:
+                    print(f"ElevenLabs multi error: {e}")
+            
+            # Fallback to OpenAI TTS
+            if not audio_bytes:
+                response = client.audio.speech.create(
+                    model="tts-1-hd",
+                    voice=base_voice,
+                    input=text,
+                    speed=1.25
+                )
+                audio_bytes = response.content
+            
             audio_segments.append(audio_bytes)
         
         # Parse stage directions to extract timing effects
