@@ -5405,7 +5405,8 @@ def render_video():
                 shutil.copy(concat_path, temp_combined)
         
         # Pass 2: Add captions if enabled
-        caption_filters = []
+        caption_srt_path = None
+        caption_style_settings = None
         
         # Add word-synced captions if enabled and audio exists
         if captions_enabled and audio_path and os.path.exists(audio_path):
@@ -5504,79 +5505,109 @@ def render_video():
                     if phrases and audio_duration:
                         phrases[-1]['end'] = audio_duration
                     
-                    # Build drawtext filters with precise timing
-                    caption_filters = []
-                    for phrase in phrases:
-                        text = phrase['text']
-                        start_time = phrase['start']
-                        end_time = phrase['end']
-                        
-                        # Proper FFmpeg drawtext text escaping
-                        clean_text = text
-                        if caption_uppercase:
-                            clean_text = clean_text.upper()
-                        # Escape special characters for FFmpeg drawtext text value
-                        # Order matters: backslash first, then quotes, then colons
-                        clean_text = clean_text.replace("\\", "\\\\")
-                        clean_text = clean_text.replace("'", "\\'")
-                        clean_text = clean_text.replace(":", "\\:")
-                        
-                        # Build drawtext filter with timing
-                        border_params = ""
-                        if caption_outline:
-                            border_params = ":borderw=4:bordercolor=black"
-                        if caption_shadow:
-                            border_params += ":shadowcolor=black@0.7:shadowx=3:shadowy=3"
-                        
-                        # In filter_complex, commas inside between() must be escaped with backslash
-                        # to prevent them being parsed as filter chain separators
-                        drawtext = (
-                            f"drawtext=text='{clean_text}'"
-                            f":fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-                            f":fontsize={fontsize}"
-                            f":fontcolor=#{caption_color}"
-                            f":x=(w-text_w)/2:y={y_pos}"
-                            f"{border_params}"
-                            f":enable='between(t\\,{start_time:.3f}\\,{end_time:.3f})'"
-                        )
-                        caption_filters.append(drawtext)
+                    # Generate SRT file from phrases (more robust than drawtext chains)
+                    def format_srt_time(seconds):
+                        """Convert seconds to SRT timestamp format (HH:MM:SS,mmm)"""
+                        hours = int(seconds // 3600)
+                        minutes = int((seconds % 3600) // 60)
+                        secs = int(seconds % 60)
+                        millis = int((seconds % 1) * 1000)
+                        return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
                     
-                    print(f"Added {len(caption_filters)} word-synced caption phrases")
+                    srt_content = []
+                    for i, phrase in enumerate(phrases, 1):
+                        text = phrase['text']
+                        if caption_uppercase:
+                            text = text.upper()
+                        start_srt = format_srt_time(phrase['start'])
+                        end_srt = format_srt_time(phrase['end'])
+                        srt_content.append(f"{i}\n{start_srt} --> {end_srt}\n{text}\n")
+                    
+                    # Write SRT file
+                    srt_path = f"output/captions_{uuid.uuid4().hex[:8]}.srt"
+                    with open(srt_path, 'w', encoding='utf-8') as f:
+                        f.write('\n'.join(srt_content))
+                    
+                    # Store SRT path and style settings for Pass 2
+                    caption_srt_path = srt_path
+                    caption_style_settings = {
+                        'fontsize': fontsize,
+                        'color': caption_color,
+                        'outline': caption_outline,
+                        'shadow': caption_shadow,
+                        'y_pos': y_pos
+                    }
+                    
+                    print(f"Generated SRT with {len(phrases)} caption phrases: {srt_path}")
                 else:
                     print("No word timestamps returned from Whisper")
                     
             except Exception as e:
                 print(f"Whisper transcription failed, skipping captions: {e}")
         
-        # Pass 2: Add captions to the combined video (if any)
-        if caption_filters and os.path.exists(temp_combined):
-            print(f"Pass 2: Adding {len(caption_filters)} captions...")
+        # Pass 2: Add captions using SRT file (more robust than drawtext chains)
+        if caption_srt_path and os.path.exists(caption_srt_path) and os.path.exists(temp_combined):
+            print(f"Pass 2: Adding captions from SRT file...")
             
-            # Build caption filter chain - join with commas, each drawtext is separate
-            # Since we're only doing captions now (no mixing with complex filters),
-            # we can use -vf with proper escaping
-            caption_chain = ",".join(caption_filters)
+            # Build subtitle style for FFmpeg ASS format
+            # FontSize, PrimaryColour (BGR format), OutlineColour, BorderStyle, Outline
+            style = caption_style_settings
+            font_size = style['fontsize']
+            # Convert hex color to BGR (FFmpeg ASS uses &HBBGGRR& format)
+            hex_color = style['color'].lstrip('#')
+            if len(hex_color) == 6:
+                r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
+                bgr_color = f"&H{b:02X}{g:02X}{r:02X}&"
+            else:
+                bgr_color = "&HFFFFFF&"
+            
+            # Build force_style string
+            outline_width = 3 if style['outline'] else 0
+            shadow_depth = 2 if style['shadow'] else 0
+            
+            # Escape the SRT path for FFmpeg (colons and backslashes)
+            escaped_srt = caption_srt_path.replace('\\', '/').replace(':', r'\:')
+            
+            # Calculate MarginV (vertical margin from bottom) based on y_pos
+            # y_pos is from top, we need to convert to margin from bottom
+            # Assume 1080p height, MarginV is pixels from bottom
+            margin_v = 100  # Default bottom margin
+            
+            subtitle_filter = (
+                f"subtitles={escaped_srt}:force_style='"
+                f"FontName=DejaVu Sans,FontSize={font_size},"
+                f"PrimaryColour={bgr_color},OutlineColour=&H000000&,"
+                f"BorderStyle=1,Outline={outline_width},Shadow={shadow_depth},"
+                f"Alignment=2,MarginV={margin_v}'"
+            )
             
             pass2_cmd = [
                 'ffmpeg', '-y',
                 '-i', temp_combined,
-                '-vf', caption_chain,
+                '-vf', subtitle_filter,
                 '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26', '-threads', '0',
                 '-c:a', 'copy',
                 output_path
             ]
             
+            print(f"Caption filter: {subtitle_filter}")
             pass2_result = subprocess.run(pass2_cmd, capture_output=True, timeout=300)
             
             if pass2_result.returncode != 0:
-                error_msg = pass2_result.stderr.decode()[:1000]
+                error_msg = pass2_result.stderr.decode()[:2000]
                 print(f"Pass 2 (captions) failed: {error_msg}")
                 # Fallback: use pass 1 output without captions
                 import shutil
                 shutil.copy(temp_combined, output_path)
                 print("Using video without captions as fallback")
             else:
-                print("Pass 2 succeeded - captions added")
+                print("Pass 2 succeeded - captions added via SRT")
+            
+            # Cleanup SRT file
+            try:
+                os.remove(caption_srt_path)
+            except:
+                pass
         else:
             # No captions - just use pass 1 output
             import shutil
