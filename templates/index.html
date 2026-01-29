@@ -1979,6 +1979,116 @@
             line-height: 1;
         }
         
+        /* Image placement popup */
+        .image-placement-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-placement-popup.show {
+            display: flex;
+        }
+        
+        .image-placement-content {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 1.5rem;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .image-placement-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .image-placement-analysis {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        
+        .image-placement-options {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+        
+        .placement-option {
+            flex: 1;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .placement-option:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        
+        .placement-option.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.15);
+        }
+        
+        .placement-option-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .placement-option-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .placement-option-desc {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.25rem;
+        }
+        
+        .image-placement-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        
+        .image-placement-actions button {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .image-placement-cancel {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+        
+        .image-placement-confirm {
+            background: var(--gold);
+            border: none;
+            color: var(--bg);
+        }
+        
         /* Token display */
         .tokens {
             text-align: center;
@@ -4936,7 +5046,7 @@
                     <textarea 
                         class="bottom-chat-input" 
                         id="composer-input" 
-                        placeholder="Clip or idea - build postable content"
+                        placeholder="Paste content or describe what you want — AI builds your post"
                         rows="1"
                         onkeydown="handleKeydown(event)"
                         oninput="autoResize(this)"
@@ -4954,6 +5064,32 @@
                 </div>
             </div>
             <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)" style="display:none;">
+        </div>
+        
+        <!-- Image Placement Popup -->
+        <div class="image-placement-popup" id="image-placement-popup">
+            <div class="image-placement-content">
+                <img id="image-placement-preview" class="image-placement-preview" src="" alt="Preview">
+                <div class="image-placement-analysis" id="image-placement-analysis">
+                    Analyzing image...
+                </div>
+                <div class="image-placement-options">
+                    <div class="placement-option" data-placement="background" onclick="selectPlacement('background')">
+                        <div class="placement-option-icon">🖼️</div>
+                        <div class="placement-option-label">Full Background</div>
+                        <div class="placement-option-desc">Behind text overlay</div>
+                    </div>
+                    <div class="placement-option" data-placement="popup" onclick="selectPlacement('popup')">
+                        <div class="placement-option-icon">💬</div>
+                        <div class="placement-option-label">Pop-up Visual</div>
+                        <div class="placement-option-desc">Overlay element</div>
+                    </div>
+                </div>
+                <div class="image-placement-actions">
+                    <button class="image-placement-cancel" onclick="cancelImagePlacement()">Cancel</button>
+                    <button class="image-placement-confirm" onclick="confirmImagePlacement()">Use Image</button>
+                </div>
+            </div>
         </div>
         
         <!-- Stage Directions Confirmation Modal -->
@@ -5344,6 +5480,12 @@
         let unreadMessages = 0;
         let isPro = false;
         
+        // Image placement state
+        let pendingImageFile = null;
+        let pendingImagePath = null;
+        let pendingImageAnalysis = null;
+        let selectedPlacement = 'background';
+        
         // Unified Engine State
         let contentMode = 'auto'; // auto, create, clip
         let currentThesis = null;
@@ -5516,14 +5658,9 @@
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
             
+            // Unified placeholder - AI auto-detects mode
             const placeholder = document.getElementById('composer-input');
-            if (mode === 'create') {
-                placeholder.placeholder = 'Describe your idea or thesis...';
-            } else if (mode === 'clip') {
-                placeholder.placeholder = 'Paste a transcript or source material...';
-            } else {
-                placeholder.placeholder = 'Paste a link, transcript, or idea...';
-            }
+            placeholder.placeholder = 'Paste content or describe what you want — AI builds your post';
         }
         
         // Thesis Display
@@ -6625,6 +6762,88 @@
             document.getElementById('file-preview').classList.remove('show');
         }
         
+        // Image placement functions
+        function isImageFile(filename) {
+            return filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        }
+        
+        async function analyzeAndShowImagePlacement(file, filePath) {
+            pendingImageFile = file;
+            pendingImagePath = filePath;
+            selectedPlacement = 'background';
+            
+            // Show popup with preview
+            const popup = document.getElementById('image-placement-popup');
+            const preview = document.getElementById('image-placement-preview');
+            const analysis = document.getElementById('image-placement-analysis');
+            
+            // Create object URL for preview
+            preview.src = URL.createObjectURL(file);
+            analysis.innerHTML = '<em>Analyzing image with AI...</em>';
+            popup.classList.add('show');
+            
+            // Reset selection
+            document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.placement-option[data-placement="background"]').classList.add('selected');
+            
+            // Call AI analysis
+            try {
+                const response = await fetch('/analyze-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ file_path: filePath })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.analysis) {
+                    pendingImageAnalysis = data.analysis;
+                    analysis.innerHTML = `
+                        <strong>${data.analysis.description}</strong><br>
+                        <span style="color: var(--gold)">Mood:</span> ${data.analysis.mood}<br>
+                        <span style="color: var(--gold)">AI suggests:</span> ${data.analysis.suggested_use === 'background' ? 'Full Background' : 'Pop-up Visual'}
+                    `;
+                    
+                    // Auto-select AI suggestion
+                    selectedPlacement = data.analysis.suggested_use || 'background';
+                    document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
+                    document.querySelector(`.placement-option[data-placement="${selectedPlacement}"]`).classList.add('selected');
+                } else {
+                    analysis.innerHTML = '<em>Image ready for use</em>';
+                }
+            } catch (err) {
+                console.error('Image analysis error:', err);
+                analysis.innerHTML = '<em>Image ready for use</em>';
+            }
+        }
+        
+        function selectPlacement(placement) {
+            selectedPlacement = placement;
+            document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector(`.placement-option[data-placement="${placement}"]`).classList.add('selected');
+        }
+        
+        function cancelImagePlacement() {
+            pendingImageFile = null;
+            pendingImagePath = null;
+            pendingImageAnalysis = null;
+            document.getElementById('image-placement-popup').classList.remove('show');
+        }
+        
+        function confirmImagePlacement() {
+            // Store the image with placement choice
+            uploadedFile = pendingImageFile;
+            uploadedFile.placement = selectedPlacement;
+            uploadedFile.analysis = pendingImageAnalysis;
+            uploadedFile.filePath = pendingImagePath;
+            
+            document.getElementById('file-name').textContent = `${pendingImageFile.name} (${selectedPlacement === 'background' ? 'Background' : 'Pop-up'})`;
+            document.getElementById('file-preview').classList.add('show');
+            document.getElementById('image-placement-popup').classList.remove('show');
+            
+            // Focus input so user can type
+            document.getElementById('composer-input').focus();
+        }
+        
         // Stage navigation with workflow guides (Echo Engine controls transitions)
         function showStage(stage) {
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
@@ -7653,18 +7872,17 @@
             renderChatPanelMessages();
             
             try {
-                // Use unified engine for long messages (likely transcripts) or when clip mode is active
-                const isLongInput = fullMessage.length > 500;
-                const useUnified = contentMode === 'clip' || (contentMode === 'auto' && isLongInput);
+                // Always use unified engine with auto-detection - AI determines create vs clip
+                const useUnified = true;
                 
                 if (useUnified) {
-                    // Use unified engine for thesis extraction and clipping
+                    // Use unified engine for thesis extraction and clipping - auto-detect mode
                     const unifiedResponse = await fetch('/unified-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             input: fullMessage,
-                            mode: contentMode
+                            mode: 'auto'  // AI auto-detects create vs clip
                         })
                     });
                     
@@ -8723,15 +8941,40 @@
                     composer.style.borderColor = '';
                 });
                 
-                composer.addEventListener('drop', (e) => {
+                composer.addEventListener('drop', async (e) => {
                     e.preventDefault();
                     composer.style.borderColor = '';
                     
                     if (e.dataTransfer.files.length > 0) {
                         const file = e.dataTransfer.files[0];
-                        uploadedFile = file;
-                        document.getElementById('file-name').textContent = file.name;
-                        document.getElementById('file-preview').classList.add('show');
+                        
+                        // Check if it's an image - show placement popup
+                        if (isImageFile(file.name)) {
+                            // First upload the file
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            
+                            try {
+                                const uploadRes = await fetch('/upload', { method: 'POST', body: formData });
+                                const uploadData = await uploadRes.json();
+                                
+                                if (uploadData.success) {
+                                    // Show placement popup with AI analysis
+                                    analyzeAndShowImagePlacement(file, uploadData.file_path);
+                                }
+                            } catch (err) {
+                                console.error('Upload error:', err);
+                                // Fallback to regular file handling
+                                uploadedFile = file;
+                                document.getElementById('file-name').textContent = file.name;
+                                document.getElementById('file-preview').classList.add('show');
+                            }
+                        } else {
+                            // Non-image file - regular handling
+                            uploadedFile = file;
+                            document.getElementById('file-name').textContent = file.name;
+                            document.getElementById('file-preview').classList.add('show');
+                        }
                         
                         // Focus the input so user can still type
                         const input = document.getElementById('composer-input');

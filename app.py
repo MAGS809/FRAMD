@@ -2990,6 +2990,99 @@ def upload_file():
     })
 
 
+@app.route('/analyze-image', methods=['POST'])
+def analyze_image():
+    """Analyze an uploaded image using OpenAI GPT-4o vision."""
+    import base64
+    from openai import OpenAI
+    
+    data = request.get_json()
+    file_path = data.get('file_path')
+    
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Check if it's an image
+    if not file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
+        return jsonify({'error': 'Not an image file'}), 400
+    
+    try:
+        # Read and encode image
+        with open(file_path, 'rb') as f:
+            image_data = base64.b64encode(f.read()).decode('utf-8')
+        
+        # Determine mime type
+        ext = file_path.lower().split('.')[-1]
+        mime_types = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'gif': 'image/gif', 'webp': 'image/webp'}
+        mime_type = mime_types.get(ext, 'image/jpeg')
+        
+        # Call OpenAI GPT-4o vision
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": """Analyze this image for use in a short-form video post. Provide:
+1. A brief description (1-2 sentences) of what's in the image
+2. The mood/tone it conveys
+3. Suggested use: 'background' (full-screen behind text) or 'popup' (overlay element)
+4. Any text visible in the image
+
+Respond in JSON format:
+{
+  "description": "...",
+  "mood": "...",
+  "suggested_use": "background" or "popup",
+  "visible_text": "..." or null,
+  "content_type": "photo/illustration/screenshot/graphic"
+}"""
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=500
+        )
+        
+        # Parse the response
+        reply = response.choices[0].message.content or ""
+        
+        # Try to extract JSON from response
+        import json
+        import re
+        json_match = re.search(r'\{[^{}]*\}', reply, re.DOTALL)
+        if json_match:
+            analysis = json.loads(json_match.group())
+        else:
+            analysis = {
+                "description": reply,
+                "mood": "neutral",
+                "suggested_use": "background",
+                "visible_text": None,
+                "content_type": "photo"
+            }
+        
+        return jsonify({
+            'success': True,
+            'analysis': analysis,
+            'file_path': file_path
+        })
+        
+    except Exception as e:
+        logging.error(f"Image analysis error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     data = request.get_json()
