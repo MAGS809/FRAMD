@@ -1450,44 +1450,9 @@
             font-size: 0.85rem;
         }
         
-        .doc-ai-feedback {
-            background: linear-gradient(135deg, rgba(255, 214, 10, 0.08), rgba(255, 214, 10, 0.02));
-            border: 1px solid rgba(255, 214, 10, 0.2);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-            margin-top: 1rem;
-            display: none;
-        }
-        
-        .doc-ai-feedback.visible {
-            display: block;
-            animation: fadeSlideIn 0.3s ease;
-        }
-        
         @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .doc-ai-feedback-header {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
-            color: var(--accent);
-            font-weight: 500;
-        }
-        
-        .doc-ai-feedback-header svg {
-            width: 14px;
-            height: 14px;
-        }
-        
-        .doc-ai-feedback-content {
-            font-size: 0.9rem;
-            color: var(--text);
-            line-height: 1.6;
         }
         
         .doc-ai-actions {
@@ -4860,22 +4825,7 @@
                             id="doc-script-editor" 
                             contenteditable="true"
                             data-placeholder="Start with an idea, paste a transcript, or drop a link..."
-                            oninput="handleDocEdit()"
                         ></div>
-                        
-                        <!-- AI Feedback Panel -->
-                        <div class="doc-ai-feedback" id="doc-ai-feedback">
-                            <div class="doc-ai-feedback-header">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
-                                <span>Echo Engine</span>
-                            </div>
-                            <div class="doc-ai-feedback-content" id="doc-ai-feedback-content"></div>
-                            <div class="doc-ai-actions" id="doc-ai-actions"></div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -5385,89 +5335,15 @@
         let docHasScript = false;
         let docEditAbortController = null;
         
-        // Document Editor Functions
-        function handleDocEdit() {
+        // Document Editor Functions - simplified, no auto AI calls
+        function updateDocEditor() {
             const editor = document.getElementById('doc-script-editor');
+            if (!editor) return;
             const content = editor.innerText.trim();
-            
-            // Debounce AI processing
-            clearTimeout(docEditTimeout);
-            
-            if (content.length > 50 && content !== lastDocContent) {
-                docEditTimeout = setTimeout(() => {
-                    lastDocContent = content;
-                    processDocumentEdit(content);
-                }, 1500);
-            }
-            
-            // Show/hide timeline controls based on content
             updateTimelineControls(content.length > 100);
         }
         
-        async function processDocumentEdit(content) {
-            // Abort any pending request
-            if (docEditAbortController) {
-                docEditAbortController.abort();
-            }
-            docEditAbortController = new AbortController();
-            
-            // Show subtle status
-            showStatus('Reading your changes...');
-            
-            try {
-                const response = await fetch('/analyze-edit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        content: content,
-                        current_script: currentScript,
-                        project_id: currentProjectId
-                    }),
-                    signal: docEditAbortController.signal
-                });
-                
-                const data = await response.json();
-                
-                if (data.feedback) {
-                    showAIFeedback(data.feedback, data.actions || []);
-                }
-                
-                if (data.script) {
-                    currentScript = data.script;
-                    docHasScript = true;
-                    updateTimelineControls(true);
-                }
-                
-                hideStatus();
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    return;
-                }
-                console.error('Error processing edit:', error);
-                hideStatus();
-            }
-        }
-        
-        function showAIFeedback(feedback, actions) {
-            const panel = document.getElementById('doc-ai-feedback');
-            const contentEl = document.getElementById('doc-ai-feedback-content');
-            const actionsEl = document.getElementById('doc-ai-actions');
-            
-            contentEl.textContent = feedback;
-            
-            actionsEl.innerHTML = actions.map(action => 
-                `<button class="doc-ai-action-btn" onclick="handleAIAction('${action.type}')">${action.label}</button>`
-            ).join('');
-            
-            panel.classList.add('visible');
-        }
-        
-        function hideAIFeedback() {
-            document.getElementById('doc-ai-feedback').classList.remove('visible');
-        }
-        
         function handleAIAction(actionType) {
-            hideAIFeedback();
             
             switch(actionType) {
                 case 'generate_script':
@@ -8438,8 +8314,9 @@
             fetch('/get-tokens')
                 .then(r => r.json())
                 .then(data => {
-                    if (data.balance !== undefined) {
-                        document.getElementById('token-count').textContent = data.balance;
+                    const tokenEl = document.getElementById('token-count');
+                    if (data.balance !== undefined && tokenEl) {
+                        tokenEl.textContent = data.balance;
                     }
                 });
         });
