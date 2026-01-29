@@ -221,17 +221,22 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 2. **Comedic** - Quick cuts, reaction overlays, meme-style text pops, exaggerated visuals
 3. **Inspiring** - Cinematic backgrounds, quote overlays, dramatic pacing, powerful imagery
 
-**Visual Layer System:**
-- Background layer (subtle/dynamic/cinematic based on content type)
-- Overlay layers (data popups, reactions, quotes)
-- Text layers (callouts, captions, citations)
-- Effect layers (transitions, animations)
+**Idea-Driven Visual System (NEW):**
+- Visuals are selected based on the IDEA being discussed, not the scene setting
+- Each section shows a one-sentence summary of the argument being made
+- Search queries use conceptual terms (liberation, conflict, unity) not locations (living room, office)
+- User sees the idea and chooses from visuals that represent that idea
 
-**Composition Templates:**
-- AI classifies content type from thesis + script tone
-- Each type has pre-defined layer templates
-- Anchors determine when overlays appear
-- Background-only is opt-out, not default
+**Visual Selection Flow:**
+1. AI extracts core idea from each script section
+2. Generates search queries based on the idea (not setting)
+3. User picks from idea-relevant visual options
+4. Character layer removed for simplicity
+
+**Mode Detection:**
+- Auto/Create/Clip tabs are hidden
+- AI auto-detects mode from user input
+- No manual mode switching needed
 
 ---
 
