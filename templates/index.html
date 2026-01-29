@@ -2193,6 +2193,37 @@
             font-style: italic;
         }
         
+        .character-placeholder .placeholder-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            height: 100%;
+        }
+        
+        .placeholder-icon {
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+        
+        .generate-char-btn {
+            background: var(--gold);
+            color: var(--bg);
+            border: none;
+            padding: 0.35rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .generate-char-btn:hover {
+            background: #e6c009;
+            transform: scale(1.05);
+        }
+        
         /* Voice Casting */
         .casting-panel {
             margin-top: 1rem;
@@ -5980,6 +6011,7 @@
                 if (data.success && data.characters) {
                     detectedCharacters = data.characters;
                     renderCastingPanel(data.characters);
+                    renderCharacterLayers(data.characters);
                     document.getElementById('voice-count').textContent = `(${data.characters.length} characters)`;
                     // Update cost when characters change
                     updateTotalTokenCost();
@@ -6458,6 +6490,75 @@
             if (scene) {
                 scene.layers.splice(layerIdx, 1);
                 renderScenes();
+            }
+        }
+        
+        function renderCharacterLayers(characters) {
+            const grid = document.getElementById('models-grid');
+            if (!characters || characters.length === 0) {
+                grid.innerHTML = '<div class="no-models-msg">No characters extracted yet. Detect characters above.</div>';
+                return;
+            }
+            
+            // Check if any character already has an image generated
+            grid.innerHTML = characters.map((char, idx) => {
+                const modelIdx = extractedModels.findIndex(m => m.name === char.name);
+                const existingModel = modelIdx >= 0 ? extractedModels[modelIdx] : null;
+                const safeName = (char.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safePersonality = (char.personality || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                
+                if (existingModel) {
+                    return `
+                        <div class="model-card character-layer" draggable="true" data-model-idx="${modelIdx}">
+                            <div class="model-tab">${char.name}</div>
+                            <div class="model-preview">
+                                <img src="${existingModel.image}" alt="${safeName}">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="model-card character-layer character-placeholder" data-char-name="${safeName}">
+                            <div class="model-tab">${char.name}</div>
+                            <div class="model-preview placeholder-preview">
+                                <div class="placeholder-icon">
+                                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <circle cx="12" cy="8" r="4"/>
+                                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                                    </svg>
+                                </div>
+                                <button class="generate-char-btn" onclick="generateCharacterImage('${safeName}', '${safePersonality}')">
+                                    Generate Image
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+        }
+        
+        async function generateCharacterImage(name, personality) {
+            showToast('Generating character image...');
+            startLoading();
+            try {
+                const resp = await fetch('/generate-character-image', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, personality })
+                });
+                const data = await resp.json();
+                if (data.success && data.image) {
+                    addExtractedModel(name, data.image);
+                    renderCharacterLayers(detectedCharacters);
+                    showToast('Character image generated!');
+                } else {
+                    showToast(data.error || 'Failed to generate image');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Error generating character image');
+            } finally {
+                stopLoading();
             }
         }
         
