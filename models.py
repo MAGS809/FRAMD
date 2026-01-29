@@ -64,10 +64,28 @@ class Project(db.Model):
     workflow_step = db.Column(db.Integer, default=1)  # 1-8 workflow progress
     is_successful = db.Column(db.Boolean, default=False)
     success_score = db.Column(db.Integer, default=0)
+    revision_count = db.Column(db.Integer, default=0)  # Track revision attempts
+    liked = db.Column(db.Boolean, nullable=True)  # True=liked, False=disliked, None=no feedback
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     user = db.relationship('User', backref=db.backref('projects', lazy='dynamic'))
+    feedbacks = db.relationship('VideoFeedback', backref='project', lazy='dynamic')
+
+
+class VideoFeedback(db.Model):
+    __tablename__ = 'video_feedbacks'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)  # Nullable for anonymous feedback
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    liked = db.Column(db.Boolean, nullable=False)  # True=liked, False=disliked
+    comment = db.Column(db.Text, nullable=True)  # User's feedback comment
+    script_version = db.Column(db.Text, nullable=True)  # Script at time of feedback
+    revision_number = db.Column(db.Integer, default=0)  # Which revision this is
+    ai_analysis = db.Column(db.JSON, nullable=True)  # AI's self-analysis of what went wrong
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('video_feedbacks', lazy='dynamic'))
 
 
 class AILearning(db.Model):

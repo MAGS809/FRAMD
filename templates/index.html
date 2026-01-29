@@ -3537,6 +3537,111 @@
             font-size: 11px;
         }
 
+        /* Like/Dislike Feedback Styles */
+        .video-feedback-actions {
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        
+        .like-dislike-container {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 1rem;
+        }
+        
+        .like-btn, .dislike-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 30px;
+            border: 2px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .like-btn:hover {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+        }
+        
+        .dislike-btn:hover {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .like-btn.selected {
+            border-color: #22c55e;
+            background: #22c55e;
+            color: white;
+        }
+        
+        .dislike-btn.selected {
+            border-color: #ef4444;
+            background: #ef4444;
+            color: white;
+        }
+        
+        .like-icon, .dislike-icon {
+            font-size: 1.25rem;
+        }
+        
+        .revision-counter {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        
+        .dislike-comment-flow {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            background: var(--card);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 16px;
+        }
+        
+        .dislike-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+        
+        .dislike-icon-header {
+            font-size: 1.25rem;
+        }
+        
+        .dislike-comment-input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            resize: none;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 1rem;
+        }
+        
+        .dislike-comment-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .export-action-buttons {
+            margin-top: 1.5rem;
+        }
+        
         /* Feedback Section Styles */
         .feedback-section {
             margin-top: 1rem;
@@ -4759,9 +4864,45 @@
                 <div class="export-preview" id="export-preview">
                     <video id="export-video" controls></video>
                 </div>
-                <button class="btn btn-primary" onclick="downloadVideo()">Download</button>
-                <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="hostAndShare()">Host & Share</button>
-                <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="startOver()">Start New</button>
+                
+                <!-- Like/Dislike Section -->
+                <div class="video-feedback-actions" id="video-feedback-actions">
+                    <div class="like-dislike-container">
+                        <button class="like-btn" id="like-btn" onclick="handleVideoLike(true)">
+                            <span class="like-icon">👍</span>
+                            <span>I like it</span>
+                        </button>
+                        <button class="dislike-btn" id="dislike-btn" onclick="handleVideoLike(false)">
+                            <span class="dislike-icon">👎</span>
+                            <span>Not quite</span>
+                        </button>
+                    </div>
+                    <div id="revision-counter" class="revision-counter" style="display: none;">
+                        <span id="revisions-left">3</span> revisions remaining
+                    </div>
+                </div>
+                
+                <!-- Dislike Comment Flow (hidden by default) -->
+                <div class="dislike-comment-flow" id="dislike-comment-flow" style="display: none;">
+                    <div class="dislike-header">
+                        <span class="dislike-icon-header">🔄</span>
+                        <span>Tell me what to fix</span>
+                    </div>
+                    <textarea id="dislike-comment" class="dislike-comment-input" placeholder="What's not working? Be specific — e.g. 'pacing is too slow', 'voice sounds robotic', 'wrong visual style'..." rows="3"></textarea>
+                    <button class="btn btn-accent" id="send-to-ai-btn" onclick="sendBackToAI()">Send Back to AI</button>
+                    <button class="btn btn-secondary" style="margin-top: 0.5rem;" onclick="cancelDislike()">Cancel</button>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="export-action-buttons" id="export-action-buttons">
+                    <button class="btn btn-primary" onclick="downloadVideo()">
+                        <span style="margin-right: 0.5rem;">⬇️</span>Download
+                    </button>
+                    <button class="btn btn-secondary" style="margin-top: 0.75rem;" onclick="hostAndShare()">
+                        <span style="margin-right: 0.5rem;">🔗</span>Share
+                    </button>
+                </div>
+                
                 <div id="share-url-container" style="display: none; margin-top: 1rem;">
                     <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Share URL:</div>
                     <div style="display: flex; gap: 0.5rem;">
@@ -4770,62 +4911,7 @@
                     </div>
                 </div>
                 
-                <!-- Feedback Section -->
-                <div class="feedback-section" id="feedback-section">
-                    <div class="feedback-header">
-                        <span class="feedback-icon">💬</span>
-                        <span>Help Echo Engine learn</span>
-                    </div>
-                    
-                    <div class="feedback-categories">
-                        <div class="feedback-category" data-category="script">
-                            <div class="feedback-category-label">Script</div>
-                            <div class="feedback-options">
-                                <button class="feedback-btn" data-value="great" onclick="setFeedback('script', 'great', this)">Great</button>
-                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('script', 'ok', this)">OK</button>
-                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('script', 'weak', this)">Weak</button>
-                            </div>
-                        </div>
-                        <div class="feedback-category" data-category="voice">
-                            <div class="feedback-category-label">Voice</div>
-                            <div class="feedback-options">
-                                <button class="feedback-btn" data-value="great" onclick="setFeedback('voice', 'great', this)">Great</button>
-                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('voice', 'ok', this)">OK</button>
-                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('voice', 'weak', this)">Weak</button>
-                            </div>
-                        </div>
-                        <div class="feedback-category" data-category="visuals">
-                            <div class="feedback-category-label">Visuals</div>
-                            <div class="feedback-options">
-                                <button class="feedback-btn" data-value="great" onclick="setFeedback('visuals', 'great', this)">Great</button>
-                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('visuals', 'ok', this)">OK</button>
-                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('visuals', 'weak', this)">Weak</button>
-                            </div>
-                        </div>
-                        <div class="feedback-category" data-category="soundfx">
-                            <div class="feedback-category-label">Sound FX</div>
-                            <div class="feedback-options">
-                                <button class="feedback-btn" data-value="great" onclick="setFeedback('soundfx', 'great', this)">Great</button>
-                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('soundfx', 'ok', this)">OK</button>
-                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('soundfx', 'weak', this)">Weak</button>
-                            </div>
-                        </div>
-                        <div class="feedback-category" data-category="overall">
-                            <div class="feedback-category-label">Overall</div>
-                            <div class="feedback-options">
-                                <button class="feedback-btn" data-value="great" onclick="setFeedback('overall', 'great', this)">Great</button>
-                                <button class="feedback-btn" data-value="ok" onclick="setFeedback('overall', 'ok', this)">OK</button>
-                                <button class="feedback-btn" data-value="weak" onclick="setFeedback('overall', 'weak', this)">Weak</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="feedback-text-container">
-                        <textarea id="feedback-text" placeholder="What could be better? (optional)" rows="2"></textarea>
-                    </div>
-                    
-                    <button class="btn btn-accent feedback-submit" onclick="submitFeedbackAndReflect()">Submit & See What I Learned</button>
-                </div>
+                <button class="btn btn-secondary" style="margin-top: 1rem; opacity: 0.7;" onclick="startOver()">Start New Project</button>
             </div>
         </div>
         
@@ -7715,6 +7801,168 @@
                 a.download = 'framd-video.mp4';
                 a.click();
             }
+        }
+        
+        // Video Like/Dislike System
+        let currentRevisionCount = 0;
+        const MAX_FREE_REVISIONS = 3;
+        
+        function handleVideoLike(liked) {
+            const likeBtn = document.getElementById('like-btn');
+            const dislikeBtn = document.getElementById('dislike-btn');
+            const commentFlow = document.getElementById('dislike-comment-flow');
+            const actionButtons = document.getElementById('export-action-buttons');
+            const revisionCounter = document.getElementById('revision-counter');
+            
+            if (liked) {
+                // User liked the video
+                likeBtn.classList.add('selected');
+                dislikeBtn.classList.remove('selected');
+                commentFlow.style.display = 'none';
+                actionButtons.style.display = 'block';
+                
+                // Save like to backend
+                saveVideoFeedback(true, null);
+                showToast('Video saved. Download or share it.');
+            } else {
+                // User disliked - show comment flow
+                dislikeBtn.classList.add('selected');
+                likeBtn.classList.remove('selected');
+                
+                // Check revision limit for free users
+                const userIsPro = isPro;
+                const revisionsLeft = MAX_FREE_REVISIONS - currentRevisionCount;
+                
+                if (!isPro && revisionsLeft <= 0) {
+                    showToast('No revisions left. Upgrade to Pro for unlimited revisions.');
+                    commentFlow.style.display = 'none';
+                    return;
+                }
+                
+                // Show revision counter for free users
+                if (!isPro) {
+                    revisionCounter.style.display = 'block';
+                    document.getElementById('revisions-left').textContent = revisionsLeft;
+                }
+                
+                commentFlow.style.display = 'block';
+                actionButtons.style.display = 'none';
+            }
+        }
+        
+        function cancelDislike() {
+            const commentFlow = document.getElementById('dislike-comment-flow');
+            const actionButtons = document.getElementById('export-action-buttons');
+            const dislikeBtn = document.getElementById('dislike-btn');
+            const revisionCounter = document.getElementById('revision-counter');
+            
+            commentFlow.style.display = 'none';
+            actionButtons.style.display = 'block';
+            dislikeBtn.classList.remove('selected');
+            revisionCounter.style.display = 'none';
+            document.getElementById('dislike-comment').value = '';
+        }
+        
+        async function sendBackToAI() {
+            const comment = document.getElementById('dislike-comment').value.trim();
+            
+            if (!comment) {
+                showToast('Please tell me what to fix');
+                return;
+            }
+            
+            const sendBtn = document.getElementById('send-to-ai-btn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending to AI...';
+            
+            try {
+                // Save dislike feedback first
+                await saveVideoFeedback(false, comment);
+                
+                // Increment revision counter
+                currentRevisionCount++;
+                
+                // Send to AI for refinement
+                const response = await fetch('/refine-from-feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProject,
+                        script: currentScript,
+                        feedback: comment,
+                        revision_number: currentRevisionCount
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update script with refined version
+                    currentScript = data.refined_script;
+                    displayScriptInEditor(data.refined_script);
+                    
+                    // Sync revision count from server
+                    if (data.revision_number) {
+                        currentRevisionCount = data.revision_number;
+                    }
+                    
+                    // Hide export, show review stage to regenerate
+                    cancelDislike();
+                    showStage('review');
+                    
+                    // Add AI message about what was changed
+                    addMessage(data.ai_message || 'Script revised based on your feedback. Review and regenerate when ready.', false, true);
+                    showToast('Script refined. Ready to regenerate.');
+                } else if (data.requires_subscription) {
+                    // Handle revision limit reached
+                    showToast(`Revision limit reached (${data.revisions_used}/${data.max_revisions}). Upgrade to Pro for unlimited revisions.`);
+                    cancelDislike();
+                } else {
+                    throw new Error(data.error || 'Failed to refine script');
+                }
+            } catch (error) {
+                console.error('Refinement error:', error);
+                showToast('Error: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Back to AI';
+            }
+        }
+        
+        async function saveVideoFeedback(liked, comment) {
+            try {
+                await fetch('/video-feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProject,
+                        liked: liked,
+                        comment: comment,
+                        script: currentScript,
+                        revision_number: currentRevisionCount
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to save feedback:', error);
+            }
+        }
+        
+        function resetVideoFeedback() {
+            currentRevisionCount = 0;
+            const likeBtn = document.getElementById('like-btn');
+            const dislikeBtn = document.getElementById('dislike-btn');
+            const commentFlow = document.getElementById('dislike-comment-flow');
+            const actionButtons = document.getElementById('export-action-buttons');
+            const revisionCounter = document.getElementById('revision-counter');
+            
+            if (likeBtn) likeBtn.classList.remove('selected');
+            if (dislikeBtn) dislikeBtn.classList.remove('selected');
+            if (commentFlow) commentFlow.style.display = 'none';
+            if (actionButtons) actionButtons.style.display = 'block';
+            if (revisionCounter) revisionCounter.style.display = 'none';
+            
+            const commentInput = document.getElementById('dislike-comment');
+            if (commentInput) commentInput.value = '';
         }
         
         // Feedback System

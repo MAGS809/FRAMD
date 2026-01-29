@@ -98,7 +98,9 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Token Cost System**: Displays per-feature token costs, with a session-based spending tracker.
 - **Character Generation**: DALL-E integration for AI-generated characters.
 - **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
-- **Subscription Model**: Free tier for script writing and basic features; Pro tier ($10/month) for unlimited video generation and hosting via Stripe.
+- **Video Feedback System**: Like/Dislike buttons on generated videos. If disliked, users can add comments and send back to AI for refinement. Free users get 3 revisions, Pro gets unlimited.
+- **AI Self-Improvement**: Tracks feedback patterns, success rates, and injects learned patterns into future prompts. Stores feedback in VideoFeedback table and tracks global patterns in GlobalPattern table.
+- **Subscription Model**: Free tier for script writing and basic features; Pro tier ($10/month) for unlimited video generation, hosting, and unlimited revisions via Stripe.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
 
 ## External Dependencies

@@ -103,6 +103,44 @@ with app.app_context():
         token_entry.balance = 120
         db.session.add(token_entry)
         db.session.commit()
+    
+    # Ensure new columns exist for video feedback system (PostgreSQL only)
+    try:
+        if 'postgresql' in str(db.engine.url):
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                # Check and add revision_count column to projects
+                result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='projects' AND column_name='revision_count'"))
+                if not result.fetchone():
+                    conn.execute(text("ALTER TABLE projects ADD COLUMN revision_count INTEGER DEFAULT 0"))
+                    conn.commit()
+                
+                # Check and add liked column to projects
+                result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='projects' AND column_name='liked'"))
+                if not result.fetchone():
+                    conn.execute(text("ALTER TABLE projects ADD COLUMN liked BOOLEAN DEFAULT NULL"))
+                    conn.commit()
+                
+                # Check if video_feedbacks table exists
+                result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name='video_feedbacks'"))
+                if not result.fetchone():
+                    conn.execute(text("""
+                        CREATE TABLE video_feedbacks (
+                            id SERIAL PRIMARY KEY,
+                            project_id INTEGER REFERENCES projects(id),
+                            user_id VARCHAR NOT NULL,
+                            liked BOOLEAN NOT NULL,
+                            comment TEXT,
+                            script_version TEXT,
+                            revision_number INTEGER DEFAULT 0,
+                            ai_analysis JSON,
+                            created_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """))
+                    conn.commit()
+    except Exception as e:
+        logging.warning(f"Schema migration check: {e}")
+    
     logging.info("Database tables created")
 
 def extract_dialogue_only(script_text):
@@ -5920,6 +5958,330 @@ Be genuine and humble. Don't be generic - reference specific aspects of THIS pro
             'ai_to_improve': ai_to_improve,
             'learning_points_gained': 0
         }), 500
+
+
+@app.route('/video-feedback', methods=['POST'])
+def video_feedback():
+    """Save video like/dislike feedback."""
+    from models import VideoFeedback, Project, AILearning, GlobalPattern
+    from flask_login import current_user
+    
+    data = request.json
+    project_id = data.get('project_id')
+    liked = data.get('liked')
+    comment = data.get('comment')
+    script = data.get('script', '')
+    revision_number = data.get('revision_number', 0)
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('anonymous_user_id', 'anonymous')
+    
+    try:
+        # Create feedback record
+        feedback = VideoFeedback(
+            project_id=project_id if project_id else None,
+            user_id=user_id,
+            liked=liked,
+            comment=comment,
+            script_version=script[:2000] if script else None,
+            revision_number=revision_number
+        )
+        db.session.add(feedback)
+        
+        # Update project liked status
+        if project_id:
+            project = Project.query.get(project_id)
+            if project:
+                project.liked = liked
+                project.revision_count = revision_number
+                if liked:
+                    project.is_successful = True
+                    project.success_score = max(project.success_score, 80)
+        
+        # Update AI learning based on feedback
+        ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+        if ai_learning:
+            if liked:
+                ai_learning.successful_projects += 1
+                ai_learning.learning_progress = min(ai_learning.learning_progress + 3, 100)
+            else:
+                ai_learning.learning_progress = min(ai_learning.learning_progress + 5, 100)
+        
+        # Update global patterns for AI improvement
+        if liked:
+            pattern = GlobalPattern.query.filter_by(pattern_type='like_rate').first()
+            if pattern:
+                pattern.success_count += 1
+                pattern.usage_count += 1
+                pattern.success_rate = pattern.success_count / max(pattern.usage_count, 1)
+            else:
+                pattern = GlobalPattern(
+                    pattern_type='like_rate',
+                    pattern_data={'description': 'Video like/dislike ratio'},
+                    success_count=1,
+                    usage_count=1,
+                    success_rate=1.0
+                )
+                db.session.add(pattern)
+            
+            # If this is a revision (revision_number > 0), mark feedback patterns as successful
+            if revision_number > 0:
+                # Find the previous dislike feedback to get what issue was fixed
+                prev_feedback = VideoFeedback.query.filter_by(
+                    project_id=project_id,
+                    user_id=user_id,
+                    liked=False
+                ).order_by(VideoFeedback.created_at.desc()).first()
+                
+                if prev_feedback and prev_feedback.ai_analysis:
+                    pattern_type = prev_feedback.ai_analysis.get('pattern')
+                    if pattern_type:
+                        feedback_pattern = GlobalPattern.query.filter_by(
+                            pattern_type=f"feedback_{pattern_type}"
+                        ).first()
+                        if feedback_pattern:
+                            feedback_pattern.success_count += 1
+                            feedback_pattern.success_rate = feedback_pattern.success_count / max(feedback_pattern.usage_count, 1)
+        else:
+            pattern = GlobalPattern.query.filter_by(pattern_type='like_rate').first()
+            if pattern:
+                pattern.usage_count += 1
+                pattern.success_rate = pattern.success_count / max(pattern.usage_count, 1)
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Video feedback error: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/refine-from-feedback', methods=['POST'])
+def refine_from_feedback():
+    """Refine script based on user feedback using AI."""
+    from models import VideoFeedback, Project, Subscription, GlobalPattern
+    from flask_login import current_user
+    import os
+    from openai import OpenAI
+    
+    data = request.json
+    project_id = data.get('project_id')
+    script = data.get('script', '')
+    feedback = data.get('feedback', '')
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('anonymous_user_id', 'anonymous')
+    
+    # Get actual revision count from project (server-side enforcement)
+    MAX_FREE_REVISIONS = 3
+    revision_number = 1
+    
+    if project_id:
+        project = Project.query.get(project_id)
+        if project:
+            revision_number = (project.revision_count or 0) + 1
+    
+    # Check subscription status
+    is_pro = False
+    if user_id:
+        sub = Subscription.query.filter_by(user_id=user_id).first()
+        is_pro = sub and sub.is_active()
+    
+    # Server-side revision limit enforcement
+    if not is_pro and revision_number > MAX_FREE_REVISIONS:
+        return jsonify({
+            'success': False,
+            'error': 'Revision limit reached. Upgrade to Pro for unlimited revisions.',
+            'requires_subscription': True,
+            'revisions_used': revision_number - 1,
+            'max_revisions': MAX_FREE_REVISIONS
+        }), 403
+    
+    if not script:
+        return jsonify({'error': 'No script to refine'}), 400
+    
+    if not feedback:
+        return jsonify({'error': 'No feedback provided'}), 400
+    
+    try:
+        client = OpenAI(
+            api_key=os.environ.get("XAI_API_KEY"),
+            base_url="https://api.x.ai/v1"
+        )
+        
+        # Get past feedback patterns for this user to learn from
+        past_feedbacks = VideoFeedback.query.filter_by(user_id=user_id, liked=False).order_by(VideoFeedback.created_at.desc()).limit(5).all()
+        past_feedback_summary = ""
+        if past_feedbacks:
+            past_feedback_summary = "\n".join([f"- {fb.comment}" for fb in past_feedbacks if fb.comment])
+        
+        # Get global patterns that led to successful revisions (pattern injection for AI improvement)
+        successful_patterns = GlobalPattern.query.filter(
+            GlobalPattern.pattern_type.like('feedback_%'),
+            GlobalPattern.success_rate > 0.5
+        ).order_by(GlobalPattern.success_rate.desc()).limit(3).all()
+        
+        pattern_insights = ""
+        if successful_patterns:
+            pattern_insights = "LEARNED PATTERNS THAT WORK:\n" + "\n".join([
+                f"- When users complain about '{p.pattern_type.replace('feedback_', '')}', fixes that address it directly have {int(p.success_rate * 100)}% success rate"
+                for p in successful_patterns
+            ])
+        
+        refine_prompt = f"""You are Krakd — a script refinement engine. The user disliked their video and provided specific feedback.
+
+ORIGINAL SCRIPT:
+{script}
+
+USER'S FEEDBACK (what they want fixed):
+{feedback}
+
+PREVIOUS FEEDBACK FROM THIS USER (patterns to learn from):
+{past_feedback_summary if past_feedback_summary else 'No previous feedback'}
+
+{pattern_insights}
+
+REVISION NUMBER: {revision_number}
+
+YOUR TASK:
+1. Analyze the user's feedback carefully
+2. Identify the specific problems they mentioned
+3. Revise the script to address EXACTLY what they asked for
+4. Keep the core thesis and structure intact unless they asked to change it
+5. Make targeted improvements, not complete rewrites
+
+RULES:
+- If they say "too slow" → tighten dialogue, cut filler
+- If they say "too robotic" → make dialogue more conversational and natural
+- If they say "wrong tone" → adjust the voice/style
+- If they say "visuals don't match" → update VISUAL tags
+- Be specific with your changes
+
+Output the refined script in the same format as the original (plain text screenplay format).
+Do NOT explain what you changed — just output the refined script."""
+
+        response = client.chat.completions.create(
+            model="grok-3",
+            messages=[{"role": "user", "content": refine_prompt}],
+            max_tokens=2048
+        )
+        
+        refined_script = response.choices[0].message.content.strip()
+        
+        # Store the AI's analysis of what went wrong
+        analysis_prompt = f"""Based on this feedback: "{feedback}"
+And this script revision, briefly summarize in JSON:
+{{"issue": "one line describing the main problem", "fix_applied": "one line describing the fix", "pattern": "one word category like 'pacing', 'tone', 'visuals', 'dialogue'"}}"""
+        
+        analysis_response = client.chat.completions.create(
+            model="grok-3-fast",
+            messages=[{"role": "user", "content": analysis_prompt}],
+            max_tokens=200
+        )
+        
+        import json
+        import re
+        analysis_text = analysis_response.choices[0].message.content.strip()
+        json_match = re.search(r'\{[\s\S]*\}', analysis_text)
+        ai_analysis = {}
+        if json_match:
+            try:
+                ai_analysis = json.loads(json_match.group())
+            except:
+                ai_analysis = {'issue': feedback, 'fix_applied': 'Script refined', 'pattern': 'general'}
+        
+        # Update the last feedback record with AI analysis
+        last_feedback = VideoFeedback.query.filter_by(
+            project_id=project_id,
+            user_id=user_id
+        ).order_by(VideoFeedback.created_at.desc()).first()
+        
+        if last_feedback:
+            last_feedback.ai_analysis = ai_analysis
+        
+        # Update project with new script
+        if project_id:
+            project = Project.query.get(project_id)
+            if project:
+                project.script = refined_script
+                project.revision_count = revision_number
+        
+        # Track pattern for AI improvement
+        if ai_analysis.get('pattern'):
+            pattern = GlobalPattern.query.filter_by(
+                pattern_type=f"feedback_{ai_analysis['pattern']}"
+            ).first()
+            if pattern:
+                pattern.usage_count += 1
+            else:
+                pattern = GlobalPattern(
+                    pattern_type=f"feedback_{ai_analysis['pattern']}",
+                    pattern_data={'description': f"Common feedback: {ai_analysis['pattern']}"},
+                    success_count=0,
+                    usage_count=1,
+                    success_rate=0.0
+                )
+                db.session.add(pattern)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'refined_script': refined_script,
+            'ai_message': f"I adjusted the script based on your feedback about {ai_analysis.get('pattern', 'the content')}. Review it and regenerate when ready.",
+            'analysis': ai_analysis,
+            'revision_number': revision_number
+        })
+        
+    except Exception as e:
+        print(f"Refinement error: {e}")
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/ai-improvement-stats', methods=['GET'])
+def ai_improvement_stats():
+    """Get AI improvement statistics."""
+    from models import GlobalPattern, VideoFeedback
+    
+    try:
+        # Get like/dislike ratio
+        like_pattern = GlobalPattern.query.filter_by(pattern_type='like_rate').first()
+        like_rate = like_pattern.success_rate if like_pattern else 0.0
+        total_feedbacks = like_pattern.usage_count if like_pattern else 0
+        
+        # Get common feedback patterns
+        feedback_patterns = GlobalPattern.query.filter(
+            GlobalPattern.pattern_type.like('feedback_%')
+        ).order_by(GlobalPattern.usage_count.desc()).limit(5).all()
+        
+        patterns = [{
+            'type': p.pattern_type.replace('feedback_', ''),
+            'count': p.usage_count,
+            'description': p.pattern_data.get('description', '')
+        } for p in feedback_patterns]
+        
+        return jsonify({
+            'success': True,
+            'like_rate': round(like_rate * 100, 1),
+            'total_feedbacks': total_feedbacks,
+            'common_issues': patterns
+        })
+        
+    except Exception as e:
+        print(f"Stats error: {e}")
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/host-video', methods=['POST'])
