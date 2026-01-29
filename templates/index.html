@@ -1370,6 +1370,313 @@
             }
         }
         
+        /* Document-focused Editor Layout */
+        .doc-editor-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+        }
+        
+        .doc-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding-bottom: 80px;
+        }
+        
+        .doc-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+        
+        .doc-script-editor {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            min-height: 300px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text);
+            outline: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            transition: border-color 0.2s;
+        }
+        
+        .doc-script-editor:focus {
+            border-color: var(--accent);
+        }
+        
+        .doc-script-editor:empty::before {
+            content: attr(data-placeholder);
+            color: var(--text-dim);
+            pointer-events: none;
+        }
+        
+        .doc-script-editor .scene-block {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .doc-script-editor .scene-header {
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .doc-script-editor .character-name {
+            font-weight: 600;
+            color: var(--accent);
+            display: inline;
+        }
+        
+        .doc-script-editor .dialogue {
+            margin-left: 0;
+            color: var(--text);
+        }
+        
+        .doc-script-editor .visual-cue {
+            color: var(--text-dim);
+            font-style: italic;
+            font-size: 0.85rem;
+        }
+        
+        .doc-ai-feedback {
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.08), rgba(255, 214, 10, 0.02));
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-top: 1rem;
+            display: none;
+        }
+        
+        .doc-ai-feedback.visible {
+            display: block;
+            animation: fadeSlideIn 0.3s ease;
+        }
+        
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .doc-ai-feedback-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 500;
+        }
+        
+        .doc-ai-feedback-header svg {
+            width: 14px;
+            height: 14px;
+        }
+        
+        .doc-ai-feedback-content {
+            font-size: 0.9rem;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .doc-ai-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .doc-ai-action-btn {
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid rgba(255, 214, 10, 0.3);
+            border-radius: 20px;
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .doc-ai-action-btn:hover {
+            background: rgba(255, 214, 10, 0.2);
+            border-color: var(--accent);
+        }
+        
+        /* Fixed Bottom Chat Bar */
+        .bottom-chat-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg);
+            border-top: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            z-index: 100;
+        }
+        
+        .bottom-chat-container {
+            max-width: 640px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .bottom-chat-input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 0.5rem 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        .bottom-chat-input-wrapper:focus-within {
+            border-color: var(--accent);
+        }
+        
+        .bottom-chat-input {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: none;
+            outline: none;
+            min-height: 24px;
+            max-height: 100px;
+        }
+        
+        .bottom-chat-input::placeholder {
+            color: var(--text-dim);
+        }
+        
+        .bottom-chat-send {
+            width: 36px;
+            height: 36px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .bottom-chat-send:hover {
+            transform: scale(1.05);
+        }
+        
+        .bottom-chat-send svg {
+            width: 16px;
+            height: 16px;
+            stroke: #000;
+        }
+        
+        /* Timeline Controls in Chat */
+        .timeline-controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-controls-bar.visible {
+            opacity: 1;
+            height: auto;
+            padding-top: 0.25rem;
+        }
+        
+        .timeline-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.4rem 0.75rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.2s;
+        }
+        
+        .timeline-btn:hover {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--accent);
+            color: var(--text);
+        }
+        
+        .timeline-btn.active {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        .timeline-btn svg {
+            width: 12px;
+            height: 12px;
+        }
+        
+        /* Status Indicator (subtle, not chat messages) */
+        .status-indicator {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            z-index: 99;
+        }
+        
+        .status-indicator.visible {
+            opacity: 1;
+        }
+        
+        .status-indicator .spinner {
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--text-faint);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         /* Composer */
         .composer {
             flex-shrink: 0;
@@ -4506,85 +4813,154 @@
         
         <!-- CREATE STAGE -->
         <div class="stage" id="stage-create">
-            <!-- Mode Selector - HIDDEN: AI auto-detects mode from input -->
-            <div class="mode-selector" id="mode-selector" style="display: none;">
-                <button class="mode-btn active" data-mode="auto" onclick="setContentMode('auto')">Auto</button>
+            <div class="doc-editor-layout">
+                <!-- Mode Selector - HIDDEN: AI auto-detects mode from input -->
+                <div class="mode-selector" id="mode-selector" style="display: none;">
+                    <button class="mode-btn active" data-mode="auto" onclick="setContentMode('auto')">Auto</button>
+                </div>
+                
+                <!-- Document Main Area -->
+                <div class="doc-main">
+                    <div class="doc-content">
+                        <!-- Thesis Display Panel (hidden by default) -->
+                        <div class="thesis-panel" id="thesis-panel" style="display:none;">
+                            <div class="thesis-header">
+                                <span class="thesis-icon">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <line x1="12" y1="18" x2="12" y2="12"/>
+                                        <line x1="9" y1="15" x2="15" y2="15"/>
+                                    </svg>
+                                </span>
+                                Core Thesis
+                                <button class="thesis-edit-btn" onclick="editThesis()" title="Edit thesis">Edit</button>
+                            </div>
+                            <div class="thesis-content" id="thesis-content">
+                                <span class="thesis-placeholder">Thesis will be extracted from your input...</span>
+                            </div>
+                            <div class="thesis-meta" id="thesis-meta" style="display:none;">
+                                <span class="thesis-type" id="thesis-type"></span>
+                                <span class="thesis-confidence" id="thesis-confidence"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Anchors Display (hidden by default) -->
+                        <div class="anchors-panel" id="anchors-panel" style="display:none;">
+                            <div class="anchors-header">
+                                <span>Script Anchors</span>
+                                <span class="anchor-count" id="anchor-count">0</span>
+                            </div>
+                            <div class="anchors-list" id="anchors-list"></div>
+                        </div>
+                        
+                        <!-- Document Script Editor -->
+                        <div 
+                            class="doc-script-editor" 
+                            id="doc-script-editor" 
+                            contenteditable="true"
+                            data-placeholder="Start with an idea, paste a transcript, or drop a link..."
+                            oninput="handleDocEdit()"
+                        ></div>
+                        
+                        <!-- AI Feedback Panel -->
+                        <div class="doc-ai-feedback" id="doc-ai-feedback">
+                            <div class="doc-ai-feedback-header">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                </svg>
+                                <span>Echo Engine</span>
+                            </div>
+                            <div class="doc-ai-feedback-content" id="doc-ai-feedback-content"></div>
+                            <div class="doc-ai-actions" id="doc-ai-actions"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <!-- Thesis Display Panel (hidden by default) -->
-            <div class="thesis-panel" id="thesis-panel" style="display:none;">
-                <div class="thesis-header">
-                    <span class="thesis-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                            <line x1="12" y1="18" x2="12" y2="12"/>
-                            <line x1="9" y1="15" x2="15" y2="15"/>
+            <!-- Hidden file input -->
+            <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)" style="display:none;">
+        </div>
+        
+        <!-- Fixed Bottom Chat Bar -->
+        <div class="bottom-chat-bar" id="bottom-chat-bar">
+            <div class="bottom-chat-container">
+                <!-- Timeline Controls (shown when script exists) -->
+                <div class="timeline-controls-bar" id="timeline-controls">
+                    <button class="timeline-btn" onclick="showVoices()" title="Voice casting">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
                         </svg>
-                    </span>
-                    Core Thesis
-                    <button class="thesis-edit-btn" onclick="editThesis()" title="Edit thesis">Edit</button>
+                        Voices
+                    </button>
+                    <button class="timeline-btn" onclick="showVisuals()" title="Visual curation">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        Visuals
+                    </button>
+                    <button class="timeline-btn" onclick="showCaptions()" title="Caption styling">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
+                            <line x1="7" y1="14" x2="17" y2="14"/>
+                            <line x1="7" y1="10" x2="12" y2="10"/>
+                        </svg>
+                        Captions
+                    </button>
+                    <button class="timeline-btn" onclick="previewVideo()" title="Preview">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3"/>
+                        </svg>
+                        Preview
+                    </button>
+                    <button class="timeline-btn" onclick="generateVideo()" title="Generate" style="background: rgba(255, 214, 10, 0.15); border-color: var(--accent); color: var(--accent);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Generate
+                    </button>
                 </div>
-                <div class="thesis-content" id="thesis-content">
-                    <span class="thesis-placeholder">Thesis will be extracted from your input...</span>
-                </div>
-                <div class="thesis-meta" id="thesis-meta" style="display:none;">
-                    <span class="thesis-type" id="thesis-type"></span>
-                    <span class="thesis-confidence" id="thesis-confidence"></span>
-                </div>
-            </div>
-            
-            <!-- Anchors Display (hidden by default) -->
-            <div class="anchors-panel" id="anchors-panel" style="display:none;">
-                <div class="anchors-header">
-                    <span>Script Anchors</span>
-                    <span class="anchor-count" id="anchor-count">0</span>
-                </div>
-                <div class="anchors-list" id="anchors-list"></div>
-            </div>
-            
-            <div class="messages" id="messages">
-                <div class="message ai">
-                    <div class="message-content">What would you like to create? Paste an idea, a transcript to clip, or a link.</div>
-                </div>
-            </div>
-            
-            <div class="composer">
-                <div class="composer-inner">
+                
+                <div class="bottom-chat-input-wrapper">
                     <button class="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach file">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
                         </svg>
                     </button>
-                    <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)">
                     <textarea 
-                        class="composer-input" 
+                        class="bottom-chat-input" 
                         id="composer-input" 
-                        placeholder="Paste a link, transcript, or idea..."
+                        placeholder="Ask Echo Engine anything..."
                         rows="1"
                         onkeydown="handleKeydown(event)"
                         oninput="autoResize(this)"
                     ></textarea>
-                    <button class="send-btn" id="send-btn" onclick="sendMessage()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                    </button>
                 </div>
-                <div class="file-preview" id="file-preview">
-                    <span class="file-name" id="file-name"></span>
-                    <button class="remove-file" onclick="clearFile()">×</button>
-                </div>
-                <div class="spending-tracker" id="spending-tracker">
-                    <span class="spending-label">Session:</span>
-                    <span class="spending-value" id="session-spent">0</span>
-                    <span class="spending-label">tokens used</span>
-                </div>
-                <div class="tokens">
-                    <span id="token-count">120</span> <a href="#" onclick="buyTokens(); return false;">tokens</a>
-                </div>
+                <button class="bottom-chat-send" id="send-btn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
             </div>
+            <div class="file-preview" id="file-preview" style="display:none; margin-top: 0.5rem; padding: 0 1rem;">
+                <span class="file-name" id="file-name"></span>
+                <button class="remove-file" onclick="clearFile()">×</button>
+            </div>
+        </div>
+        
+        <!-- Status Indicator (subtle, not chat) -->
+        <div class="status-indicator" id="status-indicator">
+            <div class="spinner"></div>
+            <span id="status-text">Processing...</span>
         </div>
         
         <!-- Stage Directions Confirmation Modal -->
@@ -4948,15 +5324,15 @@
         </div>
     </div>
     
-    <!-- Persistent Chat Panel -->
-    <button class="chat-toggle" id="chat-toggle" onclick="toggleChatPanel()">
+    <!-- Persistent Chat Panel (hidden - replaced by bottom bar) -->
+    <button class="chat-toggle" id="chat-toggle" onclick="toggleChatPanel()" style="display:none;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
         <span class="chat-badge" id="chat-badge">0</span>
     </button>
     
-    <div class="chat-panel" id="chat-panel">
+    <div class="chat-panel" id="chat-panel" style="display:none;">
         <div class="chat-panel-header">
             <div class="chat-panel-title">Echo Engine</div>
             <button class="chat-panel-close" onclick="toggleChatPanel()">
@@ -5002,6 +5378,230 @@
         let currentThoughtChanges = [];
         let clipSuggestions = [];
         let learnedPatternsApplied = false;
+        
+        // Document Editor State
+        let docEditTimeout = null;
+        let lastDocContent = '';
+        let docHasScript = false;
+        let docEditAbortController = null;
+        
+        // Document Editor Functions
+        function handleDocEdit() {
+            const editor = document.getElementById('doc-script-editor');
+            const content = editor.innerText.trim();
+            
+            // Debounce AI processing
+            clearTimeout(docEditTimeout);
+            
+            if (content.length > 50 && content !== lastDocContent) {
+                docEditTimeout = setTimeout(() => {
+                    lastDocContent = content;
+                    processDocumentEdit(content);
+                }, 1500);
+            }
+            
+            // Show/hide timeline controls based on content
+            updateTimelineControls(content.length > 100);
+        }
+        
+        async function processDocumentEdit(content) {
+            // Abort any pending request
+            if (docEditAbortController) {
+                docEditAbortController.abort();
+            }
+            docEditAbortController = new AbortController();
+            
+            // Show subtle status
+            showStatus('Reading your changes...');
+            
+            try {
+                const response = await fetch('/analyze-edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        content: content,
+                        current_script: currentScript,
+                        project_id: currentProjectId
+                    }),
+                    signal: docEditAbortController.signal
+                });
+                
+                const data = await response.json();
+                
+                if (data.feedback) {
+                    showAIFeedback(data.feedback, data.actions || []);
+                }
+                
+                if (data.script) {
+                    currentScript = data.script;
+                    docHasScript = true;
+                    updateTimelineControls(true);
+                }
+                
+                hideStatus();
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Error processing edit:', error);
+                hideStatus();
+            }
+        }
+        
+        function showAIFeedback(feedback, actions) {
+            const panel = document.getElementById('doc-ai-feedback');
+            const contentEl = document.getElementById('doc-ai-feedback-content');
+            const actionsEl = document.getElementById('doc-ai-actions');
+            
+            contentEl.textContent = feedback;
+            
+            actionsEl.innerHTML = actions.map(action => 
+                `<button class="doc-ai-action-btn" onclick="handleAIAction('${action.type}')">${action.label}</button>`
+            ).join('');
+            
+            panel.classList.add('visible');
+        }
+        
+        function hideAIFeedback() {
+            document.getElementById('doc-ai-feedback').classList.remove('visible');
+        }
+        
+        function handleAIAction(actionType) {
+            hideAIFeedback();
+            
+            switch(actionType) {
+                case 'generate_script':
+                    generateScriptFromDoc();
+                    break;
+                case 'find_visuals':
+                    showVisuals();
+                    break;
+                case 'cast_voices':
+                    showVoices();
+                    break;
+                case 'refine':
+                    refineScript();
+                    break;
+                default:
+                    sendMessage();
+            }
+        }
+        
+        async function generateScriptFromDoc() {
+            const editor = document.getElementById('doc-script-editor');
+            const content = editor.innerText.trim();
+            
+            if (!content) {
+                showToast('Add some content first');
+                return;
+            }
+            
+            showStatus('Generating script...');
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: content,
+                        project_id: currentProjectId,
+                        conversation: conversationHistory.slice(-5)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.script) {
+                    currentScript = data.script;
+                    docHasScript = true;
+                    displayScriptInEditor(data.script);
+                    updateTimelineControls(true);
+                    showAIFeedback('Script generated. You can edit it directly, then assign voices or find visuals.', [
+                        { type: 'cast_voices', label: 'Assign Voices' },
+                        { type: 'find_visuals', label: 'Find Visuals' }
+                    ]);
+                } else if (data.reply) {
+                    showAIFeedback(data.reply, []);
+                }
+                
+                hideStatus();
+            } catch (error) {
+                console.error('Error generating script:', error);
+                showToast('Failed to generate script');
+                hideStatus();
+            }
+        }
+        
+        function displayScriptInEditor(script) {
+            const editor = document.getElementById('doc-script-editor');
+            
+            // Parse script format and display nicely
+            if (typeof script === 'string') {
+                // Format the script with visual styling
+                let formatted = script
+                    .replace(/^SCENE (\d+)(.*)$/gm, '<div class="scene-header">SCENE $1$2</div>')
+                    .replace(/^\[([A-Z_]+)\]:(.*)$/gm, '<span class="character-name">[$1]:</span><span class="dialogue">$2</span>')
+                    .replace(/^VISUAL:(.*)$/gm, '<div class="visual-cue">VISUAL:$1</div>')
+                    .replace(/^CUT:(.*)$/gm, '<div class="visual-cue">CUT:$1</div>');
+                
+                editor.innerHTML = formatted;
+            } else {
+                editor.textContent = JSON.stringify(script, null, 2);
+            }
+            
+            lastDocContent = editor.innerText;
+        }
+        
+        function updateTimelineControls(show) {
+            const controls = document.getElementById('timeline-controls');
+            if (show && docHasScript) {
+                controls.classList.add('visible');
+            } else {
+                controls.classList.remove('visible');
+            }
+        }
+        
+        function showStatus(text) {
+            const indicator = document.getElementById('status-indicator');
+            const textEl = document.getElementById('status-text');
+            textEl.textContent = text;
+            indicator.classList.add('visible');
+        }
+        
+        function hideStatus() {
+            document.getElementById('status-indicator').classList.remove('visible');
+        }
+        
+        // Timeline Button Handlers
+        function showVoices() {
+            showStage('review');
+            setTimeout(() => {
+                document.getElementById('casting-panel')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+        
+        function showVisuals() {
+            if (!currentScript) {
+                showToast('Generate a script first');
+                return;
+            }
+            curateVisuals();
+        }
+        
+        function showCaptions() {
+            showStage('review');
+            setTimeout(() => {
+                document.querySelector('.caption-section')?.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+        
+        function previewVideo() {
+            if (!currentScript) {
+                showToast('Generate a script first');
+                return;
+            }
+            showStage('export');
+        }
         
         // Mode Selection
         function setContentMode(mode) {
@@ -5164,6 +5764,15 @@
                     if (result.script?.full_script) {
                         currentScript = result.script.full_script;
                         document.getElementById('script-text').textContent = result.script.full_script;
+                        
+                        // Also update the document editor
+                        docHasScript = true;
+                        displayScriptInEditor(result.script.full_script);
+                        updateTimelineControls(true);
+                        showAIFeedback('Script ready! Edit it directly above, or continue to the next step.', [
+                            { type: 'cast_voices', label: 'Assign Voices' },
+                            { type: 'find_visuals', label: 'Find Visuals' }
+                        ]);
                         
                         const contentTypeLabel = result.content_type ? `<span class="content-type-badge ${result.content_type}">${result.content_type}</span> ` : '';
                         const learnNote = result.learned_patterns_applied ? 
@@ -5872,22 +6481,20 @@
         // Stage navigation with workflow guides (Echo Engine controls transitions)
         function showStage(stage) {
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
-            document.getElementById('stage-' + stage).classList.add('active');
+            const stageEl = document.getElementById('stage-' + stage);
+            if (stageEl) stageEl.classList.add('active');
             
-            // Show/hide floating chat toggle based on stage
-            const chatToggle = document.getElementById('chat-toggle');
-            const chatPanel = document.getElementById('chat-panel');
+            // Show/hide bottom chat bar based on stage
+            const bottomChatBar = document.getElementById('bottom-chat-bar');
             
-            if (stage === 'create') {
-                // On create stage, hide floating chat (main chat is visible)
-                chatToggle.classList.add('hidden');
-                if (chatPanelOpen) {
-                    chatPanel.classList.remove('open');
-                    chatPanelOpen = false;
+            if (bottomChatBar) {
+                if (stage === 'create') {
+                    // On create stage, show the bottom chat bar
+                    bottomChatBar.style.display = 'block';
+                } else {
+                    // On other stages, hide the bottom chat bar
+                    bottomChatBar.style.display = 'none';
                 }
-            } else {
-                // On other stages, show floating chat toggle
-                chatToggle.classList.remove('hidden');
             }
             
             // Add workflow guide for review stage (caption styling - step 5)
@@ -6985,6 +7592,15 @@
                                 }
                             }
                             
+                            // Also update the document editor with the script
+                            docHasScript = true;
+                            displayScriptInEditor(data.refined_script || reply);
+                            updateTimelineControls(true);
+                            showAIFeedback('Script ready! Edit it directly above, or continue to the next step.', [
+                                { type: 'cast_voices', label: 'Assign Voices' },
+                                { type: 'find_visuals', label: 'Find Visuals' }
+                            ]);
+                            
                             // Show confirmation via chat (not modal)
                             showReviewConfirmation();
                         }
@@ -7780,28 +8396,30 @@
         
         // Drag and drop
         document.addEventListener('DOMContentLoaded', () => {
-            const composer = document.querySelector('.composer-inner');
+            const composer = document.querySelector('.bottom-chat-input-wrapper') || document.querySelector('.composer-inner');
             
-            composer.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                composer.style.borderColor = 'var(--text)';
-            });
-            
-            composer.addEventListener('dragleave', () => {
-                composer.style.borderColor = '';
-            });
-            
-            composer.addEventListener('drop', (e) => {
-                e.preventDefault();
-                composer.style.borderColor = '';
+            if (composer) {
+                composer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    composer.style.borderColor = 'var(--text)';
+                });
                 
-                if (e.dataTransfer.files.length > 0) {
-                    const file = e.dataTransfer.files[0];
-                    uploadedFile = file;
-                    document.getElementById('file-name').textContent = file.name;
-                    document.getElementById('file-preview').classList.add('show');
-                }
-            });
+                composer.addEventListener('dragleave', () => {
+                    composer.style.borderColor = '';
+                });
+                
+                composer.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    composer.style.borderColor = '';
+                    
+                    if (e.dataTransfer.files.length > 0) {
+                        const file = e.dataTransfer.files[0];
+                        uploadedFile = file;
+                        document.getElementById('file-name').textContent = file.name;
+                        document.getElementById('file-preview').classList.add('show');
+                    }
+                });
+            }
             
             // Paste handling
             document.getElementById('composer-input').addEventListener('paste', (e) => {
