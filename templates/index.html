@@ -6473,14 +6473,16 @@
             const typeEl = document.getElementById('thesis-type');
             const confEl = document.getElementById('thesis-confidence');
             
+            if (!panel) return;
+            
             if (thesis && thesis.thesis_statement) {
                 panel.style.display = 'block';
-                content.innerHTML = thesis.thesis_statement;
+                if (content) content.innerHTML = thesis.thesis_statement;
                 
-                if (thesis.thesis_type || thesis.confidence) {
+                if ((thesis.thesis_type || thesis.confidence) && meta) {
                     meta.style.display = 'flex';
-                    typeEl.textContent = thesis.thesis_type || 'general';
-                    confEl.textContent = thesis.confidence ? `${Math.round(thesis.confidence * 100)}% confident` : '';
+                    if (typeEl) typeEl.textContent = thesis.thesis_type || 'general';
+                    if (confEl) confEl.textContent = thesis.confidence ? `${Math.round(thesis.confidence * 100)}% confident` : '';
                 }
             } else {
                 panel.style.display = 'none';
