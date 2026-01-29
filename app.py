@@ -5474,6 +5474,10 @@ def render_video():
                             'end': current_end
                         })
                     
+                    # Extend last caption to match audio duration (prevents caption cutoff)
+                    if phrases and audio_duration:
+                        phrases[-1]['end'] = audio_duration
+                    
                     # Build drawtext filters with precise timing
                     caption_filters = []
                     for phrase in phrases:
