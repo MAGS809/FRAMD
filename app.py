@@ -3669,40 +3669,66 @@ def generate_video():
 
 
 CHARACTER_VOICE_CONFIG = {
-    'news_anchor': {
+    # ElevenLabs Premade Voices with Persona Names (All Verified IDs)
+    'the_anchor': {
         'base_voice': 'onyx',
-        'elevenlabs_voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - deep authoritative
+        'elevenlabs_voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - deep, American, narration
         'prompt': "You are a professional news anchor delivering breaking news. Speak with authority, gravitas, and measured pacing. Be serious, credible, and commanding. Use the classic newsroom delivery style."
     },
-    'crazy_american': {
-        'base_voice': 'echo',
-        'elevenlabs_voice_id': 'ODq5zmih8GrVes37Dizd',  # Patrick - energetic male
-        'prompt': "You are an over-the-top, loud, enthusiastic American. Speak with maximum energy, patriotic fervor, and wild enthusiasm. Everything is AMAZING and THE BEST. Use phrases like 'USA! USA!', 'This is incredible!', 'Let's GO!'. Be loud, proud, and unapologetically hyped!"
-    },
-    'power_businesswoman': {
+    'british_authority': {
         'base_voice': 'nova',
-        'elevenlabs_voice_id': 'EXAVITQu4vr4xnSDxMaL',  # Sarah - confident female
-        'prompt': "You are a powerful female executive - confident, sharp, no-nonsense. Speak with authority and precision. Every word is deliberate. You command respect and radiate competence. Think Sheryl Sandberg meets Miranda Priestly."
+        'elevenlabs_voice_id': 'Xb7hH8MSUJpSbSDYk0k2',  # Alice - confident, British, news
+        'prompt': "You are a confident British news presenter. Speak with authority, poise, and the gravitas of a seasoned broadcaster. Your delivery is polished and commanding."
     },
-    'club_promoter': {
-        'base_voice': 'alloy',
-        'elevenlabs_voice_id': 'TX3LPaxmHKxFdv7VOQHJ',  # Liam - young energetic
-        'prompt': "You are an energetic club promoter hyping up the crowd! Speak with infectious energy, excitement, and urgency. Build hype! Use phrases like 'let's go', 'are you ready', 'this is gonna be huge'. Be the life of the party!"
-    },
-    'standup_comedian': {
-        'base_voice': 'fable',
-        'elevenlabs_voice_id': 'VR6AewLTigWG4xSOukaG',  # Arnold - expressive character
-        'prompt': "You are a stand-up comedian in the style of Dave Chappelle and Jim Carrey. Speak with perfect comedic timing, dramatic pauses, and expressive delivery. Find the absurdity in everything. Be irreverent but intelligent."
-    },
-    'conspiracy_theorist': {
-        'base_voice': 'echo',
-        'elevenlabs_voice_id': 'N2lVS1w4EtoT3dr4eOWO',  # Callum - intense whisper
-        'prompt': "You are an intense conspiracy theorist who has uncovered THE TRUTH. Speak with urgency and paranoia. Lower your voice for the 'secret' parts. Everything is connected. Use phrases like 'think about it', 'they don't want you to know'."
-    },
-    'movie_trailer': {
+    'the_storyteller': {
         'base_voice': 'onyx',
-        'elevenlabs_voice_id': 'pNInz6obpgDQGcFmaJgB',  # Adam - deep dramatic
-        'prompt': "You are the epic movie trailer voice. Deep, resonant, dramatic. Build tension with pauses. Every line lands like a dramatic reveal. Use phrases like 'In a world where...', 'One man...', 'This summer...'. Be EPIC!"
+        'elevenlabs_voice_id': 'nPczCjzI2devNBz1zQrb',  # Brian - deep, American, narration
+        'prompt': "You are a masterful storyteller with warmth and emotional depth. Speak with perfect pacing, build tension naturally, and let moments land. Your voice makes people feel connected to the narrative."
+    },
+    'aussie_casual': {
+        'base_voice': 'fable',
+        'elevenlabs_voice_id': 'IKne3meq5aSn9XLyUdCD',  # Charlie - casual, Australian, conversational
+        'prompt': "You are a laid-back Australian narrator with natural charisma. Speak casually but engagingly, like you're sharing an interesting story with a friend. Keep it real and relatable."
+    },
+    'power_exec': {
+        'base_voice': 'nova',
+        'elevenlabs_voice_id': 'EXAVITQu4vr4xnSDxMaL',  # Sarah - soft, American, news
+        'prompt': "You are a powerful female executive - confident, sharp, no-nonsense. Speak with authority and precision. Every word is deliberate. You command respect and radiate competence."
+    },
+    'documentary_pro': {
+        'base_voice': 'onyx',
+        'elevenlabs_voice_id': 'ZQe5CZNOzWyzPSCn5a3c',  # James - calm, Australian, news
+        'prompt': "You are a prestigious documentary narrator. Speak with calm authority and gravitas. Deep, measured, thoughtful. Every fact lands with weight. You educate and captivate simultaneously."
+    },
+    'hype_machine': {
+        'base_voice': 'alloy',
+        'elevenlabs_voice_id': 'TX3LPaxmHKxFdv7VOQHJ',  # Liam - young, American, narration
+        'prompt': "You are an energetic hype machine! Speak with maximum energy, excitement, and urgency. Build hype! Use phrases like 'let's go', 'are you ready', 'this is gonna be huge'. Be the energy the room needs!"
+    },
+    'cinema_epic': {
+        'base_voice': 'onyx',
+        'elevenlabs_voice_id': 'JBFqnCBsd6RMkjVDRZzb',  # George - raspy, British, narration
+        'prompt': "You are the epic movie trailer voice. Deep, resonant, dramatic. Build tension with pauses. Every line lands like a dramatic reveal. Be EPIC and cinematic!"
+    },
+    'whisper_intimate': {
+        'base_voice': 'shimmer',
+        'elevenlabs_voice_id': 'piTKgcLEGmPE4e6mEKli',  # Nicole - whisper, American, audiobook
+        'prompt': "You speak in a soft, intimate whisper. Gentle, calming, and deeply personal. Every word is like a secret shared just with the listener. Create a sense of closeness and comfort."
+    },
+    'zen_guide': {
+        'base_voice': 'shimmer',
+        'elevenlabs_voice_id': 'LcfcDJNUP1GQjkzn1xUU',  # Emily - calm, American, meditation
+        'prompt': "You are a meditation and wellness guide. Speak with serenity, calm, and gentle wisdom. Your voice brings peace and clarity. Guide the listener to a place of inner stillness."
+    },
+    'warm_narrator': {
+        'base_voice': 'nova',
+        'elevenlabs_voice_id': 'XrExE9yKIg1WjnnlVkGX',  # Matilda - warm, American, audiobook
+        'prompt': "You are a warm, inviting narrator perfect for audiobooks and heartfelt content. Speak with genuine warmth and emotional connection. Make listeners feel at home with your voice."
+    },
+    'countdown_king': {
+        'base_voice': 'echo',
+        'elevenlabs_voice_id': 'VR6AewLTigWG4xSOukaG',  # Arnold - crisp, American, narration
+        'prompt': "You are the voice of countdown and ranking videos. Build anticipation with each number. Every reveal is exciting. Keep the energy climbing as you count down. Think WatchMojo energy!"
     },
     'custom': {
         'base_voice': 'alloy',

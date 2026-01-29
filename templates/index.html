@@ -4362,11 +4362,18 @@
                     <div class="sidebar-item">
                         <span class="sidebar-label">Default Voice</span>
                         <select class="sidebar-select" id="sidebar-voice" onchange="updateSidebarVoice(this.value)">
-                            <option value="news_anchor" selected>News Anchor</option>
-                            <option value="storyteller">Storyteller</option>
-                            <option value="documentary">Documentary</option>
-                            <option value="casual">Casual</option>
-                            <option value="energetic">Energetic</option>
+                            <option value="the_anchor" selected>The Anchor</option>
+                            <option value="british_authority">British Authority</option>
+                            <option value="the_storyteller">The Storyteller</option>
+                            <option value="aussie_casual">Aussie Casual</option>
+                            <option value="power_exec">Power Exec</option>
+                            <option value="documentary_pro">Documentary Pro</option>
+                            <option value="hype_machine">Hype Machine</option>
+                            <option value="cinema_epic">Cinema Epic</option>
+                            <option value="whisper_intimate">Whisper Intimate</option>
+                            <option value="zen_guide">Zen Guide</option>
+                            <option value="warm_narrator">Warm Narrator</option>
+                            <option value="countdown_king">Countdown King</option>
                         </select>
                     </div>
                 </div>
@@ -4528,13 +4535,18 @@
                             </div>
                             <div class="cast-voice-row">
                                 <select class="cast-voice" id="voice-NARRATOR" onchange="handleVoiceChange('NARRATOR', this.value)">
-                                    <option value="news_anchor" selected>News Anchor</option>
-                                    <option value="crazy_american">Crazy American</option>
-                                    <option value="power_businesswoman">Power Businesswoman</option>
-                                    <option value="club_promoter">Club Promoter</option>
-                                    <option value="standup_comedian">Stand-up Comedian</option>
-                                    <option value="conspiracy_theorist">Conspiracy Theorist</option>
-                                    <option value="movie_trailer">Movie Trailer Guy</option>
+                                    <option value="the_anchor" selected>The Anchor</option>
+                                    <option value="british_authority">British Authority</option>
+                                    <option value="the_storyteller">The Storyteller</option>
+                                    <option value="aussie_casual">Aussie Casual</option>
+                                    <option value="power_exec">Power Exec</option>
+                                    <option value="documentary_pro">Documentary Pro</option>
+                                    <option value="hype_machine">Hype Machine</option>
+                                    <option value="cinema_epic">Cinema Epic</option>
+                                    <option value="whisper_intimate">Whisper Intimate</option>
+                                    <option value="zen_guide">Zen Guide</option>
+                                    <option value="warm_narrator">Warm Narrator</option>
+                                    <option value="countdown_king">Countdown King</option>
                                     <option value="custom">Custom Voice</option>
                                 </select>
                                 <button class="voice-preview-btn" onclick="previewVoice(document.getElementById('voice-NARRATOR').value)" title="Preview voice">&#9654;</button>
@@ -4870,7 +4882,7 @@
         let conversationHistory = [];
         let currentScript = null;
         let currentVisualPlan = null;
-        let selectedVoice = 'news_anchor';
+        let selectedVoice = 'the_anchor';
         let selectedFormat = '9:16';
         let uploadedFile = null;
         let tokenBalance = 120;
@@ -5924,7 +5936,7 @@
         });
         
         // Character Casting
-        let characterVoices = { 'NARRATOR': 'news_anchor' };
+        let characterVoices = { 'NARRATOR': 'the_anchor' };
         let detectedCharacters = [];
         
         async function previewVoiceChars() {
@@ -6040,18 +6052,23 @@
             const container = document.getElementById('casting-characters');
             
             const voiceOptions = `
-                <option value="news_anchor">News Anchor</option>
-                <option value="crazy_american">Crazy American</option>
-                <option value="power_businesswoman">Power Businesswoman</option>
-                <option value="club_promoter">Club Promoter</option>
-                <option value="standup_comedian">Stand-up Comedian</option>
-                <option value="conspiracy_theorist">Conspiracy Theorist</option>
-                <option value="movie_trailer">Movie Trailer Guy</option>
+                <option value="the_anchor">The Anchor</option>
+                <option value="british_authority">British Authority</option>
+                <option value="the_storyteller">The Storyteller</option>
+                <option value="aussie_casual">Aussie Casual</option>
+                <option value="power_exec">Power Exec</option>
+                <option value="documentary_pro">Documentary Pro</option>
+                <option value="hype_machine">Hype Machine</option>
+                <option value="cinema_epic">Cinema Epic</option>
+                <option value="whisper_intimate">Whisper Intimate</option>
+                <option value="zen_guide">Zen Guide</option>
+                <option value="warm_narrator">Warm Narrator</option>
+                <option value="countdown_king">Countdown King</option>
                 <option value="custom">Custom Voice</option>
             `;
             
             container.innerHTML = characters.map(char => {
-                const currentVoice = characterVoices[char.name] || 'news_anchor';
+                const currentVoice = characterVoices[char.name] || 'the_anchor';
                 return `
                     <div class="character-cast">
                         <div class="cast-info">
@@ -6082,7 +6099,7 @@
             if (voice === 'custom') {
                 // Store current value before opening popup
                 const select = document.getElementById('voice-' + characterName);
-                previousVoiceSelection[characterName] = select ? select.dataset.previousValue || 'news_anchor' : 'news_anchor';
+                previousVoiceSelection[characterName] = select ? select.dataset.previousValue || 'the_anchor' : 'the_anchor';
                 showCustomVoicePopup(characterName);
             } else {
                 updateCharacterVoice(characterName, voice);
@@ -6131,7 +6148,7 @@
             // Reset dropdown to the actual previous value
             const select = document.getElementById('voice-' + characterName);
             if (select) {
-                const prevValue = previousVoiceSelection[characterName] || 'news_anchor';
+                const prevValue = previousVoiceSelection[characterName] || 'the_anchor';
                 select.value = prevValue;
             }
         }
