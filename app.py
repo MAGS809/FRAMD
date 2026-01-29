@@ -5055,14 +5055,58 @@ def render_video():
         else:
             base_clip_duration = None  # Fall back to scene-specified durations
         
-        # Download video clips and trim to match audio
-        clip_paths = []
-        for i, scene in enumerate(scenes):
+        # Download video clips and trim to match audio - PARALLELIZED for speed
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        
+        def download_and_trim_clip(args):
+            """Download and trim a single clip - runs in parallel."""
+            i, scene, duration, output_id = args
             video_url = scene.get('video_url', '')
             if not video_url:
-                continue
+                return None, i, duration
             
-            # Use audio-driven duration or fall back to scene duration
+            raw_path = f'output/raw_{output_id}_{i}.mp4'
+            clip_path = f'output/clip_{output_id}_{i}.mp4'
+            
+            try:
+                # Download video clip
+                req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=20) as response:
+                    with open(raw_path, 'wb') as f:
+                        f.write(response.read())
+                
+                # Trim clip - no per-clip threading to avoid CPU oversubscription
+                trim_cmd = [
+                    'ffmpeg', '-y',
+                    '-ss', '0',
+                    '-i', os.path.abspath(raw_path),
+                    '-t', str(duration),
+                    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26',
+                    '-an',
+                    os.path.abspath(clip_path)
+                ]
+                result = subprocess.run(trim_cmd, capture_output=True, timeout=45)
+                
+                if result.returncode != 0:
+                    import shutil
+                    shutil.copy(raw_path, clip_path)
+                
+                if os.path.exists(raw_path):
+                    os.remove(raw_path)
+                
+                if os.path.exists(clip_path):
+                    return clip_path, i, duration
+                return None, i, duration
+            except Exception as e:
+                print(f"Clip {i} error: {e}")
+                for f in [raw_path, clip_path]:
+                    if os.path.exists(f):
+                        os.remove(f)
+                return None, i, duration
+        
+        # Prepare download tasks
+        download_tasks = []
+        for i, scene in enumerate(scenes):
             if base_clip_duration:
                 duration = base_clip_duration
             else:
@@ -5073,48 +5117,22 @@ def render_video():
                         duration = 4
                 except:
                     duration = 4
-                
-            raw_path = f'output/raw_{output_id}_{i}.mp4'
-            clip_path = f'output/clip_{output_id}_{i}.mp4'
-            try:
-                # Download video clip
-                req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req, timeout=30) as response:
-                    with open(raw_path, 'wb') as f:
-                        f.write(response.read())
-                
-                # Trim clip to specified duration (re-encode for accurate cuts, mute background audio)
-                trim_cmd = [
-                    'ffmpeg', '-y',
-                    '-i', os.path.abspath(raw_path),
-                    '-t', str(duration),
-                    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
-                    '-an',  # Mute background audio from stock clips
-                    '-movflags', '+faststart',
-                    os.path.abspath(clip_path)
-                ]
-                result = subprocess.run(trim_cmd, capture_output=True, timeout=60)
-                
-                if result.returncode != 0:
-                    print(f"Trim error for scene {i+1}: {result.stderr.decode()[:200]}")
-                    # Fallback: just copy without trimming
-                    import shutil
-                    shutil.copy(raw_path, clip_path)
-                
-                # Clean up raw file
-                if os.path.exists(raw_path):
-                    os.remove(raw_path)
-                
-                if os.path.exists(clip_path):
-                    clip_paths.append(clip_path)
-                    print(f"Scene {i+1}: trimmed to {duration}s")
-            except Exception as e:
-                print(f"Failed to download/trim clip {i}: {e}")
-                # Clean up on failure
-                for f in [raw_path, clip_path]:
-                    if os.path.exists(f):
-                        os.remove(f)
-                continue
+            download_tasks.append((i, scene, duration, output_id))
+        
+        # Execute downloads in parallel (max 4 concurrent)
+        clip_results = {}
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = {executor.submit(download_and_trim_clip, task): task[0] for task in download_tasks}
+            for future in as_completed(futures):
+                clip_path, idx, duration = future.result()
+                if clip_path:
+                    clip_results[idx] = (clip_path, duration)
+        
+        # Maintain original order and keep durations aligned with paths
+        sorted_indices = sorted(clip_results.keys())
+        clip_paths = [clip_results[i][0] for i in sorted_indices]
+        clip_durations = [clip_results[i][1] for i in sorted_indices]
+        print(f"Downloaded and trimmed {len(clip_paths)} clips in parallel")
         
         if not clip_paths:
             return jsonify({'error': 'Failed to download any video clips'}), 500
@@ -5142,23 +5160,8 @@ def render_video():
             for clip in clip_paths:
                 f.write(f"file '{os.path.abspath(clip)}'\n")
         
-        # Get actual durations of each clip for accurate transitions
-        clip_durations = []
-        for clip in clip_paths:
-            try:
-                probe_cmd = [
-                    'ffprobe', '-v', 'error',
-                    '-show_entries', 'format=duration',
-                    '-of', 'default=noprint_wrappers=1:nokey=1',
-                    os.path.abspath(clip)
-                ]
-                probe_result = subprocess.run(probe_cmd, capture_output=True, text=True, timeout=10)
-                if probe_result.returncode == 0:
-                    clip_durations.append(float(probe_result.stdout.strip()))
-                else:
-                    clip_durations.append(4.0)  # Default fallback
-            except:
-                clip_durations.append(4.0)
+        # clip_durations already populated from parallel download results
+        print(f"Using {len(clip_durations)} clip durations from parallel processing")
         
         # First, concatenate clips with crossfade transitions
         concat_path = os.path.abspath(f'output/concat_{output_id}.mp4')
@@ -5209,7 +5212,7 @@ def render_video():
             concat_cmd = ['ffmpeg', '-y'] + inputs + [
                 '-filter_complex', xfade_filter,
                 '-map', '[v]',
-                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-threads', '0',
                 concat_path
             ]
             result = subprocess.run(concat_cmd, capture_output=True, timeout=180)
@@ -5258,10 +5261,10 @@ def render_video():
         if has_audio:
             pass1_cmd.extend(['-i', audio_path])
         
-        # Apply scaling
+        # Apply scaling - use ultrafast preset for speed
         pass1_cmd.extend([
             '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26', '-threads', '0',
         ])
         
         if has_audio:
@@ -5434,7 +5437,7 @@ def render_video():
                 'ffmpeg', '-y',
                 '-i', temp_combined,
                 '-vf', caption_chain,
-                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26', '-threads', '0',
                 '-c:a', 'copy',
                 output_path
             ]
