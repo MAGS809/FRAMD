@@ -4543,6 +4543,14 @@
                     </div>
                     <button class="btn btn-secondary detect-chars-btn" onclick="detectCharacters()">Detect Characters</button>
                     
+                    <div class="voice-char-preview" id="voice-char-preview" style="margin-top: 0.75rem; padding: 0.5rem; background: rgba(255,214,10,0.1); border-radius: 6px; font-size: 0.8rem; display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>Voice characters: <strong id="voice-char-count">0</strong></span>
+                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.7rem;" onclick="previewVoiceChars()">Refresh Count</button>
+                        </div>
+                        <div id="voice-char-text" style="margin-top: 0.5rem; font-size: 0.7rem; color: var(--text-dim); max-height: 60px; overflow-y: auto;"></div>
+                    </div>
+                    
                     <div class="character-layers-inline">
                         <div class="layers-subtitle">Character Layers</div>
                         <div class="models-grid" id="models-grid">
@@ -5919,6 +5927,28 @@
         let characterVoices = { 'NARRATOR': 'news_anchor' };
         let detectedCharacters = [];
         
+        async function previewVoiceChars() {
+            const script = document.getElementById('script-text').textContent;
+            if (!script || script === 'Script will appear here after AI generates it...') {
+                return;
+            }
+            
+            try {
+                const resp = await fetch('/preview-voice-chars', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script })
+                });
+                
+                const data = await resp.json();
+                document.getElementById('voice-char-count').textContent = data.chars;
+                document.getElementById('voice-char-text').textContent = data.dialogue || '(No dialogue extracted)';
+                document.getElementById('voice-char-preview').style.display = 'block';
+            } catch (err) {
+                console.error('Voice char preview error:', err);
+            }
+        }
+        
         async function detectCharacters() {
             const script = document.getElementById('script-text').textContent;
             if (!script || script === 'Script will appear here after AI generates it...') {
@@ -5941,6 +5971,8 @@
                     document.getElementById('voice-count').textContent = `(${data.characters.length} characters)`;
                     // Update cost when characters change
                     updateTotalTokenCost();
+                    // Show voice character count preview
+                    previewVoiceChars();
                 } else {
                     showToast('Could not detect characters');
                 }

@@ -107,42 +107,22 @@ with app.app_context():
 
 def extract_dialogue_only(script_text):
     """
-    Filter script to only include spoken dialogue lines.
-    Removes visual directions, stage directions, scene headers, parentheticals, and AI meta-commentary.
-    Voice AI reads only the spoken words - no headers, no directions, no bold text.
+    Extract ONLY spoken dialogue from script - bare minimum for voice generation.
+    Keeps lines formatted as [CHARACTER]: dialogue or CHARACTER: dialogue.
+    Filters AI commentary that appears BEFORE script starts.
     """
     import re
     
     dialogue_lines = []
-    in_script = False  # Track when we've entered actual script content
+    in_script = False
     
-    # AI meta-commentary patterns to skip (at start of script before actual content)
+    # AI commentary patterns - ONLY applied before script starts
     ai_meta_patterns = [
-        r'^Understood\.?',
-        r'^I\'ll',
-        r'^Here\'s',
-        r'^Let me',
-        r'^This script',
-        r'^The script',
-        r'^I\'ve',
-        r'^I can',
-        r'^Sure',
-        r'^Absolutely',
-        r'^Of course',
-        r'^Great',
-        r'^Perfect',
-        r'^Now',
-        r'^Alright',
-        r'^Okay',
-        r'^The tone',
-        r'^The humor',
-        r'^The visuals',
-        r'^This uses',
-        r'^Let me know',
-        r'^Would you like',
-        r'^The message',
-        r'^exaggerated personas',
-        r'^comic-book',
+        r'^Understood', r'^I\'ll create', r'^Here\'s', r'^Let me create',
+        r'^This script', r'^The script', r'^I\'ve', r'^I can create',
+        r'^Let me know', r'^Would you like', r'^The message',
+        r'^exaggerated personas', r'^With voices', r'^I hope this',
+        r'^This uses a', r'^The humor comes',
     ]
     
     for line in script_text.split('\n'):
@@ -150,92 +130,52 @@ def extract_dialogue_only(script_text):
         if not line:
             continue
         
-        # Detect when actual script content starts (SCENE, [NARRATOR], character lines)
-        if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE) or re.match(r'^\[.+\]:', line):
+        # Detect when actual script content starts (SCENE, [CHARACTER]:, or CHARACTER:)
+        if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
+            in_script = True
+            continue  # Skip the scene header itself
+        if re.match(r'^\[.+\]:', line) or re.match(r'^[A-Z][A-Z\-]+:', line):
             in_script = True
         
-        # Skip AI meta-commentary before script starts
+        # Before script starts: skip AI commentary and long prose
         if not in_script:
-            is_meta = False
-            for pattern in ai_meta_patterns:
-                if re.match(pattern, line, re.IGNORECASE):
-                    is_meta = True
-                    break
-            if is_meta:
+            if any(re.match(p, line, re.IGNORECASE) for p in ai_meta_patterns):
                 continue
-            # Also skip long prose lines before script (AI explanations)
-            if len(line) > 100 and not re.match(r'^\[', line):
+            if len(line) > 80:  # Long prose = AI explanation
                 continue
         
-        # Skip AI meta-commentary after script ends too
-        if re.match(r'^This script uses', line, re.IGNORECASE):
-            in_script = False
-            continue
-        if re.match(r'^Let me know if', line, re.IGNORECASE):
-            continue
-        if re.match(r'^Would you like', line, re.IGNORECASE):
-            continue
-        if 'Let me know' in line or 'Would you like' in line:
-            continue
-        
-        # Skip visual directions [VISUAL: ...]
+        # Skip direction headers (always, even during script)
         if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE'):
             continue
-        
-        # Skip scene headers (SCENE 1, INT., EXT., TITLE:, CUT TO:)
-        if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
-            continue
-        if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
-            continue
-        
-        # Skip decorative lines (===, ___, ---)
-        if re.match(r'^[=_\-]{3,}$', line):
-            continue
-        
-        # Skip VISUAL: and CUT: lines
         if line.startswith('VISUAL:') or line.startswith('CUT:'):
             continue
-        
-        # Skip CHARACTERS: and VOICES? lines
-        if line.startswith('CHARACTERS:') or line.startswith('VOICES?'):
+        if re.match(r'^(INT\.|EXT\.|TITLE:|CUT TO)', line):
             continue
         
-        # Skip lines that are just parentheticals like (quietly) or (V.O.)
-        if re.match(r'^\([^)]+\)$', line):
+        # Skip all-caps location lines like "HOLY LAND ARENA"
+        if re.match(r'^[A-Z\s\-]+$', line) and len(line) < 50 and ':' not in line:
             continue
         
-        # Skip empty visual/stage directions
-        if re.match(r'^\[.*\]$', line):
+        # Pattern 1: [CHARACTER]: dialogue (brackets)
+        match1 = re.match(r'^\[([^\]]+)\]:\s*(.+)$', line)
+        if match1:
+            dialogue = match1.group(2).strip()
+            dialogue = re.sub(r'\([^)]*\)', '', dialogue).strip()
+            if dialogue:
+                dialogue_lines.append(dialogue)
             continue
         
-        # Skip all-caps short lines (character name headers like "NARRATOR")
-        if re.match(r'^[A-Z\s]{2,25}$', line) and not any(c.islower() for c in line):
+        # Pattern 2: CHARACTER: dialogue (no brackets)
+        match2 = re.match(r'^([A-Za-z][A-Za-z0-9\-\.\'\s]{0,25}):\s*(.+)$', line)
+        if match2:
+            char_name = match2.group(1).strip().upper()
+            dialogue = match2.group(2).strip()
+            if char_name in ['SCENE', 'VISUAL', 'CUT', 'FADE', 'INT', 'EXT', 'TITLE', 'CHARACTERS', 'VOICES']:
+                continue
+            dialogue = re.sub(r'\([^)]*\)', '', dialogue).strip()
+            if dialogue:
+                dialogue_lines.append(dialogue)
             continue
-        
-        # Skip location/setting lines like "HOLY LAND ARENA" or "ARENA DEBATE STAGE"
-        if re.match(r'^[A-Z\s\-]+$', line) and len(line) < 40:
-            continue
-        
-        # Remove inline parentheticals but keep the rest
-        line = re.sub(r'\([^)]*\)', '', line).strip()
-        
-        # If line has CHARACTER: format, keep the dialogue part only
-        if ':' in line:
-            parts = line.split(':', 1)
-            char_part = parts[0].strip()
-            # If first part looks like character name (1-3 words, all caps or title case)
-            if len(char_part.split()) <= 3 and (char_part.isupper() or char_part.istitle()):
-                dialogue = parts[1].strip()
-                if dialogue:
-                    dialogue_lines.append(dialogue)
-            else:
-                # Not a character line, keep if it's not a direction
-                if not char_part.startswith('['):
-                    dialogue_lines.append(line)
-        else:
-            # Regular line - keep if not empty
-            if line and not line.startswith('['):
-                dialogue_lines.append(line)
     
     return ' '.join(dialogue_lines)
 
@@ -3786,6 +3726,25 @@ def get_voice_config(voice):
     return voice, 'JBFqnCBsd6RMkjVDRZzb', "You are a professional voiceover artist. Read the following script naturally and engagingly."
 
 
+@app.route('/preview-voice-chars', methods=['POST'])
+def preview_voice_chars():
+    """Preview how many characters will be sent to voice API - helps user estimate cost."""
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'chars': 0, 'dialogue': ''})
+    
+    # Extract only the dialogue that would be sent to voice API
+    dialogue = extract_dialogue_only(script)
+    
+    return jsonify({
+        'chars': len(dialogue),
+        'dialogue': dialogue[:500] + ('...' if len(dialogue) > 500 else ''),  # Preview first 500 chars
+        'estimated_cost': f"~{len(dialogue)} characters for ElevenLabs"
+    })
+
+
 @app.route('/generate-voiceover', methods=['POST'])
 def generate_voiceover():
     """Generate voiceover audio from script text using ElevenLabs (primary) or OpenAI (fallback)."""
@@ -4315,19 +4274,16 @@ def generate_voiceover_multi():
     try:
         import re
         
-        # Parse script into character lines (filtering out non-dialogue)
-        # Voice AI reads ONLY the spoken dialogue - no headers, no directions
+        # Parse script into character lines - ONLY formatted dialogue lines
         lines = []
-        current_char = 'NARRATOR'
         in_script = False
         
-        # AI meta-commentary patterns to skip
+        # AI commentary patterns - ONLY applied before script starts
         ai_meta_patterns = [
-            r'^Understood\.?', r'^I\'ll', r'^Here\'s', r'^Let me', r'^This script',
-            r'^The script', r'^I\'ve', r'^I can', r'^Sure', r'^Absolutely',
-            r'^Of course', r'^Great', r'^Perfect', r'^Now', r'^Alright', r'^Okay',
-            r'^The tone', r'^The humor', r'^The visuals', r'^This uses',
+            r'^Understood', r'^I\'ll create', r'^Here\'s', r'^Let me create',
+            r'^This script', r'^The script', r'^I\'ve', r'^I can create',
             r'^Let me know', r'^Would you like', r'^The message',
+            r'^exaggerated personas', r'^With voices', r'^I hope this',
         ]
         
         for line in script.split('\n'):
@@ -4335,70 +4291,53 @@ def generate_voiceover_multi():
             if not line:
                 continue
             
-            # Detect when actual script content starts
-            if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE) or re.match(r'^\[.+\]:', line):
+            # Detect when actual script starts (SCENE, [CHARACTER]:, or CHARACTER:)
+            if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
+                in_script = True
+                continue  # Skip scene header
+            if re.match(r'^\[.+\]:', line) or re.match(r'^[A-Z][A-Z\-]+:', line):
                 in_script = True
             
-            # Skip AI meta-commentary before script starts
+            # Before script: skip AI commentary and long prose
             if not in_script:
-                is_meta = any(re.match(p, line, re.IGNORECASE) for p in ai_meta_patterns)
-                if is_meta or (len(line) > 100 and not re.match(r'^\[', line)):
+                if any(re.match(p, line, re.IGNORECASE) for p in ai_meta_patterns):
+                    continue
+                if len(line) > 80:
                     continue
             
-            # Skip AI meta-commentary after script ends
-            if re.match(r'^This script uses', line, re.IGNORECASE):
-                in_script = False
+            # Skip direction headers (always)
+            if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE'):
                 continue
-            if 'Let me know' in line or 'Would you like' in line:
-                continue
-            
-            # Skip visual directions [VISUAL: ...], [CUT TO:], [FADE], etc.
-            if line.startswith('[VISUAL') or line.startswith('[CUT') or line.startswith('[FADE') or re.match(r'^\[.*\]$', line):
-                continue
-            
-            # Skip scene headers (SCENE 1, INT., EXT., TITLE:, CUT TO:)
-            if re.match(r'^SCENE\s+\d+', line, re.IGNORECASE):
-                continue
-            if line.startswith('INT.') or line.startswith('EXT.') or line.startswith('TITLE:') or line.startswith('CUT TO'):
-                continue
-            
-            # Skip decorative lines (===, ___, ---)
-            if re.match(r'^[=_\-]{3,}$', line):
-                continue
-            
-            # Skip VISUAL: and CUT: lines
             if line.startswith('VISUAL:') or line.startswith('CUT:'):
                 continue
-            
-            # Skip CHARACTERS: and VOICES? lines
-            if line.startswith('CHARACTERS:') or line.startswith('VOICES?'):
+            if re.match(r'^(INT\.|EXT\.|TITLE:|CUT TO)', line):
                 continue
             
-            # Skip pure parentheticals
-            if re.match(r'^\([^)]+\)$', line):
+            # Skip all-caps location lines
+            if re.match(r'^[A-Z\s\-]+$', line) and len(line) < 50 and ':' not in line:
                 continue
             
-            # Skip all-caps short lines (location headers like "HOLY LAND ARENA")
-            if re.match(r'^[A-Z\s\-]{2,40}$', line) and not any(c.islower() for c in line):
+            # Pattern 1: [CHARACTER]: dialogue (brackets)
+            match1 = re.match(r'^\[([^\]]+)\]:\s*(.+)$', line)
+            if match1:
+                char_name = match1.group(1).strip().upper()
+                dialogue = match1.group(2).strip()
+                dialogue = re.sub(r'\([^)]*\)', '', dialogue).strip()
+                if dialogue:
+                    lines.append({'character': char_name, 'text': dialogue})
                 continue
             
-            # Remove inline parentheticals
-            line = re.sub(r'\([^)]*\)', '', line).strip()
-            if not line:
+            # Pattern 2: CHARACTER: dialogue (no brackets)
+            match2 = re.match(r'^([A-Za-z][A-Za-z0-9\-\.\'\s]{0,25}):\s*(.+)$', line)
+            if match2:
+                char_name = match2.group(1).strip().upper()
+                dialogue = match2.group(2).strip()
+                if char_name in ['SCENE', 'VISUAL', 'CUT', 'FADE', 'INT', 'EXT', 'TITLE', 'CHARACTERS', 'VOICES']:
+                    continue
+                dialogue = re.sub(r'\([^)]*\)', '', dialogue).strip()
+                if dialogue:
+                    lines.append({'character': char_name, 'text': dialogue})
                 continue
-            
-            # Check if line starts with CHARACTER: - extract only the dialogue
-            if ':' in line:
-                parts = line.split(':', 1)
-                if len(parts[0].split()) <= 3:  # Likely a character name
-                    current_char = parts[0].strip().upper()
-                    dialogue = parts[1].strip()
-                    if dialogue:
-                        lines.append({'character': current_char, 'text': dialogue})
-                else:
-                    lines.append({'character': current_char, 'text': line})
-            else:
-                lines.append({'character': current_char, 'text': line})
         
         # Generate audio for each segment
         audio_segments = []
