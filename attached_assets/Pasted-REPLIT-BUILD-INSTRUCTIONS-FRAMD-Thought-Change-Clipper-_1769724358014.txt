@@ -1,0 +1,294 @@
+REPLIT BUILD INSTRUCTIONS — FRAMD (Thought-Change Clipper + Thesis Loop)
+
+Product Definition (one sentence)
+
+Build Framd: a project-based short-form clip engine where a fixed thesis drives script → timestamps → clip selection, and every clip must close a thought loop back to the thesis before export.
+
+Non-negotiable Core Rule
+
+Script decides visuals, pacing, timestamps, and cuts.
+Never “clip first, justify later.”
+
+Pipeline must always be:
+THESIS → SCRIPT (anchors) → TIMESTAMPS → CLIPS → VISUALS MATCH → EXPORT
+
+⸻
+
+After Login UX (Project-Centered)
+	1.	User lands on Projects Screen
+	2.	User selects or creates a project → opens Canvas
+	3.	Canvas is a single continuous document UI (user never “leaves the LLM”)
+
+Top bar:
+	•	Left: Framd logo
+	•	Center: Project name
+	•	Right: Avatar menu (Profile, Billing, Privacy, Logout)
+
+No heavy sidebars. No clutter.
+
+⸻
+
+Canvas UI (Single Page Document)
+
+Canvas contains collapsible sections in this order:
+	1.	Chat (always visible)
+	2.	Thesis
+	3.	Input
+	4.	Script
+	5.	Timeline
+	6.	Visuals
+	7.	Export
+
+Each section has:
+	•	a short status line (Ready / Needs input / Generating)
+	•	one primary action button (“Continue” / “Generate” / “Approve”)
+
+The user experience must feel like:
+one flowing doc, one brain, one place.
+
+⸻
+
+INPUTS (User can give any)
+	•	paste a video link OR upload file OR paste transcript OR paste idea
+	•	optional: target platform (default 9:16)
+	•	optional: length target (15/30/60 or “longform”)
+	•	optional: tone
+	•	optional: required talking points
+
+The UI should encourage:
+“The more context you provide, the better Framd performs.”
+
+⸻
+
+STEP 1 — THESIS LOCK (Mandatory)
+
+Before any script or clipping:
+	•	LLM generates one thesis sentence
+	•	User can edit it
+	•	Once confirmed, it is pinned (Thesis Lock)
+
+This thesis is the “north star” for:
+	•	script structure
+	•	clip selection
+	•	ending logic
+	•	captions
+
+⸻
+
+STEP 2 — GENRE SELECTOR (Delivery Layer)
+
+LLM must pick a genre automatically based on the thesis + content.
+
+Genre list should be broad (not fixed to 6):
+	•	explainer
+	•	commentary
+	•	debate
+	•	reflective
+	•	satire
+	•	story
+	•	breakdown
+	•	analysis
+	•	case-study
+	•	historical-parallel
+	•	myth-busting
+	•	interview remix
+	•	narrator voiceover
+	•	character skit
+	•	documentary tone
+	•	etc.
+
+Key rule:
+Genre changes delivery only, never the thesis.
+
+If user overrides genre, the AI adapts delivery but keeps thesis.
+
+⸻
+
+STEP 3 — SCRIPT ENGINE (Anchor Based)
+
+Every script must be represented as anchors (structure), not emotions.
+
+Allowed anchors:
+	1.	hook
+	2.	frame_set
+	3.	core_claim
+	4.	evidence_or_example
+	5.	contrast
+	6.	reframe
+	7.	escalation
+	8.	release
+	9.	call_to_think
+	10.	landing
+
+Anchors are structural. Tone is separate metadata.
+
+Script output must be JSON:
+
+{
+“thesis”: “…”,
+“genre”: “…”,
+“tone”: “…”,
+“anchors”: [
+{
+“anchor”: “hook”,
+“text”: “…”,
+“target_seconds”: 3,
+“visual_intent”: “…”,
+“keywords”: [”…”]
+}
+]
+}
+
+⸻
+
+STEP 4 — THOUGHT-CHANGE CLIPPING (Key Feature)
+
+The clipper must detect changes in thought, not topic.
+
+Definition:
+A “thought change” occurs when the speaker does one of:
+	•	introduces a new claim
+	•	shifts the frame
+	•	answers a question
+	•	makes a reveal
+	•	switches from evidence to conclusion
+	•	pivots to contrast or reframe
+
+Implementation requirements:
+	•	Segment transcript into candidate moments using embedding similarity + discourse markers.
+	•	Align candidate segments to anchor boundaries.
+	•	Final clip boundaries must map to anchors.
+
+Output must include timestamps per anchor:
+
+{
+“clips”: [
+{
+“clip_id”: “c1”,
+“start”: 12.4,
+“end”: 44.8,
+“anchors_included”: [“hook”,“frame_set”,“core_claim”,“landing”],
+“loop_score”: 0.86
+}
+]
+}
+
+⸻
+
+STEP 5 — THOUGHT LOOP VALIDATION (Auto QA)
+
+Every clip must “close the loop” back to thesis.
+
+Loop must satisfy:
+	•	Ending anchor explicitly reconnects to thesis
+	•	Viewer understanding moves toward thesis
+	•	No clip ends on evidence or contrast without meaning resolution
+
+If loop fails:
+	•	AI must propose a fix automatically:
+	•	rewrite landing
+	•	swap ending segment
+	•	extend by X seconds to include a reframe or landing
+
+Do not export until loop passes or user overrides.
+
+⸻
+
+STEP 6 — VISUALS (Must match script)
+
+Visual selection is driven by the script anchors.
+
+Rules:
+	•	Visuals must be matched to anchor pacing
+	•	Captions must match anchor pacing
+	•	Timeline visuals must follow the same durations as anchor segments
+
+UI: Visuals are shown per anchor group, not random grid dumps.
+
+⸻
+
+STEP 7 — TIMELINE UI (Minimal, performance safe)
+
+Timeline should not load heavy controls by default.
+
+Default view:
+	•	A simple “Scenes list” showing anchor names + one thumbnail + duration.
+
+Only when user clicks “Show timing”:
+	•	A minimal read-only horizontal bar appears
+	•	segments labeled by anchor name
+	•	user can toggle edit mode to adjust start/end
+
+⸻
+
+STEP 8 — EXPORT (Clip Engine focus)
+
+Export page shows:
+	•	preview player
+	•	download button
+	•	caption text
+	•	hashtags
+	•	credits metadata if required
+
+Also include:
+	•	“Generate Next Outputs” button (creates more clips from same project)
+	•	“Back to Project” button (returns to Canvas)
+
+No emojis. Clean.
+
+⸻
+
+PROJECT FEEDBACK LOOP (Continuous Improvement)
+
+Projects screen tracks:
+	•	how many outputs generated
+	•	which genres performed best
+	•	which hooks retained best
+	•	what user approved or rejected
+
+Then:
+AI proposes new outputs automatically for the same project, based on:
+	•	what the user approved
+	•	what loop scores were highest
+	•	what thesis variants performed best
+
+Goal:
+constant generation of increasingly good content, with minimal user effort.
+
+⸻
+
+UI STYLE REQUIREMENTS
+	•	Minimal, sleek, no heavy borders
+	•	Single “document canvas” feel
+	•	Green background + yellow text theme
+	•	Chat input text color also yellow
+	•	Buttons and toggles minimal, consistent icons
+	•	No unnecessary panels
+
+⸻
+
+PERFORMANCE RULES
+	•	Lazy load timeline details
+	•	Lazy load thumbnails
+	•	Only render “timing bar” when requested
+	•	Keep everything on one canvas page (no heavy route switching)
+
+⸻
+
+FINAL SUCCESS CRITERIA
+
+A user can:
+	1.	log in
+	2.	pick a project
+	3.	paste a video or transcript
+	4.	approve thesis
+	5.	hit generate
+	6.	get clips where:
+	•	script matches timestamps
+	•	visuals match anchors
+	•	ending reconnects to thesis
+	7.	export and download
+
+No randomness. No clipping without meaning.
+
+⸻
