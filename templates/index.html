@@ -75,126 +75,165 @@
             padding: 0 1rem;
         }
         
-        /* Header */
+        /* Header - Clean 3-column layout */
         header {
-            padding: 1.5rem 1rem 1rem;
-            display: flex;
-            justify-content: space-between;
+            padding: 0.75rem 1.5rem;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
             flex-shrink: 0;
-        }
-        
-        .brand {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.25rem;
-            font-weight: 500;
-            letter-spacing: -0.02em;
-            color: var(--text);
-            border: 2px solid rgba(255, 214, 10, 0.5);
-            padding: 0.25rem 0.75rem;
-            border-radius: 8px;
-        }
-        
-        .tagline {
-            font-size: 0.7rem;
-            color: var(--text-dim);
-            margin-top: 0.15rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg);
         }
         
         .header-left {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            position: relative;
+            gap: 0.5rem;
         }
         
-        .menu-toggle {
-            width: 36px;
-            height: 36px;
+        .brand {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+        
+        .pro-badge {
+            font-size: 9px;
+            background: var(--gold);
+            color: var(--bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 700;
+            vertical-align: super;
+            display: none;
+        }
+        
+        .pro-badge.show {
+            display: inline;
+        }
+        
+        .header-center {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+        
+        .project-name-display {
+            font-size: 0.95rem;
+            color: var(--text);
+            font-weight: 500;
+            padding: 6px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
             border-radius: 8px;
             cursor: pointer;
-            color: var(--text-secondary);
-            transition: all 0.2s;
+            transition: all 0.15s;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
-        .menu-toggle:hover {
-            background: var(--panel);
-            color: var(--accent);
+        .project-name-display:hover {
+            border-color: var(--gold);
+            background: rgba(255,214,10,0.05);
         }
         
-        .nav-menu {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 0.5rem;
-            background: var(--panel);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 0.5rem;
-            min-width: 160px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 100;
-        }
-        
-        .nav-menu.active {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-        
-        .nav-menu-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        
-        .nav-menu-item:hover {
-            background: rgba(255, 214, 10, 0.1);
-            color: var(--accent);
-        }
-        
-        .nav-menu-item.logout-btn {
-            background: #ffd60a;
-            color: #0a1f14;
-            font-weight: 600;
-            margin-top: 0.5rem;
-        }
-        
-        .nav-menu-item.logout-btn:hover {
-            background: #ffe033;
-            color: #0a1f14;
-        }
-        
-        .nav-menu-item.logout-btn svg {
-            stroke: #0a1f14;
+        .project-name-display.empty {
+            color: var(--muted);
+            font-style: italic;
         }
         
         .header-right {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             gap: 0.75rem;
+            position: relative;
         }
         
-        .dashboard-toggle {
+        .avatar-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), #ff9500);
+            border: none;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            background: rgba(255,255,255,0.05);
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--bg);
+            transition: all 0.15s;
+        }
+        
+        .avatar-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px rgba(255,214,10,0.2);
+        }
+        
+        .avatar-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: var(--surface);
             border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.5rem;
+            min-width: 180px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+        }
+        
+        .avatar-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        
+        .avatar-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            text-decoration: none;
             border-radius: 8px;
-            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.15s;
+            cursor: pointer;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+        
+        .avatar-menu-item:hover {
+            background: rgba(255, 214, 10, 0.1);
+            color: var(--gold);
+        }
+        
+        .avatar-menu-item svg {
+            opacity: 0.7;
+        }
+        
+        .avatar-menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.5rem 0;
+        }
+        
+        .avatar-menu-item.logout {
+            color: var(--gold);
+        }
             color: var(--text-dim);
             font-size: 0.75rem;
             cursor: pointer;
@@ -5087,71 +5126,50 @@
     <div class="app">
         <header>
             <div class="header-left">
-                <div class="menu-toggle" onclick="toggleNavMenu()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="3" y1="6" x2="21" y2="6"/>
-                        <line x1="3" y1="12" x2="21" y2="12"/>
-                        <line x1="3" y1="18" x2="21" y2="18"/>
-                    </svg>
-                </div>
-                <div class="brand">Framd <span class="pro-badge" id="pro-badge">PRO</span></div>
-                <div class="tagline">powered by Krakd</div>
-                <div class="nav-menu" id="nav-menu">
-                    <a href="/" class="nav-menu-item">
+                <div class="brand" onclick="goToProjects()">Framd <span class="pro-badge" id="pro-badge">PRO</span></div>
+            </div>
+            <div class="header-center">
+                <div class="project-name-display empty" id="project-name-display" onclick="goToProjects()">Select a project</div>
+            </div>
+            <div class="header-right">
+                <button class="avatar-btn" id="avatar-btn" onclick="toggleAvatarMenu()">
+                    {{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}
+                </button>
+                <div class="avatar-menu" id="avatar-menu">
+                    <a href="#" class="avatar-menu-item" onclick="goToProjects(); toggleAvatarMenu();">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                            <polyline points="9 22 9 12 15 12 15 22"/>
-                        </svg>
-                        Home
-                    </a>
-                    <a href="#" class="nav-menu-item" onclick="goToProjects(); toggleNavMenu();">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <rect x="3" y="3" width="7" height="7"/>
-                            <rect x="14" y="3" width="7" height="7"/>
-                            <rect x="14" y="14" width="7" height="7"/>
-                            <rect x="3" y="14" width="7" height="7"/>
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
                         </svg>
                         Projects
                     </a>
-                    <a href="#" class="nav-menu-item" onclick="goToDiscover(); toggleNavMenu();">
+                    <a href="#" class="avatar-menu-item" onclick="openSettings('profile'); toggleAvatarMenu();">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
                         </svg>
-                        Discover
+                        Profile
                     </a>
-                    <a href="/logout" class="nav-menu-item logout-btn">
+                    <a href="#" class="avatar-menu-item" onclick="openSettings('billing'); toggleAvatarMenu();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                        </svg>
+                        Billing
+                    </a>
+                    <a href="#" class="avatar-menu-item" onclick="openSettings('privacy'); toggleAvatarMenu();">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        Privacy
+                    </a>
+                    <div class="avatar-menu-divider"></div>
+                    <a href="/logout" class="avatar-menu-item logout">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                            <polyline points="16 17 21 12 16 7"/>
-                            <line x1="21" y1="12" x2="9" y2="12"/>
+                            <polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                         </svg>
                         Logout
                     </a>
-                </div>
-            </div>
-            <div class="header-right">
-                <button class="dashboard-toggle" onclick="goToProjects()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7"/>
-                        <rect x="14" y="3" width="7" height="7"/>
-                        <rect x="14" y="14" width="7" height="7"/>
-                        <rect x="3" y="14" width="7" height="7"/>
-                    </svg>
-                    Projects
-                </button>
-                <div class="ai-learning-badge" onclick="toggleDashboard()">
-                    <div class="learning-icon">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                            <path d="M2 17l10 5 10-5"/>
-                            <path d="M2 12l10 5 10-5"/>
-                        </svg>
-                    </div>
-                    <div class="learning-progress-mini">
-                        <div class="learning-progress-bar" id="learning-progress-bar" style="width: 0%"></div>
-                    </div>
-                    <span class="learning-percent" id="learning-percent">0%</span>
                 </div>
             </div>
         </header>
@@ -6810,6 +6828,9 @@
                     const project = await response.json();
                     currentProjectId = projectId;
                     
+                    // Update header project name
+                    updateProjectNameDisplay(project.name || 'Untitled Project');
+                    
                     // Restore project state
                     if (project.script) currentScript = project.script;
                     if (project.visual_plan) currentVisualPlan = project.visual_plan;
@@ -6835,6 +6856,8 @@
             document.getElementById('stage-projects').classList.add('active');
             const chatBar = document.getElementById('bottom-chat-bar');
             if (chatBar) chatBar.style.display = 'none';
+            currentProjectId = null;
+            updateProjectNameDisplay(null);
             loadDashboardProjects();
         }
         
@@ -7015,6 +7038,9 @@
                 if (response.ok) {
                     const project = await response.json();
                     currentProjectId = projectId;
+                    
+                    // Update header project name
+                    updateProjectNameDisplay(project.name || 'Untitled Project');
                     
                     // Restore project state
                     if (project.script) {
@@ -9728,15 +9754,36 @@
             }
         }
         
-        function toggleNavMenu() {
-            const menu = document.getElementById('nav-menu');
+        function toggleAvatarMenu() {
+            const menu = document.getElementById('avatar-menu');
             menu.classList.toggle('active');
         }
         
+        function updateProjectNameDisplay(name) {
+            const display = document.getElementById('project-name-display');
+            if (display) {
+                if (name) {
+                    display.textContent = name;
+                    display.classList.remove('empty');
+                } else {
+                    display.textContent = 'Select a project';
+                    display.classList.add('empty');
+                }
+            }
+        }
+        
+        function openSettings(section) {
+            toggleDashboard();
+            setTimeout(() => {
+                const settingsTab = document.querySelector('[onclick*="showSettingsSection"]');
+                if (settingsTab) settingsTab.click();
+            }, 100);
+        }
+        
         document.addEventListener('click', (e) => {
-            const menu = document.getElementById('nav-menu');
-            const toggle = document.querySelector('.menu-toggle');
-            if (menu && !menu.contains(e.target) && !toggle.contains(e.target)) {
+            const menu = document.getElementById('avatar-menu');
+            const btn = document.getElementById('avatar-btn');
+            if (menu && btn && !menu.contains(e.target) && !btn.contains(e.target)) {
                 menu.classList.remove('active');
             }
         });
