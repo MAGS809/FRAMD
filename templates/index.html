@@ -3811,36 +3811,42 @@
             color: var(--muted);
         }
         
-        /* Anchors Panel Styles */
-        .anchors-panel {
-            padding: 12px 16px;
-            background: var(--surface);
-            border-bottom: 1px solid var(--border);
-            max-height: 300px;
-            overflow-y: auto;
+        /* Inline Scenes Card in Chat */
+        .chat-scenes-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 0.5rem 0;
+            overflow: hidden;
         }
         
-        .anchors-header {
+        .chat-scenes-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 12px 16px;
+            background: rgba(255,214,10,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .chat-scenes-title {
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: var(--muted);
-            margin-bottom: 8px;
+            color: rgba(255,214,10,0.7);
         }
         
-        .anchor-count {
-            background: var(--accent);
-            color: var(--bg);
+        .chat-scenes-count {
+            background: #ffd60a;
+            color: #0a1f14;
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 11px;
+            font-weight: 600;
         }
         
-        .anchors-list {
+        .chat-scenes-list {
             display: flex;
             flex-direction: column;
         }
@@ -3849,18 +3855,19 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 12px;
+            padding: 12px 16px;
             background: rgba(255,255,255,0.02);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            margin-bottom: 6px;
+            border-bottom: 1px solid var(--border);
             cursor: pointer;
             transition: all 0.15s ease;
         }
         
+        .scene-item:last-child {
+            border-bottom: none;
+        }
+        
         .scene-item:hover {
-            background: rgba(255,255,255,0.05);
-            border-color: var(--gold);
+            background: rgba(255,214,10,0.05);
         }
         
         .scene-left {
@@ -3936,6 +3943,76 @@
             font-size: 10px;
             color: var(--muted);
             text-align: center;
+        }
+        
+        /* Inline Visual Picker in Chat */
+        .chat-visual-picker {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 0.5rem 0;
+            overflow: hidden;
+        }
+        
+        .chat-visual-picker-header {
+            padding: 12px 16px;
+            background: rgba(255,214,10,0.03);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-visual-picker-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .chat-visual-picker-concept {
+            padding: 10px 16px;
+            font-size: 12px;
+            color: rgba(255,214,10,0.7);
+            background: rgba(255,214,10,0.03);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .chat-visual-picker-grid {
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .chat-visual-option {
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            border: 2px solid transparent;
+            transition: all 0.15s;
+        }
+        
+        .chat-visual-option:hover {
+            border-color: var(--gold);
+            transform: scale(1.02);
+        }
+        
+        .chat-visual-option.selected {
+            border-color: #22c55e;
+        }
+        
+        .chat-visual-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .chat-visual-loading {
+            padding: 24px;
+            text-align: center;
+            color: var(--muted);
         }
         
         .scene-visual-popup {
@@ -5634,15 +5711,6 @@
         
         <!-- CREATE STAGE - Chat Only -->
         <div class="stage" id="stage-create">
-            <!-- Anchors/Scenes Panel (shows after script generation) -->
-            <div class="anchors-panel" id="anchors-panel" style="display: none;">
-                <div class="anchors-header">
-                    <span>Scenes</span>
-                    <span class="anchor-count" id="anchor-count">0</span>
-                </div>
-                <div class="anchors-list" id="anchors-list"></div>
-            </div>
-            
             <div class="chat-messages-container">
                 <div class="messages" id="messages">
                 </div>
@@ -6575,32 +6643,141 @@
         // Anchors Display - Scenes List Format
         function displayAnchors(anchors) {
             currentAnchors = anchors || [];
-            const panel = document.getElementById('anchors-panel');
-            const list = document.getElementById('anchors-list');
-            const count = document.getElementById('anchor-count');
             
             if (currentAnchors.length > 0) {
-                panel.style.display = 'block';
-                count.textContent = currentAnchors.length;
-                list.innerHTML = currentAnchors.map((anchor, idx) => `
-                    <div class="scene-item" data-scene="${idx}" onclick="openSceneVisuals(${idx})">
-                        <div class="scene-left">
-                            <span class="scene-number">${idx + 1}</span>
-                            <div class="scene-info">
-                                <span class="scene-type">${anchor.anchor_type || 'SCENE'}</span>
-                                <span class="scene-text">${(anchor.anchor_text || '').substring(0, 80)}${(anchor.anchor_text || '').length > 80 ? '...' : ''}</span>
-                            </div>
+                // Render scenes as inline chat card
+                const scenesHtml = `
+                    <div class="chat-scenes-card" id="chat-scenes-card">
+                        <div class="chat-scenes-header">
+                            <span class="chat-scenes-title">Scenes</span>
+                            <span class="chat-scenes-count">${currentAnchors.length}</span>
                         </div>
-                        <div class="scene-right">
-                            <div class="scene-visual-preview" id="scene-visual-${idx}">
-                                ${sceneVisuals[idx] ? `<img src="${sceneVisuals[idx].url}" alt="Scene visual">` : '<span class="scene-visual-empty">+ Visual</span>'}
-                            </div>
+                        <div class="chat-scenes-list">
+                            ${currentAnchors.map((anchor, idx) => `
+                                <div class="scene-item" data-scene="${idx}" onclick="openInlineVisuals(${idx})">
+                                    <div class="scene-left">
+                                        <span class="scene-number">${idx + 1}</span>
+                                        <div class="scene-info">
+                                            <span class="scene-type">${anchor.anchor_type || 'SCENE'}</span>
+                                            <span class="scene-text">${(anchor.anchor_text || '').substring(0, 80)}${(anchor.anchor_text || '').length > 80 ? '...' : ''}</span>
+                                        </div>
+                                    </div>
+                                    <div class="scene-right">
+                                        <div class="scene-visual-preview" id="scene-visual-${idx}">
+                                            ${sceneVisuals[idx] ? `<img src="${sceneVisuals[idx].url}" alt="Scene visual">` : '<span class="scene-visual-empty">+ Visual</span>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                `).join('');
-            } else {
-                panel.style.display = 'none';
+                `;
+                
+                // Add as chat message
+                const messagesDiv = document.getElementById('messages');
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message ai';
+                msgDiv.innerHTML = scenesHtml;
+                messagesDiv.appendChild(msgDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                // Add AI prompt for next steps
+                setTimeout(() => {
+                    addMessage("Here are your scenes. Click any scene to pick visuals, or type 'continue' when ready to proceed. You can also ask me to change any scene.", false);
+                }, 300);
             }
+        }
+        
+        // Open inline visual picker for a scene
+        async function openInlineVisuals(sceneIndex) {
+            activeSceneIndex = sceneIndex;
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) return;
+            
+            // Create inline visual picker in chat
+            const pickerId = `visual-picker-${sceneIndex}-${Date.now()}`;
+            const pickerHtml = `
+                <div class="chat-visual-picker" id="${pickerId}">
+                    <div class="chat-visual-picker-header">
+                        <span class="chat-visual-picker-title">Scene ${sceneIndex + 1}: ${anchor.anchor_type || 'SCENE'}</span>
+                    </div>
+                    <div class="chat-visual-picker-concept" id="${pickerId}-concept"></div>
+                    <div class="chat-visual-picker-grid" id="${pickerId}-grid">
+                        <div class="chat-visual-loading">Finding visuals...</div>
+                    </div>
+                </div>
+            `;
+            
+            const messagesDiv = document.getElementById('messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message ai';
+            msgDiv.innerHTML = pickerHtml;
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Fetch visuals
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: anchor.anchor_type || 'CLAIM',
+                        keywords: anchor.keywords || []
+                    })
+                });
+                
+                const data = await response.json();
+                const grid = document.getElementById(`${pickerId}-grid`);
+                const concept = document.getElementById(`${pickerId}-concept`);
+                
+                if (data.success && data.images && data.images.length > 0) {
+                    if (concept) concept.textContent = data.suggestions?.visual_concept || '';
+                    
+                    grid.innerHTML = data.images.map((img, imgIdx) => `
+                        <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
+                             onclick="selectInlineVisual(${sceneIndex}, ${imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}')">
+                            <img src="${img.url}" alt="${img.alt || 'Visual option'}" loading="lazy">
+                        </div>
+                    `).join('');
+                    
+                    // Store images for selection
+                    window.tempVisualImages = window.tempVisualImages || {};
+                    window.tempVisualImages[pickerId] = data.images;
+                } else {
+                    grid.innerHTML = '<div class="chat-visual-loading">No visuals found. Try different keywords.</div>';
+                }
+            } catch (err) {
+                console.error('Error loading visuals:', err);
+                const grid = document.getElementById(`${pickerId}-grid`);
+                if (grid) grid.innerHTML = '<div class="chat-visual-loading">Error loading visuals. Try again.</div>';
+            }
+        }
+        
+        // Select a visual from inline picker
+        function selectInlineVisual(sceneIndex, imageIndex, pickerId, imageUrl, photographer) {
+            // Store the visual
+            sceneVisuals[sceneIndex] = {
+                url: imageUrl,
+                photographer: photographer
+            };
+            
+            // Update the scene card thumbnail
+            const sceneVisualEl = document.getElementById(`scene-visual-${sceneIndex}`);
+            if (sceneVisualEl) {
+                sceneVisualEl.innerHTML = `<img src="${imageUrl}" alt="Scene visual">`;
+            }
+            
+            // Update selection state in picker
+            const picker = document.getElementById(pickerId);
+            if (picker) {
+                picker.querySelectorAll('.chat-visual-option').forEach((opt, idx) => {
+                    opt.classList.toggle('selected', idx === imageIndex);
+                });
+            }
+            
+            // Add confirmation message
+            addMessage(`Visual selected for Scene ${sceneIndex + 1}. Click another scene to continue, or type 'continue' when ready.`, false);
         }
         
         // Open visual picker for a scene
@@ -8853,6 +9030,43 @@
             conversationHistory.push({ role: 'user', content: fullMessage });
             saveConversation();
             renderChatPanelMessages();
+            
+            // Handle "continue" command - proceed with visuals
+            const msgLower = message.toLowerCase().trim();
+            if (msgLower === 'continue' || msgLower === 'yes' || msgLower === 'proceed') {
+                removeTypingIndicator();
+                
+                if (currentAnchors.length > 0 && Object.keys(sceneVisuals).length < currentAnchors.length) {
+                    // Still need visuals - guide user
+                    const missingVisuals = currentAnchors.length - Object.keys(sceneVisuals).length;
+                    addMessage(`You have ${missingVisuals} scene(s) without visuals. Click on a scene above to pick visuals, or say 'skip visuals' to continue without them.`, false);
+                } else if (currentAnchors.length > 0) {
+                    // All visuals selected - proceed to next step
+                    addMessage("All scenes have visuals. Ready for voice assignment. Would you like me to suggest voices for each scene, or do you want to pick them yourself?", false);
+                } else if (currentScript) {
+                    // Script exists but no anchors - generate them
+                    addMessage("Let me break this into scenes for you...", false);
+                    // Trigger anchor extraction
+                    if (currentScript.anchor_points) {
+                        displayAnchors(currentScript.anchor_points);
+                    }
+                } else {
+                    addMessage("I don't have anything to continue with yet. Share your idea or paste content to get started.", false);
+                }
+                
+                stopLoading();
+                sendBtn.disabled = false;
+                return;
+            }
+            
+            // Handle skip visuals command
+            if (msgLower === 'skip visuals' || msgLower === 'skip') {
+                removeTypingIndicator();
+                addMessage("Skipping visuals. Ready for voice assignment. Would you like me to suggest voices, or do you want to pick them yourself?", false);
+                stopLoading();
+                sendBtn.disabled = false;
+                return;
+            }
             
             try {
                 // Always use unified engine with auto-detection - AI determines create vs clip
