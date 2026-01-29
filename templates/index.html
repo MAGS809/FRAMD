@@ -7061,7 +7061,11 @@
                     removeTypingIndicator();
                     
                     if (data.success) {
-                        const reply = data.reply || data.refined_script;
+                        const reply = data.reply || data.refined_script || '';
+                        if (!reply) {
+                            addMessage('No response received. Please try again.');
+                            return;
+                        }
                         addMessage(reply);
                         conversationHistory.push({ role: 'assistant', content: reply });
                         saveConversation();
@@ -7069,7 +7073,7 @@
                         showUnreadBadge();
                         
                         // Check if script is ready
-                        const isScript = reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:');
+                        const isScript = reply && (reply.includes('SCENE') || reply.includes('===') || reply.includes('VISUAL:'));
                         if (data.script_ready || (isScript && reply.length > 300)) {
                             // Store full script for processing, but show voice actor version to user
                             currentScript = data.refined_script || reply;
@@ -7114,7 +7118,7 @@
                     }
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('sendMessage Error:', error, error?.message, error?.stack);
                 removeTypingIndicator();
                 addMessage('Connection error. Please try again.');
             } finally {
