@@ -792,6 +792,43 @@ def search_stock_videos(keywords: list[str], per_page: int = 5) -> list[dict]:
     return all_videos
 
 
+def detect_characters_in_scene(scene_text: str) -> dict:
+    """Detect characters, people, or historical figures mentioned in scene text."""
+    try:
+        response = client.chat.completions.create(
+            model="grok-3-fast",
+            max_completion_tokens=512,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": "Analyze text and identify any people, characters, or figures mentioned."},
+                {"role": "user", "content": f"""Analyze this scene text and identify any characters or people mentioned:
+
+"{scene_text}"
+
+For each character found, determine:
+1. Name (if mentioned)
+2. Type: "historical" (real historical figure), "celebrity" (modern public figure), or "generic" (unnamed person reference)
+3. Search query to find representative imagery (generic terms, no copyrighted names)
+
+Output JSON:
+{{
+    "characters": [
+        {{"name": "character name or description", "type": "historical/celebrity/generic", "search_query": "safe search terms for imagery"}}
+    ],
+    "has_people": true/false
+}}
+
+For historical figures like Einstein, use "scientist portrait" not the name.
+For generic references like "a leader", use "leader silhouette professional".
+If no people/characters mentioned, return empty array."""}
+            ]
+        )
+        return json.loads(response.choices[0].message.content)
+    except Exception as e:
+        print(f"Character detection error: {e}")
+        return {"characters": [], "has_people": False}
+
+
 def search_pexels_safe(query: str, per_page: int = 6) -> list[dict]:
     """Search Pexels for copyright-free stock images matching query."""
     if not PEXELS_API_KEY:

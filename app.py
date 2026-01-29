@@ -3172,8 +3172,8 @@ def validate_loop_endpoint():
 
 @app.route('/scene-visuals', methods=['POST'])
 def get_scene_visuals_endpoint():
-    """Get AI-curated visual suggestions for a specific scene."""
-    from context_engine import get_scene_visuals, search_pexels_safe
+    """Get AI-curated visual suggestions for a specific scene with 3 categories."""
+    from context_engine import get_scene_visuals, search_pexels_safe, detect_characters_in_scene
     
     data = request.get_json()
     scene_text = data.get('scene_text')
@@ -3186,19 +3186,62 @@ def get_scene_visuals_endpoint():
     try:
         visual_suggestions = get_scene_visuals(scene_text, scene_type, keywords)
         
-        images = []
+        # 1. Characters - detect people/figures in the scene
+        characters = []
+        try:
+            char_data = detect_characters_in_scene(scene_text)
+            for char in char_data.get('characters', [])[:3]:
+                char_name = char.get('name', '')
+                char_type = char.get('type', 'generic')
+                search_query = char.get('search_query', char_name)
+                
+                if char_type == 'historical' and search_query:
+                    results = search_pexels_safe(search_query, per_page=2)
+                    for r in results:
+                        r['character_name'] = char_name
+                        r['category'] = 'character'
+                    characters.extend(results)
+                elif char_type == 'generic':
+                    results = search_pexels_safe(search_query or 'person silhouette', per_page=2)
+                    for r in results:
+                        r['character_name'] = char_name or 'Character'
+                        r['category'] = 'character'
+                    characters.extend(results)
+        except:
+            pass
+        
+        # 2. Curated visuals - scene-specific imagery
+        curated = []
         for query in visual_suggestions.get('search_queries', [])[:2]:
             try:
-                results = search_pexels_safe(query)
-                if results:
-                    images.extend(results[:3])
+                results = search_pexels_safe(query, per_page=3)
+                for r in results:
+                    r['category'] = 'curated'
+                curated.extend(results)
+            except:
+                pass
+        
+        # 3. Backgrounds - atmospheric/setting imagery
+        backgrounds = []
+        bg_queries = visual_suggestions.get('background_queries', [])
+        if not bg_queries:
+            bg_queries = ['cinematic background', 'dramatic atmosphere']
+        for query in bg_queries[:2]:
+            try:
+                results = search_pexels_safe(query, per_page=2)
+                for r in results:
+                    r['category'] = 'background'
+                backgrounds.extend(results)
             except:
                 pass
         
         return jsonify({
             'success': True,
             'suggestions': visual_suggestions,
-            'images': images[:6]
+            'characters': characters[:4],
+            'curated': curated[:4],
+            'backgrounds': backgrounds[:4],
+            'images': characters[:2] + curated[:2] + backgrounds[:2]
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
