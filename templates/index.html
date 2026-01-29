@@ -1769,11 +1769,37 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 0.75rem 1rem;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
         }
         
         .bottom-chat-input-wrapper:focus-within {
             border-color: var(--accent);
+        }
+        
+        .bottom-chat-input-wrapper.drag-over {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.08);
+            box-shadow: 0 0 20px rgba(255, 214, 10, 0.15);
+        }
+        
+        .bottom-chat-input-wrapper.drag-over::before {
+            content: 'Drop to add';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--gold);
+            font-weight: 500;
+            font-size: 0.9rem;
+            z-index: 5;
+            pointer-events: none;
+        }
+        
+        .bottom-chat-input-wrapper.drag-over .bottom-chat-input,
+        .bottom-chat-input-wrapper.drag-over .bottom-send-btn,
+        .bottom-chat-input-wrapper.drag-over .attach-btn {
+            opacity: 0.15;
         }
         
         .bottom-chat-input {
@@ -8932,18 +8958,25 @@
             const composer = document.querySelector('.bottom-chat-input-wrapper') || document.querySelector('.composer-inner');
             
             if (composer) {
-                composer.addEventListener('dragover', (e) => {
+                composer.addEventListener('dragenter', (e) => {
                     e.preventDefault();
-                    composer.style.borderColor = 'var(--text)';
+                    composer.classList.add('drag-over');
                 });
                 
-                composer.addEventListener('dragleave', () => {
-                    composer.style.borderColor = '';
+                composer.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    composer.classList.add('drag-over');
+                });
+                
+                composer.addEventListener('dragleave', (e) => {
+                    if (!composer.contains(e.relatedTarget)) {
+                        composer.classList.remove('drag-over');
+                    }
                 });
                 
                 composer.addEventListener('drop', async (e) => {
                     e.preventDefault();
-                    composer.style.borderColor = '';
+                    composer.classList.remove('drag-over');
                     
                     if (e.dataTransfer.files.length > 0) {
                         const file = e.dataTransfer.files[0];
