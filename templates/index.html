@@ -4490,7 +4490,7 @@
         <!-- REVIEW STAGE -->
         <div class="stage" id="stage-review">
             <div class="review-content" id="review-content">
-                <div class="section-title">Your Script <span class="token-cost-badge">Free</span>
+                <div class="section-title">Your Script
                     <button class="btn btn-secondary btn-sm rebuild-btn" onclick="rebuildScript()" style="margin-left:auto;">Rebuild Script</button>
                 </div>
                 <div class="script-display">
@@ -4509,18 +4509,16 @@
                         </svg>
                     </span>
                     Stage Directions & Sound FX
-                    <span class="token-cost-badge">3 tokens</span>
-                    <span class="token-cost-badge" id="sfx-token-badge" style="display: none; margin-left: 4px;">+2 SFX</span>
                 </div>
                 <div class="stage-directions-panel" id="stage-directions-panel">
                     <div class="stage-directions-info">Timing: [PAUSE], [BEAT], [SILENCE]. Sound FX: [SOUND: whoosh], [SOUND: impact], [SOUND: tension], [SOUND: reveal]. SFX are auto-mixed into final video.</div>
                     <textarea class="stage-directions-input" id="stage-directions-input" placeholder="[PAUSE 1s]&#10;[BEAT]&#10;[SOUND: whoosh]&#10;[SOUND: impact]&#10;[SOUND: tension 2s]&#10;[SILENCE 2s]" oninput="updateSfxTokenBadge()"></textarea>
                     <div class="stage-directions-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="generateStageDirections()">Generate Directions — 3 tokens</button>
+                        <button class="btn btn-secondary btn-sm" onclick="generateStageDirections()">Generate Directions</button>
                     </div>
                 </div>
                 
-                <div class="section-title">Voice Casting & Characters <span class="token-cost-badge" id="voice-token-badge" style="display: none;">5 tokens</span> <span id="voice-count" class="voice-count"></span></div>
+                <div class="section-title">Voice Casting & Characters <span id="voice-count" class="voice-count"></span></div>
                 <div class="casting-panel" id="casting-panel">
                     <div class="casting-characters" id="casting-characters">
                         <div class="character-cast">
@@ -4553,7 +4551,7 @@
                     </div>
                 </div>
                 
-                <div class="section-title" style="margin-top: 1.5rem;">Format <span class="token-cost-badge">Free</span></div>
+                <div class="section-title" style="margin-top: 1.5rem;">Format</div>
                 <div class="format-grid" id="format-grid">
                     <div class="format-option selected" data-format="9:16" onclick="selectFormat(this)">9:16 Reel</div>
                     <div class="format-option" data-format="1:1" onclick="selectFormat(this)">1:1 Square</div>
@@ -4561,7 +4559,7 @@
                 </div>
                 
                 <div class="caption-section">
-                    <div class="section-title" style="margin-top: 1.5rem;">Captions <span class="token-cost-badge">2 tokens</span></div>
+                    <div class="section-title" style="margin-top: 1.5rem;">Captions</div>
                     <div class="caption-container">
                         <div class="caption-controls">
                             <div class="caption-control-group">
@@ -4671,7 +4669,6 @@
                 
                 <div class="section-title scene-composer-header" style="margin-top: 1.5rem;">
                     <span>Scene Composer</span>
-                    <span class="token-cost-badge">4 tokens</span>
                     <button class="framd-ai-btn" onclick="openFramdAI()">Framd AI</button>
                 </div>
                 <div class="scene-composer" id="scene-composer">
@@ -4684,7 +4681,7 @@
             </div>
             
             <div class="actions">
-                <button class="btn btn-primary" id="generate-btn" onclick="generateVideo()">Generate Video — <span id="token-cost">15</span> tokens</button>
+                <button class="btn btn-primary" id="generate-btn" onclick="generateVideo()">Generate Video — <span id="token-cost">25</span> tokens (all-inclusive)</button>
             </div>
         </div>
         
@@ -5942,6 +5939,8 @@
                     detectedCharacters = data.characters;
                     renderCastingPanel(data.characters);
                     document.getElementById('voice-count').textContent = `(${data.characters.length} characters)`;
+                    // Update cost when characters change
+                    updateTotalTokenCost();
                 } else {
                     showToast('Could not detect characters');
                 }
@@ -6989,14 +6988,12 @@
             if (el) el.textContent = sessionTokensSpent;
         }
         
-        // Token costs for each feature
+        // Token costs - unified pricing for simplicity
+        // All-inclusive cost per video: includes AI character, premium voice, captions, SFX, everything
         const TOKEN_COSTS = {
-            stageDirections: 3,
-            voiceCasting: 5,
-            captions: 2,
-            sceneComposer: 4,
-            soundFx: 2,  // Per SFX in the video
-            videoGeneration: 15
+            baseVideo: 25,  // Base cost including script, voice, basic rendering
+            perCharacter: 3,  // Additional characters beyond first
+            perSfx: 1  // Per sound effect
         };
         
         // Count SFX in stage directions and update badge/cost
@@ -7008,23 +7005,21 @@
         }
         
         function updateSfxTokenBadge() {
-            const sfxCount = countSoundFx();
-            const badge = document.getElementById('sfx-token-badge');
-            if (badge) {
-                if (sfxCount > 0) {
-                    badge.style.display = 'inline-flex';
-                    badge.textContent = `+${sfxCount * TOKEN_COSTS.soundFx} SFX`;
-                } else {
-                    badge.style.display = 'none';
-                }
-            }
+            // SFX badge removed - cost is now unified
             updateTotalTokenCost();
         }
         
         function updateTotalTokenCost() {
+            // Calculate unified all-inclusive cost
             const sfxCount = countSoundFx();
-            const sfxCost = sfxCount * TOKEN_COSTS.soundFx;
-            const totalCost = TOKEN_COSTS.videoGeneration + sfxCost;
+            const sfxCost = sfxCount * TOKEN_COSTS.perSfx;
+            
+            // Count additional characters beyond the first
+            const charLayers = document.querySelectorAll('.character-layer');
+            const extraChars = Math.max(0, charLayers.length - 1);
+            const charCost = extraChars * TOKEN_COSTS.perCharacter;
+            
+            const totalCost = TOKEN_COSTS.baseVideo + sfxCost + charCost;
             const costEl = document.getElementById('token-cost');
             if (costEl) {
                 costEl.textContent = totalCost;
@@ -7101,10 +7096,13 @@
             showLoading(true);
             document.body.classList.add('loading');
             
-            // Track token spending for video generation (includes SFX costs)
+            // Track token spending - unified all-inclusive cost
             const sfxCount = countSoundFx();
-            const sfxCost = sfxCount * TOKEN_COSTS.soundFx;
-            const totalCost = TOKEN_COSTS.videoGeneration + sfxCost;
+            const sfxCost = sfxCount * TOKEN_COSTS.perSfx;
+            const charLayers = document.querySelectorAll('.character-layer');
+            const extraChars = Math.max(0, charLayers.length - 1);
+            const charCost = extraChars * TOKEN_COSTS.perCharacter;
+            const totalCost = TOKEN_COSTS.baseVideo + sfxCost + charCost;
             updateSpendingTracker(totalCost);
             
             try {
