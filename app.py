@@ -6284,6 +6284,287 @@ def ai_improvement_stats():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/generator-settings', methods=['GET', 'POST'])
+def generator_settings():
+    """Get or update user generator settings for auto-generation."""
+    from models import GeneratorSettings
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    if request.method == 'GET':
+        settings = GeneratorSettings.query.filter_by(user_id=user_id).first()
+        if not settings:
+            # Return defaults
+            return jsonify({
+                'success': True,
+                'settings': {
+                    'tone': 'neutral',
+                    'format_type': 'explainer',
+                    'target_length': 45,
+                    'voice_style': 'news_anchor',
+                    'enabled_topics': [],
+                    'auto_enabled': False
+                }
+            })
+        return jsonify({
+            'success': True,
+            'settings': {
+                'tone': settings.tone,
+                'format_type': settings.format_type,
+                'target_length': settings.target_length,
+                'voice_style': settings.voice_style,
+                'enabled_topics': settings.enabled_topics or [],
+                'auto_enabled': settings.auto_enabled
+            }
+        })
+    
+    # POST - update settings
+    data = request.get_json()
+    settings = GeneratorSettings.query.filter_by(user_id=user_id).first()
+    if not settings:
+        settings = GeneratorSettings(user_id=user_id)
+        db.session.add(settings)
+    
+    if 'tone' in data:
+        settings.tone = data['tone']
+    if 'format_type' in data:
+        settings.format_type = data['format_type']
+    if 'target_length' in data:
+        settings.target_length = max(35, min(75, int(data['target_length'])))
+    if 'voice_style' in data:
+        settings.voice_style = data['voice_style']
+    if 'enabled_topics' in data:
+        settings.enabled_topics = data['enabled_topics']
+    if 'auto_enabled' in data:
+        settings.auto_enabled = data['auto_enabled']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'message': 'Settings updated',
+        'settings': {
+            'tone': settings.tone,
+            'format_type': settings.format_type,
+            'target_length': settings.target_length,
+            'voice_style': settings.voice_style,
+            'enabled_topics': settings.enabled_topics or [],
+            'auto_enabled': settings.auto_enabled
+        }
+    })
+
+
+@app.route('/generator-confidence', methods=['GET'])
+def generator_confidence():
+    """Calculate AI confidence for auto-generation based on liked projects."""
+    from models import Project, AILearning, GlobalPattern
+    from flask_login import current_user
+    
+    UNLOCK_THRESHOLD = 5  # Need 5 liked projects to unlock auto-generation
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    try:
+        # Count liked projects for this user
+        liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+        total_with_feedback = Project.query.filter(
+            Project.user_id == user_id,
+            Project.liked.isnot(None)
+        ).count()
+        
+        # Calculate success rate
+        success_rate = (liked_count / total_with_feedback * 100) if total_with_feedback > 0 else 0
+        
+        # Check if unlocked
+        is_unlocked = liked_count >= UNLOCK_THRESHOLD
+        
+        # Progress message
+        if is_unlocked:
+            progress_message = "Auto-Generate unlocked!"
+        else:
+            remaining = UNLOCK_THRESHOLD - liked_count
+            progress_message = f"{liked_count}/{UNLOCK_THRESHOLD} liked to unlock"
+        
+        # Get learned patterns for confidence
+        learned_patterns = GlobalPattern.query.filter(
+            GlobalPattern.success_count > 0
+        ).count()
+        
+        return jsonify({
+            'success': True,
+            'liked_count': liked_count,
+            'total_projects': total_with_feedback,
+            'success_rate': round(success_rate, 1),
+            'unlock_threshold': UNLOCK_THRESHOLD,
+            'is_unlocked': is_unlocked,
+            'progress_message': progress_message,
+            'learned_patterns': learned_patterns,
+            'confidence_score': min(100, (liked_count / UNLOCK_THRESHOLD) * 100)
+        })
+        
+    except Exception as e:
+        print(f"Confidence calculation error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/auto-generate', methods=['POST'])
+def auto_generate():
+    """Auto-generate content using learned patterns and user settings."""
+    from models import Project, GeneratorSettings, GlobalPattern, AILearning
+    from flask_login import current_user
+    import os
+    
+    UNLOCK_THRESHOLD = 5
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    # Check if unlocked
+    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+    if liked_count < UNLOCK_THRESHOLD:
+        return jsonify({
+            'error': 'Auto-generation not unlocked',
+            'message': f'Need {UNLOCK_THRESHOLD - liked_count} more liked projects to unlock',
+            'requires_unlock': True
+        }), 403
+    
+    # Get user settings
+    settings = GeneratorSettings.query.filter_by(user_id=user_id).first()
+    if not settings:
+        settings = GeneratorSettings(user_id=user_id)
+    
+    # Get learned patterns
+    successful_patterns = GlobalPattern.query.filter(
+        GlobalPattern.success_rate > 0.5
+    ).order_by(GlobalPattern.success_rate.desc()).limit(5).all()
+    
+    pattern_hints = []
+    for p in successful_patterns:
+        if p.pattern_data.get('description'):
+            pattern_hints.append(p.pattern_data['description'])
+    
+    # Get AI learning data
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    learned_hooks = ai_learning.learned_hooks if ai_learning else []
+    learned_styles = ai_learning.learned_styles if ai_learning else []
+    
+    # Get topic for generation
+    data = request.get_json() or {}
+    topic = data.get('topic', '')
+    
+    # Build auto-generation prompt
+    prompt = f"""Generate a complete short-form video script based on user preferences and learned patterns.
+
+USER SETTINGS:
+- Tone: {settings.tone}
+- Format: {settings.format_type}
+- Target Length: {settings.target_length} seconds
+- Voice Style: {settings.voice_style}
+- Preferred Topics: {', '.join(settings.enabled_topics) if settings.enabled_topics else 'General'}
+
+LEARNED PATTERNS (from previous successful content):
+{chr(10).join(f'- {hint}' for hint in pattern_hints[:3]) if pattern_hints else '- No specific patterns learned yet'}
+
+LEARNED HOOKS: {', '.join(learned_hooks[:3]) if learned_hooks else 'None'}
+LEARNED STYLES: {', '.join(learned_styles[:3]) if learned_styles else 'None'}
+
+TOPIC/IDEA: {topic if topic else 'Generate based on user preferences and trending topics'}
+
+Generate a complete {settings.target_length}-second video script following the thesis-driven anchor structure:
+1. HOOK - Direct, attention-grabbing opener
+2. CLAIM - Core thesis statement
+3. EVIDENCE - Supporting points (2-3 max)
+4. PIVOT - Unexpected angle or reframe
+5. CLOSER - Return to thesis with impact
+
+The tone should be {settings.tone}. Format as {settings.format_type}.
+Write for voice style: {settings.voice_style}.
+
+Output the script with clear character lines formatted as:
+[CHARACTER]: dialogue
+
+Include [PAUSE] and [BEAT] markers for pacing.
+"""
+
+    try:
+        # Call AI to generate
+        xai_api_key = os.environ.get('XAI_API_KEY')
+        if not xai_api_key:
+            return jsonify({'error': 'AI configuration error'}), 500
+        
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=xai_api_key,
+            base_url="https://api.x.ai/v1"
+        )
+        
+        response = client.chat.completions.create(
+            model="grok-3",
+            messages=[
+                {"role": "system", "content": "You are Krakd, a thesis-driven content engine. Generate clear, honest, human-feeling scripts that respect complexity. Prioritize clarity, integrity, and resonance over virality."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=2000
+        )
+        
+        generated_script = response.choices[0].message.content
+        
+        # Create a new project with the generated content
+        project = Project(
+            user_id=user_id,
+            name=f"Auto-Generated: {topic[:50]}" if topic else "Auto-Generated Content",
+            description="Generated using AI learning and user preferences",
+            script=generated_script,
+            status='draft',
+            workflow_step=3  # Start at script stage
+        )
+        db.session.add(project)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'project_id': project.id,
+            'script': generated_script,
+            'settings_used': {
+                'tone': settings.tone,
+                'format_type': settings.format_type,
+                'target_length': settings.target_length,
+                'voice_style': settings.voice_style
+            },
+            'patterns_applied': len(pattern_hints)
+        })
+        
+    except Exception as e:
+        print(f"Auto-generate error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/host-video', methods=['POST'])
 def host_video():
     """Host a video with a public shareable URL (Pro subscribers only)."""
