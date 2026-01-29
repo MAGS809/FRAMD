@@ -799,6 +799,39 @@
             position: relative;
         }
         
+        /* Auto-gen unlock banner */
+        .autogen-unlock-banner {
+            background: linear-gradient(135deg, rgba(255,214,10,0.1), rgba(255,214,10,0.05));
+            border: 1px solid rgba(255,214,10,0.2);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .autogen-unlock-banner.unlocked {
+            background: linear-gradient(135deg, rgba(255,214,10,0.15), rgba(255,214,10,0.08));
+            border-color: var(--gold);
+        }
+        
+        .autogen-unlock-banner .banner-icon {
+            font-size: 1.2rem;
+        }
+        
+        .autogen-unlock-banner .banner-text {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .autogen-unlock-banner .banner-progress {
+            margin-left: auto;
+            font-size: 0.8rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        
         /* Generator Settings Panel */
         .generator-settings-section {
             background: rgba(255,255,255,0.03);
@@ -4821,6 +4854,11 @@
         <!-- PROJECTS DASHBOARD STAGE (Initial View) -->
         <div class="stage active" id="stage-projects">
             <div class="projects-dashboard">
+                <div class="autogen-unlock-banner" id="autogen-unlock-banner">
+                    <span class="banner-icon">✦</span>
+                    <span class="banner-text">Help the AI learn your style — like 5 creations to unlock Auto-Generate.</span>
+                    <span class="banner-progress" id="banner-progress">0/5</span>
+                </div>
                 <div class="projects-grid" id="dashboard-projects-grid">
                 </div>
             </div>
@@ -5781,6 +5819,24 @@
                 iconEl.textContent = '🔒';
                 textEl.textContent = autoGenerateConfidence.progress_message;
             }
+            
+            // Update the dashboard banner
+            const banner = document.getElementById('autogen-unlock-banner');
+            const bannerProgress = document.getElementById('banner-progress');
+            
+            if (banner && bannerProgress) {
+                if (autoGenerateConfidence.is_unlocked) {
+                    banner.classList.add('unlocked');
+                    banner.querySelector('.banner-text').textContent = 'Auto-Generate unlocked! The AI has learned your style.';
+                    banner.querySelector('.banner-icon').textContent = '✦';
+                    bannerProgress.textContent = 'Ready';
+                } else {
+                    banner.classList.remove('unlocked');
+                    banner.querySelector('.banner-text').textContent = 'Help the AI learn your style — like 5 creations to unlock Auto-Generate.';
+                    banner.querySelector('.banner-icon').textContent = '✦';
+                    bannerProgress.textContent = `${autoGenerateConfidence.liked_count || 0}/5`;
+                }
+            }
         }
         
         // Delete project
@@ -5967,6 +6023,10 @@
             if (!grid) return;
             
             try {
+                // Fetch confidence for banner
+                await fetchAutoGenerateConfidence();
+                updateAutoGenStatus();
+                
                 const response = await fetch('/projects');
                 let projects = [];
                 let learning = { learning_progress: 0, total_projects: 0, successful_projects: 0, can_auto_generate: false };
