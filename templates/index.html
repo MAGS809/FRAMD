@@ -5064,6 +5064,13 @@
             // Status indicator removed - no-op
         }
         
+        function showAIFeedback(message, actions) {
+            // Display feedback in the chat if available
+            if (message) {
+                addMessage(message, false, true);
+            }
+        }
+        
         // Timeline Button Handlers
         function showVoices() {
             showStage('review');
