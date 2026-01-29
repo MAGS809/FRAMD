@@ -2666,6 +2666,25 @@ def update_project(project_id):
     return jsonify({'success': True, 'project_id': project.id})
 
 
+@app.route('/project/<int:project_id>', methods=['DELETE'])
+def delete_project(project_id):
+    """Delete a project."""
+    from models import Project
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    db.session.delete(project)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Project deleted'})
+
+
 @app.route('/projects/<int:project_id>/workflow-step', methods=['POST'])
 def update_project_workflow_step(project_id):
     """Update the workflow step for a project."""

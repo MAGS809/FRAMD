@@ -772,6 +772,33 @@
             font-size: 0.8rem;
         }
         
+        .project-delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.3);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            opacity: 0;
+        }
+        
+        .project-card-item:hover .project-delete-btn {
+            opacity: 1;
+        }
+        
+        .project-delete-btn:hover {
+            color: #ff6b6b;
+            background: rgba(255,107,107,0.1);
+        }
+        
+        .project-card-item {
+            position: relative;
+        }
+        
         /* Generator Settings Panel */
         .generator-settings-section {
             background: rgba(255,255,255,0.03);
@@ -5756,6 +5783,33 @@
             }
         }
         
+        // Delete project
+        async function deleteProject(projectId, event) {
+            event.stopPropagation();
+            
+            if (!confirm('Delete this project? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/project/${projectId}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Project deleted', 'success');
+                    loadProjects();
+                    loadDashboardProjects();
+                } else {
+                    showNotification(data.error || 'Could not delete project', 'error');
+                }
+            } catch (error) {
+                showNotification('Could not delete project', 'error');
+            }
+        }
+        
         // Handle auto-generate button click
         async function handleAutoGenerate(projectId, event) {
             event.stopPropagation();
@@ -5976,6 +6030,11 @@
                 html += `
                     <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
                          id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
+                        <button class="project-delete-btn" onclick="deleteProject(${p.id}, event)" title="Delete project">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                            </svg>
+                        </button>
                         <div class="project-card-title">
                             ${escapeHtml(p.name)}
                             ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
