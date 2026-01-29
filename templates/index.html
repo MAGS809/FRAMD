@@ -1730,173 +1730,6 @@
             text-decoration: underline;
         }
         
-        /* Sidebar Toggle & Panel */
-        .sidebar-toggle {
-            position: fixed;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 40px;
-            height: 40px;
-            background: rgba(10, 31, 20, 0.95);
-            border: 1px solid rgba(255, 214, 10, 0.3);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1000;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .sidebar-toggle:hover {
-            background: rgba(255, 214, 10, 0.15);
-            border-color: rgba(255, 214, 10, 0.5);
-            color: #ffd60a;
-        }
-        
-        .sidebar-toggle.active {
-            left: calc(280px + 1rem);
-        }
-        
-        .sidebar-panel {
-            position: fixed;
-            left: -300px;
-            top: 60px;
-            bottom: 0;
-            width: 280px;
-            background: rgba(10, 31, 20, 0.98);
-            border-right: 1px solid rgba(255, 214, 10, 0.2);
-            z-index: 999;
-            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            backdrop-filter: blur(20px);
-        }
-        
-        .sidebar-panel.open {
-            left: 0;
-        }
-        
-        .sidebar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid rgba(255, 214, 10, 0.1);
-        }
-        
-        .sidebar-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #ffd60a;
-        }
-        
-        .sidebar-close {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.5);
-            cursor: pointer;
-            padding: 0.25rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: color 0.2s;
-        }
-        
-        .sidebar-close:hover {
-            color: #ffd60a;
-        }
-        
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem;
-        }
-        
-        .sidebar-section {
-            margin-bottom: 1.5rem;
-        }
-        
-        .sidebar-section-title {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: rgba(255, 214, 10, 0.7);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 0.75rem;
-        }
-        
-        .sidebar-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.6rem 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        
-        .sidebar-label {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.6);
-        }
-        
-        .sidebar-value {
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.9);
-            font-weight: 500;
-        }
-        
-        .sidebar-select {
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 6px;
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 0.75rem;
-            padding: 0.4rem 0.6rem;
-            cursor: pointer;
-            min-width: 120px;
-        }
-        
-        .sidebar-select:focus {
-            outline: none;
-            border-color: rgba(255, 214, 10, 0.5);
-        }
-        
-        .sidebar-action-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.7rem 0.8rem;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar-action-btn:hover {
-            background: rgba(255, 214, 10, 0.1);
-            border-color: rgba(255, 214, 10, 0.3);
-            color: #ffd60a;
-        }
-        
-        /* Content push when sidebar is open */
-        .app.sidebar-open .stage {
-            margin-left: 280px;
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .stage {
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
         /* Stage panels */
         .stage {
             display: none;
@@ -4648,158 +4481,8 @@
             </div>
         </div>
         
-        <!-- SIDEBAR TOGGLE & PANEL -->
-        <div class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <line x1="9" y1="3" x2="9" y2="21"/>
-            </svg>
-        </div>
-        
-        <div class="sidebar-panel" id="sidebar-panel">
-            <div class="sidebar-header">
-                <span class="sidebar-title">Project Settings</span>
-                <button class="sidebar-close" onclick="toggleSidebar()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            
-            <div class="sidebar-content">
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Project Info</div>
-                    <div class="sidebar-item">
-                        <span class="sidebar-label">Name</span>
-                        <span class="sidebar-value" id="sidebar-project-name">New Project</span>
-                    </div>
-                    <div class="sidebar-item">
-                        <span class="sidebar-label">Mode</span>
-                        <span class="sidebar-value" id="sidebar-project-mode">Create</span>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Output Settings</div>
-                    <div class="sidebar-item">
-                        <span class="sidebar-label">Aspect Ratio</span>
-                        <select class="sidebar-select" id="sidebar-aspect" onchange="updateSidebarAspect(this.value)">
-                            <option value="9:16" selected>9:16 (Vertical)</option>
-                            <option value="1:1">1:1 (Square)</option>
-                            <option value="4:5">4:5 (Portrait)</option>
-                            <option value="16:9">16:9 (Landscape)</option>
-                        </select>
-                    </div>
-                    <div class="sidebar-item">
-                        <span class="sidebar-label">Duration</span>
-                        <select class="sidebar-select" id="sidebar-duration" onchange="updateSidebarDuration(this.value)">
-                            <option value="15">15 seconds</option>
-                            <option value="30" selected>30 seconds</option>
-                            <option value="60">60 seconds</option>
-                            <option value="90">90 seconds</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Voice Settings</div>
-                    <div class="sidebar-item">
-                        <span class="sidebar-label">Default Voice</span>
-                        <select class="sidebar-select" id="sidebar-voice" onchange="updateSidebarVoice(this.value)">
-                            <option value="the_anchor" selected>The Anchor</option>
-                            <option value="british_authority">British Authority</option>
-                            <option value="the_storyteller">The Storyteller</option>
-                            <option value="aussie_casual">Aussie Casual</option>
-                            <option value="power_exec">Power Exec</option>
-                            <option value="documentary_pro">Documentary Pro</option>
-                            <option value="hype_machine">Hype Machine</option>
-                            <option value="cinema_epic">Cinema Epic</option>
-                            <option value="whisper_intimate">Whisper Intimate</option>
-                            <option value="zen_guide">Zen Guide</option>
-                            <option value="warm_narrator">Warm Narrator</option>
-                            <option value="countdown_king">Countdown King</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="sidebar-section">
-                    <div class="sidebar-section-title">Quick Actions</div>
-                    <button class="sidebar-action-btn" onclick="resetProject()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
-                        </svg>
-                        New Project
-                    </button>
-                    <button class="sidebar-action-btn" onclick="exportProject()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Export Settings
-                    </button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- CREATE STAGE -->
+        <!-- CREATE STAGE - Chat Only -->
         <div class="stage" id="stage-create">
-            <div class="doc-editor-layout">
-                <!-- Mode Selector - HIDDEN: AI auto-detects mode from input -->
-                <div class="mode-selector" id="mode-selector" style="display: none;">
-                    <button class="mode-btn active" data-mode="auto" onclick="setContentMode('auto')">Auto</button>
-                </div>
-                
-                <!-- Document Main Area -->
-                <div class="doc-main">
-                    <div class="doc-content">
-                        <!-- Thesis Display Panel (hidden by default) -->
-                        <div class="thesis-panel" id="thesis-panel" style="display:none;">
-                            <div class="thesis-header">
-                                <span class="thesis-icon">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <line x1="12" y1="18" x2="12" y2="12"/>
-                                        <line x1="9" y1="15" x2="15" y2="15"/>
-                                    </svg>
-                                </span>
-                                Core Thesis
-                                <button class="thesis-edit-btn" onclick="editThesis()" title="Edit thesis">Edit</button>
-                            </div>
-                            <div class="thesis-content" id="thesis-content">
-                                <span class="thesis-placeholder">Thesis will be extracted from your input...</span>
-                            </div>
-                            <div class="thesis-meta" id="thesis-meta" style="display:none;">
-                                <span class="thesis-type" id="thesis-type"></span>
-                                <span class="thesis-confidence" id="thesis-confidence"></span>
-                            </div>
-                        </div>
-                        
-                        <!-- Anchors Display (hidden by default) -->
-                        <div class="anchors-panel" id="anchors-panel" style="display:none;">
-                            <div class="anchors-header">
-                                <span>Script Anchors</span>
-                                <span class="anchor-count" id="anchor-count">0</span>
-                            </div>
-                            <div class="anchors-list" id="anchors-list"></div>
-                        </div>
-                        
-                        <!-- Document Script Editor -->
-                        <div 
-                            class="doc-script-editor" 
-                            id="doc-script-editor" 
-                            contenteditable="true"
-                            data-placeholder="Start with an idea, paste a transcript, or drop a link..."
-                        ></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Hidden file input -->
-            <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)" style="display:none;">
         </div>
         
         <!-- Fixed Bottom Chat Bar - Sleek, Full Width -->
@@ -4809,7 +4492,7 @@
                     <textarea 
                         class="bottom-chat-input" 
                         id="composer-input" 
-                        placeholder="Ask Echo Engine anything..."
+                        placeholder="Clip or idea - build postable content"
                         rows="1"
                         onkeydown="handleKeydown(event)"
                         oninput="autoResize(this)"
@@ -5276,6 +4959,7 @@
         
         async function generateScriptFromDoc() {
             const editor = document.getElementById('doc-script-editor');
+            if (!editor) return;
             const content = editor.innerText.trim();
             
             if (!content) {
@@ -5321,6 +5005,7 @@
         
         function displayScriptInEditor(script) {
             const editor = document.getElementById('doc-script-editor');
+            if (!editor) return;
             
             // Parse script format and display nicely
             if (typeof script === 'string') {
@@ -8437,47 +8122,10 @@
             btn.textContent = 'Generate More Content';
         }
         
-        // Sidebar toggle
-        let sidebarOpen = false;
-        
-        function toggleSidebar() {
-            sidebarOpen = !sidebarOpen;
-            const panel = document.getElementById('sidebar-panel');
-            const toggle = document.getElementById('sidebar-toggle');
-            const app = document.querySelector('.app');
-            
-            if (sidebarOpen) {
-                panel.classList.add('open');
-                toggle.classList.add('active');
-                app.classList.add('sidebar-open');
-            } else {
-                panel.classList.remove('open');
-                toggle.classList.remove('active');
-                app.classList.remove('sidebar-open');
-            }
-        }
-        
-        function updateSidebarAspect(value) {
-            console.log('Aspect ratio changed to:', value);
-        }
-        
-        function updateSidebarDuration(value) {
-            console.log('Duration changed to:', value);
-        }
-        
-        function updateSidebarVoice(value) {
-            console.log('Voice changed to:', value);
-        }
-        
         function resetProject() {
             if (confirm('Start a new project? This will clear the current conversation.')) {
-                toggleSidebar();
                 startNewProject();
             }
-        }
-        
-        function exportProject() {
-            alert('Export settings feature coming soon');
         }
         
         function toggleNavMenu() {
