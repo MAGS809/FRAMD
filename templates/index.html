@@ -6087,6 +6087,9 @@
                     </button>
                 `;
                 
+                const projectName = p.name || 'Untitled Project';
+                const projectDesc = p.description || 'No description';
+                
                 html += `
                     <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
                          id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
@@ -6096,21 +6099,15 @@
                             </svg>
                         </button>
                         <div class="project-card-title">
-                            ${escapeHtml(p.name)}
+                            ${escapeHtml(projectName)}
                             ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
                             ${isReady && !p.is_successful ? '<span class="project-ready-badge">Ready</span>' : ''}
                         </div>
-                        <div class="project-card-desc">${escapeHtml(p.description || 'No description')}</div>
+                        <div class="project-card-desc">${escapeHtml(projectDesc)}</div>
                         <div class="project-workflow-steps">${stepDots}</div>
                         ${autoGenBtn}
-                        <div class="project-card-progress ${isGenerating ? 'active' : ''}" id="project-progress-${p.id}">
-                            <div class="project-progress-track">
-                                <div class="project-progress-fill" id="project-progress-fill-${p.id}"></div>
-                            </div>
-                            <div class="project-progress-label" id="project-progress-label-${p.id}">Preparing...</div>
-                        </div>
                         <div class="project-card-footer">
-                            <span class="project-card-status">${isGenerating ? 'Generating...' : p.status}</span>
+                            <span class="project-card-status">${isGenerating ? 'Generating...' : (p.status || 'draft')}</span>
                             <span>${formatDate(p.updated_at)}</span>
                         </div>
                     </div>
