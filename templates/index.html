@@ -9187,17 +9187,15 @@
             sendBtn.disabled = false;
         }
         
-        // Workflow step tracking (max 10 steps) - Echo Engine controls all transitions
+        // Workflow step tracking - All transitions happen via chat
         let currentWorkflowStep = 1;
         const WORKFLOW_STEPS = {
             1: { name: 'Script Writing', guide: null, action: null },
-            2: { name: 'Voice Assignment', guide: 'Script ready. Assign voices, then continue.', action: { label: 'Continue to Visuals', fn: 'proceedToReview' } },
-            3: { name: 'Visual Curation', guide: 'Finding visuals...', action: null },
-            4: { name: 'Scene Review', guide: 'Scenes ready. Review and generate.', action: { label: 'Generate Video', fn: 'generateVideo' } },
-            5: { name: 'Caption Styling', guide: 'Style your captions.', action: null },
-            6: { name: 'Audio Preview', guide: 'Processing video...', action: null },
-            7: { name: 'Final Preview', guide: 'Done. Preview and download.', action: { label: 'Download Video', fn: 'downloadVideo' } },
-            8: { name: 'Export', guide: 'Ready to share.', action: { label: 'Start New Project', fn: 'startOver' } }
+            2: { name: 'Scene Review', guide: null, action: null },
+            3: { name: 'Visual Selection', guide: null, action: null },
+            4: { name: 'Voice Assignment', guide: null, action: null },
+            5: { name: 'Generate Video', guide: null, action: null },
+            6: { name: 'Final Preview', guide: null, action: null }
         };
         
         // Render a guide message with optional action button
@@ -9218,17 +9216,15 @@
             renderChatPanelMessages();
         }
         
-        // Show review confirmation via chat (not modal)
+        // Show review confirmation via chat (not modal) - now proceeds to scenes
         function showReviewConfirmation() {
-            // Advance to step 2 - Voice Assignment
+            // Advance to step 2 - Scene Review
             currentWorkflowStep = 2;
             updateProjectWorkflowStep(2);
             storeWorkflowPreference('script_completed', true);
             
-            // Add guide message with action button via chat
-            setTimeout(() => {
-                renderWorkflowGuide(2);
-            }, 500);
+            // Scenes are now displayed inline via displayAnchors
+            // No separate modal or button needed
         }
         
         // Store workflow preference for AI learning
