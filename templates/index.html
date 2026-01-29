@@ -571,33 +571,40 @@
             gap: 1rem;
         }
         
-        .project-card-new {
+        .fab-new-project {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            background: var(--accent);
+            border: none;
+            border-radius: 50%;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.75rem;
-            background: rgba(255,214,10,0.05);
-            border: 2px dashed rgba(255,214,10,0.3);
-            border-radius: 16px;
-            padding: 2rem;
             cursor: pointer;
-            transition: all 0.2s;
-            min-height: 150px;
+            color: var(--bg);
+            box-shadow: 0 4px 20px rgba(255, 214, 10, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
         }
         
-        .project-card-new:hover {
-            background: rgba(255,214,10,0.1);
-            border-color: rgba(255,214,10,0.5);
+        .fab-new-project:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(255, 214, 10, 0.5);
         }
         
-        .new-project-icon {
-            color: var(--accent);
+        .fab-new-project:active {
+            transform: scale(0.95);
         }
         
-        .project-card-new span {
-            color: var(--accent);
-            font-weight: 500;
+        .empty-projects-message {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1rem;
+            padding: 3rem;
+            grid-column: 1 / -1;
         }
         
         .project-card-item {
@@ -1489,6 +1496,7 @@
             padding: 1rem 1.5rem 1.25rem;
             z-index: 1000;
             box-sizing: border-box;
+            display: none;
         }
         
         .bottom-chat-container {
@@ -4417,17 +4425,14 @@
         <div class="stage active" id="stage-projects">
             <div class="projects-dashboard">
                 <div class="projects-grid" id="dashboard-projects-grid">
-                    <div class="project-card-new" onclick="startNewProject()">
-                        <div class="new-project-icon">
-                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="12" y1="5" x2="12" y2="19"/>
-                                <line x1="5" y1="12" x2="19" y2="12"/>
-                            </svg>
-                        </div>
-                        <span>New Project</span>
-                    </div>
                 </div>
             </div>
+            <button class="fab-new-project" onclick="startNewProject()" title="New Project">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+            </button>
         </div>
         
         <!-- DISCOVER FEED STAGE -->
@@ -5400,18 +5405,14 @@
             const grid = document.getElementById('dashboard-projects-grid');
             if (!grid) return;
             
-            // Start with the "New Project" card
-            let html = `
-                <div class="project-card-new" onclick="startNewProject()">
-                    <div class="new-project-icon">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                    </div>
-                    <span>New Project</span>
-                </div>
-            `;
+            let html = '';
+            
+            // Show empty state if no projects
+            if (!projects || projects.length === 0) {
+                html = '<div class="empty-projects-message">No projects yet. Tap + to start.</div>';
+                grid.innerHTML = html;
+                return;
+            }
             
             // Add existing projects
             projects.forEach(p => {
@@ -5524,6 +5525,8 @@
         function goToProjects() {
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
             document.getElementById('stage-projects').classList.add('active');
+            const chatBar = document.getElementById('bottom-chat-bar');
+            if (chatBar) chatBar.style.display = 'none';
             loadDashboardProjects();
         }
         
