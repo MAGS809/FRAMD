@@ -1478,34 +1478,35 @@
             border-color: var(--accent);
         }
         
-        /* Fixed Bottom Chat Bar */
+        /* Fixed Bottom Chat Bar - Full Width */
         .bottom-chat-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--bg);
+            width: 100vw;
+            background: var(--surface);
             border-top: 1px solid var(--border);
-            padding: 0.75rem 1rem;
-            z-index: 100;
+            padding: 1rem 1.5rem;
+            z-index: 1000;
+            box-sizing: border-box;
         }
         
         .bottom-chat-container {
             width: 100%;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0 1rem;
+            gap: 1rem;
         }
         
         .bottom-chat-input-wrapper {
             flex: 1;
             display: flex;
             align-items: center;
-            background: rgba(255, 255, 255, 0.03);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
             transition: border-color 0.2s;
         }
         
@@ -1519,11 +1520,11 @@
             border: none;
             color: var(--text);
             font-family: inherit;
-            font-size: 0.9rem;
+            font-size: 1rem;
             resize: none;
             outline: none;
             min-height: 24px;
-            max-height: 100px;
+            max-height: 120px;
         }
         
         .bottom-chat-input::placeholder {
