@@ -138,6 +138,25 @@ with app.app_context():
                         )
                     """))
                     conn.commit()
+                
+                # Check if generator_settings table exists
+                result = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name='generator_settings'"))
+                if not result.fetchone():
+                    conn.execute(text("""
+                        CREATE TABLE generator_settings (
+                            id SERIAL PRIMARY KEY,
+                            user_id VARCHAR UNIQUE NOT NULL,
+                            tone VARCHAR(50) DEFAULT 'neutral',
+                            format_type VARCHAR(50) DEFAULT 'explainer',
+                            target_length INTEGER DEFAULT 45,
+                            voice_style VARCHAR(50) DEFAULT 'news_anchor',
+                            enabled_topics JSON DEFAULT '[]',
+                            auto_enabled BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW()
+                        )
+                    """))
+                    conn.commit()
     except Exception as e:
         logging.warning(f"Schema migration check: {e}")
     
