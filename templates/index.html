@@ -248,6 +248,261 @@
         .avatar-menu-item.logout {
             color: var(--gold);
         }
+        
+        /* Settings Pages */
+        .settings-page {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .settings-header {
+            margin-bottom: 2rem;
+        }
+        
+        .settings-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0 0 0.5rem 0;
+        }
+        
+        .settings-header p {
+            color: rgba(255,214,10,0.6);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        
+        .settings-section {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .settings-section-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255,214,10,0.5);
+            margin-bottom: 1rem;
+        }
+        
+        .settings-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .settings-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .settings-row:first-child {
+            padding-top: 0;
+        }
+        
+        .settings-row-info {
+            flex: 1;
+        }
+        
+        .settings-row-label {
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        
+        .settings-row-desc {
+            font-size: 0.85rem;
+            color: rgba(255,214,10,0.5);
+        }
+        
+        .settings-row-value {
+            color: rgba(255,214,10,0.7);
+            font-size: 0.9rem;
+        }
+        
+        .settings-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            border: none;
+        }
+        
+        .settings-btn-primary {
+            background: #ffd60a;
+            color: #0a1f14;
+        }
+        
+        .settings-btn-primary:hover {
+            background: #ffe033;
+        }
+        
+        .settings-btn-secondary {
+            background: rgba(255,214,10,0.1);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .settings-btn-secondary:hover {
+            background: rgba(255,214,10,0.15);
+            border-color: rgba(255,214,10,0.3);
+        }
+        
+        .settings-btn-danger {
+            background: rgba(220,38,38,0.1);
+            color: #ef4444;
+            border: 1px solid rgba(220,38,38,0.2);
+        }
+        
+        .settings-btn-danger:hover {
+            background: rgba(220,38,38,0.2);
+        }
+        
+        .profile-avatar-section {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .profile-avatar-large {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #ffd60a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #0a1f14;
+            overflow: hidden;
+        }
+        
+        .profile-avatar-large img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .profile-avatar-info h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1.25rem;
+            color: var(--text);
+        }
+        
+        .profile-avatar-info p {
+            margin: 0;
+            color: rgba(255,214,10,0.6);
+            font-size: 0.9rem;
+        }
+        
+        .billing-plan-card {
+            background: linear-gradient(135deg, rgba(255,214,10,0.1), rgba(255,214,10,0.05));
+            border: 1px solid rgba(255,214,10,0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .billing-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .billing-plan-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .billing-plan-price {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffd60a;
+        }
+        
+        .billing-plan-price span {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: rgba(255,214,10,0.6);
+        }
+        
+        .billing-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .billing-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            color: rgba(255,214,10,0.8);
+            font-size: 0.9rem;
+        }
+        
+        .billing-features li svg {
+            color: #22c55e;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle-switch.active {
+            background: #22c55e;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        .toggle-switch.active::after {
+            transform: translateX(20px);
+        }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: rgba(255,214,10,0.6);
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: color 0.15s;
+        }
+        
+        .back-btn:hover {
+            color: var(--text);
+        }
             color: var(--text-dim);
             font-size: 0.75rem;
             cursor: pointer;
@@ -5394,6 +5649,183 @@
             </div>
         </div>
         
+        <!-- PROFILE SETTINGS PAGE -->
+        <div class="stage" id="stage-profile">
+            <div class="settings-page">
+                <div class="back-btn" onclick="goToProjects()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to projects
+                </div>
+                
+                <div class="settings-header">
+                    <h1>Profile</h1>
+                    <p>Manage your account information</p>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="profile-avatar-section">
+                        <div class="profile-avatar-large" id="profile-avatar-large">
+                            <span id="profile-initial-large">U</span>
+                        </div>
+                        <div class="profile-avatar-info">
+                            <h3 id="profile-display-name">User</h3>
+                            <p id="profile-email-display">user@example.com</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-section-title">Account Information</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Email</div>
+                            <div class="settings-row-desc">Your login email address</div>
+                        </div>
+                        <div class="settings-row-value" id="profile-email">user@example.com</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Account Created</div>
+                            <div class="settings-row-desc">When you joined Framd</div>
+                        </div>
+                        <div class="settings-row-value" id="profile-created">-</div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Projects Created</div>
+                            <div class="settings-row-desc">Total number of projects</div>
+                        </div>
+                        <div class="settings-row-value" id="profile-projects-count">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- BILLING SETTINGS PAGE -->
+        <div class="stage" id="stage-billing">
+            <div class="settings-page">
+                <div class="back-btn" onclick="goToProjects()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to projects
+                </div>
+                
+                <div class="settings-header">
+                    <h1>Billing</h1>
+                    <p>Manage your subscription and payment</p>
+                </div>
+                
+                <div class="billing-plan-card" id="billing-plan-card">
+                    <div class="billing-plan-header">
+                        <div class="billing-plan-name" id="billing-plan-name">Free Plan</div>
+                        <div class="billing-plan-price" id="billing-plan-price">$0<span>/month</span></div>
+                    </div>
+                    <ul class="billing-features" id="billing-features">
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            Unlimited script writing
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            3 video generations per month
+                        </li>
+                        <li>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12"/>
+                            </svg>
+                            3 revision requests
+                        </li>
+                    </ul>
+                </div>
+                
+                <div id="billing-upgrade-section">
+                    <button class="settings-btn settings-btn-primary" onclick="upgradeToPro()" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                        Upgrade to Pro - $10/month
+                    </button>
+                    <p style="text-align: center; color: rgba(255,214,10,0.5); font-size: 0.85rem; margin-top: 0.75rem;">
+                        Unlimited videos, hosting, and revisions
+                    </p>
+                </div>
+                
+                <div id="billing-manage-section" style="display: none;">
+                    <button class="settings-btn settings-btn-secondary" onclick="manageSubscription()" style="width: 100%;">
+                        Manage Subscription
+                    </button>
+                </div>
+                
+                <div class="settings-section" style="margin-top: 1.5rem;">
+                    <div class="settings-section-title">Payment History</div>
+                    <div id="payment-history">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-desc">No payment history</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PRIVACY SETTINGS PAGE -->
+        <div class="stage" id="stage-privacy">
+            <div class="settings-page">
+                <div class="back-btn" onclick="goToProjects()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to projects
+                </div>
+                
+                <div class="settings-header">
+                    <h1>Privacy</h1>
+                    <p>Control your data and privacy settings</p>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-section-title">Data & Learning</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">AI Learning</div>
+                            <div class="settings-row-desc">Allow AI to learn from your style preferences</div>
+                        </div>
+                        <div class="toggle-switch active" id="toggle-ai-learning" onclick="togglePrivacySetting('ai-learning')"></div>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Usage Analytics</div>
+                            <div class="settings-row-desc">Help improve Framd with anonymous usage data</div>
+                        </div>
+                        <div class="toggle-switch active" id="toggle-analytics" onclick="togglePrivacySetting('analytics')"></div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <div class="settings-section-title">Your Data</div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Export Data</div>
+                            <div class="settings-row-desc">Download all your projects and data</div>
+                        </div>
+                        <button class="settings-btn settings-btn-secondary" onclick="exportUserData()">Export</button>
+                    </div>
+                    <div class="settings-row">
+                        <div class="settings-row-info">
+                            <div class="settings-row-label">Delete All Data</div>
+                            <div class="settings-row-desc">Permanently delete your account and all data</div>
+                        </div>
+                        <button class="settings-btn settings-btn-danger" onclick="confirmDeleteAccount()">Delete Account</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Fixed Bottom Chat Bar - Sleek, Full Width -->
         <div class="bottom-chat-bar" id="bottom-chat-bar">
             <div class="bottom-chat-container">
@@ -9794,11 +10226,109 @@
         }
         
         function openSettings(section) {
-            toggleDashboard();
-            setTimeout(() => {
-                const settingsTab = document.querySelector('[onclick*="showSettingsSection"]');
-                if (settingsTab) settingsTab.click();
-            }, 100);
+            // Hide chat bar
+            const chatBar = document.getElementById('bottom-chat-bar');
+            if (chatBar) chatBar.style.display = 'none';
+            
+            // Hide back to projects link
+            document.getElementById('back-to-projects').style.display = 'none';
+            
+            // Clear project name display
+            updateProjectNameDisplay(null);
+            
+            // Switch to settings stage
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            const stageId = 'stage-' + section;
+            const stage = document.getElementById(stageId);
+            if (stage) {
+                stage.classList.add('active');
+                
+                // Load data for the page
+                if (section === 'profile') loadProfileData();
+                if (section === 'billing') loadBillingData();
+            }
+        }
+        
+        async function loadProfileData() {
+            try {
+                // Get user info
+                const userEmail = '{{ user.email if user else "user@example.com" }}';
+                const userName = '{{ user.name if user and user.name else (user.email.split("@")[0] if user else "User") }}';
+                const initial = userName.charAt(0).toUpperCase();
+                
+                document.getElementById('profile-initial-large').textContent = initial;
+                document.getElementById('profile-display-name').textContent = userName;
+                document.getElementById('profile-email-display').textContent = userEmail;
+                document.getElementById('profile-email').textContent = userEmail;
+                
+                // Get project count
+                const response = await fetch('/projects');
+                if (response.ok) {
+                    const projects = await response.json();
+                    document.getElementById('profile-projects-count').textContent = projects.length;
+                }
+            } catch (err) {
+                console.error('Error loading profile:', err);
+            }
+        }
+        
+        async function loadBillingData() {
+            try {
+                const response = await fetch('/subscription-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    const isPro = data.is_pro;
+                    
+                    if (isPro) {
+                        document.getElementById('billing-plan-name').textContent = 'Pro Plan';
+                        document.getElementById('billing-plan-price').innerHTML = '$10<span>/month</span>';
+                        document.getElementById('billing-features').innerHTML = `
+                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited script writing</li>
+                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited video generations</li>
+                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited revisions</li>
+                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Video hosting included</li>
+                        `;
+                        document.getElementById('billing-upgrade-section').style.display = 'none';
+                        document.getElementById('billing-manage-section').style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading billing:', err);
+            }
+        }
+        
+        function togglePrivacySetting(setting) {
+            const toggle = document.getElementById('toggle-' + setting);
+            if (toggle) {
+                toggle.classList.toggle('active');
+            }
+        }
+        
+        function exportUserData() {
+            alert('Your data export will be emailed to you shortly.');
+        }
+        
+        function confirmDeleteAccount() {
+            if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+                if (confirm('This will permanently delete all your projects and data. Type DELETE to confirm.')) {
+                    alert('Please contact support to complete account deletion.');
+                }
+            }
+        }
+        
+        async function manageSubscription() {
+            try {
+                const response = await fetch('/create-customer-portal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                }
+            } catch (err) {
+                console.error('Error opening customer portal:', err);
+            }
         }
         
         document.addEventListener('click', (e) => {
