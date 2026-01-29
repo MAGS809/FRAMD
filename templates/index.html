@@ -5048,6 +5048,7 @@
         
         function updateTimelineControls(show) {
             const controls = document.getElementById('timeline-controls');
+            if (!controls) return;
             if (show && docHasScript) {
                 controls.classList.add('visible');
             } else {
