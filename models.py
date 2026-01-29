@@ -61,6 +61,7 @@ class Project(db.Model):
     voice_assignments = db.Column(db.JSON, nullable=True)
     caption_settings = db.Column(db.JSON, nullable=True)
     video_path = db.Column(db.String(500), nullable=True)
+    workflow_step = db.Column(db.Integer, default=1)  # 1-8 workflow progress
     is_successful = db.Column(db.Boolean, default=False)
     success_score = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.now)

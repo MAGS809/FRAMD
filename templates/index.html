@@ -700,6 +700,43 @@
             pointer-events: none;
         }
         
+        .project-workflow-steps {
+            display: flex;
+            gap: 0.25rem;
+            margin-top: 0.5rem;
+        }
+        
+        .workflow-step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.15);
+            transition: all 0.2s;
+        }
+        
+        .workflow-step-dot.complete {
+            background: var(--gold);
+        }
+        
+        .workflow-step-dot.active {
+            background: rgba(255,214,10,0.5);
+            animation: pulse-dot 1.5s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        
+        .project-ready-badge {
+            font-size: 0.6rem;
+            background: var(--gold);
+            color: var(--bg);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
         /* Discover Feed Styles */
         .discover-container {
             height: 100%;
@@ -5166,6 +5203,24 @@
             generatingProjectId = null;
         }
         
+        function getStepName(step) {
+            const names = { 1: 'Script', 2: 'Voice', 3: 'Visuals', 4: 'Ready' };
+            return names[step] || '';
+        }
+        
+        async function updateProjectWorkflowStep(step) {
+            if (!currentProjectId) return;
+            try {
+                await fetch(`/projects/${currentProjectId}/workflow-step`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ step })
+                });
+            } catch (err) {
+                console.error('Error updating workflow step:', err);
+            }
+        }
+        
         // Restore conversation from localStorage on page load
         document.addEventListener('DOMContentLoaded', () => {
             restoreConversation();
@@ -5283,14 +5338,26 @@
             // Add existing projects
             projects.forEach(p => {
                 const isGenerating = generatingProjectId === p.id;
+                const step = p.workflow_step || 1;
+                const isReady = step >= 4; // Ready for generation at step 4+
+                
+                // Generate workflow step dots (4 main steps: Script, Voice, Visuals, Ready)
+                let stepDots = '';
+                for (let i = 1; i <= 4; i++) {
+                    const dotClass = i < step ? 'complete' : (i === step ? 'active' : '');
+                    stepDots += `<div class="workflow-step-dot ${dotClass}" title="${getStepName(i)}"></div>`;
+                }
+                
                 html += `
                     <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
                          id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
                         <div class="project-card-title">
                             ${escapeHtml(p.name)}
                             ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
+                            ${isReady && !p.is_successful ? '<span class="project-ready-badge">Ready</span>' : ''}
                         </div>
                         <div class="project-card-desc">${escapeHtml(p.description || 'No description')}</div>
+                        <div class="project-workflow-steps">${stepDots}</div>
                         <div class="project-card-progress ${isGenerating ? 'active' : ''}" id="project-progress-${p.id}">
                             <div class="project-progress-track">
                                 <div class="project-progress-fill" id="project-progress-fill-${p.id}"></div>
@@ -6399,6 +6466,7 @@
             // Advance to step 4 - Scene Review
             if (currentWorkflowStep < 4 && scenes.length > 0) {
                 currentWorkflowStep = 4;
+                updateProjectWorkflowStep(4);
                 storeWorkflowPreference('scenes_populated', true);
                 
                 // Add guide message with action button
@@ -6747,6 +6815,36 @@
                 localStorage.setItem('lastProjectInput', message);
             }
             
+            // If no project exists yet, create one with AI-generated name/description
+            if (!currentProjectId && message) {
+                try {
+                    // Generate AI name and description
+                    const metaRes = await fetch('/generate-project-metadata', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idea: message })
+                    });
+                    const metaData = await metaRes.json();
+                    
+                    const projectName = metaData.success ? metaData.name : 'Untitled';
+                    const projectDesc = metaData.success ? metaData.description : message.substring(0, 100);
+                    
+                    // Create project with AI metadata
+                    const createRes = await fetch('/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: projectName, description: projectDesc })
+                    });
+                    const createData = await createRes.json();
+                    if (createData.success) {
+                        currentProjectId = createData.project.id;
+                        console.log('Project created:', projectName);
+                    }
+                } catch (err) {
+                    console.error('Error creating project:', err);
+                }
+            }
+            
             sendBtn.disabled = true;
             startLoading();
             
@@ -6940,6 +7038,7 @@
         function showReviewConfirmation() {
             // Advance to step 2 - Voice Assignment
             currentWorkflowStep = 2;
+            updateProjectWorkflowStep(2);
             storeWorkflowPreference('script_completed', true);
             
             // Add guide message with action button via chat
@@ -6967,6 +7066,7 @@
             
             // Advance to step 3 - Visual Curation
             currentWorkflowStep = 3;
+            updateProjectWorkflowStep(3);
             storeWorkflowPreference('visual_curation_started', true);
             
             // Show visual curation guide

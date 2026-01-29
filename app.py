@@ -2425,6 +2425,7 @@ def get_projects():
             'name': p.name,
             'description': p.description,
             'status': p.status,
+            'workflow_step': getattr(p, 'workflow_step', 1) or 1,
             'is_successful': p.is_successful,
             'success_score': p.success_score,
             'created_at': p.created_at.isoformat() if p.created_at else None,
@@ -2482,6 +2483,63 @@ def create_project():
             'status': project.status
         }
     })
+
+
+@app.route('/generate-project-metadata', methods=['POST'])
+def generate_project_metadata():
+    """Generate AI project name (3 words max) and description from idea/script."""
+    data = request.get_json() or {}
+    idea = data.get('idea', '')
+    script = data.get('script', '')
+    
+    content = script if script else idea
+    if not content:
+        return jsonify({'success': False, 'error': 'No content provided'})
+    
+    try:
+        # Use XAI to generate concise project metadata
+        prompt = f"""Based on this content, generate a project name and description.
+
+Content: {content[:1500]}
+
+Rules:
+1. Project name: Maximum 3 words, punchy and memorable (like "Oslo Accord Truth" or "Power Dynamics")
+2. Description: One sentence, under 15 words, capturing the core idea
+
+Return ONLY valid JSON:
+{{"name": "Three Word Name", "description": "One sentence description here."}}"""
+
+        response = xai_client.chat.completions.create(
+            model="grok-3",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100,
+            temperature=0.7
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Parse JSON from response
+        import re
+        json_match = re.search(r'\{[^}]+\}', result_text)
+        if json_match:
+            metadata = json.loads(json_match.group())
+            return jsonify({
+                'success': True,
+                'name': metadata.get('name', 'Untitled')[:50],
+                'description': metadata.get('description', '')[:200]
+            })
+        else:
+            # Fallback: extract first few words as name
+            words = content.split()[:3]
+            return jsonify({
+                'success': True,
+                'name': ' '.join(words)[:50],
+                'description': content[:100]
+            })
+            
+    except Exception as e:
+        print(f"Error generating project metadata: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 
 @app.route('/projects/<int:project_id>', methods=['GET'])
@@ -2549,6 +2607,28 @@ def update_project(project_id):
     db.session.commit()
     
     return jsonify({'success': True, 'project_id': project.id})
+
+
+@app.route('/projects/<int:project_id>/workflow-step', methods=['POST'])
+def update_project_workflow_step(project_id):
+    """Update the workflow step for a project."""
+    from models import Project
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    data = request.get_json() or {}
+    step = data.get('step', 1)
+    
+    project.workflow_step = min(max(step, 1), 8)  # Clamp between 1-8
+    db.session.commit()
+    
+    return jsonify({'success': True, 'workflow_step': project.workflow_step})
 
 
 @app.route('/projects/<int:project_id>/mark-successful', methods=['POST'])
