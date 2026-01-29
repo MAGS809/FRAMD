@@ -3077,7 +3077,7 @@ SCENE EDITING RULES:
 - Each scene: [Xs] = suggested duration in seconds
 - CUT line: shot type (wide/medium/close-up) and motion (static/pan/zoom)
 - Action scenes: 2-3s cuts. Emotional scenes: 5-7s holds.
-- Total video: 30-60s for shorts format
+- Total video: 35-75s for shorts format (target 35-45s, max 1:15)
 
 FORMATTING RULES:
 - ======= for title/footer bars, _______ under scene headers
@@ -3197,13 +3197,13 @@ def generate_formats():
 Context from conversation:
 {context}
 
-Write a 30-60 second Reel/TikTok script with:
+Write a 35-75 second Reel/TikTok script with:
 - HOOK: First 3-5 seconds to grab attention (punchy, provocative, or surprising)
-- BODY: The main content (20-40 seconds)
+- BODY: The main content (25-55 seconds)
 - PAYOFF: The ending that makes them think/share (5-10 seconds)
 
 Output as JSON:
-{{"hook": "...", "body": "...", "payoff": "...", "duration": "30 seconds", "keywords": ["keyword1", "keyword2", "keyword3"]}}"""
+{{"hook": "...", "body": "...", "payoff": "...", "duration": "45 seconds", "keywords": ["keyword1", "keyword2", "keyword3"]}}"""
 
             elif fmt == 'carousel':
                 prompt = f"""Based on this script concept:
@@ -3712,9 +3712,9 @@ CHARACTER_VOICE_CONFIG = {
 }
 
 ELEVENLABS_VOICE_SETTINGS = {
-    'stability': 0.3,
-    'similarity_boost': 0.8,
-    'style': 0.7,
+    'stability': 0.25,
+    'similarity_boost': 0.85,
+    'style': 0.85,
     'use_speaker_boost': True
 }
 
@@ -3742,6 +3742,47 @@ def preview_voice_chars():
         'chars': len(dialogue),
         'dialogue': dialogue[:500] + ('...' if len(dialogue) > 500 else ''),  # Preview first 500 chars
         'estimated_cost': f"~{len(dialogue)} characters for ElevenLabs"
+    })
+
+
+@app.route('/estimate-clip-duration', methods=['POST'])
+def estimate_clip_duration():
+    """Estimate video duration from script - show before visual curation."""
+    data = request.get_json()
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'duration_seconds': 0, 'duration_display': '0:00', 'word_count': 0})
+    
+    # Extract dialogue only
+    dialogue = extract_dialogue_only(script)
+    word_count = len(dialogue.split()) if dialogue else 0
+    
+    # Estimate: ~2.5 words per second for clear, engaging narration
+    # This gives ~150 words per minute
+    estimated_seconds = word_count / 2.5
+    
+    # Format as mm:ss
+    minutes = int(estimated_seconds // 60)
+    seconds = int(estimated_seconds % 60)
+    duration_display = f"{minutes}:{seconds:02d}"
+    
+    # Check against target range (35-75 seconds)
+    status = 'good'
+    message = 'Duration looks good!'
+    if estimated_seconds < 35:
+        status = 'short'
+        message = f'Script is short ({duration_display}). Target: 35s-1:15. Consider adding more content.'
+    elif estimated_seconds > 75:
+        status = 'long'
+        message = f'Script is long ({duration_display}). Target: 35s-1:15. Consider trimming.'
+    
+    return jsonify({
+        'duration_seconds': round(estimated_seconds, 1),
+        'duration_display': duration_display,
+        'word_count': word_count,
+        'status': status,
+        'message': message
     })
 
 
@@ -5288,13 +5329,31 @@ def render_video():
         has_audio = audio_path and os.path.exists(audio_path)
         temp_combined = os.path.abspath(f'output/temp_combined_{output_id}.mp4')
         
-        # Pass 1: Combine video + audio with scaling
-        pass1_cmd = [
-            'ffmpeg', '-y',
-            '-i', concat_path,
-        ]
+        # Get audio duration to ensure video matches it
+        audio_duration = None
         if has_audio:
+            dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path]
+            dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=10)
+            try:
+                audio_duration = float(dur_result.stdout.strip())
+                print(f"Audio duration: {audio_duration:.1f}s")
+            except:
+                audio_duration = None
+        
+        # Pass 1: Combine video + audio with scaling
+        # Loop video if shorter than audio to prevent audio cutoff
+        pass1_cmd = ['ffmpeg', '-y']
+        
+        if has_audio and audio_duration:
+            # Loop video input to match audio length
+            pass1_cmd.extend(['-stream_loop', '-1', '-i', concat_path])
             pass1_cmd.extend(['-i', audio_path])
+            # Use audio duration as the target length
+            pass1_cmd.extend(['-t', str(audio_duration)])
+        else:
+            pass1_cmd.extend(['-i', concat_path])
+            if has_audio:
+                pass1_cmd.extend(['-i', audio_path])
         
         # Apply scaling - use ultrafast preset for speed
         pass1_cmd.extend([
@@ -5303,7 +5362,7 @@ def render_video():
         ])
         
         if has_audio:
-            pass1_cmd.extend(['-c:a', 'aac', '-b:a', '128k', '-shortest'])
+            pass1_cmd.extend(['-c:a', 'aac', '-b:a', '128k'])
         else:
             pass1_cmd.extend(['-an'])
         

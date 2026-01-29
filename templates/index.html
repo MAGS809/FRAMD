@@ -6786,6 +6786,30 @@
             // Show visual curation guide
             renderWorkflowGuide(3);
             
+            // Estimate clip duration before curating visuals
+            try {
+                const durationResp = await fetch('/estimate-clip-duration', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ script: currentScript })
+                });
+                const durationData = await durationResp.json();
+                
+                // Show duration estimate with status
+                let durationMsg = `Estimated clip: ${durationData.duration_display} (${durationData.word_count} words)`;
+                if (durationData.status === 'short') {
+                    durationMsg += ' - Script may be too short';
+                } else if (durationData.status === 'long') {
+                    durationMsg += ' - Script may be too long';
+                }
+                showToast(durationMsg);
+                
+                // Store for later use
+                window.estimatedDuration = durationData;
+            } catch (e) {
+                console.warn('Could not estimate duration:', e);
+            }
+            
             showToast('Curating visuals...');
             startLoading();
             await curateVisuals(currentScript);
