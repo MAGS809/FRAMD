@@ -4948,6 +4948,10 @@
                         </svg>
                     </button>
                 </div>
+                <div class="file-preview" id="file-preview">
+                    <span class="file-name" id="file-name"></span>
+                    <button class="remove-file" onclick="clearFile()">&times;</button>
+                </div>
             </div>
             <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)" style="display:none;">
         </div>
@@ -8728,6 +8732,10 @@
                         uploadedFile = file;
                         document.getElementById('file-name').textContent = file.name;
                         document.getElementById('file-preview').classList.add('show');
+                        
+                        // Focus the input so user can still type
+                        const input = document.getElementById('composer-input');
+                        if (input) input.focus();
                     }
                 });
             }
