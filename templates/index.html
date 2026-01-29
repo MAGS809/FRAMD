@@ -6679,46 +6679,13 @@
             currentAnchors = anchors || [];
             
             if (currentAnchors.length > 0) {
-                // Render scenes as inline chat card
-                const scenesHtml = `
-                    <div class="chat-scenes-card" id="chat-scenes-card">
-                        <div class="chat-scenes-header">
-                            <span class="chat-scenes-title">Scenes</span>
-                            <span class="chat-scenes-count">${currentAnchors.length}</span>
-                        </div>
-                        <div class="chat-scenes-list">
-                            ${currentAnchors.map((anchor, idx) => `
-                                <div class="scene-item" data-scene="${idx}" onclick="openInlineVisuals(${idx})">
-                                    <div class="scene-left">
-                                        <span class="scene-number">${idx + 1}</span>
-                                        <div class="scene-info">
-                                            <span class="scene-type">${anchor.anchor_type || 'SCENE'}</span>
-                                            <span class="scene-text">${(anchor.anchor_text || '').substring(0, 80)}${(anchor.anchor_text || '').length > 80 ? '...' : ''}</span>
-                                        </div>
-                                    </div>
-                                    <div class="scene-right">
-                                        <div class="scene-visual-preview" id="scene-visual-${idx}">
-                                            ${sceneVisuals[idx] ? `<img src="${sceneVisuals[idx].url}" alt="Scene visual">` : '<span class="scene-visual-empty">+ Visual</span>'}
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
+                // Show brief scene summary and immediately open Scene 1 visual picker
+                addMessage(`Your script has ${currentAnchors.length} scenes. Let's pick visuals for each one.`, false);
                 
-                // Add as chat message
-                const messagesDiv = document.getElementById('messages');
-                const msgDiv = document.createElement('div');
-                msgDiv.className = 'message ai';
-                msgDiv.innerHTML = scenesHtml;
-                messagesDiv.appendChild(msgDiv);
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                
-                // Add AI prompt for next steps
+                // Automatically open Scene 1's visual picker
                 setTimeout(() => {
-                    addMessage("Here are your scenes. Click any scene to pick visuals, or type 'continue' when ready to proceed. You can also ask me to change any scene.", false);
-                }, 300);
+                    openInlineVisuals(0);
+                }, 500);
             }
         }
         
@@ -6874,8 +6841,19 @@
                 });
             }
             
-            // Add confirmation message
-            addMessage(`Visual selected for Scene ${sceneIndex + 1}. Click another scene to continue, or type 'continue' when ready.`, false);
+            // Check if there are more scenes to do
+            const nextSceneIndex = sceneIndex + 1;
+            if (nextSceneIndex < currentAnchors.length) {
+                // Auto-advance to next scene after a brief delay
+                addMessage(`Visual selected for Scene ${sceneIndex + 1}. Opening Scene ${nextSceneIndex + 1}...`, false);
+                setTimeout(() => {
+                    openInlineVisuals(nextSceneIndex);
+                }, 500);
+            } else {
+                // All scenes have visuals - show completion
+                addMessage(`All ${currentAnchors.length} scenes have visuals selected. Type 'continue' when ready for voice assignment.`, false);
+                currentWorkflowStep = 3;
+            }
         }
         
         // Open visual picker for a scene
