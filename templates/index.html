@@ -663,6 +663,43 @@
             text-transform: capitalize;
         }
         
+        .project-card-progress {
+            display: none;
+            margin-top: 0.75rem;
+        }
+        
+        .project-card-progress.active {
+            display: block;
+        }
+        
+        .project-progress-track {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .project-progress-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .project-progress-label {
+            font-size: 0.7rem;
+            color: var(--gold);
+            margin-top: 0.25rem;
+            text-align: center;
+        }
+        
+        .project-card-item.generating {
+            border-color: var(--gold);
+            background: linear-gradient(135deg, rgba(255,214,10,0.08), rgba(255,214,10,0.02));
+            pointer-events: none;
+        }
+        
         /* Discover Feed Styles */
         .discover-container {
             height: 100%;
@@ -5104,7 +5141,30 @@
         
         // Current project tracking
         let currentProjectId = null;
+        let generatingProjectId = null;
         let aiLearningData = { learning_progress: 0, can_auto_generate: false };
+        
+        // Update progress on project card
+        function updateProjectCardProgress(projectId, percent, label) {
+            const fill = document.getElementById(`project-progress-fill-${projectId}`);
+            const labelEl = document.getElementById(`project-progress-label-${projectId}`);
+            const progressContainer = document.getElementById(`project-progress-${projectId}`);
+            const card = document.getElementById(`project-card-${projectId}`);
+            
+            if (fill) fill.style.width = percent + '%';
+            if (labelEl) labelEl.textContent = label;
+            if (progressContainer) progressContainer.classList.add('active');
+            if (card) card.classList.add('generating');
+        }
+        
+        function clearProjectCardProgress(projectId) {
+            const progressContainer = document.getElementById(`project-progress-${projectId}`);
+            const card = document.getElementById(`project-card-${projectId}`);
+            
+            if (progressContainer) progressContainer.classList.remove('active');
+            if (card) card.classList.remove('generating');
+            generatingProjectId = null;
+        }
         
         // Restore conversation from localStorage on page load
         document.addEventListener('DOMContentLoaded', () => {
@@ -5222,15 +5282,23 @@
             
             // Add existing projects
             projects.forEach(p => {
+                const isGenerating = generatingProjectId === p.id;
                 html += `
-                    <div class="project-card-item ${p.is_successful ? 'successful' : ''}" onclick="openProject(${p.id})">
+                    <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
+                         id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
                         <div class="project-card-title">
                             ${escapeHtml(p.name)}
                             ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
                         </div>
                         <div class="project-card-desc">${escapeHtml(p.description || 'No description')}</div>
+                        <div class="project-card-progress ${isGenerating ? 'active' : ''}" id="project-progress-${p.id}">
+                            <div class="project-progress-track">
+                                <div class="project-progress-fill" id="project-progress-fill-${p.id}"></div>
+                            </div>
+                            <div class="project-progress-label" id="project-progress-label-${p.id}">Preparing...</div>
+                        </div>
                         <div class="project-card-footer">
-                            <span class="project-card-status">${p.status}</span>
+                            <span class="project-card-status">${isGenerating ? 'Generating...' : p.status}</span>
                             <span>${formatDate(p.updated_at)}</span>
                         </div>
                     </div>
@@ -7261,6 +7329,9 @@
             showLoading(true);
             document.body.classList.add('loading');
             
+            // Track which project is generating
+            generatingProjectId = currentProjectId;
+            
             // Track token spending - unified all-inclusive cost
             const sfxCount = countSoundFx();
             const sfxCost = sfxCount * TOKEN_COSTS.perSfx;
@@ -7273,6 +7344,7 @@
             try {
                 // Step 1: Generate voiceover from script with character voices
                 updateLoadingStatus('Generating voiceover...');
+                if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 20, 'Generating voiceover...');
                 
                 // Get stage directions from input
                 const stageDirectionsInput = document.getElementById('stage-directions-input');
@@ -7305,6 +7377,7 @@
                 
                 // Step 2: Build scenes array from visual plan or scene composer
                 updateLoadingStatus('Preparing scenes...');
+                if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 50, 'Preparing scenes...');
                 
                 let scenesForRender = [];
                 
@@ -7349,6 +7422,7 @@
                 
                 // Step 3: Render final video with captions
                 updateLoadingStatus('Assembling video with captions...');
+                if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 75, 'Assembling video...');
                 
                 const renderResponse = await fetch('/render-video', {
                     method: 'POST',
@@ -7368,6 +7442,7 @@
                 document.body.classList.remove('loading');
                 
                 if (renderData.success) {
+                    if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 100, 'Complete!');
                     document.getElementById('export-video').src = renderData.video_path;
                     
                     // Advance to step 7 - Final Preview
@@ -7377,15 +7452,23 @@
                     
                     showStage('export');
                     showToast('Video ready!');
+                    
+                    // Clear progress after a short delay
+                    setTimeout(() => {
+                        if (generatingProjectId) clearProjectCardProgress(generatingProjectId);
+                    }, 2000);
                 } else if (renderData.requires_subscription) {
+                    if (generatingProjectId) clearProjectCardProgress(generatingProjectId);
                     showUpgradePrompt();
                 } else {
+                    if (generatingProjectId) clearProjectCardProgress(generatingProjectId);
                     showToast('Failed to render video: ' + (renderData.error || 'Unknown error'));
                 }
             } catch (error) {
                 console.error('Generate error:', error);
                 showLoading(false);
                 document.body.classList.remove('loading');
+                if (generatingProjectId) clearProjectCardProgress(generatingProjectId);
                 showToast('Error: ' + error.message);
             }
         }
