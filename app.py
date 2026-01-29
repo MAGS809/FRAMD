@@ -5451,8 +5451,8 @@ def render_video():
                     else:  # center
                         y_pos = '(h-text_h)/2'
                     
-                    # Font size based on resolution
-                    fontsize = 56 if not preview_mode else 28
+                    # Font size based on resolution (smaller for better readability)
+                    fontsize = 24 if not preview_mode else 14
                     
                     # Group words into phrases (3-4 words per caption for readability)
                     phrases = []
