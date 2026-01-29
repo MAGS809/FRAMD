@@ -6727,7 +6727,20 @@
                     })
                 });
                 
-                const data = await response.json();
+                // Check if response is ok
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                
+                const text = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Invalid JSON response:', text.substring(0, 200));
+                    throw new Error('Invalid response from server');
+                }
+                
                 const grid = document.getElementById(`${pickerId}-grid`);
                 const concept = document.getElementById(`${pickerId}-concept`);
                 
@@ -9031,27 +9044,35 @@
             saveConversation();
             renderChatPanelMessages();
             
-            // Handle "continue" command - proceed with visuals
+            // Handle flow commands - pass state context to AI for dynamic response
             const msgLower = message.toLowerCase().trim();
-            if (msgLower === 'continue' || msgLower === 'yes' || msgLower === 'proceed') {
+            const flowCommands = ['continue', 'yes', 'proceed', 'next', 'skip', 'skip visuals'];
+            
+            if (flowCommands.includes(msgLower)) {
+                // Build context about current project state
+                const projectState = {
+                    hasScript: !!currentScript,
+                    hasAnchors: currentAnchors.length > 0,
+                    anchorCount: currentAnchors.length,
+                    visualsSelected: Object.keys(sceneVisuals).length,
+                    currentStep: currentWorkflowStep
+                };
+                
                 removeTypingIndicator();
                 
-                if (currentAnchors.length > 0 && Object.keys(sceneVisuals).length < currentAnchors.length) {
-                    // Still need visuals - guide user
-                    const missingVisuals = currentAnchors.length - Object.keys(sceneVisuals).length;
-                    addMessage(`You have ${missingVisuals} scene(s) without visuals. Click on a scene above to pick visuals, or say 'skip visuals' to continue without them.`, false);
-                } else if (currentAnchors.length > 0) {
-                    // All visuals selected - proceed to next step
-                    addMessage("All scenes have visuals. Ready for voice assignment. Would you like me to suggest voices for each scene, or do you want to pick them yourself?", false);
-                } else if (currentScript) {
-                    // Script exists but no anchors - generate them
-                    addMessage("Let me break this into scenes for you...", false);
-                    // Trigger anchor extraction
-                    if (currentScript.anchor_points) {
-                        displayAnchors(currentScript.anchor_points);
-                    }
-                } else {
+                // Determine next action based on state
+                if (!currentScript) {
                     addMessage("I don't have anything to continue with yet. Share your idea or paste content to get started.", false);
+                } else if (currentAnchors.length === 0 && currentScript.anchor_points) {
+                    addMessage("Let me break this into scenes for you...", false);
+                    setTimeout(() => displayAnchors(currentScript.anchor_points), 300);
+                } else if (projectState.visualsSelected < projectState.anchorCount && msgLower !== 'skip' && msgLower !== 'skip visuals') {
+                    const missing = projectState.anchorCount - projectState.visualsSelected;
+                    addMessage(`You have ${missing} scene(s) without visuals. Click any scene to pick visuals, or say 'skip' to continue without them.`, false);
+                } else {
+                    // Ready for next step - voice assignment
+                    currentWorkflowStep = 4;
+                    addMessage("Ready for voice assignment. I can suggest voices that match each scene's tone, or you can pick them yourself. What would you like?", false);
                 }
                 
                 stopLoading();
@@ -9059,13 +9080,18 @@
                 return;
             }
             
-            // Handle skip visuals command
-            if (msgLower === 'skip visuals' || msgLower === 'skip') {
-                removeTypingIndicator();
-                addMessage("Skipping visuals. Ready for voice assignment. Would you like me to suggest voices, or do you want to pick them yourself?", false);
-                stopLoading();
-                sendBtn.disabled = false;
-                return;
+            // Handle scene change requests dynamically
+            const sceneChangeMatch = msgLower.match(/(?:change|redo|update|fix)\s+(?:scene\s+)?(\d+)/);
+            if (sceneChangeMatch && currentAnchors.length > 0) {
+                const sceneNum = parseInt(sceneChangeMatch[1]) - 1;
+                if (sceneNum >= 0 && sceneNum < currentAnchors.length) {
+                    removeTypingIndicator();
+                    addMessage(`Opening visual picker for Scene ${sceneNum + 1}...`, false);
+                    setTimeout(() => openInlineVisuals(sceneNum), 300);
+                    stopLoading();
+                    sendBtn.disabled = false;
+                    return;
+                }
             }
             
             try {
