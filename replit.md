@@ -100,6 +100,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
 - **Video Feedback System**: Like/Dislike buttons on generated videos. If disliked, users can add comments and send back to AI for refinement. Free users get 3 revisions, Pro gets unlimited.
 - **AI Self-Improvement**: Tracks feedback patterns, success rates, and injects learned patterns into future prompts. Stores feedback in VideoFeedback table and tracks global patterns in GlobalPattern table.
+- **Auto-Generator System**: Fully configurable content auto-generation with user-controlled settings (tone, format, length, voice style, topics). Locked until 5 liked projects (faded button shows "X/5 liked to unlock"), then unlocked for AI-powered content creation using learned patterns.
 - **Subscription Model**: Free tier for script writing and basic features; Pro tier ($10/month) for unlimited video generation, hosting, and unlimited revisions via Stripe.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
 
