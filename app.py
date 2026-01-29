@@ -3417,13 +3417,15 @@ def generate_video():
             # Get caption settings with defaults
             caption_font = captions.get('font', 'inter')
             caption_position = captions.get('position', 'center')
-            caption_color = captions.get('color', '#FFFFFF').replace('#', '')
+            caption_color = captions.get('textColor', captions.get('color', '#FFFFFF')).replace('#', '')
             caption_size = captions.get('size', 'medium')
             caption_weight = captions.get('weight', 'bold')
             caption_outline = captions.get('outline', True)
             caption_shadow = captions.get('shadow', True)
             caption_background = captions.get('background', False)
             caption_uppercase = captions.get('uppercase', False)
+            caption_animation = captions.get('animation', 'highlight')
+            caption_highlight_color = captions.get('highlightColor', '#FFD60A').replace('#', '')
             
             # Font family mapping for FFmpeg (system fonts)
             font_map = {
@@ -3472,10 +3474,10 @@ def generate_video():
             words = clean_script.split()
             
             # Group words into phrases (3-4 words each for readability)
-            words_per_group = 4
+            words_per_group = 4 if caption_animation == 'none' else 3  # Smaller groups for animated captions
             word_groups = []
             for i in range(0, len(words), words_per_group):
-                group = ' '.join(words[i:i + words_per_group])
+                group = words[i:i + words_per_group]
                 word_groups.append(group)
             
             # Calculate timing for each word group
@@ -3487,39 +3489,119 @@ def generate_video():
             # Build filter chain with timed word groups
             filter_chain = []
             
-            for idx, group_text in enumerate(word_groups):
+            for idx, group_words in enumerate(word_groups):
                 start_time = idx * time_per_group
                 end_time = (idx + 1) * time_per_group
                 
-                # Sanitize text for ffmpeg
-                safe_text = group_text.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
-                
-                # Build drawtext filter for this word group
-                parts = [
-                    f"drawtext=text='{safe_text}'",
-                    f"fontsize={font_size}",
-                    f"fontcolor=#{caption_color}",
-                    f"font={font_name}",
-                    f"x=(w-text_w)/2",
-                    f"y={y_pos}",
-                    f"enable='between(t,{start_time:.2f},{end_time:.2f})'"
-                ]
-                
-                if caption_outline:
-                    parts.append("borderw=3")
-                    parts.append("bordercolor=black")
-                
-                if caption_shadow:
-                    parts.append("shadowcolor=black@0.7")
-                    parts.append("shadowx=2")
-                    parts.append("shadowy=2")
-                
-                if caption_background:
-                    parts.append("box=1")
-                    parts.append("boxcolor=black@0.6")
-                    parts.append("boxborderw=10")
-                
-                filter_chain.append(":".join(parts))
+                if caption_animation in ['highlight', 'bounce', 'karaoke'] and len(group_words) > 1:
+                    # Word-by-word animation: render each word separately with proper positioning
+                    word_duration = time_per_group / len(group_words)
+                    
+                    # Estimate character width for positioning (approximate)
+                    char_width = font_size * 0.5  # Rough estimate
+                    space_width = font_size * 0.25
+                    
+                    # Calculate word widths and total width
+                    word_widths = [len(w) * char_width for w in group_words]
+                    total_width = sum(word_widths) + (len(group_words) - 1) * space_width
+                    
+                    for word_idx, word in enumerate(group_words):
+                        word_start = start_time + (word_idx * word_duration)
+                        word_end = (idx + 1) * time_per_group  # Show until end of group
+                        
+                        # Sanitize text for ffmpeg
+                        safe_word = word.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
+                        
+                        # Calculate x position for this word (centered as a group)
+                        # x_offset: sum of previous word widths + spaces
+                        x_offset = sum(word_widths[:word_idx]) + word_idx * space_width
+                        
+                        # During this word's highlight time, show it in highlight color
+                        # Before: show in regular color, After: show in regular color
+                        
+                        # Each word needs 3 drawtext filters: before highlight, during highlight, after highlight
+                        word_highlight_start = start_time + (word_idx * word_duration)
+                        word_highlight_end = start_time + ((word_idx + 1) * word_duration)
+                        
+                        # Helper to add common styling to parts
+                        def add_common_styling(parts_list):
+                            if caption_outline:
+                                parts_list.extend(["borderw=3", "bordercolor=black"])
+                            if caption_shadow:
+                                parts_list.extend(["shadowcolor=black@0.7", "shadowx=2", "shadowy=2"])
+                            if caption_background:
+                                parts_list.extend(["box=1", "boxcolor=black@0.6", "boxborderw=5"])
+                        
+                        # Show word in regular color before its highlight time
+                        if word_idx > 0:
+                            parts_before = [
+                                f"drawtext=text='{safe_word}'",
+                                f"fontsize={font_size}",
+                                f"fontcolor=#{caption_color}",
+                                f"font={font_name}",
+                                f"x=(w-{total_width:.0f})/2+{x_offset:.0f}",
+                                f"y={y_pos}",
+                                f"enable='between(t,{start_time:.2f},{word_highlight_start:.2f})'"
+                            ]
+                            add_common_styling(parts_before)
+                            filter_chain.append(":".join(parts_before))
+                        
+                        # Show word in HIGHLIGHT color during its time
+                        parts_highlight = [
+                            f"drawtext=text='{safe_word}'",
+                            f"fontsize={font_size}",
+                            f"fontcolor=#{caption_highlight_color}",
+                            f"font={font_name}",
+                            f"x=(w-{total_width:.0f})/2+{x_offset:.0f}",
+                            f"y={y_pos}",
+                            f"enable='between(t,{word_highlight_start:.2f},{word_highlight_end:.2f})'"
+                        ]
+                        add_common_styling(parts_highlight)
+                        filter_chain.append(":".join(parts_highlight))
+                        
+                        # Show word in regular color after its highlight time
+                        if word_highlight_end < end_time:
+                            parts_after = [
+                                f"drawtext=text='{safe_word}'",
+                                f"fontsize={font_size}",
+                                f"fontcolor=#{caption_color}",
+                                f"font={font_name}",
+                                f"x=(w-{total_width:.0f})/2+{x_offset:.0f}",
+                                f"y={y_pos}",
+                                f"enable='between(t,{word_highlight_end:.2f},{end_time:.2f})'"
+                            ]
+                            add_common_styling(parts_after)
+                            filter_chain.append(":".join(parts_after))
+                else:
+                    # No animation - show full group
+                    group_text = ' '.join(group_words)
+                    safe_text = group_text.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace("%", "\\%")
+                    
+                    parts = [
+                        f"drawtext=text='{safe_text}'",
+                        f"fontsize={font_size}",
+                        f"fontcolor=#{caption_color}",
+                        f"font={font_name}",
+                        f"x=(w-text_w)/2",
+                        f"y={y_pos}",
+                        f"enable='between(t,{start_time:.2f},{end_time:.2f})'"
+                    ]
+                    
+                    if caption_outline:
+                        parts.append("borderw=3")
+                        parts.append("bordercolor=black")
+                    
+                    if caption_shadow:
+                        parts.append("shadowcolor=black@0.7")
+                        parts.append("shadowx=2")
+                        parts.append("shadowy=2")
+                    
+                    if caption_background:
+                        parts.append("box=1")
+                        parts.append("boxcolor=black@0.6")
+                        parts.append("boxborderw=10")
+                    
+                    filter_chain.append(":".join(parts))
             
             # Combine all drawtext filters
             font_filter = ",".join(filter_chain) if filter_chain else f"drawtext=text='':fontsize={font_size}"

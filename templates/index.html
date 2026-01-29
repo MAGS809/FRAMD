@@ -2471,6 +2471,101 @@
             color: var(--accent);
         }
         
+        /* Position Selector */
+        .caption-position-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .position-btn {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .position-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .position-btn.selected {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        
+        /* Caption Select Dropdown */
+        .caption-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        .caption-select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .caption-select option {
+            background: var(--bg);
+            color: var(--text);
+        }
+        
+        /* Caption Animation Styles */
+        .caption-text-preview.animation-highlight .caption-word.active {
+            color: var(--highlight-color, #FFD60A);
+            transform: scale(1.1);
+            transition: all 0.15s ease-out;
+        }
+        
+        .caption-text-preview.animation-bounce .caption-word.active {
+            color: var(--highlight-color, #FFD60A);
+            animation: caption-bounce 0.4s ease-out;
+        }
+        @keyframes caption-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            40% { transform: translateY(-8px) scale(1.15); }
+            60% { transform: translateY(-4px) scale(1.05); }
+        }
+        
+        .caption-text-preview.animation-karaoke .caption-word {
+            position: relative;
+            color: rgba(255,255,255,0.4);
+        }
+        .caption-text-preview.animation-karaoke .caption-word.active {
+            color: var(--highlight-color, #FFD60A);
+        }
+        
+        .caption-text-preview.animation-typewriter .caption-word {
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        .caption-text-preview.animation-typewriter .caption-word.visible {
+            opacity: 1;
+        }
+        
+        /* Preview Position Classes */
+        .caption-preview.position-top .caption-text-preview {
+            top: 12%;
+            bottom: auto;
+            transform: translateX(-50%);
+        }
+        .caption-preview.position-center .caption-text-preview {
+            top: 50%;
+            transform: translate(-50%, -50%);
+            bottom: auto;
+        }
+        .caption-preview.position-bottom .caption-text-preview {
+            top: auto;
+            bottom: 12%;
+            transform: translateX(-50%);
+        }
+        
         /* Action buttons */
         .actions {
             display: flex;
@@ -4261,6 +4356,35 @@
                                 </div>
                             </div>
                             <div class="caption-control-group">
+                                <div class="caption-control-label">Position</div>
+                                <div class="caption-position-selector" id="caption-position-selector">
+                                    <button class="position-btn" data-position="top" onclick="selectCaptionPosition(this)">Top</button>
+                                    <button class="position-btn selected" data-position="center" onclick="selectCaptionPosition(this)">Center</button>
+                                    <button class="position-btn" data-position="bottom" onclick="selectCaptionPosition(this)">Bottom</button>
+                                </div>
+                            </div>
+                            <div class="caption-control-group">
+                                <div class="caption-control-label">Animation</div>
+                                <select class="caption-select" id="caption-animation" onchange="updateCaptionAnimation(this.value)">
+                                    <option value="none">None</option>
+                                    <option value="highlight" selected>Word Highlight</option>
+                                    <option value="bounce">Bounce (Preview)</option>
+                                    <option value="karaoke">Karaoke Fill (Preview)</option>
+                                    <option value="typewriter">Typewriter (Preview)</option>
+                                </select>
+                            </div>
+                            <div class="caption-control-group" id="highlight-color-group">
+                                <div class="caption-control-label">Highlight Color</div>
+                                <div class="caption-colors" id="highlight-colors">
+                                    <div class="color-preset selected" data-color="#FFD60A" style="background:#FFD60A" onclick="selectHighlightColor(this)" title="Yellow"></div>
+                                    <div class="color-preset" data-color="#00D4FF" style="background:#00D4FF" onclick="selectHighlightColor(this)" title="Cyan"></div>
+                                    <div class="color-preset" data-color="#FF3B30" style="background:#FF3B30" onclick="selectHighlightColor(this)" title="Red"></div>
+                                    <div class="color-preset" data-color="#30D158" style="background:#30D158" onclick="selectHighlightColor(this)" title="Green"></div>
+                                    <div class="color-preset" data-color="#FF69B4" style="background:#FF69B4" onclick="selectHighlightColor(this)" title="Pink"></div>
+                                    <div class="color-preset" data-color="#BF5AF2" style="background:#BF5AF2" onclick="selectHighlightColor(this)" title="Purple"></div>
+                                </div>
+                            </div>
+                            <div class="caption-control-group">
                                 <div class="caption-control-label">Effects</div>
                                 <div class="caption-toggles">
                                     <label class="toggle-pill active" onclick="toggleCaptionPill(this)">
@@ -5359,6 +5483,9 @@
         let selectedCaptionColor = '#FFFFFF';
         let selectedCaptionFont = "'Bebas Neue', sans-serif";
         let captionAnimationInterval = null;
+        let selectedCaptionPosition = 'center';
+        let selectedCaptionAnimation = 'highlight';
+        let selectedHighlightColor = '#FFD60A';
         
         function selectCaptionColor(el) {
             document.querySelectorAll('.color-preset').forEach(c => c.classList.remove('selected'));
@@ -5380,6 +5507,45 @@
                 checkbox.checked = !checkbox.checked;
                 el.classList.toggle('active', checkbox.checked);
             }
+            updateCaptionPreview();
+        }
+        
+        function selectCaptionPosition(el) {
+            document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedCaptionPosition = el.dataset.position;
+            
+            // Update preview position
+            const preview = document.getElementById('caption-preview');
+            if (preview) {
+                preview.classList.remove('position-top', 'position-center', 'position-bottom');
+                preview.classList.add(`position-${selectedCaptionPosition}`);
+            }
+        }
+        
+        function updateCaptionAnimation(animationType) {
+            selectedCaptionAnimation = animationType;
+            
+            // Show/hide highlight color based on animation type
+            const highlightGroup = document.getElementById('highlight-color-group');
+            if (highlightGroup) {
+                highlightGroup.style.display = ['highlight', 'bounce', 'karaoke'].includes(animationType) ? 'flex' : 'none';
+            }
+            
+            updateCaptionPreview();
+        }
+        
+        function selectHighlightColor(el) {
+            document.querySelectorAll('#highlight-colors .color-preset').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedHighlightColor = el.dataset.color;
+            
+            // Update CSS variable for highlight color
+            const preview = document.getElementById('caption-text-preview');
+            if (preview) {
+                preview.style.setProperty('--highlight-color', selectedHighlightColor);
+            }
+            
             updateCaptionPreview();
         }
         
@@ -5409,35 +5575,72 @@
                 clearInterval(captionAnimationInterval);
             }
             
-            // Create word spans
+            // Remove old animation classes
+            preview.classList.remove('animation-highlight', 'animation-bounce', 'animation-karaoke', 'animation-typewriter');
+            
+            // Add current animation class
+            if (selectedCaptionAnimation !== 'none') {
+                preview.classList.add(`animation-${selectedCaptionAnimation}`);
+            }
+            
+            // Set highlight color CSS variable
+            preview.style.setProperty('--highlight-color', selectedHighlightColor);
+            
+            // Create word spans based on animation type
+            const initialClass = selectedCaptionAnimation === 'typewriter' ? '' : (selectedCaptionAnimation !== 'none' ? ' active' : '');
             preview.innerHTML = words.map((word, i) => 
-                `<span class="caption-word${i === 1 ? ' highlight' : ''}">${word}</span>`
+                `<span class="caption-word${i === 0 ? initialClass : ''}">${word}</span>`
             ).join(' ');
             
-            // Animate highlight through words
-            let currentWord = 1;
+            // Skip animation if set to none
+            if (selectedCaptionAnimation === 'none') return;
+            
+            // Animate based on type
+            let currentWord = 0;
+            const animationSpeed = selectedCaptionAnimation === 'typewriter' ? 300 : 500;
+            
             captionAnimationInterval = setInterval(() => {
                 const wordEls = preview.querySelectorAll('.caption-word');
-                wordEls.forEach((w, i) => {
-                    w.classList.toggle('highlight', i === currentWord);
-                    if (i === currentWord) {
-                        w.style.color = selectedCaptionColor;
-                    } else {
-                        w.style.color = '';
-                    }
-                });
+                
+                if (selectedCaptionAnimation === 'typewriter') {
+                    // Typewriter: reveal words one by one
+                    wordEls.forEach((w, i) => {
+                        w.classList.toggle('visible', i <= currentWord);
+                    });
+                } else {
+                    // Highlight/Bounce/Karaoke: highlight current word
+                    wordEls.forEach((w, i) => {
+                        const isActive = i === currentWord;
+                        w.classList.toggle('active', isActive);
+                        w.classList.toggle('highlight', isActive);
+                        if (isActive) {
+                            w.style.color = selectedHighlightColor;
+                        } else {
+                            w.style.color = '';
+                        }
+                    });
+                }
+                
                 currentWord = (currentWord + 1) % words.length;
-            }, 600);
+                
+                // Reset typewriter after showing all words
+                if (selectedCaptionAnimation === 'typewriter' && currentWord === 0) {
+                    wordEls.forEach(w => w.classList.remove('visible'));
+                }
+            }, animationSpeed);
         }
         
         function getCaptionSettings() {
             return {
                 enabled: true,
-                position: 'bottom',
+                position: selectedCaptionPosition,
+                animation: selectedCaptionAnimation,
+                highlightColor: selectedHighlightColor,
                 uppercase: document.getElementById('caption-uppercase')?.checked ?? true,
                 outline: document.getElementById('caption-outline')?.checked ?? true,
                 shadow: document.getElementById('caption-shadow')?.checked ?? true,
-                textColor: selectedCaptionColor
+                textColor: selectedCaptionColor,
+                font: selectedCaptionFont
             };
         }
         
