@@ -727,6 +727,187 @@
         
         .workflow-step-dot.active {
             background: rgba(255,214,10,0.5);
+        }
+        
+        /* Auto-Generate Button Styles */
+        .auto-generate-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.75rem;
+            background: var(--gold);
+            color: var(--dark-green);
+            border: none;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 0.5rem;
+        }
+        
+        .auto-generate-btn:hover:not(.locked) {
+            background: #ffeb5c;
+            transform: translateY(-1px);
+        }
+        
+        .auto-generate-btn.locked {
+            background: rgba(255,214,10,0.2);
+            color: rgba(255,255,255,0.5);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .auto-generate-btn.locked:hover {
+            background: rgba(255,214,10,0.25);
+        }
+        
+        .auto-generate-progress {
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.6);
+            margin-left: auto;
+        }
+        
+        .auto-generate-btn .sparkle-icon {
+            font-size: 0.8rem;
+        }
+        
+        /* Generator Settings Panel */
+        .generator-settings-section {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .settings-header h3 {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.9);
+            margin: 0;
+        }
+        
+        .settings-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--gold);
+            font-size: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .settings-body {
+            display: none;
+        }
+        
+        .settings-body.open {
+            display: block;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-label {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .setting-control select {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 0.4rem 0.6rem;
+            color: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .setting-control select:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+        
+        .setting-control input[type="range"] {
+            width: 100px;
+            accent-color: var(--gold);
+        }
+        
+        .length-display {
+            font-size: 0.75rem;
+            color: var(--gold);
+            min-width: 40px;
+            text-align: right;
+        }
+        
+        .topic-toggles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .topic-toggle {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 0.3rem 0.6rem;
+            color: rgba(255,255,255,0.6);
+            font-size: 0.7rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .topic-toggle:hover {
+            border-color: rgba(255,214,10,0.5);
+        }
+        
+        .topic-toggle.active {
+            background: rgba(255,214,10,0.2);
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        
+        .auto-gen-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255,214,10,0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255,214,10,0.1);
+        }
+        
+        .auto-gen-status.unlocked {
+            background: rgba(255,214,10,0.1);
+            border-color: var(--gold);
+        }
+        
+        .auto-gen-status .status-icon {
+            font-size: 1.2rem;
+        }
+        
+        .auto-gen-status .status-text {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.8);
             animation: pulse-dot 1.5s infinite;
         }
         
@@ -4525,6 +4706,77 @@
                     <p class="learning-tip" id="learning-tip">Complete more projects to help Echo Engine learn your style.</p>
                 </div>
                 
+                <!-- Generator Settings -->
+                <div class="generator-settings-section">
+                    <div class="settings-header">
+                        <h3>Generator Settings</h3>
+                        <button class="settings-toggle-btn" onclick="toggleGeneratorSettings()">
+                            <span id="settings-toggle-icon">▶</span> Configure
+                        </button>
+                    </div>
+                    <div class="settings-body" id="generator-settings-body">
+                        <div class="setting-row">
+                            <span class="setting-label">Tone</span>
+                            <div class="setting-control">
+                                <select id="setting-tone" onchange="updateGeneratorSetting('tone', this.value)">
+                                    <option value="neutral">Neutral</option>
+                                    <option value="passionate">Passionate</option>
+                                    <option value="calm">Calm</option>
+                                    <option value="urgent">Urgent</option>
+                                    <option value="witty">Witty</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Format</span>
+                            <div class="setting-control">
+                                <select id="setting-format" onchange="updateGeneratorSetting('format_type', this.value)">
+                                    <option value="explainer">Explainer</option>
+                                    <option value="opinion">Opinion</option>
+                                    <option value="story">Story</option>
+                                    <option value="breakdown">Breakdown</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Length</span>
+                            <div class="setting-control" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <input type="range" id="setting-length" min="35" max="75" value="45" 
+                                       oninput="updateLengthDisplay(this.value)"
+                                       onchange="updateGeneratorSetting('target_length', this.value)">
+                                <span class="length-display" id="length-display">45s</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <span class="setting-label">Voice Style</span>
+                            <div class="setting-control">
+                                <select id="setting-voice" onchange="updateGeneratorSetting('voice_style', this.value)">
+                                    <option value="news_anchor">News Anchor</option>
+                                    <option value="storyteller">Storyteller</option>
+                                    <option value="pundit">Pundit</option>
+                                    <option value="educator">Educator</option>
+                                    <option value="conversational">Conversational</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
+                            <span class="setting-label">Topics</span>
+                            <div class="topic-toggles" id="topic-toggles">
+                                <button class="topic-toggle" data-topic="politics" onclick="toggleTopic(this)">Politics</button>
+                                <button class="topic-toggle" data-topic="tech" onclick="toggleTopic(this)">Tech</button>
+                                <button class="topic-toggle" data-topic="culture" onclick="toggleTopic(this)">Culture</button>
+                                <button class="topic-toggle" data-topic="economics" onclick="toggleTopic(this)">Economics</button>
+                                <button class="topic-toggle" data-topic="science" onclick="toggleTopic(this)">Science</button>
+                                <button class="topic-toggle" data-topic="philosophy" onclick="toggleTopic(this)">Philosophy</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="auto-gen-status" id="auto-gen-status">
+                        <span class="status-icon" id="auto-gen-icon">🔒</span>
+                        <span class="status-text" id="auto-gen-text">0/5 liked to unlock auto-generation</span>
+                    </div>
+                </div>
+                
                 <div class="projects-list" id="projects-list">
                     <div class="loading-projects">Loading projects...</div>
                 </div>
@@ -5374,6 +5626,178 @@
         let currentProjectId = null;
         let generatingProjectId = null;
         let aiLearningData = { learning_progress: 0, can_auto_generate: false };
+        let autoGenerateConfidence = { is_unlocked: false, liked_count: 0, unlock_threshold: 5, progress_message: '0/5 liked to unlock' };
+        
+        // Fetch auto-generate confidence status
+        async function fetchAutoGenerateConfidence() {
+            try {
+                const response = await fetch('/generator-confidence');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        autoGenerateConfidence = data;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not fetch auto-generate confidence');
+            }
+        }
+        
+        // Generator settings state
+        let generatorSettings = {
+            tone: 'neutral',
+            format_type: 'explainer',
+            target_length: 45,
+            voice_style: 'news_anchor',
+            enabled_topics: []
+        };
+        
+        // Toggle generator settings panel
+        function toggleGeneratorSettings() {
+            const body = document.getElementById('generator-settings-body');
+            const icon = document.getElementById('settings-toggle-icon');
+            body.classList.toggle('open');
+            icon.textContent = body.classList.contains('open') ? '▼' : '▶';
+        }
+        
+        // Update length display
+        function updateLengthDisplay(value) {
+            document.getElementById('length-display').textContent = value + 's';
+        }
+        
+        // Toggle topic selection
+        function toggleTopic(btn) {
+            btn.classList.toggle('active');
+            const topic = btn.dataset.topic;
+            const index = generatorSettings.enabled_topics.indexOf(topic);
+            if (index > -1) {
+                generatorSettings.enabled_topics.splice(index, 1);
+            } else {
+                generatorSettings.enabled_topics.push(topic);
+            }
+            saveGeneratorSettings();
+        }
+        
+        // Update a generator setting
+        async function updateGeneratorSetting(key, value) {
+            generatorSettings[key] = value;
+            await saveGeneratorSettings();
+        }
+        
+        // Save generator settings to server
+        async function saveGeneratorSettings() {
+            try {
+                await fetch('/generator-settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(generatorSettings)
+                });
+            } catch (e) {
+                console.log('Could not save settings');
+            }
+        }
+        
+        // Load generator settings from server
+        async function loadGeneratorSettings() {
+            try {
+                const response = await fetch('/generator-settings');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.settings) {
+                        generatorSettings = data.settings;
+                        applySettingsToUI();
+                    }
+                }
+            } catch (e) {
+                console.log('Could not load settings');
+            }
+        }
+        
+        // Apply settings to UI elements
+        function applySettingsToUI() {
+            const toneEl = document.getElementById('setting-tone');
+            const formatEl = document.getElementById('setting-format');
+            const lengthEl = document.getElementById('setting-length');
+            const voiceEl = document.getElementById('setting-voice');
+            
+            if (toneEl) toneEl.value = generatorSettings.tone;
+            if (formatEl) formatEl.value = generatorSettings.format_type;
+            if (lengthEl) {
+                lengthEl.value = generatorSettings.target_length;
+                updateLengthDisplay(generatorSettings.target_length);
+            }
+            if (voiceEl) voiceEl.value = generatorSettings.voice_style;
+            
+            // Apply topic toggles
+            document.querySelectorAll('.topic-toggle').forEach(btn => {
+                const topic = btn.dataset.topic;
+                if (generatorSettings.enabled_topics && generatorSettings.enabled_topics.includes(topic)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        // Update auto-gen status display
+        function updateAutoGenStatus() {
+            const statusEl = document.getElementById('auto-gen-status');
+            const iconEl = document.getElementById('auto-gen-icon');
+            const textEl = document.getElementById('auto-gen-text');
+            
+            if (autoGenerateConfidence.is_unlocked) {
+                statusEl.classList.add('unlocked');
+                iconEl.textContent = '✦';
+                textEl.textContent = 'Auto-generation unlocked! AI has learned your style.';
+            } else {
+                statusEl.classList.remove('unlocked');
+                iconEl.textContent = '🔒';
+                textEl.textContent = autoGenerateConfidence.progress_message;
+            }
+        }
+        
+        // Handle auto-generate button click
+        async function handleAutoGenerate(projectId, event) {
+            event.stopPropagation();
+            
+            if (!autoGenerateConfidence.is_unlocked) {
+                showNotification('Keep creating! ' + autoGenerateConfidence.progress_message, 'info');
+                return;
+            }
+            
+            const btn = event.currentTarget;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="sparkle-icon">⟳</span> Generating...';
+            
+            try {
+                const response = await fetch('/auto-generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project_id: projectId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Content auto-generated!', 'success');
+                    // Refresh the project list
+                    loadProjects();
+                    // Open the new project if created
+                    if (data.project_id) {
+                        openProject(data.project_id);
+                    }
+                } else {
+                    showNotification(data.error || 'Auto-generation failed', 'error');
+                }
+            } catch (error) {
+                showNotification('Auto-generation failed', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = autoGenerateConfidence.is_unlocked ? 
+                    '<span class="sparkle-icon">✦</span> Auto-Generate' : 
+                    '<span class="sparkle-icon">🔒</span> ' + autoGenerateConfidence.progress_message;
+            }
+        }
         
         // Update progress on project card
         function updateProjectCardProgress(projectId, percent, label) {
@@ -5538,6 +5962,17 @@
                     stepDots += `<div class="workflow-step-dot ${dotClass}" title="${getStepName(i)}"></div>`;
                 }
                 
+                // Build auto-generate button
+                const isLocked = !autoGenerateConfidence.is_unlocked;
+                const autoGenBtn = `
+                    <button class="auto-generate-btn ${isLocked ? 'locked' : ''}" 
+                            onclick="handleAutoGenerate(${p.id}, event)"
+                            title="${isLocked ? autoGenerateConfidence.progress_message : 'Generate content using AI learning'}">
+                        <span class="sparkle-icon">${isLocked ? '🔒' : '✦'}</span>
+                        ${isLocked ? autoGenerateConfidence.progress_message : 'Auto-Generate'}
+                    </button>
+                `;
+                
                 html += `
                     <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
                          id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
@@ -5548,6 +5983,7 @@
                         </div>
                         <div class="project-card-desc">${escapeHtml(p.description || 'No description')}</div>
                         <div class="project-workflow-steps">${stepDots}</div>
+                        ${autoGenBtn}
                         <div class="project-card-progress ${isGenerating ? 'active' : ''}" id="project-progress-${p.id}">
                             <div class="project-progress-track">
                                 <div class="project-progress-fill" id="project-progress-fill-${p.id}"></div>
@@ -5660,6 +6096,8 @@
             overlay.classList.toggle('open');
             if (overlay.classList.contains('open')) {
                 loadProjects();
+                loadGeneratorSettings();
+                updateAutoGenStatus();
             }
         }
         
@@ -5671,6 +6109,10 @@
         
         async function loadProjects() {
             try {
+                // Fetch auto-generate confidence in parallel with projects
+                await fetchAutoGenerateConfidence();
+                updateAutoGenStatus();
+                
                 const response = await fetch('/projects');
                 if (!response.ok) {
                     if (response.status === 401) {
