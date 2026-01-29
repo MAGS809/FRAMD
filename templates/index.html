@@ -143,8 +143,7 @@
         }
         
         .project-name-display.empty {
-            color: var(--muted);
-            font-style: italic;
+            display: none;
         }
         
         .header-right {
@@ -8342,6 +8341,7 @@
                     const createData = await createRes.json();
                     if (createData.success) {
                         currentProjectId = createData.project.id;
+                        updateProjectNameDisplay(projectName);
                         console.log('Project created:', projectName);
                     }
                 } catch (err) {
