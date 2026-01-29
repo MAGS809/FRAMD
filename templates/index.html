@@ -2609,7 +2609,9 @@
             border-radius: 10px;
         }
         .caption-text-preview {
-            position: relative;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             font-family: 'Arial Black', 'Helvetica Neue', sans-serif;
             font-size: 1rem;
             font-weight: 900;
@@ -2618,6 +2620,7 @@
             text-align: center;
             line-height: 1.4;
             max-width: 90%;
+            bottom: 12%;
         }
         .caption-text-preview.shadow {
             text-shadow: 2px 2px 0 rgba(0,0,0,0.9), 
@@ -5711,6 +5714,16 @@
                     storeWorkflowPreference('caption_styling_started', true);
                     renderWorkflowGuide(5);
                 }, 2000);
+            }
+            
+            // Auto-trigger character detection when entering review stage
+            if (stage === 'review') {
+                const script = document.getElementById('script-text').textContent;
+                const charGrid = document.querySelector('.character-layers-inline');
+                // Only auto-detect if we have a script and characters haven't been detected yet
+                if (script && script !== 'Script will appear here after AI generates it...' && charGrid && !charGrid.querySelector('.character-layer')) {
+                    setTimeout(() => detectCharacters(), 500);
+                }
             }
             
             // Add workflow guide for export stage
