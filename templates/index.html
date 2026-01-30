@@ -2519,6 +2519,126 @@
             line-height: 1.7;
         }
         
+        /* Script Card UI */
+        .script-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .script-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            gap: 1rem;
+        }
+        
+        .script-card-meta {
+            flex: 1;
+        }
+        
+        .script-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        .script-stats {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.25rem;
+        }
+        
+        .script-stat {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            background: rgba(255, 214, 10, 0.1);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .script-quality-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            background: #22c55e;
+            color: #000;
+        }
+        
+        .script-quality-badge.medium {
+            background: #eab308;
+        }
+        
+        .script-quality-badge.low {
+            background: #ef4444;
+            color: #fff;
+        }
+        
+        .script-card-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        
+        .script-card-hook {
+            background: rgba(255, 214, 10, 0.05);
+            border-left: 2px solid var(--text);
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.75rem;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .hook-label {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-right: 0.5rem;
+        }
+        
+        .hook-text {
+            font-size: 0.85rem;
+            color: var(--text);
+        }
+        
+        .script-card-body {
+            position: relative;
+        }
+        
+        .script-content {
+            font-family: inherit;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 0;
+        }
+        
+        .script-edit-area {
+            width: 100%;
+            min-height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            resize: vertical;
+        }
+        
+        .script-edit-area:focus {
+            outline: none;
+            border-color: var(--text-dim);
+        }
+        
         .section-title {
             font-size: 0.75rem;
             color: var(--text-dim);
@@ -6099,11 +6219,30 @@
         <!-- REVIEW STAGE -->
         <div class="stage" id="stage-review">
             <div class="review-content" id="review-content">
-                <div class="section-title">Your Script
-                    <button class="btn btn-secondary btn-sm rebuild-btn" onclick="rebuildScript()" style="margin-left:auto;">Rebuild Script</button>
-                </div>
-                <div class="script-display">
-                    <pre id="script-text">Script will appear here after AI generates it...</pre>
+                <div class="script-card" id="script-card">
+                    <div class="script-card-header">
+                        <div class="script-card-meta">
+                            <span class="script-title" id="script-card-title">Your Script</span>
+                            <div class="script-stats">
+                                <span class="script-stat" id="script-duration">0s</span>
+                                <span class="script-stat" id="script-scenes">0 scenes</span>
+                                <span class="script-quality-badge" id="script-quality" style="display:none;">0</span>
+                            </div>
+                        </div>
+                        <div class="script-card-actions">
+                            <button class="btn btn-secondary btn-sm" id="script-edit-btn" onclick="toggleScriptEdit()" style="display:none;">Edit</button>
+                            <button class="btn btn-primary btn-sm" id="script-confirm-btn" onclick="confirmScriptEdit()" style="display:none;">Confirm Changes</button>
+                            <button class="btn btn-secondary btn-sm rebuild-btn" onclick="rebuildScript()">Rebuild</button>
+                        </div>
+                    </div>
+                    <div class="script-card-hook" id="script-hook">
+                        <span class="hook-label">Hook:</span>
+                        <span class="hook-text" id="script-hook-text">Script will appear here after AI generates it...</span>
+                    </div>
+                    <div class="script-card-body">
+                        <pre id="script-text" class="script-content">Script will appear here after AI generates it...</pre>
+                        <textarea id="script-edit-area" class="script-edit-area" style="display:none;"></textarea>
+                    </div>
                 </div>
                 
                 <!-- STAGE DIRECTIONS TAB -->
@@ -6750,7 +6889,7 @@
                     if (lines.length > 0) {
                         lines[lines.length - 1] = newClosing;
                         currentScript.full_script = lines.join('\n');
-                        document.getElementById('script-text').textContent = currentScript.full_script;
+                        updateScriptCard(currentScript.full_script);
                         displayScriptInEditor(currentScript.full_script);
                     }
                 }
@@ -7060,7 +7199,7 @@
             const clip = clipSuggestions[index];
             if (clip && clip.clip_text) {
                 currentScript = clip.clip_text;
-                document.getElementById('script-text').textContent = clip.clip_text;
+                updateScriptCard(clip.clip_text);
                 
                 // Move to review stage
                 addMessage(`Using clip ${index + 1}. Let's refine it for your video.`);
@@ -7112,7 +7251,7 @@
                     
                     if (result.script?.full_script) {
                         currentScript = result.script;
-                        document.getElementById('script-text').textContent = result.script.full_script;
+                        updateScriptCard(result.script.full_script);
                         
                         // Also update the document editor
                         docHasScript = true;
@@ -8093,7 +8232,7 @@
                     
                     if (data.script) {
                         currentScript = data.script;
-                        document.getElementById('script-text').textContent = data.display_script || data.script;
+                        updateScriptCard(data.display_script || data.script);
                     }
                 }
             } catch (error) {
@@ -8531,7 +8670,7 @@
                 const chatData = await chatResp.json();
                 if (chatData.reply) {
                     currentScript = chatData.reply;
-                    document.getElementById('script-text').textContent = chatData.reply;
+                    updateScriptCard(chatData.reply);
                     
                     // Step 2: Re-curate visuals for new script
                     showNotification('Curating new visuals...', 'info');
@@ -8556,6 +8695,127 @@
             } finally {
                 stopLoading();
             }
+        }
+        
+        // Script card functions
+        let scriptEditMode = false;
+        
+        function updateScriptCard(script, metadata = {}) {
+            const scriptText = document.getElementById('script-text');
+            const hookText = document.getElementById('script-hook-text');
+            const durationEl = document.getElementById('script-duration');
+            const scenesEl = document.getElementById('script-scenes');
+            const qualityEl = document.getElementById('script-quality');
+            const editBtn = document.getElementById('script-edit-btn');
+            const editArea = document.getElementById('script-edit-area');
+            
+            if (!scriptText) return;
+            
+            // Handle empty/invalid script
+            const cleanScript = (script || '').trim();
+            if (!cleanScript) {
+                scriptText.textContent = 'Script will appear here after AI generates it...';
+                if (hookText) hookText.textContent = 'No hook yet';
+                if (durationEl) durationEl.textContent = '0s';
+                if (scenesEl) scenesEl.textContent = '0 scenes';
+                if (qualityEl) qualityEl.style.display = 'none';
+                if (editBtn) editBtn.style.display = 'none';
+                return;
+            }
+            
+            // Update script content
+            scriptText.textContent = cleanScript;
+            
+            // Sync edit area if in edit mode
+            if (scriptEditMode && editArea) {
+                editArea.value = cleanScript;
+            }
+            
+            // Extract hook (first meaningful dialogue line)
+            const lines = cleanScript.split('\n').filter(l => l.trim());
+            const skipPatterns = /^(SCENE|VISUAL:|CUT:|---|\[|\#)/i;
+            const firstContent = lines.find(l => !skipPatterns.test(l.trim()) && l.trim().length > 10);
+            if (hookText) {
+                if (firstContent) {
+                    hookText.textContent = firstContent.substring(0, 120) + (firstContent.length > 120 ? '...' : '');
+                } else {
+                    hookText.textContent = lines[0]?.substring(0, 120) || 'No hook detected';
+                }
+            }
+            
+            // Calculate duration estimate (roughly 2.5 words per second)
+            const words = cleanScript.split(/\s+/).filter(w => w.length > 0);
+            const wordCount = words.length;
+            const duration = wordCount > 0 ? Math.round(wordCount / 2.5) : 0;
+            if (durationEl) durationEl.textContent = duration + 's';
+            
+            // Count scenes (case insensitive, multiple formats)
+            const sceneMatches = cleanScript.match(/\b(scene\s*\d+|scene\s*#?\d+)/gi) || [];
+            const sceneCount = sceneMatches.length || (cleanScript.length > 50 ? 1 : 0);
+            if (scenesEl) scenesEl.textContent = sceneCount + ' scene' + (sceneCount !== 1 ? 's' : '');
+            
+            // Handle quality score
+            if (qualityEl) {
+                if (metadata.quality !== undefined && metadata.quality !== null) {
+                    qualityEl.textContent = metadata.quality;
+                    qualityEl.style.display = 'inline';
+                    qualityEl.className = 'script-quality-badge';
+                    if (metadata.quality < 60) qualityEl.classList.add('low');
+                    else if (metadata.quality < 80) qualityEl.classList.add('medium');
+                } else {
+                    qualityEl.style.display = 'none';
+                }
+            }
+            
+            // Show edit button
+            if (editBtn) editBtn.style.display = 'inline-block';
+        }
+        
+        function toggleScriptEdit() {
+            const scriptText = document.getElementById('script-text');
+            const editArea = document.getElementById('script-edit-area');
+            const editBtn = document.getElementById('script-edit-btn');
+            const confirmBtn = document.getElementById('script-confirm-btn');
+            
+            if (!scriptText || !editArea) return;
+            
+            scriptEditMode = !scriptEditMode;
+            
+            if (scriptEditMode) {
+                // Enter edit mode
+                editArea.value = scriptText.textContent;
+                scriptText.style.display = 'none';
+                editArea.style.display = 'block';
+                editBtn.style.display = 'none';
+                confirmBtn.style.display = 'inline-block';
+                editArea.focus();
+            } else {
+                // Exit edit mode
+                scriptText.style.display = 'block';
+                editArea.style.display = 'none';
+                editBtn.style.display = 'inline-block';
+                confirmBtn.style.display = 'none';
+            }
+        }
+        
+        function confirmScriptEdit() {
+            const scriptText = document.getElementById('script-text');
+            const editArea = document.getElementById('script-edit-area');
+            
+            if (!scriptText || !editArea) return;
+            
+            const newScript = editArea.value.trim();
+            if (!newScript) {
+                showToast('Script cannot be empty');
+                return;
+            }
+            
+            currentScript = newScript;
+            updateScriptCard(newScript);
+            saveCurrentProject({ script: newScript });
+            showToast('Script updated');
+            
+            toggleScriptEdit();
         }
         
         function renderCastingPanel(characters) {
@@ -8753,7 +9013,7 @@
                 
                 if (data.response) {
                     // Update the script
-                    document.getElementById('script-text').textContent = data.response;
+                    updateScriptCard(data.response);
                     messagesContainer.innerHTML += `<div class="framd-ai-msg ai">Done! I've updated the script based on your request.</div>`;
                 } else {
                     messagesContainer.innerHTML += `<div class="framd-ai-msg ai">Sorry, I couldn't process that request.</div>`;

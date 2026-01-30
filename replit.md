@@ -1,7 +1,7 @@
 # Framd
 
 ## Overview
-Framd (powered by Krakd) is a high-end post-assembler designed to transform raw links, ideas, and transcripts into cinematic clips and structured posts. The project aims to create clear, honest, human-feeling content that respects complexity. It optimizes for clarity, integrity, and resonance, prioritizing quality over virality or spectacle. The business vision is to provide a platform for generating impactful, thought-provoking short-form content.
+Framd (powered by Echo Engine) is a high-end post-assembler designed to transform raw links, ideas, and transcripts into cinematic clips and structured posts. The project aims to create clear, honest, human-feeling content that respects complexity. It optimizes for clarity, integrity, and resonance, prioritizing quality over virality or spectacle. The business vision is to provide a platform for generating impactful, thought-provoking short-form content.
 
 ## User Preferences
 ### Core Philosophy
@@ -74,7 +74,8 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 ## System Architecture
 
 **UI/UX Design:**
-- **Brand**: Framd (powered by Krakd) with Space Grotesk and Inter typography.
+- **Brand**: Framd (powered by Echo Engine) with Space Grotesk and Inter typography.
+- **Script Card UI**: Card-based script display with hook preview (first meaningful line, max 120 chars), duration estimate (2.5 words/second), scene count, quality score badge, and inline Edit/Confirm Changes workflow.
 - **Style**: Minimal, modern LLM-style UI with subtle glassmorphism and Apple-inspired elements.
 - **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents.
 - **Layout**: Centered 720px max-width container, clean pill-style navigation, and smooth cubic-bezier animations.
