@@ -105,6 +105,45 @@ FORMATTING RULES:
 "Clarity over noise. Meaning over metrics. Thought before output." """
 
 
+def extract_json_from_text(text: str) -> dict:
+    """Extract JSON from text, handling various formats like markdown code blocks."""
+    import re
+    text = text.strip()
+    
+    # Try direct parse first
+    try:
+        return json.loads(text)
+    except:
+        pass
+    
+    # Try extracting from code blocks
+    if "```" in text:
+        match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+        if match:
+            try:
+                return json.loads(match.group(1).strip())
+            except:
+                pass
+    
+    # Try finding JSON object in text
+    match = re.search(r'\{[\s\S]*\}', text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except:
+            pass
+    
+    # Try finding JSON array in text
+    match = re.search(r'\[[\s\S]*\]', text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except:
+            pass
+    
+    return {}
+
+
 def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, max_tokens: int = 2048) -> dict:
     """
     Call Claude as primary AI, with xAI fallback.
@@ -112,18 +151,29 @@ def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, ma
     """
     system = system_prompt or SYSTEM_GUARDRAILS
     
+    # For JSON output, add explicit instruction for Claude
+    final_prompt = prompt
+    if json_output:
+        final_prompt = prompt + "\n\nIMPORTANT: Respond with valid JSON only. No additional text."
+    
     # Try Claude first (primary)
     try:
         response = claude_client.messages.create(
             model="claude-sonnet-4-5",
             max_tokens=max_tokens,
             system=system,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[{"role": "user", "content": final_prompt}]
         )
-        content = response.content[0].text if response.content else "{}"
+        content = response.content[0].text if response.content else ""
+        print(f"[Claude] Success, response length: {len(content)}")
+        
         if json_output:
-            return json.loads(content)
-        return {"text": content}
+            result = extract_json_from_text(content)
+            if result:
+                return result
+            print(f"[Claude] JSON extraction failed, falling back to xAI...")
+        else:
+            return {"text": content}
     except Exception as e:
         print(f"[Claude Error] {e}, falling back to xAI...")
     
@@ -141,9 +191,12 @@ def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, ma
             kwargs["response_format"] = {"type": "json_object"}
         
         response = xai_client.chat.completions.create(**kwargs)
-        content = response.choices[0].message.content or "{}"
+        content = response.choices[0].message.content or ""
+        print(f"[xAI] Success, response length: {len(content)}")
+        
         if json_output:
-            return json.loads(content)
+            result = extract_json_from_text(content)
+            return result if result else {}
         return {"text": content}
     except Exception as e:
         print(f"[xAI Error] {e}")

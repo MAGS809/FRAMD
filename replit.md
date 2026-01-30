@@ -107,11 +107,17 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 
 ## External Dependencies
 - **Python 3.11**
-- **Krakd AI**: (powered by xAI grok-3) for chat, script generation, and visual curation.
+- **Claude (Anthropic)**: Primary AI via Replit AI Integrations (claude-sonnet-4-5) for script generation, visual curation, and chat. No API key needed, billed to Replit credits.
+- **xAI (grok-3)**: Fallback AI when Claude is unavailable or rate-limited.
 - **ElevenLabs**: Primary Text-to-Speech (TTS) engine for voiceovers.
-- **OpenAI**: Fallback for audio transcription and voiceover.
+- **OpenAI**: For audio transcription, voiceover generation, and DALL-E character images.
 - **FFmpeg**: For video/audio processing and caption rendering.
 - **Stripe**: For subscription management and payment processing.
 - **Wikimedia Commons**: Primary source for visual content.
 - **Pexels**: Fallback source for visual content.
-- **DALL-E**: For AI-generated character images.
+
+## AI Architecture (Updated Jan 2026)
+- **Primary AI**: Claude (claude-sonnet-4-5) via Replit AI Integrations
+- **Fallback AI**: xAI (grok-3) when Claude is rate-limited or unavailable
+- **Helper Function**: `call_ai()` in context_engine.py handles AI calls with automatic fallback
+- **Audio**: OpenAI Whisper for transcription, ElevenLabs for TTS

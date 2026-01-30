@@ -21,7 +21,8 @@ from context_engine import (
     cut_video_clip, concatenate_clips,
     extract_thesis, identify_anchors, detect_thought_changes,
     generate_thesis_driven_script, process_source_for_clipping,
-    learn_from_source_content, unified_content_engine
+    learn_from_source_content, unified_content_engine,
+    call_ai, SYSTEM_GUARDRAILS
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -1551,7 +1552,6 @@ def search_assets():
 @app.route('/curate-visuals', methods=['POST'])
 def curate_visuals():
     """AI curates visuals based on script context - checks cache first, then external APIs."""
-    from openai import OpenAI
     import re as regex
     
     data = request.get_json()
@@ -1560,11 +1560,6 @@ def curate_visuals():
     
     if not script:
         return jsonify({'success': False, 'error': 'No script provided'}), 400
-    
-    client = OpenAI(
-        api_key=os.environ.get("XAI_API_KEY"),
-        base_url="https://api.x.ai/v1"
-    )
     
     content_type = data.get('content_type', 'educational')
     
@@ -1632,17 +1627,9 @@ CRITICAL:
         user_content += f"\n\nUSER DIRECTION: {user_guidance}"
 
     try:
-        response = client.chat.completions.create(
-            model="grok-3",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            response_format={"type": "json_object"},
-            max_tokens=1500
-        )
-        
-        visual_board = json.loads(response.choices[0].message.content or '{}')
+        visual_board = call_ai(user_content, system_prompt, json_output=True, max_tokens=1500)
+        if not visual_board:
+            visual_board = {"sections": []}
         
         # FALLBACK: Parse durations directly from script if AI missed them
         import re as duration_re
@@ -4559,18 +4546,11 @@ def extract_character_lines_endpoint():
 @app.route('/detect-characters', methods=['POST'])
 def detect_characters():
     """AI detects characters in the script for casting."""
-    from openai import OpenAI
-    
     data = request.get_json()
     script = data.get('script', '')
     
     if not script:
         return jsonify({'success': False, 'error': 'No script provided'}), 400
-        
-    client = OpenAI(
-        api_key=os.environ.get("XAI_API_KEY"),
-        base_url="https://api.x.ai/v1"
-    )
     
     system_prompt = """Analyze the script and list all speaking characters.
 For each character, provide:
@@ -4590,31 +4570,11 @@ OUTPUT FORMAT (JSON):
 }"""
 
     try:
-        response = client.chat.completions.create(
-            model="grok-3",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"Detect characters in this script:\n\n{script}"}
-            ],
-            response_format={"type": "json_object"}
-        )
+        prompt = f"Detect characters in this script:\n\n{script}"
+        result = call_ai(prompt, system_prompt, json_output=True, max_tokens=1024)
         
-        content = response.choices[0].message.content
-        
-        # Try to parse JSON, with fallback for malformed responses
-        try:
-            result = json.loads(content)
-        except json.JSONDecodeError:
-            # Try to extract JSON from response
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', content)
-            if json_match:
-                try:
-                    result = json.loads(json_match.group())
-                except:
-                    result = {"characters": [{"name": "NARRATOR", "personality": "Calm, clear", "sample_line": "Narration..."}]}
-            else:
-                result = {"characters": [{"name": "NARRATOR", "personality": "Calm, clear", "sample_line": "Narration..."}]}
+        if not result:
+            result = {"characters": [{"name": "NARRATOR", "personality": "Calm, clear", "sample_line": "Narration..."}]}
         
         characters = result.get('characters', [])
         
@@ -4635,19 +4595,11 @@ OUTPUT FORMAT (JSON):
 @app.route('/generate-stage-directions', methods=['POST'])
 def generate_stage_directions():
     """Generate stage directions from a script using AI."""
-    from openai import OpenAI
-    import os
-    
     data = request.get_json()
     script = data.get('script', '')
     
     if not script:
         return jsonify({'success': False, 'error': 'No script provided'}), 400
-    
-    client = OpenAI(
-        api_key=os.environ.get("XAI_API_KEY"),
-        base_url="https://api.x.ai/v1"
-    )
     
     prompt = f"""Analyze this script and generate stage directions (audio effects, pauses, transitions).
 
@@ -4686,16 +4638,9 @@ Output ONLY the stage directions, one per line, in order of appearance.
 Include a brief note about where each should occur."""
     
     try:
-        response = client.chat.completions.create(
-            model="grok-3",
-            messages=[
-                {"role": "system", "content": "You are an audio director for short-form video content."},
-                {"role": "user", "content": prompt}
-            ],
-            max_completion_tokens=1024
-        )
-        
-        directions = response.choices[0].message.content or ""
+        system = "You are an audio director for short-form video content."
+        result = call_ai(prompt, system, json_output=False, max_tokens=1024)
+        directions = result.get('text', '') if result else ""
         return jsonify({'success': True, 'directions': directions})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
