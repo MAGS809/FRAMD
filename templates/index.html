@@ -1798,74 +1798,18 @@
             border-color: var(--text-dim);
         }
         
-        /* Progress stages indicator */
-        .progress-stages {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 320px;
+        /* Typing indicator */
+        .typing-dots::after {
+            content: '';
+            animation: typingDots 1.5s infinite;
         }
         
-        .progress-steps {
-            display: flex;
-            justify-content: space-between;
-            gap: 0.25rem;
-        }
-        
-        .progress-step {
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-            font-size: 0.75rem;
-            color: var(--text-faint);
-            transition: color 0.3s, opacity 0.3s;
-            opacity: 0.5;
-        }
-        
-        .progress-step.active {
-            color: var(--accent);
-            opacity: 1;
-        }
-        
-        .progress-step.complete {
-            color: var(--accent);
-            opacity: 1;
-        }
-        
-        .progress-step-icon {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            border: 1.5px solid currentColor;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.6rem;
-            transition: all 0.3s;
-        }
-        
-        .progress-step.active .progress-step-icon {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: var(--bg);
-            animation: stepPulse 1.2s infinite;
-        }
-        
-        .progress-step.complete .progress-step-icon {
-            background: var(--accent);
-            border-color: var(--accent);
-            color: #fff;
-        }
-        
-        @keyframes stepPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
-        @keyframes typingPulse {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
+        @keyframes typingDots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
         }
         
         /* Persistent chat panel */
@@ -8326,14 +8270,8 @@
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai';
             typingDiv.innerHTML = `
-                <div class="message-content">
-                    <div class="progress-stages">
-                        <span class="stage active">Analyzing</span>
-                        <span class="stage-arrow">→</span>
-                        <span class="stage">Building</span>
-                        <span class="stage-arrow">→</span>
-                        <span class="stage">Writing</span>
-                    </div>
+                <div class="message-content" style="color: var(--text-dim); font-style: italic;">
+                    <span class="typing-dots">Thinking</span>
                 </div>
             `;
             container.appendChild(typingDiv);
@@ -9667,67 +9605,17 @@
             msg.className = 'message ai';
             msg.id = 'typing';
             msg.innerHTML = `
-                <div class="message-content">
-                    <div class="progress-stages">
-                        <div class="progress-steps">
-                            <div class="progress-step active" id="step-1">
-                                <span class="progress-step-icon">1</span>
-                                <span>Analyzing</span>
-                            </div>
-                            <div class="progress-step" id="step-2">
-                                <span class="progress-step-icon">2</span>
-                                <span>Thesis</span>
-                            </div>
-                            <div class="progress-step" id="step-3">
-                                <span class="progress-step-icon">3</span>
-                                <span>Writing</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="message-content" style="color: var(--text-dim); font-style: italic;">
+                    <span class="typing-dots">Thinking</span>
                 </div>
             `;
             messages.appendChild(msg);
             messages.scrollTop = messages.scrollHeight;
-            
-            // Animate stages
-            let currentStage = 1;
-            
-            const stageInterval = setInterval(() => {
-                if (currentStage < 3) {
-                    // Mark current as complete
-                    const currentEl = msg.querySelector('#step-' + currentStage);
-                    if (currentEl) {
-                        currentEl.classList.remove('active');
-                        currentEl.classList.add('complete');
-                        const icon = currentEl.querySelector('.progress-step-icon');
-                        if (icon) icon.textContent = '✓';
-                    }
-                    
-                    currentStage++;
-                    
-                    // Activate next stage
-                    const nextEl = msg.querySelector('#step-' + currentStage);
-                    if (nextEl) nextEl.classList.add('active');
-                } else {
-                    // Final stage complete
-                    const finalEl = msg.querySelector('#step-3');
-                    if (finalEl) {
-                        finalEl.classList.remove('active');
-                        finalEl.classList.add('complete');
-                        const icon = finalEl.querySelector('.progress-step-icon');
-                        if (icon) icon.textContent = '✓';
-                    }
-                }
-            }, 2000);
-            
-            // Store interval on the element so we can clear it later
-            msg.stageInterval = stageInterval;
         }
         
         function removeTypingIndicator() {
             const typing = document.getElementById('typing');
             if (typing) {
-                if (typing.stageInterval) clearInterval(typing.stageInterval);
                 typing.remove();
             }
         }
