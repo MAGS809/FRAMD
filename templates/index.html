@@ -10347,7 +10347,16 @@
                 if (sceneNum >= 0 && sceneNum < currentAnchors.length) {
                     removeTypingIndicator();
                     addMessage(`Opening visual picker for Scene ${sceneNum + 1}...`, false);
-                    setTimeout(() => openInlineVisuals(sceneNum), 300);
+                    // Navigate to specific scene in the single-scene picker
+                    currentVisualSceneIndex = sceneNum;
+                    const messagesDiv = document.getElementById('messages');
+                    const containerDiv = document.createElement('div');
+                    containerDiv.className = 'message ai visual-picker-message';
+                    containerDiv.id = 'visual-picker-container-' + Date.now();
+                    messagesDiv.appendChild(containerDiv);
+                    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    visualPickerContainer = containerDiv;
+                    setTimeout(() => renderSingleSceneVisualPicker(containerDiv, currentAnchors, sceneNum), 300);
                     stopLoading();
                     sendBtn.disabled = false;
                     return;
