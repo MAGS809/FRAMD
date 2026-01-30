@@ -4263,17 +4263,37 @@
             overflow: hidden;
             cursor: pointer;
             position: relative;
-            border: 2px solid transparent;
-            transition: all 0.15s;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
         }
         
         .chat-visual-option:hover {
-            border-color: var(--gold);
+            border-color: rgba(255, 214, 10, 0.5);
             transform: scale(1.02);
         }
         
         .chat-visual-option.selected {
-            border-color: var(--accent);
+            border-color: var(--gold) !important;
+            box-shadow: 0 0 0 2px var(--gold), 0 4px 12px rgba(255, 214, 10, 0.3);
+            transform: scale(1.02);
+        }
+        
+        .chat-visual-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background: var(--gold);
+            color: var(--bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 10;
         }
         
         .chat-visual-option img {
@@ -7034,15 +7054,15 @@
         let sceneVisuals = {};
         let activeSceneIndex = null;
         
-        // Anchors Display - Scenes List Format
+        // Anchors Display - Scenes List Format (Uses new single-scene picker)
         async function displayAnchors(anchors) {
             currentAnchors = anchors || [];
             
             if (currentAnchors.length > 0) {
-                // Show brief scene summary and immediately open Scene 1 visual picker
+                // Show brief scene summary
                 addMessage(`Your script has ${currentAnchors.length} scenes. Let's pick visuals for each one.`, false);
                 
-                // Detect characters from full script first, then open visual picker
+                // Detect characters from full script first
                 const scriptText = currentScript?.full_script || (typeof currentScript === 'string' ? currentScript : null);
                 if (scriptText && detectedCharacters.length === 0) {
                     try {
@@ -7061,9 +7081,19 @@
                     }
                 }
                 
-                // Automatically open Scene 1's visual picker
+                // Create container and open new single-scene visual picker
+                const messagesDiv = document.getElementById('messages');
+                const containerDiv = document.createElement('div');
+                containerDiv.className = 'message ai visual-picker-message';
+                containerDiv.id = 'visual-picker-container-' + Date.now();
+                messagesDiv.appendChild(containerDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                
+                // Initialize the single-scene visual picker
+                currentVisualSceneIndex = 0;
+                visualPickerContainer = containerDiv;
                 setTimeout(() => {
-                    openInlineVisuals(0);
+                    renderSingleSceneVisualPicker(containerDiv, currentAnchors, 0);
                 }, 300);
             }
         }
@@ -7103,17 +7133,256 @@
                 }
             }
             
-            // Render anchor cards
-            container.innerHTML = anchors.map((anchor, idx) => `
-                <div class="anchor-visual-card" style="background: rgba(255,214,10,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                    <div style="font-weight: 600; color: var(--gold); margin-bottom: 0.5rem;">Scene ${idx + 1}: ${anchor.anchor_type || 'SCENE'}</div>
-                    <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 1rem;">${anchor.anchor_text || ''}</div>
-                    <button class="btn btn-secondary" onclick="openSceneVisualPicker(${idx})" style="font-size: 12px;">
-                        Pick Visuals
-                    </button>
-                    <div id="scene-visual-preview-${idx}" style="margin-top: 0.5rem;"></div>
+            // Render single-scene visual picker (one at a time)
+            currentVisualSceneIndex = 0;
+            visualPickerContainer = container; // Store reference for navigation
+            renderSingleSceneVisualPicker(container, anchors, 0);
+        }
+        
+        // Track current scene in visual picker
+        let currentVisualSceneIndex = 0;
+        
+        // Render a single scene visual picker with navigation
+        function renderSingleSceneVisualPicker(container, anchors, sceneIndex) {
+            const anchor = anchors[sceneIndex];
+            if (!anchor) return;
+            
+            const hasVisual = sceneVisuals[sceneIndex] && sceneVisuals[sceneIndex].url;
+            const totalScenes = anchors.length;
+            
+            container.innerHTML = `
+                <div class="single-scene-picker" style="background: rgba(255,214,10,0.03); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+                    <!-- Progress indicator -->
+                    <div style="display: flex; gap: 4px; padding: 12px 16px; background: rgba(0,0,0,0.2);">
+                        ${anchors.map((_, i) => `
+                            <div style="flex: 1; height: 4px; border-radius: 2px; background: ${i < sceneIndex ? 'var(--gold)' : i === sceneIndex ? 'rgba(255,214,10,0.6)' : 'rgba(255,255,255,0.1)'}; transition: all 0.3s;"></div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Scene header -->
+                    <div style="padding: 16px; border-bottom: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 700; color: var(--gold); font-size: 16px;">Scene ${sceneIndex + 1} of ${totalScenes}: ${anchor.anchor_type || 'SCENE'}</span>
+                            ${hasVisual ? '<span style="color: #4ade80; font-size: 14px;">✓ Visual Selected</span>' : ''}
+                        </div>
+                        <div style="font-size: 14px; color: var(--text); line-height: 1.5;">${anchor.anchor_text || ''}</div>
+                    </div>
+                    
+                    <!-- Visual grid (auto-loads) -->
+                    <div id="single-scene-visuals" style="padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <span style="font-size: 13px; color: var(--text-dim);">Select a visual for this scene:</span>
+                            <button class="btn btn-secondary" onclick="refreshSceneVisuals(${sceneIndex})" style="font-size: 11px; padding: 6px 12px;">
+                                ↻ Refresh
+                            </button>
+                        </div>
+                        <div id="scene-visual-grid-${sceneIndex}" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                            <div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Loading visuals...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pop-up option -->
+                    <div style="padding: 0 16px 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 8px;">
+                            <input type="checkbox" id="scene-popup-${sceneIndex}" ${sceneVisuals[sceneIndex]?.hasPopup ? 'checked' : ''} 
+                                   onchange="toggleScenePopup(${sceneIndex}, this.checked)" style="width: 18px; height: 18px; accent-color: var(--gold);">
+                            <label for="scene-popup-${sceneIndex}" style="font-size: 13px; color: var(--text-dim); cursor: pointer;">
+                                Add a pop-up visual to this scene
+                            </label>
+                            <button class="btn btn-secondary" onclick="openPopupPicker(${sceneIndex})" style="font-size: 11px; padding: 6px 12px; margin-left: auto; ${sceneVisuals[sceneIndex]?.hasPopup ? '' : 'display: none;'}" id="popup-pick-btn-${sceneIndex}">
+                                Pick Pop-up
+                            </button>
+                        </div>
+                        <div id="popup-preview-${sceneIndex}" style="margin-top: 8px;"></div>
+                    </div>
+                    
+                    <!-- Navigation buttons -->
+                    <div style="display: flex; gap: 12px; padding: 16px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2);">
+                        <button class="btn btn-secondary" onclick="navigateVisualScene(${sceneIndex - 1})" style="flex: 1; ${sceneIndex === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}">
+                            ← Previous
+                        </button>
+                        <button class="btn btn-primary" onclick="navigateVisualScene(${sceneIndex + 1})" style="flex: 2;">
+                            ${sceneIndex === totalScenes - 1 ? 'Finish & Continue →' : 'Next Scene →'}
+                        </button>
+                    </div>
                 </div>
-            `).join('');
+            `;
+            
+            // Auto-load visuals for this scene
+            loadSceneVisualsAuto(sceneIndex);
+        }
+        
+        // Store reference to the visual picker container
+        let visualPickerContainer = null;
+        
+        // Navigate between scenes
+        function navigateVisualScene(newIndex) {
+            if (newIndex < 0) return;
+            if (newIndex >= currentAnchors.length) {
+                // Finished all scenes - check if all have visuals
+                const missingVisuals = currentAnchors.filter((_, idx) => !sceneVisuals[idx]?.url);
+                if (missingVisuals.length > 0) {
+                    showToast(`Please select visuals for all ${currentAnchors.length} scenes`);
+                    return;
+                }
+                
+                addMessage(`All ${currentAnchors.length} scenes have visuals configured. Type 'continue' when ready for voice assignment.`, false);
+                currentWorkflowStep = 3;
+                return;
+            }
+            
+            currentVisualSceneIndex = newIndex;
+            if (visualPickerContainer) {
+                renderSingleSceneVisualPicker(visualPickerContainer, currentAnchors, newIndex);
+            }
+        }
+        
+        // Load visuals automatically for a scene
+        async function loadSceneVisualsAuto(sceneIndex) {
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) return;
+            
+            const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
+            if (!grid) return;
+            
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: anchor.anchor_type || 'CLAIM',
+                        keywords: anchor.keywords || []
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Server error');
+                const data = await response.json();
+                
+                const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                if (allVisuals.length > 0) {
+                    grid.innerHTML = allVisuals.slice(0, 9).map((img, imgIdx) => `
+                        <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
+                             style="cursor: pointer;"
+                             data-url="${img.url}">
+                            <img src="${img.url}" alt="Visual option" loading="lazy" style="pointer-events: none;">
+                        </div>
+                    `).join('');
+                    
+                    // Add click handlers
+                    grid.querySelectorAll('.chat-visual-option').forEach((el) => {
+                        el.addEventListener('click', function() {
+                            const url = this.dataset.url;
+                            selectSingleSceneVisual(sceneIndex, url, grid);
+                        });
+                    });
+                } else {
+                    grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">No visuals found. Try refreshing.</div>';
+                }
+            } catch (err) {
+                console.error('Error loading visuals:', err);
+                grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: red;">Error loading visuals. Try refreshing.</div>';
+            }
+        }
+        
+        // Refresh visuals for current scene
+        function refreshSceneVisuals(sceneIndex) {
+            const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
+            if (grid) {
+                grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Loading visuals...</div>';
+            }
+            loadSceneVisualsAuto(sceneIndex);
+        }
+        
+        // Select a visual in the single-scene picker
+        function selectSingleSceneVisual(sceneIndex, imageUrl, grid) {
+            // Store the visual
+            sceneVisuals[sceneIndex] = {
+                ...sceneVisuals[sceneIndex],
+                url: imageUrl,
+                category: 'curated'
+            };
+            
+            // Update selection UI
+            grid.querySelectorAll('.chat-visual-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            grid.querySelectorAll('.chat-visual-option').forEach(opt => {
+                if (opt.dataset.url === imageUrl) {
+                    opt.classList.add('selected');
+                }
+            });
+            
+            showToast(`Visual selected for Scene ${sceneIndex + 1}`);
+        }
+        
+        // Toggle pop-up option for a scene
+        function toggleScenePopup(sceneIndex, hasPopup) {
+            sceneVisuals[sceneIndex] = {
+                ...sceneVisuals[sceneIndex],
+                hasPopup: hasPopup
+            };
+            
+            const btn = document.getElementById(`popup-pick-btn-${sceneIndex}`);
+            if (btn) {
+                btn.style.display = hasPopup ? '' : 'none';
+            }
+        }
+        
+        // Open pop-up visual picker
+        async function openPopupPicker(sceneIndex) {
+            const preview = document.getElementById(`popup-preview-${sceneIndex}`);
+            if (!preview) return;
+            
+            preview.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 8px;">Loading pop-up options...</div>';
+            
+            const anchor = currentAnchors[sceneIndex];
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: 'POPUP',
+                        keywords: ['icon', 'graphic', 'illustration', 'symbol']
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Server error');
+                const data = await response.json();
+                
+                const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                if (allVisuals.length > 0) {
+                    preview.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                            ${allVisuals.slice(0, 8).map((img) => `
+                                <div class="chat-visual-option popup-option" 
+                                     style="cursor: pointer; aspect-ratio: 1;"
+                                     data-url="${img.url}">
+                                    <img src="${img.url}" alt="Pop-up option" loading="lazy" style="pointer-events: none; width: 100%; height: 100%; object-fit: cover;">
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    
+                    preview.querySelectorAll('.popup-option').forEach(el => {
+                        el.addEventListener('click', function() {
+                            const url = this.dataset.url;
+                            sceneVisuals[sceneIndex] = {
+                                ...sceneVisuals[sceneIndex],
+                                popupUrl: url
+                            };
+                            preview.querySelectorAll('.popup-option').forEach(opt => opt.classList.remove('selected'));
+                            this.classList.add('selected');
+                            showToast('Pop-up visual selected');
+                        });
+                    });
+                } else {
+                    preview.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 8px;">No pop-up visuals found.</div>';
+                }
+            } catch (err) {
+                preview.innerHTML = '<div style="color: red; font-size: 12px; padding: 8px;">Error loading pop-up options.</div>';
+            }
         }
         
         // Open visual picker for a specific scene from the workflow card
@@ -7351,6 +7620,8 @@
         
         // Select a visual from inline picker
         function selectInlineVisual(sceneIndex, imageIndex, pickerId, imageUrl, photographer, category = 'curated') {
+            console.log('[selectInlineVisual] Scene:', sceneIndex, 'Image:', imageIndex, 'URL:', imageUrl.substring(0, 50));
+            
             // Store the visual with category
             sceneVisuals[sceneIndex] = {
                 url: imageUrl,
@@ -7364,27 +7635,24 @@
                 sceneVisualEl.innerHTML = `<img src="${imageUrl}" alt="Scene visual">`;
             }
             
-            // Update selection state in picker
+            // Clear all selections first, then mark the clicked one
             const picker = document.getElementById(pickerId);
             if (picker) {
-                picker.querySelectorAll('.chat-visual-option').forEach((opt, idx) => {
-                    opt.classList.toggle('selected', idx === imageIndex);
+                // Remove selected from all options
+                picker.querySelectorAll('.chat-visual-option').forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Find and select the one with matching URL
+                picker.querySelectorAll('.chat-visual-option img').forEach(img => {
+                    if (img.src === imageUrl) {
+                        img.parentElement.classList.add('selected');
+                    }
                 });
             }
             
-            // Check if there are more scenes to do
-            const nextSceneIndex = sceneIndex + 1;
-            if (nextSceneIndex < currentAnchors.length) {
-                // Auto-advance to next scene after a brief delay
-                addMessage(`Visual selected for Scene ${sceneIndex + 1}. Opening Scene ${nextSceneIndex + 1}...`, false);
-                setTimeout(() => {
-                    openInlineVisuals(nextSceneIndex);
-                }, 500);
-            } else {
-                // All scenes have visuals - show completion
-                addMessage(`All ${currentAnchors.length} scenes have visuals selected. Type 'continue' when ready for voice assignment.`, false);
-                currentWorkflowStep = 3;
-            }
+            // Show confirmation message
+            addMessage(`Visual selected for Scene ${sceneIndex + 1}. Click another image to change, or click "Next Scene" to continue.`, false);
         }
         
         // Open visual picker for a scene
