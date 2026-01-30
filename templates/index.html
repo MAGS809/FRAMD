@@ -7237,23 +7237,35 @@
             }
         }
         
+        // Track loading state to prevent duplicate calls
+        let loadingSceneVisuals = {};
+        
         // Load visuals automatically for a scene
         async function loadSceneVisualsAuto(sceneIndex) {
+            // Prevent duplicate calls
+            if (loadingSceneVisuals[sceneIndex]) {
+                console.log('[loadSceneVisualsAuto] Already loading scene', sceneIndex, '- skipping');
+                return;
+            }
+            loadingSceneVisuals[sceneIndex] = true;
+            
             const anchor = currentAnchors[sceneIndex];
             if (!anchor) {
                 console.warn('[loadSceneVisualsAuto] No anchor at index', sceneIndex);
+                loadingSceneVisuals[sceneIndex] = false;
                 return;
             }
             
             const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
             if (!grid) {
                 console.warn('[loadSceneVisualsAuto] No grid found for scene', sceneIndex);
+                loadingSceneVisuals[sceneIndex] = false;
                 return;
             }
             
             // Show loading bar at top
             startLoading();
-            console.log('[loadSceneVisualsAuto] Loading visuals for scene', sceneIndex);
+            console.log('[loadSceneVisualsAuto] Loading visuals for scene', sceneIndex, 'Grid found:', !!grid);
             
             try {
                 const response = await fetch('/scene-visuals', {
@@ -7276,12 +7288,19 @@
                 const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
                 console.log('[loadSceneVisualsAuto] Total visuals:', allVisuals.length);
                 
+                // Re-fetch the grid element in case the DOM was updated during fetch
+                const currentGrid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
+                if (!currentGrid) {
+                    console.warn('[loadSceneVisualsAuto] Grid disappeared during fetch for scene', sceneIndex);
+                    return;
+                }
+                
                 // Store extra visuals as backups for failed loads
                 window.backupVisuals = window.backupVisuals || {};
                 window.backupVisuals[sceneIndex] = allVisuals.slice(9, 20);
                 
                 if (allVisuals.length > 0) {
-                    grid.innerHTML = allVisuals.slice(0, 9).map((img, imgIdx) => `
+                    currentGrid.innerHTML = allVisuals.slice(0, 9).map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
                              style="cursor: pointer;"
                              data-url="${img.url}"
@@ -7291,29 +7310,34 @@
                     `).join('');
                     
                     // Add click handlers and error handlers
-                    grid.querySelectorAll('.chat-visual-option').forEach((el) => {
+                    currentGrid.querySelectorAll('.chat-visual-option').forEach((el) => {
                         el.addEventListener('click', function() {
                             const url = this.dataset.url;
-                            selectSingleSceneVisual(sceneIndex, url, grid);
+                            selectSingleSceneVisual(sceneIndex, url, currentGrid);
                         });
                         
                         // Add error handler for failed images
                         const img = el.querySelector('img');
                         if (img) {
                             img.onerror = function() {
-                                replaceFailedImage(el, sceneIndex, grid);
+                                replaceFailedImage(el, sceneIndex, currentGrid);
                             };
                         }
                     });
+                    console.log('[loadSceneVisualsAuto] Rendered', allVisuals.slice(0, 9).length, 'visuals to grid');
                 } else {
-                    grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">No visuals found. Try refreshing.</div>';
+                    currentGrid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">No visuals found. Try refreshing.</div>';
                 }
             } catch (err) {
                 console.error('[loadSceneVisualsAuto] Error:', err);
-                grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: red;">Error loading visuals. Try refreshing.</div>';
+                const errorGrid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
+                if (errorGrid) {
+                    errorGrid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: red;">Error loading visuals. Try refreshing.</div>';
+                }
             } finally {
-                // Always stop loading bar
+                // Always stop loading bar and reset loading state
                 stopLoading();
+                loadingSceneVisuals[sceneIndex] = false;
             }
         }
         
@@ -7349,10 +7373,11 @@
             if (grid) {
                 grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Refreshing visuals...</div>';
             }
-            // Clear backups for this scene
+            // Clear backups and loading state for this scene
             if (window.backupVisuals) {
                 window.backupVisuals[sceneIndex] = [];
             }
+            loadingSceneVisuals[sceneIndex] = false; // Reset to allow refresh
             showToast('Refreshing visuals...');
             loadSceneVisualsAuto(sceneIndex);
         }
