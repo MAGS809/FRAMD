@@ -9204,6 +9204,9 @@
             console.log('Populated', scenes.length, 'scenes from visual board');
             renderScenes();
             
+            // Fetch visuals for any sections missing suggested_videos
+            fetchMissingSceneVisuals();
+            
             // Advance to step 4 - Scene Review
             if (currentWorkflowStep < 4 && scenes.length > 0) {
                 currentWorkflowStep = 4;
@@ -9214,6 +9217,50 @@
                 setTimeout(() => {
                     renderWorkflowGuide(4);
                 }, 1000);
+            }
+        }
+        
+        // Fetch visuals for scenes that don't have them
+        async function fetchMissingSceneVisuals() {
+            for (const scene of scenes) {
+                // Skip if scene already has visuals from visual plan
+                if (scene.sectionIndex !== undefined) {
+                    const existingVisuals = getSceneVisuals(scene.sectionIndex);
+                    if (existingVisuals.length > 0) continue;
+                }
+                // Skip if scene already has cached visuals
+                if (scene.cachedVisuals && scene.cachedVisuals.length > 0) continue;
+                
+                // Fetch visuals using the scene's idea/label
+                const sceneText = scene.idea || scene.label || '';
+                if (!sceneText) continue;
+                
+                try {
+                    const response = await fetch('/scene-visuals', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            scene_text: sceneText,
+                            scene_type: 'CLAIM',
+                            keywords: []
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success && data.images && data.images.length > 0) {
+                        // Cache visuals in the scene object
+                        scene.cachedVisuals = data.images.map(img => ({
+                            thumbnail: img.url || img.src?.medium || img.thumbnail,
+                            preview_url: img.url || img.src?.medium || img.thumbnail,
+                            url: img.url || img.src?.large2x || img.src?.original,
+                            title: img.photographer || 'Visual',
+                            attribution: img.photographer ? `${img.photographer} / Pexels` : ''
+                        }));
+                        renderScenes(); // Re-render to show fetched visuals
+                    }
+                } catch (err) {
+                    console.warn('Failed to fetch visuals for scene:', scene.id, err);
+                }
             }
         }
         
@@ -9287,10 +9334,19 @@
             }
             
             container.innerHTML = scenes.map((scene, idx) => {
-                // Get visuals specific to this scene - these are idea-driven now
-                const sceneVisuals = scene.sectionIndex !== undefined ? 
-                    getSceneVisuals(scene.sectionIndex) : 
-                    getVisualsArray().slice(idx * 3, (idx + 1) * 3);
+                // Get visuals: first from currentVisualPlan, then from cached scene visuals
+                let sceneVisuals = [];
+                if (scene.sectionIndex !== undefined) {
+                    sceneVisuals = getSceneVisuals(scene.sectionIndex);
+                }
+                // Fallback to scene's own cached visuals if main source is empty
+                if (sceneVisuals.length === 0 && scene.cachedVisuals) {
+                    sceneVisuals = scene.cachedVisuals;
+                }
+                // Last fallback to global visuals array
+                if (sceneVisuals.length === 0) {
+                    sceneVisuals = getVisualsArray().slice(idx * 3, (idx + 1) * 3);
+                }
                 
                 // IDEA-DRIVEN: Show the core idea being discussed
                 const ideaText = scene.idea || scene.label || `Section ${idx + 1}`;
