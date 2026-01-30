@@ -9133,6 +9133,10 @@
                 return;
             }
             
+            // Store the visual board so getSceneVisuals can access suggested_videos
+            currentVisualPlan = visualBoard;
+            console.log('[populateScenesFromVisualBoard] Set currentVisualPlan with', visualBoard.sections.length, 'sections');
+            
             visualBoard.sections.forEach((section, idx) => {
                 const sceneId = sceneIdCounter++;
                 // IDEA-DRIVEN: Use the core idea being discussed, not scene setting
@@ -9176,20 +9180,29 @@
         
         // Fetch visuals for scenes that don't have them
         async function fetchMissingSceneVisuals() {
+            console.log('[fetchMissingSceneVisuals] Starting for', scenes.length, 'scenes');
+            
             for (const scene of scenes) {
-                // Skip if scene already has visuals from visual plan
-                if (scene.sectionIndex !== undefined) {
-                    const existingVisuals = getSceneVisuals(scene);
-                    if (existingVisuals.length > 0) continue;
+                console.log('[fetchMissingSceneVisuals] Processing scene', scene.id, 'idea:', scene.idea?.substring(0, 30));
+                
+                // Check existing visuals
+                const existingVisuals = getSceneVisuals(scene);
+                console.log('[fetchMissingSceneVisuals] Scene', scene.id, 'has', existingVisuals.length, 'existing visuals');
+                
+                if (existingVisuals.length > 0) {
+                    console.log('[fetchMissingSceneVisuals] Skipping scene', scene.id, '- already has visuals');
+                    continue;
                 }
-                // Skip if scene already has cached visuals
-                if (scene.cachedVisuals && scene.cachedVisuals.length > 0) continue;
                 
                 // Fetch visuals using the scene's idea/label
                 const sceneText = scene.idea || scene.label || '';
-                if (!sceneText) continue;
+                if (!sceneText) {
+                    console.log('[fetchMissingSceneVisuals] Skipping scene', scene.id, '- no text');
+                    continue;
+                }
                 
                 try {
+                    console.log('[fetchMissingSceneVisuals] Fetching visuals for:', sceneText.substring(0, 50));
                     const response = await fetch('/scene-visuals', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -9201,6 +9214,8 @@
                     });
                     
                     const data = await response.json();
+                    console.log('[fetchMissingSceneVisuals] Response:', data.success, 'images:', data.images?.length, 'curated:', data.curated?.length, 'backgrounds:', data.backgrounds?.length);
+                    
                     // Combine all visual categories from response
                     const allVisuals = [
                         ...(data.images || []),
@@ -9208,6 +9223,8 @@
                         ...(data.backgrounds || []),
                         ...(data.characters || [])
                     ];
+                    
+                    console.log('[fetchMissingSceneVisuals] Total visuals:', allVisuals.length);
                     
                     if (data.success && allVisuals.length > 0) {
                         // Cache visuals in the scene object - handle Wikimedia/Pexels formats
@@ -9218,12 +9235,14 @@
                             title: img.alt || img.title || img.character_name || 'Visual',
                             attribution: img.attribution || (img.photographer ? `${img.photographer} / Pexels` : '')
                         }));
+                        console.log('[fetchMissingSceneVisuals] Cached', scene.cachedVisuals.length, 'visuals for scene', scene.id);
                         renderScenes(); // Re-render to show fetched visuals
                     }
                 } catch (err) {
-                    console.warn('Failed to fetch visuals for scene:', scene.id, err);
+                    console.warn('[fetchMissingSceneVisuals] Failed for scene:', scene.id, err);
                 }
             }
+            console.log('[fetchMissingSceneVisuals] Complete');
         }
         
         // Get visuals for a specific scene (checks visual plan first, then cached visuals)
@@ -9232,22 +9251,25 @@
             if (currentVisualPlan && currentVisualPlan.sections && scene.sectionIndex !== undefined) {
                 const section = currentVisualPlan.sections[scene.sectionIndex];
                 if (section && section.suggested_videos && section.suggested_videos.length > 0) {
+                    console.log('[getSceneVisuals] Scene', scene.id, 'using', section.suggested_videos.length, 'suggested_videos from visual plan');
                     return section.suggested_videos.map(video => ({
                         thumbnail: video.thumbnail,
                         preview_url: video.thumbnail,
-                        url: video.download_url,
-                        video_url: video.download_url,
+                        url: video.download_url || video.url,
+                        video_url: video.download_url || video.url,
                         title: video.title || 'Scene visual',
-                        attribution: video.attribution
+                        attribution: video.attribution || ''
                     }));
                 }
             }
             
             // Fallback to scene's cached visuals (from fetchMissingSceneVisuals)
             if (scene.cachedVisuals && scene.cachedVisuals.length > 0) {
+                console.log('[getSceneVisuals] Scene', scene.id, 'using', scene.cachedVisuals.length, 'cached visuals');
                 return scene.cachedVisuals;
             }
             
+            console.log('[getSceneVisuals] Scene', scene.id, 'has no visuals');
             return [];
         }
         
