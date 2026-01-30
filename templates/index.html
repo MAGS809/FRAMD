@@ -7297,10 +7297,22 @@
                 if (data.curated && data.curated.length > 0) {
                     curatedGrid.innerHTML = data.curated.map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             onclick="selectInlineVisual(${sceneIndex}, ${imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'curated')">
-                            <img src="${img.url}" alt="${img.alt || 'Visual'}" loading="lazy">
+                             data-scene="${sceneIndex}" 
+                             data-img-idx="${imgIdx}" 
+                             data-picker="${pickerId}" 
+                             data-category="curated"
+                             style="cursor: pointer;">
+                            <img src="${img.url}" alt="${img.alt || 'Visual'}" loading="lazy" style="pointer-events: none;">
                         </div>
                     `).join('');
+                    
+                    // Add click handlers with proper data
+                    curatedGrid.querySelectorAll('.chat-visual-option').forEach((el, idx) => {
+                        el.addEventListener('click', function() {
+                            const img = data.curated[idx];
+                            selectInlineVisual(sceneIndex, idx, pickerId, img.url, img.photographer || '', 'curated');
+                        });
+                    });
                 } else {
                     curatedGrid.innerHTML = '<div class="chat-visual-empty">No curated visuals found</div>';
                 }
@@ -7310,10 +7322,22 @@
                     const curLen = (data.curated || []).length;
                     bgGrid.innerHTML = data.backgrounds.map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             onclick="selectInlineVisual(${sceneIndex}, ${curLen + imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'background')">
-                            <img src="${img.url}" alt="${img.alt || 'Background'}" loading="lazy">
+                             data-scene="${sceneIndex}" 
+                             data-img-idx="${curLen + imgIdx}" 
+                             data-picker="${pickerId}" 
+                             data-category="background"
+                             style="cursor: pointer;">
+                            <img src="${img.url}" alt="${img.alt || 'Background'}" loading="lazy" style="pointer-events: none;">
                         </div>
                     `).join('');
+                    
+                    // Add click handlers with proper data
+                    bgGrid.querySelectorAll('.chat-visual-option').forEach((el, idx) => {
+                        el.addEventListener('click', function() {
+                            const img = data.backgrounds[idx];
+                            selectInlineVisual(sceneIndex, curLen + idx, pickerId, img.url, img.photographer || '', 'background');
+                        });
+                    });
                 } else {
                     bgGrid.innerHTML = '<div class="chat-visual-empty">No backgrounds found</div>';
                 }
