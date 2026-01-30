@@ -6388,12 +6388,12 @@
                         <p style="color: var(--text-dim); text-align: center; padding: 1rem;">
                             Pick visuals for each scene. Click the button below to open the visual picker.
                         </p>
-                        <button class="btn btn-secondary" id="visual-picker-toggle" onclick="toggleVisualPicker()" style="margin: 1rem auto; display: block;">
+                        <button class="btn btn-secondary" id="visual-picker-toggle" onclick="openVisualPicker()" style="margin: 1rem auto; display: block;">
                             Curate Visuals
                         </button>
                         <div id="anchor-cards-container" style="margin-top: 1rem; display: none;"></div>
                     </div>
-                    <div class="workflow-card-footer">
+                    <div class="workflow-card-footer" id="visuals-footer" style="display: none;">
                         <button class="btn btn-primary" onclick="advanceToCard('voices')">Continue to Voice Casting</button>
                     </div>
                 </div>
@@ -7098,24 +7098,17 @@
             }
         }
         
-        // Toggle visual picker open/closed
-        let visualPickerOpen = false;
-        function toggleVisualPicker() {
+        // Open visual picker (one-way - button hides when clicked)
+        function openVisualPicker() {
             const container = document.getElementById('anchor-cards-container');
             const btn = document.getElementById('visual-picker-toggle');
-            if (!container || !btn) return;
+            if (!container) return;
             
-            visualPickerOpen = !visualPickerOpen;
-            
-            if (visualPickerOpen) {
-                container.style.display = 'block';
-                btn.textContent = 'Close Visual Picker';
-                showAnchorCards();
-            } else {
-                container.style.display = 'none';
-                btn.textContent = 'Curate Visuals';
-                renderedSceneIndex = -1; // Reset so next open renders fresh
-            }
+            // Hide the button and show the picker
+            if (btn) btn.style.display = 'none';
+            container.style.display = 'block';
+            renderedSceneIndex = -1; // Reset so we render fresh
+            showAnchorCards();
         }
         
         // Show anchor cards in the visuals workflow card
@@ -7326,14 +7319,11 @@
         function navigateVisualScene(newIndex) {
             if (newIndex < 0) return;
             if (newIndex >= currentAnchors.length) {
-                // Finished all scenes - check if all have visuals
-                const missingVisuals = currentAnchors.filter((_, idx) => !sceneVisuals[idx]?.url);
-                if (missingVisuals.length > 0) {
-                    showToast(`Please select visuals for all ${currentAnchors.length} scenes`);
-                    return;
-                }
+                // Finished all scenes - show the Continue button
+                const footer = document.getElementById('visuals-footer');
+                if (footer) footer.style.display = 'block';
                 
-                addMessage(`All ${currentAnchors.length} scenes have visuals configured. Type 'continue' when ready for voice assignment.`, false);
+                addMessage(`All ${currentAnchors.length} scenes have visuals configured. Click "Continue to Voice Casting" when ready.`, false);
                 currentWorkflowStep = 3;
                 return;
             }
