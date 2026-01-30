@@ -7400,7 +7400,7 @@
                 window.backupVisuals[sceneIndex] = allVisuals.slice(9, 20);
                 
                 if (allVisuals.length > 0) {
-                    currentGrid.innerHTML = allVisuals.slice(0, 9).map((img, imgIdx) => `
+                    const htmlContent = allVisuals.slice(0, 9).map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
                              style="cursor: pointer;"
                              data-url="${img.url}"
@@ -7408,6 +7408,14 @@
                             <img src="${img.url}" alt="Visual option" loading="lazy" style="pointer-events: none;">
                         </div>
                     `).join('');
+                    
+                    console.log('[loadSceneVisualsAuto] Grid element ID:', currentGrid.id);
+                    console.log('[loadSceneVisualsAuto] Grid parent visible:', currentGrid.offsetParent !== null);
+                    console.log('[loadSceneVisualsAuto] Setting innerHTML with', allVisuals.slice(0, 9).length, 'items');
+                    
+                    currentGrid.innerHTML = htmlContent;
+                    
+                    console.log('[loadSceneVisualsAuto] innerHTML set. Children count:', currentGrid.children.length);
                     
                     // Add click handlers and error handlers
                     currentGrid.querySelectorAll('.chat-visual-option').forEach((el) => {
