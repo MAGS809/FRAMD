@@ -9747,6 +9747,16 @@
             updateProjectWorkflowStep(2);
             storeWorkflowPreference('script_completed', true);
             
+            // Show the review stage with script card
+            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+            document.getElementById('stage-review').classList.add('active');
+            
+            // Update script card with current script
+            if (currentScript) {
+                const scriptText = typeof currentScript === 'string' ? currentScript : currentScript.full_script;
+                updateScriptCard(scriptText);
+            }
+            
             // Scenes are now displayed inline via displayAnchors
             // No separate modal or button needed
         }
