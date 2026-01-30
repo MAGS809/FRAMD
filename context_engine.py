@@ -412,18 +412,31 @@ def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -
     """Get AI-curated visual suggestions for a specific scene/anchor."""
     keywords_str = ", ".join(keywords) if keywords else ""
     
-    prompt = f"""Suggest visual content for this scene in a video script.
+    prompt = f"""Translate this script scene into CONCRETE, SEARCHABLE visual terms.
 
 SCENE TYPE: {scene_type}
 SCENE TEXT: {scene_text}
 KEYWORDS: {keywords_str}
 
-Think about what visual would best support this moment in the script.
-Consider: documentary footage, archival imagery, maps, diagrams, or atmospheric shots.
+CRITICAL: Abstract ideas must become concrete visuals. Stock image sites need SPECIFIC, TANGIBLE search terms.
+
+TRANSLATION EXAMPLES:
+- "coexistence" → "diverse group gathering", "interfaith community", "handshake different cultures"
+- "division" → "wall barrier", "separated crowd", "border fence"
+- "salvation" → "light through clouds", "helping hand reach", "sunrise hope"
+- "cringe" → "awkward reaction face", "uncomfortable moment", "embarrassed expression"
+- "peace" → "olive branch", "white dove", "calm landscape", "meditation"
+- "conflict" → "protest crowd", "tense standoff", "breaking news scene"
+- "history" → "archival photograph sepia", "old documents", "historical monument"
+- "trust" → "handshake close up", "eye contact portrait", "team collaboration"
+
+For Wikimedia Commons, use: historical terms, place names, monuments, archival, documentary
+For stock photos, use: emotional states, human interactions, atmospheric scenes
 
 Output JSON with:
 - "visual_concept": One sentence describing the ideal visual
-- "search_queries": Array of 3 specific search queries for Pexels/Wikimedia
+- "search_queries": Array of 3 CONCRETE search terms (nouns, actions, tangible things)
+- "background_queries": Array of 2 atmospheric/setting searches
 - "visual_style": "documentary" | "atmospheric" | "archival" | "diagram" | "portrait" | "b-roll"
 - "motion": "static" | "slow_pan" | "zoom" | "dynamic"
 - "mood": Brief mood description"""
@@ -967,17 +980,71 @@ def search_pexels(query: str, per_page: int = 6) -> list[dict]:
     return []
 
 
+def search_wikimedia_images(query: str, per_page: int = 4) -> list[dict]:
+    """Search Wikimedia Commons for images (documentary, historical, archival)."""
+    try:
+        search_url = 'https://commons.wikimedia.org/w/api.php'
+        headers = {'User-Agent': 'EchoEngine/1.0 (content creation tool)'}
+        
+        search_params = {
+            'action': 'query',
+            'format': 'json',
+            'generator': 'search',
+            'gsrnamespace': 6,
+            'gsrsearch': f'{query}',
+            'gsrlimit': per_page * 2,
+            'prop': 'imageinfo',
+            'iiprop': 'url|extmetadata',
+            'iiurlwidth': 800
+        }
+        
+        response = requests.get(search_url, params=search_params, headers=headers, timeout=10)
+        if response.status_code != 200:
+            return []
+        
+        data = response.json()
+        pages = data.get('query', {}).get('pages', {})
+        
+        images = []
+        for page_id, page in pages.items():
+            if page_id == '-1':
+                continue
+            
+            imageinfo = page.get('imageinfo', [{}])[0]
+            thumb_url = imageinfo.get('thumburl') or imageinfo.get('url')
+            full_url = imageinfo.get('url')
+            
+            if thumb_url and full_url:
+                title = page.get('title', '').replace('File:', '').replace('_', ' ')
+                images.append({
+                    "id": f"wikimedia_{page.get('pageid')}",
+                    "url": full_url,
+                    "thumbnail": thumb_url,
+                    "alt": title[:100] if title else query
+                })
+        
+        return images[:per_page]
+    except Exception as e:
+        print(f"Error searching Wikimedia for '{query}': {e}")
+        return []
+
+
 def search_visuals_unified(query: str, per_page: int = 6) -> list[dict]:
-    """Search all visual sources and combine results. Priority: Unsplash > Pixabay > Pexels."""
+    """Search all visual sources and combine results. Priority: Unsplash > Wikimedia > Pixabay > Pexels."""
     all_results = []
     
     # Try Unsplash first (highest quality, pending approval)
-    unsplash_results = search_unsplash(query, per_page=3)
+    unsplash_results = search_unsplash(query, per_page=2)
     all_results.extend(unsplash_results)
+    
+    # Try Wikimedia Commons (best for documentary/historical)
+    if len(all_results) < per_page:
+        wiki_results = search_wikimedia_images(query, per_page=2)
+        all_results.extend(wiki_results)
     
     # Try Pixabay
     if len(all_results) < per_page:
-        pixabay_results = search_pixabay(query, per_page=3)
+        pixabay_results = search_pixabay(query, per_page=2)
         all_results.extend(pixabay_results)
     
     # Fallback to Pexels if still need more
