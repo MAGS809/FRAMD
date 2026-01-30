@@ -1731,6 +1731,54 @@
             animation: typingPulse 1.5s ease-in-out infinite;
         }
         
+        /* Suggested prompts */
+        .suggested-prompts {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0 0.5rem;
+        }
+        
+        .suggested-prompt {
+            background: rgba(255, 214, 10, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: var(--text);
+            font-size: 0.9rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .suggested-prompt:hover {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--text-dim);
+        }
+        
+        /* Progress stages indicator */
+        .progress-stages {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+        
+        .progress-stages .stage {
+            color: var(--text-faint);
+            transition: color 0.3s;
+        }
+        
+        .progress-stages .stage.active {
+            color: var(--text);
+        }
+        
+        .progress-stages .stage-arrow {
+            color: var(--text-faint);
+            font-size: 0.75rem;
+        }
+        
         @keyframes typingPulse {
             0%, 100% { opacity: 0.5; }
             50% { opacity: 1; }
@@ -7789,7 +7837,7 @@
                     conversationHistory = [];
                     saveConversation();
                     renderMainMessages();
-                    addMessage("New project started! What would you like to create?", false);
+                    addMessage("What's on your mind the world should get to know?", false);
                 }
             } catch (err) {
                 console.error('Error creating project:', err);
@@ -7915,7 +7963,7 @@
             if (!container) return;
             
             container.innerHTML = conversationHistory.length === 0 
-                ? '<div class="message ai"><div class="message-content">What would you like to create?</div></div>'
+                ? '<div class="message ai"><div class="message-content">Prompt, paste, or drop. We\'ll make the clip.</div></div>'
                 : conversationHistory.map(msg => `
                     <div class="message ${msg.role === 'user' ? 'user' : 'ai'}">
                         <div class="message-content">${escapeHtml(msg.content)}</div>
@@ -7930,15 +7978,35 @@
             const container = document.getElementById('messages');
             if (!container) return;
             
-            container.innerHTML = conversationHistory.length === 0 
-                ? '<div class="message ai"><div class="message-content">What would you like to create?</div></div>'
-                : conversationHistory.map(msg => `
+            if (conversationHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="message ai">
+                        <div class="message-content">Prompt, paste, or drop. We'll make the clip.</div>
+                    </div>
+                    <div class="suggested-prompts">
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Turn this article into a 60 second clip')">Turn this article into a 60 second clip</button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('The perfect clipper')">The perfect clipper</button>
+                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Build a script around your thesis for a post')">Build a script around your thesis for a post</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = conversationHistory.map(msg => `
                     <div class="message ${msg.role === 'user' ? 'user' : 'ai'}">
                         <div class="message-content">${escapeHtml(msg.content)}</div>
                     </div>
                 `).join('');
+            }
             
             container.scrollTop = container.scrollHeight;
+        }
+        
+        // Use suggested prompt
+        function useSuggestedPrompt(prompt) {
+            const input = document.getElementById('composer-input');
+            if (input) {
+                input.value = prompt;
+                input.focus();
+            }
         }
         
         // Toggle floating chat panel
@@ -7990,7 +8058,17 @@
             const container = document.getElementById('chat-panel-messages');
             const typingDiv = document.createElement('div');
             typingDiv.className = 'message ai';
-            typingDiv.innerHTML = '<div class="message-content typing-indicator">Thinking...</div>';
+            typingDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="progress-stages">
+                        <span class="stage active">Analyzing</span>
+                        <span class="stage-arrow">→</span>
+                        <span class="stage">Building</span>
+                        <span class="stage-arrow">→</span>
+                        <span class="stage">Writing</span>
+                    </div>
+                </div>
+            `;
             container.appendChild(typingDiv);
             container.scrollTop = container.scrollHeight;
             
@@ -9049,18 +9127,46 @@
         
         function addTypingIndicator() {
             const messages = document.getElementById('messages');
-            if (!messages) return; // No chat panel in simplified UI
+            if (!messages) return;
             const msg = document.createElement('div');
             msg.className = 'message ai';
             msg.id = 'typing';
-            msg.innerHTML = `<div class="message-content typing-indicator">Thinking...</div>`;
+            msg.innerHTML = `
+                <div class="message-content">
+                    <div class="progress-stages">
+                        <span class="stage active" id="stage-1">Analyzing content</span>
+                        <span class="stage-arrow">→</span>
+                        <span class="stage" id="stage-2">Building thesis</span>
+                        <span class="stage-arrow">→</span>
+                        <span class="stage" id="stage-3">Writing script</span>
+                    </div>
+                </div>
+            `;
             messages.appendChild(msg);
             messages.scrollTop = messages.scrollHeight;
+            
+            // Animate through stages
+            let currentStage = 1;
+            const stageInterval = setInterval(() => {
+                currentStage++;
+                if (currentStage <= 3) {
+                    const stageEl = document.getElementById('stage-' + currentStage);
+                    if (stageEl) stageEl.classList.add('active');
+                } else {
+                    clearInterval(stageInterval);
+                }
+            }, 1200);
+            
+            // Store interval on the element so we can clear it later
+            msg.stageInterval = stageInterval;
         }
         
         function removeTypingIndicator() {
             const typing = document.getElementById('typing');
-            if (typing) typing.remove();
+            if (typing) {
+                if (typing.stageInterval) clearInterval(typing.stageInterval);
+                typing.remove();
+            }
         }
         
         function escapeHtml(text) {

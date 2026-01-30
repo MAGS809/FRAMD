@@ -87,6 +87,10 @@ POLITICAL/SOCIAL:
 - No ragebait, slogans, or demonization. 
 - Expose contradictions calmly; let conclusions emerge naturally.
 
+FORMATTING RULES:
+- NEVER use hyphens or dashes in any generated content. Use colons, commas, or restructure sentences instead.
+- Keep punctuation clean and simple.
+
 "Clarity over noise. Meaning over metrics. Thought before output." """
 
 
