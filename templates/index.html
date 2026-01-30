@@ -15,11 +15,16 @@
         }
         
         :root {
-            --bg: #0a1f14;
+            --bg: #0d0d0d;
             --text: #ffd60a;
             --text-dim: rgba(255, 214, 10, 0.5);
             --text-faint: rgba(255, 214, 10, 0.25);
-            --border: rgba(255, 214, 10, 0.1);
+            --border: rgba(255, 214, 10, 0.15);
+            --card-bg: #1a1a1a;
+            --gold: #ffd60a;
+            --accent: #ffd60a;
+            --dark-green: #0d0d0d;
+            --muted: rgba(255, 214, 10, 0.6);
         }
         
         html, body {
@@ -194,7 +199,7 @@
             top: 100%;
             right: 0;
             margin-top: 0.5rem;
-            background: #0d2818;
+            background: #1a1a1a;
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 0.5rem;
@@ -340,7 +345,7 @@
         
         .settings-btn-primary {
             background: #ffd60a;
-            color: #0a1f14;
+            color: #0d0d0d;
         }
         
         .settings-btn-primary:hover {
@@ -385,7 +390,7 @@
             justify-content: center;
             font-size: 2rem;
             font-weight: 600;
-            color: #0a1f14;
+            color: #0d0d0d;
             overflow: hidden;
         }
         
@@ -892,7 +897,7 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: #0a1f14;
+            color: #0d0d0d;
             box-shadow: 0 4px 20px rgba(255, 214, 10, 0.4);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
@@ -4083,7 +4088,7 @@
         
         .chat-scenes-count {
             background: #ffd60a;
-            color: #0a1f14;
+            color: #0d0d0d;
             padding: 2px 8px;
             border-radius: 10px;
             font-size: 11px;
@@ -6475,7 +6480,7 @@
                                     <div class="color-preset" data-color="#FFD60A" style="background:#FFD60A" onclick="selectCaptionColor(this)" title="Yellow"></div>
                                     <div class="color-preset" data-color="#FF3B30" style="background:#FF3B30" onclick="selectCaptionColor(this)" title="Red"></div>
                                     <div class="color-preset" data-color="#00D4FF" style="background:#00D4FF" onclick="selectCaptionColor(this)" title="Cyan"></div>
-                                    <div class="color-preset" data-color="#30D158" style="background:#30D158" onclick="selectCaptionColor(this)" title="Green"></div>
+                                    <div class="color-preset" data-color="#ffd60a" style="background:#ffd60a" onclick="selectCaptionColor(this)" title="Gold"></div>
                                     <div class="color-preset" data-color="#FF9500" style="background:#FF9500" onclick="selectCaptionColor(this)" title="Orange"></div>
                                     <div class="color-preset" data-color="#FF69B4" style="background:#FF69B4" onclick="selectCaptionColor(this)" title="Pink"></div>
                                     <div class="color-preset" data-color="#BF5AF2" style="background:#BF5AF2" onclick="selectCaptionColor(this)" title="Purple"></div>
@@ -6505,7 +6510,7 @@
                                     <div class="color-preset selected" data-color="#FFD60A" style="background:#FFD60A" onclick="selectHighlightColor(this)" title="Yellow"></div>
                                     <div class="color-preset" data-color="#00D4FF" style="background:#00D4FF" onclick="selectHighlightColor(this)" title="Cyan"></div>
                                     <div class="color-preset" data-color="#FF3B30" style="background:#FF3B30" onclick="selectHighlightColor(this)" title="Red"></div>
-                                    <div class="color-preset" data-color="#30D158" style="background:#30D158" onclick="selectHighlightColor(this)" title="Green"></div>
+                                    <div class="color-preset" data-color="#ffd60a" style="background:#ffd60a" onclick="selectHighlightColor(this)" title="Gold"></div>
                                     <div class="color-preset" data-color="#FF69B4" style="background:#FF69B4" onclick="selectHighlightColor(this)" title="Pink"></div>
                                     <div class="color-preset" data-color="#BF5AF2" style="background:#BF5AF2" onclick="selectHighlightColor(this)" title="Purple"></div>
                                 </div>
@@ -6861,7 +6866,8 @@
                 showToast('Generate a script first');
                 return;
             }
-            curateVisuals();
+            startLoading();
+            curateVisuals(currentScript);
         }
         
         function showCaptions() {
@@ -8073,7 +8079,7 @@
                     conversationHistory = [];
                     saveConversation();
                     renderMainMessages();
-                    addMessage("What's on your mind the world should get to know?", false);
+                    addMessage("What message should the world know?", false);
                 }
             } catch (err) {
                 console.error('Error creating project:', err);
@@ -9763,7 +9769,7 @@
                     
                     // Handle greeting mode - conversational response
                     if (unifiedData.mode === 'greeting') {
-                        addMessage(unifiedData.reply || "What's on your mind the world should get to know?");
+                        addMessage(unifiedData.reply || "What message should the world know?");
                         conversationHistory.push({ role: 'assistant', content: unifiedData.reply });
                         saveConversation();
                         renderChatPanelMessages();
