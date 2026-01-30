@@ -7100,15 +7100,24 @@
             }
         }
         
-        // Open visual picker (one-way - button hides when clicked)
+        // Open visual picker - shows loading immediately
         function openVisualPicker() {
             const container = document.getElementById('anchor-cards-container');
             const btn = document.getElementById('visual-picker-toggle');
-            if (!container) return;
+            if (!container) {
+                console.error('[openVisualPicker] Container not found!');
+                return;
+            }
             
-            // Hide the button and show the picker
-            if (btn) btn.style.display = 'none';
+            console.log('[openVisualPicker] Starting...');
+            
+            // Show loading immediately so user sees something
             container.style.display = 'block';
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--gold);"><div style="font-size: 24px; margin-bottom: 10px;">Loading visual picker...</div><div style="font-size: 14px; color: var(--text-dim);">Fetching scenes and visuals</div></div>';
+            
+            // Hide button after showing loading
+            if (btn) btn.style.display = 'none';
+            
             renderedSceneIndex = -1; // Reset so we render fresh
             showAnchorCards();
         }
@@ -7126,7 +7135,10 @@
             }
             
             if (!anchors || anchors.length === 0) {
-                container.innerHTML = '<p style="color: var(--text-dim); text-align: center;">No scenes found. Generate a script first.</p>';
+                container.innerHTML = '<p style="color: var(--text-dim); text-align: center; padding: 20px;">No scenes found. Generate a script first.</p>';
+                // Show button again so user can retry
+                const btn = document.getElementById('visual-picker-toggle');
+                if (btn) btn.style.display = 'block';
                 return;
             }
             
@@ -9488,6 +9500,18 @@
             if (targetCard) {
                 targetCard.style.display = 'block';
                 currentWorkflowCard = cardName;
+                
+                // Reset visuals card button visibility when entering
+                if (cardName === 'visuals') {
+                    const btn = document.getElementById('visual-picker-toggle');
+                    const container = document.getElementById('anchor-cards-container');
+                    if (btn && container) {
+                        // Show button, hide container (fresh start)
+                        btn.style.display = 'block';
+                        container.style.display = 'none';
+                        container.innerHTML = '';
+                    }
+                }
                 
                 // Scroll to the card
                 targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
