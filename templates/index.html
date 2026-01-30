@@ -7181,19 +7181,17 @@
                         </div>
                     </div>
                     
-                    <!-- Pop-up option -->
+                    <!-- Pop-up visuals (optional overlay graphics) -->
                     <div style="padding: 0 16px 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 8px;">
-                            <input type="checkbox" id="scene-popup-${sceneIndex}" ${sceneVisuals[sceneIndex]?.hasPopup ? 'checked' : ''} 
-                                   onchange="toggleScenePopup(${sceneIndex}, this.checked)" style="width: 18px; height: 18px; accent-color: var(--gold);">
-                            <label for="scene-popup-${sceneIndex}" style="font-size: 13px; color: var(--text-dim); cursor: pointer;">
-                                Add a pop-up visual to this scene
-                            </label>
-                            <button class="btn btn-secondary" onclick="openPopupPicker(${sceneIndex})" style="font-size: 11px; padding: 6px 12px; margin-left: auto; ${sceneVisuals[sceneIndex]?.hasPopup ? '' : 'display: none;'}" id="popup-pick-btn-${sceneIndex}">
-                                Pick Pop-up
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 13px; color: var(--text-dim);">Pop-up visual (optional):</span>
+                            <button class="btn btn-secondary" onclick="loadPopupVisuals(${sceneIndex})" style="font-size: 11px; padding: 4px 8px; min-width: auto;">
+                                ↻
                             </button>
                         </div>
-                        <div id="popup-preview-${sceneIndex}" style="margin-top: 8px;"></div>
+                        <div id="popup-grid-${sceneIndex}" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                            <div style="grid-column: span 4; text-align: center; padding: 12px; color: var(--text-dim); font-size: 12px;">Loading pop-ups...</div>
+                        </div>
                     </div>
                     
                     <!-- Navigation buttons -->
@@ -7208,8 +7206,82 @@
                 </div>
             `;
             
-            // Auto-load visuals for this scene
+            // Auto-load visuals and popups for this scene
             loadSceneVisualsAuto(sceneIndex);
+            loadPopupVisuals(sceneIndex);
+        }
+        
+        // Load popup visuals for a scene
+        async function loadPopupVisuals(sceneIndex) {
+            const popupGrid = document.getElementById(`popup-grid-${sceneIndex}`);
+            if (!popupGrid) return;
+            
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) return;
+            
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: 'POPUP',
+                        keywords: ['icon', 'graphic', 'symbol', 'illustration']
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Server error');
+                const data = await response.json();
+                
+                const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                
+                // Re-fetch grid in case DOM changed
+                const currentPopupGrid = document.getElementById(`popup-grid-${sceneIndex}`);
+                if (!currentPopupGrid) return;
+                
+                if (allVisuals.length > 0) {
+                    currentPopupGrid.innerHTML = allVisuals.slice(0, 4).map((img) => `
+                        <div class="chat-visual-option popup-option ${sceneVisuals[sceneIndex]?.popupUrl === img.url ? 'selected' : ''}" 
+                             style="cursor: pointer; aspect-ratio: 1;"
+                             data-url="${img.url}">
+                            <img src="${img.url}" alt="Pop-up" loading="lazy" style="pointer-events: none; width: 100%; height: 100%; object-fit: cover; border-radius: 6px;">
+                        </div>
+                    `).join('');
+                    
+                    currentPopupGrid.querySelectorAll('.popup-option').forEach(el => {
+                        el.addEventListener('click', function() {
+                            const url = this.dataset.url;
+                            // Toggle selection
+                            if (sceneVisuals[sceneIndex]?.popupUrl === url) {
+                                sceneVisuals[sceneIndex] = { ...sceneVisuals[sceneIndex], popupUrl: null, hasPopup: false };
+                                this.classList.remove('selected');
+                                showToast('Pop-up removed');
+                            } else {
+                                sceneVisuals[sceneIndex] = { ...sceneVisuals[sceneIndex], popupUrl: url, hasPopup: true };
+                                currentPopupGrid.querySelectorAll('.popup-option').forEach(opt => opt.classList.remove('selected'));
+                                this.classList.add('selected');
+                                showToast('Pop-up selected');
+                            }
+                        });
+                        
+                        // Error handler
+                        const img = el.querySelector('img');
+                        if (img) {
+                            img.onerror = function() {
+                                el.style.display = 'none';
+                            };
+                        }
+                    });
+                } else {
+                    currentPopupGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; padding: 12px; color: var(--text-dim); font-size: 12px;">No pop-ups available</div>';
+                }
+            } catch (err) {
+                console.error('[loadPopupVisuals] Error:', err);
+                const errorGrid = document.getElementById(`popup-grid-${sceneIndex}`);
+                if (errorGrid) {
+                    errorGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; padding: 12px; color: red; font-size: 12px;">Error loading pop-ups</div>';
+                }
+            }
         }
         
         // Store reference to the visual picker container
