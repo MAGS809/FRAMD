@@ -45,6 +45,42 @@
             cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='none' stroke='%23ffd60a' stroke-width='3'/%3E%3Cpath d='M12 6v6l4 2' fill='none' stroke='%23ffd60a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, wait !important;
         }
         
+        /* Global Loading Bar */
+        .global-loading-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: transparent;
+            z-index: 99999;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        
+        .global-loading-bar.active {
+            opacity: 1;
+        }
+        
+        .global-loading-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), #ffb700);
+            border-radius: 0 2px 2px 0;
+            transition: width 0.3s ease-out;
+            box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent);
+        }
+        
+        .global-loading-fill.pulsing {
+            animation: loadingPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes loadingPulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent), 0 0 5px var(--accent); }
+            50% { opacity: 0.7; box-shadow: 0 0 20px var(--accent), 0 0 10px var(--accent); }
+        }
+        
         /* Custom scrollbar styling */
         ::-webkit-scrollbar {
             width: 8px;
@@ -5802,6 +5838,11 @@
     </style>
 </head>
 <body>
+    <!-- Global Loading Bar -->
+    <div id="global-loading-bar" class="global-loading-bar">
+        <div id="global-loading-fill" class="global-loading-fill"></div>
+    </div>
+    
     <div class="app">
         <header>
             <div class="header-left">
@@ -9247,14 +9288,22 @@
                     });
                     
                     const data = await response.json();
-                    if (data.success && data.images && data.images.length > 0) {
-                        // Cache visuals in the scene object
-                        scene.cachedVisuals = data.images.map(img => ({
-                            thumbnail: img.url || img.src?.medium || img.thumbnail,
-                            preview_url: img.url || img.src?.medium || img.thumbnail,
+                    // Combine all visual categories from response
+                    const allVisuals = [
+                        ...(data.images || []),
+                        ...(data.curated || []),
+                        ...(data.backgrounds || []),
+                        ...(data.characters || [])
+                    ];
+                    
+                    if (data.success && allVisuals.length > 0) {
+                        // Cache visuals in the scene object - handle Wikimedia/Pexels formats
+                        scene.cachedVisuals = allVisuals.slice(0, 6).map(img => ({
+                            thumbnail: img.thumbnail || img.url || img.src?.medium,
+                            preview_url: img.thumbnail || img.url || img.src?.medium,
                             url: img.url || img.src?.large2x || img.src?.original,
-                            title: img.photographer || 'Visual',
-                            attribution: img.photographer ? `${img.photographer} / Pexels` : ''
+                            title: img.alt || img.title || img.character_name || 'Visual',
+                            attribution: img.attribution || (img.photographer ? `${img.photographer} / Pexels` : '')
                         }));
                         renderScenes(); // Re-render to show fetched visuals
                     }
@@ -9528,13 +9577,66 @@
             setTimeout(() => toast.classList.remove('show'), duration);
         }
         
-        // Loading cursor helpers
+        // Loading bar helpers
+        let loadingProgress = 0;
+        let loadingInterval = null;
+        
         function startLoading() {
             document.body.classList.add('loading');
+            
+            const bar = document.getElementById('global-loading-bar');
+            const fill = document.getElementById('global-loading-fill');
+            if (!bar || !fill) return;
+            
+            // Reset and show
+            loadingProgress = 0;
+            fill.style.width = '0%';
+            fill.classList.remove('pulsing');
+            bar.classList.add('active');
+            
+            // Clear any existing interval
+            if (loadingInterval) clearInterval(loadingInterval);
+            
+            // Animate progress from 0 to 90%
+            loadingInterval = setInterval(() => {
+                if (loadingProgress < 30) {
+                    loadingProgress += 8; // Fast start
+                } else if (loadingProgress < 60) {
+                    loadingProgress += 4; // Medium pace
+                } else if (loadingProgress < 85) {
+                    loadingProgress += 1; // Slow down
+                } else if (loadingProgress >= 85) {
+                    // Start pulsing when we hit 85%
+                    fill.classList.add('pulsing');
+                    loadingProgress = Math.min(loadingProgress + 0.3, 90);
+                }
+                fill.style.width = loadingProgress + '%';
+            }, 150);
         }
         
         function stopLoading() {
             document.body.classList.remove('loading');
+            
+            const bar = document.getElementById('global-loading-bar');
+            const fill = document.getElementById('global-loading-fill');
+            if (!bar || !fill) return;
+            
+            // Clear interval
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+                loadingInterval = null;
+            }
+            
+            // Complete to 100%
+            fill.classList.remove('pulsing');
+            fill.style.width = '100%';
+            
+            // Hide after completion animation
+            setTimeout(() => {
+                bar.classList.remove('active');
+                fill.style.width = '0%';
+                loadingProgress = 0;
+            }, 300);
         }
         
         // Preview narrator voice
