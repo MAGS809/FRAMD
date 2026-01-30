@@ -6365,9 +6365,13 @@
                 <div class="workflow-card" id="workflow-card-visuals" style="display:none;">
                     <div class="section-title">Scene Visuals</div>
                     <div class="visual-summary" id="visual-summary">
-                        <p style="color: var(--text-dim); text-align: center; padding: 2rem;">
-                            Visuals are selected per scene in the chat above. Use the anchor cards to pick backgrounds, curated visuals, and character models for each scene.
+                        <p style="color: var(--text-dim); text-align: center; padding: 1rem;">
+                            Pick visuals for each scene. Click the button below to open the visual picker for each scene.
                         </p>
+                        <button class="btn btn-secondary" onclick="showAnchorCards()" style="margin: 1rem auto; display: block;">
+                            Open Scene Visual Picker
+                        </button>
+                        <div id="anchor-cards-container" style="margin-top: 1rem;"></div>
                     </div>
                     <div class="workflow-card-footer">
                         <button class="btn btn-primary" onclick="advanceToCard('voices')">Continue to Voice Casting</button>
@@ -7039,16 +7043,18 @@
                 addMessage(`Your script has ${currentAnchors.length} scenes. Let's pick visuals for each one.`, false);
                 
                 // Detect characters from full script first, then open visual picker
-                if (currentScript && detectedCharacters.length === 0) {
+                const scriptText = currentScript?.full_script || (typeof currentScript === 'string' ? currentScript : null);
+                if (scriptText && detectedCharacters.length === 0) {
                     try {
                         const resp = await fetch('/detect-characters', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ script: currentScript })
+                            body: JSON.stringify({ script: scriptText })
                         });
                         const data = await resp.json();
                         if (data.success && data.characters) {
                             detectedCharacters = data.characters;
+                            console.log('[displayAnchors] Detected characters:', detectedCharacters);
                         }
                     } catch (err) {
                         console.warn('Could not detect characters:', err);
@@ -7062,11 +7068,128 @@
             }
         }
         
-        // Open inline visual picker for a scene with 3 categories
-        async function openInlineVisuals(sceneIndex) {
-            activeSceneIndex = sceneIndex;
+        // Show anchor cards in the visuals workflow card
+        async function showAnchorCards() {
+            const container = document.getElementById('anchor-cards-container');
+            if (!container) return;
+            
+            // Use currentAnchors from script generation, or try to get from currentScript
+            let anchors = currentAnchors;
+            if ((!anchors || anchors.length === 0) && currentScript?.anchor_points) {
+                anchors = currentScript.anchor_points;
+                currentAnchors = anchors;
+            }
+            
+            if (!anchors || anchors.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-dim); text-align: center;">No scenes found. Generate a script first.</p>';
+                return;
+            }
+            
+            // Detect characters first if not already done
+            const scriptText = currentScript?.full_script || (typeof currentScript === 'string' ? currentScript : null);
+            if (scriptText && detectedCharacters.length === 0) {
+                try {
+                    const resp = await fetch('/detect-characters', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ script: scriptText })
+                    });
+                    const data = await resp.json();
+                    if (data.success && data.characters) {
+                        detectedCharacters = data.characters;
+                    }
+                } catch (err) {
+                    console.warn('Could not detect characters:', err);
+                }
+            }
+            
+            // Render anchor cards
+            container.innerHTML = anchors.map((anchor, idx) => `
+                <div class="anchor-visual-card" style="background: rgba(255,214,10,0.05); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="font-weight: 600; color: var(--gold); margin-bottom: 0.5rem;">Scene ${idx + 1}: ${anchor.anchor_type || 'SCENE'}</div>
+                    <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 1rem;">${anchor.anchor_text || ''}</div>
+                    <button class="btn btn-secondary" onclick="openSceneVisualPicker(${idx})" style="font-size: 12px;">
+                        Pick Visuals
+                    </button>
+                    <div id="scene-visual-preview-${idx}" style="margin-top: 0.5rem;"></div>
+                </div>
+            `).join('');
+        }
+        
+        // Open visual picker for a specific scene from the workflow card
+        async function openSceneVisualPicker(sceneIndex) {
             const anchor = currentAnchors[sceneIndex];
             if (!anchor) return;
+            
+            // Show loading in the preview area
+            const preview = document.getElementById(`scene-visual-preview-${sceneIndex}`);
+            if (preview) {
+                preview.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">Loading visuals...</div>';
+            }
+            
+            try {
+                const response = await fetch('/scene-visuals', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: anchor.anchor_type || 'CLAIM',
+                        keywords: anchor.keywords || []
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Server error');
+                const data = await response.json();
+                
+                // Show visual options
+                const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                if (preview && allVisuals.length > 0) {
+                    preview.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 0.5rem;">
+                            ${allVisuals.slice(0, 6).map((img, imgIdx) => `
+                                <div onclick="selectSceneVisual(${sceneIndex}, '${img.url.replace(/'/g, "\\'")}', this)" 
+                                     style="aspect-ratio: 16/9; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.15s;"
+                                     class="scene-visual-option">
+                                    <img src="${img.url}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else if (preview) {
+                    preview.innerHTML = '<div style="color: var(--text-dim); font-size: 12px;">No visuals found</div>';
+                }
+            } catch (err) {
+                console.error('Error loading visuals:', err);
+                if (preview) {
+                    preview.innerHTML = '<div style="color: red; font-size: 12px;">Error loading visuals</div>';
+                }
+            }
+        }
+        
+        // Select a visual for a scene
+        function selectSceneVisual(sceneIndex, imageUrl, element) {
+            sceneVisuals[sceneIndex] = { url: imageUrl, category: 'curated' };
+            
+            // Update selection UI
+            const parent = element.parentElement;
+            parent.querySelectorAll('.scene-visual-option').forEach(opt => {
+                opt.style.borderColor = 'transparent';
+            });
+            element.style.borderColor = 'var(--gold)';
+            
+            showToast(`Visual selected for Scene ${sceneIndex + 1}`);
+        }
+        
+        // Open inline visual picker for a scene with 3 categories
+        async function openInlineVisuals(sceneIndex) {
+            console.log('[openInlineVisuals] Opening scene', sceneIndex, 'anchors:', currentAnchors.length);
+            activeSceneIndex = sceneIndex;
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) {
+                console.warn('[openInlineVisuals] No anchor found at index', sceneIndex);
+                return;
+            }
+            console.log('[openInlineVisuals] Anchor:', anchor);
             
             // Find characters that speak in this scene
             const sceneText = (anchor.anchor_text || '').toUpperCase();
@@ -10397,8 +10520,11 @@
         
         // Stage Directions Functions
         async function generateStageDirections() {
-            const script = currentScript || document.getElementById('script-text').textContent;
-            if (!script || script.includes('Script will appear')) {
+            // currentScript is an object with full_script property, or fallback to DOM text
+            const scriptText = (typeof currentScript === 'object' && currentScript?.full_script) 
+                ? currentScript.full_script 
+                : (typeof currentScript === 'string' ? currentScript : document.getElementById('script-text').textContent);
+            if (!scriptText || scriptText.includes('Script will appear')) {
                 showToast('Generate a script first');
                 return;
             }
@@ -10409,7 +10535,7 @@
                 const response = await fetch('/generate-stage-directions', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ script: script })
+                    body: JSON.stringify({ script: scriptText })
                 });
                 
                 const data = await response.json();
@@ -10925,7 +11051,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         video_path: video.src,
-                        title: currentScript ? currentScript.substring(0, 50) + '...' : 'My Framd Video',
+                        title: currentScript?.full_script ? currentScript.full_script.substring(0, 50) + '...' : 'My Framd Video',
                         project_id: currentProjectId
                     })
                 });
