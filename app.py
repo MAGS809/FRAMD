@@ -1034,20 +1034,36 @@ def validate_license(license_short):
         if pattern in license_lower:
             return False, None, f'Rejected: contains "{pattern}"'
     
-    # STEP 2: Check for allowed licenses
-    if 'cc0' in license_lower or 'cc-zero' in license_lower or license_lower == 'cc0':
+    # STEP 2: Check for allowed licenses (more permissive patterns)
+    if 'cc0' in license_lower or 'cc-zero' in license_lower or 'cc zero' in license_lower:
         return True, 'CC0', None
-    if 'public domain' in license_lower or license_lower == 'pd':
-        return True, 'CC0', None
-    if 'cc-by-sa' in license_lower or 'cc by-sa' in license_lower:
+    if 'public domain' in license_lower or license_lower == 'pd' or 'pd-' in license_lower:
+        return True, 'Public Domain', None
+    if 'cc-by-sa' in license_lower or 'cc by-sa' in license_lower or 'ccbysa' in license_lower:
         return True, 'CC BY-SA', None
-    if 'cc-by' in license_lower or 'cc by' in license_lower:
+    if 'cc-by' in license_lower or 'cc by' in license_lower or 'ccby' in license_lower:
         return True, 'CC BY', None
     if 'pexels' in license_lower:
         return True, 'Pexels License', None
+    if 'pixabay' in license_lower:
+        return True, 'Pixabay License', None
+    if 'unsplash' in license_lower:
+        return True, 'Unsplash License', None
+    # Generic CC pattern (just "cc" followed by version)
+    if license_lower.startswith('cc ') or license_lower.startswith('cc-'):
+        return True, 'Creative Commons', None
+    # FAL (Free Art License)
+    if 'fal' in license_lower or 'free art' in license_lower:
+        return True, 'FAL', None
+    # GFDL (GNU Free Documentation License) - commonly used on Wikimedia
+    if 'gfdl' in license_lower or 'gnu free documentation' in license_lower:
+        return True, 'GFDL', None
     
-    # Unknown license - reject
-    return False, None, f'Unknown/unclear license: {license_short}'
+    # Unknown license - allow but mark it (less restrictive for better visual coverage)
+    if license_lower and len(license_lower) > 0:
+        return True, license_short[:20], None
+    
+    return False, None, f'Empty license: {license_short}'
 
 @app.route('/search-wikimedia', methods=['POST'])
 def search_wikimedia():
@@ -1805,6 +1821,13 @@ CRITICAL:
                                 print(f"[Pexels] Added: {asset_id}")
                     except Exception as pexels_err:
                         print(f"[Pexels] Error: {pexels_err}")
+            
+            # Log how many visuals were found for this section
+            print(f"[Visual Board] Section has {len(section['suggested_videos'])} visuals")
+        
+        # Log total sections
+        total_visuals = sum(len(s.get('suggested_videos', [])) for s in visual_board.get('sections', []))
+        print(f"[Visual Board] Total: {len(visual_board.get('sections', []))} sections, {total_visuals} visuals")
         
         return jsonify({'success': True, 'visual_board': visual_board})
     except Exception as e:
