@@ -1687,68 +1687,41 @@ CRITICAL:
                     section['suggested_videos'].append(asset)
                     seen_ids.add(asset['id'])
             
-            # STEP 2: Search Wikimedia Commons if we need more options (Pexels removed - only legal sources)
+            # STEP 2: Search Wikimedia Commons for images (primary) and videos (secondary)
             if len(section['suggested_videos']) < 4:
                 for query in section.get('search_queries', [])[:2]:
-                    # Search Wikimedia Commons for videos
                     try:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
-                        wiki_headers = {'User-Agent': 'KrakdPostAssembler/1.0 (https://replit.com; contact@krakd.app)'}
+                        wiki_headers = {'User-Agent': 'EchoEngine/1.0 (content creation tool)'}
                         
-                        # Try multiple search strategies for better video coverage
                         search_results = []
                         
-                        # Strategy 1: Direct search with video extension
-                        search_params = {
+                        # Strategy 1: Search for IMAGES first (much more content available)
+                        image_params = {
                             'action': 'query',
                             'format': 'json',
-                            'list': 'search',
-                            'srsearch': f'{query} filemime:video',
-                            'srnamespace': 6,
-                            'srlimit': 6
-                        }
-                        search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
-                        print(f"[Wikimedia] Status: {search_resp.status_code}")
-                        if search_resp.status_code == 200:
-                            data = search_resp.json()
-                            search_results = data.get('query', {}).get('search', [])
-                        
-                        # Strategy 2: Fallback - search with file extensions if no results
-                        if not search_results:
-                            search_params['srsearch'] = f'{query} .webm'
-                            search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
-                            if search_resp.status_code == 200:
-                                data = search_resp.json()
-                                search_results = data.get('query', {}).get('search', [])
-                        
-                        # Strategy 3: Simplify query - use just first word for broader results
-                        if not search_results and ' ' in query:
-                            simple_query = query.split()[0]
-                            search_params['srsearch'] = f'{simple_query} filemime:video'
-                            search_resp = requests.get(search_url, params=search_params, headers=wiki_headers, timeout=10)
-                            if search_resp.status_code == 200:
-                                data = search_resp.json()
-                                search_results = data.get('query', {}).get('search', [])
-                        
-                        print(f"[Wikimedia] Query: {query}, Found {len(search_results)} results")
-                        
-                        if not search_results:
-                            continue
-                        
-                        # Get imageinfo for found pages
-                        page_ids = [str(r['pageid']) for r in search_results]
-                        info_params = {
-                            'action': 'query',
-                            'format': 'json',
-                            'pageids': '|'.join(page_ids),
+                            'generator': 'search',
+                            'gsrnamespace': 6,
+                            'gsrsearch': query,
+                            'gsrlimit': 8,
                             'prop': 'imageinfo',
                             'iiprop': 'url|extmetadata',
-                            'iiurlwidth': 320
+                            'iiurlwidth': 800
                         }
-                        info_resp = requests.get(search_url, params=info_params, headers=wiki_headers, timeout=10)
-                        wiki_data = info_resp.json()
-                        pages = wiki_data.get('query', {}).get('pages', {})
-                        print(f"[Wikimedia] Query: {query}, Found {len(pages)} pages")
+                        img_resp = requests.get(search_url, params=image_params, headers=wiki_headers, timeout=10)
+                        if img_resp.status_code == 200:
+                            data = img_resp.json()
+                            pages = data.get('query', {}).get('pages', {})
+                            search_results = [{'pageid': int(pid), 'title': p.get('title', '')} for pid, p in pages.items() if pid != '-1']
+                        
+                        print(f"[Wikimedia] Query: {query}, Found {len(search_results)} images")
+                        
+                        # Image search already includes imageinfo, use directly
+                        if not pages:
+                            print(f"[Wikimedia] No results for: {query}")
+                            continue
+                        
+                        print(f"[Wikimedia] Query: {query}, Found {len(pages)} images")
                         
                         for page_id, page in pages.items():
                             if page_id == '-1':
@@ -1797,6 +1770,41 @@ CRITICAL:
                             print(f"[Wikimedia] Added: {asset_id} ({our_license})")
                     except Exception as wiki_err:
                         print(f"[Wikimedia] Error searching: {wiki_err}")
+            
+            # STEP 3: Fallback to Pexels if still not enough visuals
+            if len(section['suggested_videos']) < 3:
+                for query in section.get('search_queries', [])[:2]:
+                    try:
+                        pexels_key = os.environ.get('PEXELS_API_KEY')
+                        if not pexels_key:
+                            continue
+                        pexels_headers = {'Authorization': pexels_key}
+                        pexels_resp = requests.get(
+                            'https://api.pexels.com/v1/search',
+                            params={'query': query, 'per_page': 3, 'orientation': 'landscape'},
+                            headers=pexels_headers,
+                            timeout=10
+                        )
+                        if pexels_resp.status_code == 200:
+                            pexels_data = pexels_resp.json()
+                            for photo in pexels_data.get('photos', []):
+                                asset_id = f"pexels_{photo['id']}"
+                                if asset_id in seen_ids:
+                                    continue
+                                section['suggested_videos'].append({
+                                    'id': asset_id,
+                                    'source': 'pexels',
+                                    'thumbnail': photo.get('src', {}).get('medium'),
+                                    'download_url': photo.get('src', {}).get('large2x') or photo.get('src', {}).get('original'),
+                                    'license': 'Pexels License',
+                                    'license_url': 'https://www.pexels.com/license/',
+                                    'attribution': f"{photo.get('photographer', 'Unknown')} / Pexels",
+                                    'from_cache': False
+                                })
+                                seen_ids.add(asset_id)
+                                print(f"[Pexels] Added: {asset_id}")
+                    except Exception as pexels_err:
+                        print(f"[Pexels] Error: {pexels_err}")
         
         return jsonify({'success': True, 'visual_board': visual_board})
     except Exception as e:
