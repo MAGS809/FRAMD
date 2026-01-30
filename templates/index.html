@@ -7852,7 +7852,13 @@
                     
                     // Restore project state
                     if (project.script) currentScript = project.script;
-                    if (project.visual_plan) currentVisualPlan = project.visual_plan;
+                    if (project.visual_plan) {
+                        currentVisualPlan = project.visual_plan;
+                        // Populate scenes from visual plan if it has sections
+                        if (project.visual_plan.sections && project.visual_plan.sections.length > 0) {
+                            populateScenesFromVisualBoard(project.visual_plan);
+                        }
+                    }
                     
                     // Switch to create stage
                     document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
@@ -8071,6 +8077,10 @@
                     }
                     if (project.visual_plan) {
                         currentVisualPlan = project.visual_plan;
+                        // Populate scenes from visual plan if it has sections
+                        if (project.visual_plan.sections && project.visual_plan.sections.length > 0) {
+                            populateScenesFromVisualBoard(project.visual_plan);
+                        }
                     }
                     
                     document.getElementById('dashboard-overlay').classList.remove('open');
@@ -9136,6 +9146,10 @@
             // Store the visual board so getSceneVisuals can access suggested_videos
             currentVisualPlan = visualBoard;
             console.log('[populateScenesFromVisualBoard] Set currentVisualPlan with', visualBoard.sections.length, 'sections');
+            // Debug: check if sections have suggested_videos
+            visualBoard.sections.forEach((s, i) => {
+                console.log('[populateScenesFromVisualBoard] Section', i, 'suggested_videos:', s.suggested_videos?.length || 0);
+            });
             
             visualBoard.sections.forEach((section, idx) => {
                 const sceneId = sceneIdCounter++;
@@ -9321,14 +9335,21 @@
         
         function renderScenes() {
             const container = document.getElementById('scenes-container');
+            if (!container) {
+                console.log('[renderScenes] No scenes-container found');
+                return;
+            }
             if (scenes.length === 0) {
                 container.innerHTML = '<div class="no-models-msg">No sections yet. Generate a script to see idea-driven visuals.</div>';
                 return;
             }
             
+            console.log('[renderScenes] Rendering', scenes.length, 'scenes');
+            
             container.innerHTML = scenes.map((scene, idx) => {
                 // Get visuals using unified function (checks visual plan + cached visuals)
                 let sceneVisuals = getSceneVisuals(scene);
+                console.log('[renderScenes] Scene', scene.id, 'has', sceneVisuals.length, 'visuals, cachedVisuals:', scene.cachedVisuals?.length || 0);
                 
                 // Last fallback to global visuals array
                 if (sceneVisuals.length === 0) {
@@ -10129,6 +10150,9 @@
                 
                 if (data.success) {
                     currentVisualPlan = data.visual_board;
+                    
+                    // Save visual_plan to project
+                    saveCurrentProject({ visual_plan: data.visual_board });
                     
                     // Show simplified script for user (spoken lines only)
                     const scriptEl = document.getElementById('script-text');
