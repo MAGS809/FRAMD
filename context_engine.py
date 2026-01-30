@@ -5,24 +5,34 @@ import tempfile
 import requests
 from typing import Optional, List
 from openai import OpenAI
+import anthropic
 
-# Krakd AI - powered by xAI
+# API Keys
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")
 PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY")
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
-# Krakd client for text generation (xAI backend)
-client = OpenAI(
+# Claude client (primary AI via Replit AI Integrations)
+claude_client = anthropic.Anthropic(
+    api_key=os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY"),
+    base_url=os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
+)
+
+# xAI client (fallback)
+xai_client = OpenAI(
     api_key=XAI_API_KEY,
     base_url="https://api.x.ai/v1"
 )
 
-# OpenAI client for audio transcription (Krakd doesn't support audio yet)
+# OpenAI client for audio transcription
 openai_client = OpenAI(
     api_key=os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY"),
     base_url=os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
 )
+
+# Alias for backwards compatibility
+client = xai_client
 
 SYSTEM_GUARDRAILS = """You are Calligra - a thinking engine, not a content factory. Your purpose is to turn ideas into clear, honest posts while respecting the audience's intelligence.
 
@@ -93,6 +103,51 @@ FORMATTING RULES:
 - Keep punctuation clean and simple.
 
 "Clarity over noise. Meaning over metrics. Thought before output." """
+
+
+def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, max_tokens: int = 2048) -> dict:
+    """
+    Call Claude as primary AI, with xAI fallback.
+    Returns parsed JSON response or empty dict on failure.
+    """
+    system = system_prompt or SYSTEM_GUARDRAILS
+    
+    # Try Claude first (primary)
+    try:
+        response = claude_client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        content = response.content[0].text if response.content else "{}"
+        if json_output:
+            return json.loads(content)
+        return {"text": content}
+    except Exception as e:
+        print(f"[Claude Error] {e}, falling back to xAI...")
+    
+    # Fallback to xAI
+    try:
+        kwargs = {
+            "model": "grok-3",
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "max_completion_tokens": max_tokens
+        }
+        if json_output:
+            kwargs["response_format"] = {"type": "json_object"}
+        
+        response = xai_client.chat.completions.create(**kwargs)
+        content = response.choices[0].message.content or "{}"
+        if json_output:
+            return json.loads(content)
+        return {"text": content}
+    except Exception as e:
+        print(f"[xAI Error] {e}")
+        return {}
 
 
 def get_user_context(user_id: str, limit: int = 10) -> str:
@@ -289,24 +344,10 @@ Output a JSON array of ideas, each with:
 
 Focus on substance, not viral moments. Identify ideas worth exploring, not soundbites."""
 
-    # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-    # do not change this unless explicitly requested by the user
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=4096
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        result = json.loads(content)
-        return result.get('ideas', result) if isinstance(result, dict) else result
-    except json.JSONDecodeError:
-        return []
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=4096)
+    if isinstance(result, dict):
+        return result.get('ideas', result)
+    return result if result else []
 
 
 def generate_script(idea: dict, transcript: str, duration: int = 30) -> dict:
@@ -332,23 +373,7 @@ Also specify:
 
 Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_intent, full_script"""
 
-    # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-    # do not change this unless explicitly requested by the user
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {}
+    return call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
 
 
 def validate_loop_score(thesis: str, script: dict) -> dict:
@@ -384,20 +409,8 @@ Output JSON with:
 - "suggested_fix": If score < 0.7, propose a rewritten closing line that better connects to thesis
 - "fix_type": "rewrite_landing" | "extend_ending" | "add_reframe" | null"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=1024
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    if not result:
         return {
             "loop_score": 0.5,
             "loop_strength": "moderate",
@@ -406,6 +419,7 @@ Output JSON with:
             "suggested_fix": None,
             "fix_type": None
         }
+    return result
 
 
 def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -> dict:
@@ -441,20 +455,8 @@ Output JSON with:
 - "motion": "static" | "slow_pan" | "zoom" | "dynamic"
 - "mood": Brief mood description"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=512
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=512)
+    if not result:
         return {
             "visual_concept": "Supportive visual for this scene",
             "search_queries": ["abstract background", "documentary footage"],
@@ -462,6 +464,7 @@ Output JSON with:
             "motion": "static",
             "mood": "neutral"
         }
+    return result
 
 
 def find_clip_timestamps(script: dict, transcript_segments: list) -> list:
@@ -494,23 +497,8 @@ Output JSON with:
 
 Only select clips that genuinely support the script. No filler."""
 
-    # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-    # do not change this unless explicitly requested by the user
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {"clips": [], "total_duration": 0, "notes": ""}
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    return result if result else {"clips": [], "total_duration": 0, "notes": ""}
 
 
 def generate_captions(script: dict, idea: dict) -> dict:
@@ -527,23 +515,7 @@ Generate:
 
 Keep it thoughtful, not clickbait. Output as JSON."""
 
-    # the newest OpenAI model is "gpt-5" which was released August 7, 2025.
-    # do not change this unless explicitly requested by the user
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=512
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {}
+    return call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=512)
 
 
 def cut_video_clip(
@@ -700,20 +672,8 @@ Output JSON:
     "required_changes": ["List of changes if rejected, otherwise empty"]
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"}
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {"approved": False, "reasoning": "Approval engine error", "required_changes": []}
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    return result if result else {"approved": False, "reasoning": "Approval engine error", "required_changes": []}
 
 
 def extract_keywords_from_script(script: str) -> dict:
@@ -739,25 +699,8 @@ Output JSON with:
     "hook_summary": "one sentence capturing the core message"
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        max_completion_tokens=1024
-    )
-    
-    content = response.choices[0].message.content or "{}"
-    content = content.strip()
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-    
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    if not result:
         return {
             "primary_keywords": [],
             "mood_keywords": [],
@@ -765,6 +708,7 @@ Output JSON with:
             "tone": "neutral",
             "hook_summary": script[:100]
         }
+    return result
 
 
 def search_stock_videos(keywords: list[str], per_page: int = 5) -> list[dict]:
@@ -812,14 +756,7 @@ def search_stock_videos(keywords: list[str], per_page: int = 5) -> list[dict]:
 
 def detect_characters_in_scene(scene_text: str) -> dict:
     """Detect characters, people, or historical figures mentioned in scene text."""
-    try:
-        response = client.chat.completions.create(
-            model="grok-3-fast",
-            max_completion_tokens=512,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": "Analyze text and identify any people, characters, or figures mentioned."},
-                {"role": "user", "content": f"""Analyze this scene text and identify any characters or people mentioned:
+    prompt = f"""Analyze this scene text and identify any characters or people mentioned:
 
 "{scene_text}"
 
@@ -838,13 +775,11 @@ Output JSON:
 
 For historical figures like Einstein, use "scientist portrait" not the name.
 For generic references like "a leader", use "leader silhouette professional".
-If no people/characters mentioned, return empty array."""}
-            ]
-        )
-        return json.loads(response.choices[0].message.content)
-    except Exception as e:
-        print(f"Character detection error: {e}")
-        return {"characters": [], "has_people": False}
+If no people/characters mentioned, return empty array."""
+    
+    system = "Analyze text and identify any people, characters, or figures mentioned."
+    result = call_ai(prompt, system, json_output=True, max_tokens=512)
+    return result if result else {"characters": [], "has_people": False}
 
 
 def search_unsplash(query: str, per_page: int = 6) -> list[dict]:
@@ -1112,25 +1047,8 @@ Output as JSON:
     "suggested_duration": "15/30/60 seconds"
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": refined_script_prompt}
-        ],
-        max_completion_tokens=1024
-    )
-    
-    content = response.choices[0].message.content or "{}"
-    content = content.strip()
-    if content.startswith("```"):
-        content = content.split("```")[1]
-        if content.startswith("json"):
-            content = content[4:]
-    
-    try:
-        refined_script = json.loads(content)
-    except json.JSONDecodeError:
+    refined_script = call_ai(refined_script_prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    if not refined_script:
         refined_script = {
             "hook": "",
             "setup": user_script,
@@ -1180,21 +1098,8 @@ Output JSON:
     "clarification_question": "If unclear, what ONE question would clarify the thesis"
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=1024
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {"thesis_statement": "", "confidence": 0.0, "requires_clarification": True}
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    return result if result else {"thesis_statement": "", "confidence": 0.0, "requires_clarification": True}
 
 
 def identify_anchors(script: str, thesis: str) -> list:
@@ -1239,28 +1144,13 @@ Output JSON array:
 
 Only include TRUE anchors. A 60-second script might have 3-5 anchors, not 15."""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        result = json.loads(content)
-        # Handle both {"anchors": [...]} and direct array formats
-        if isinstance(result, dict):
-            anchors = result.get('anchors', [])
-            return anchors if isinstance(anchors, list) else []
-        elif isinstance(result, list):
-            return result
-        return []
-    except json.JSONDecodeError:
-        return []
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    if isinstance(result, dict):
+        anchors = result.get('anchors', [])
+        return anchors if isinstance(anchors, list) else []
+    elif isinstance(result, list):
+        return result
+    return []
 
 
 def detect_thought_changes(content: str, content_type: str = "script") -> list:
@@ -1301,22 +1191,10 @@ Output JSON array:
 
 Be CONSERVATIVE. Don't over-clip. If the flow is good, keep it continuous."""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        result = json.loads(content)
-        return result.get('thought_changes', result) if isinstance(result, dict) else result
-    except json.JSONDecodeError:
-        return []
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    if isinstance(result, dict):
+        return result.get('thought_changes', result)
+    return result if result else []
 
 
 def classify_content_type(script: str, thesis: str = "") -> dict:
@@ -1356,31 +1234,18 @@ Output JSON:
     "composition_hints": ["specific visual ideas for this content"]
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3-fast",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=1024
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        result = json.loads(content)
-        
-        # Validate and normalize content_type to valid values
-        valid_types = ["informative", "comedic", "inspiring"]
-        content_type = result.get("content_type", "informative").lower()
-        if content_type not in valid_types:
-            # Default to informative for unknown types
-            content_type = "informative"
-        result["content_type"] = content_type
-        
-        return result
-    except json.JSONDecodeError:
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    if not result:
         return {"content_type": "informative", "confidence": 0.5}
+    
+    # Validate and normalize content_type to valid values
+    valid_types = ["informative", "comedic", "inspiring"]
+    content_type = result.get("content_type", "informative").lower()
+    if content_type not in valid_types:
+        content_type = "informative"
+    result["content_type"] = content_type
+    
+    return result
 
 
 def build_visual_layers(script: str, content_classification: dict, anchors: list = None) -> dict:
@@ -1531,20 +1396,8 @@ Output JSON:
     ]
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        visual_assets = json.loads(content)
-    except json.JSONDecodeError:
+    visual_assets = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    if not visual_assets:
         visual_assets = {}
     
     return {
@@ -1601,21 +1454,7 @@ Output JSON:
     "thesis_reinforcement": "How the script proves the thesis"
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {}
+    return call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
 
 
 def process_source_for_clipping(transcript: str, source_url: str = None) -> dict:
@@ -1670,23 +1509,11 @@ Output JSON:
     "total_potential_clips": number
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=3000
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        result = json.loads(content)
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=3000)
+    if result:
         result['status'] = 'ready'
         return result
-    except json.JSONDecodeError:
-        return {"status": "error", "thesis": thesis, "recommended_clips": []}
+    return {"status": "error", "thesis": thesis, "recommended_clips": []}
 
 
 def learn_from_source_content(transcript: str, clips_extracted: list, user_feedback: dict = None) -> dict:
@@ -1736,21 +1563,7 @@ Output JSON:
     "apply_to_generation": ["Specific guidance for future scripts"]
 }}"""
 
-    response = client.chat.completions.create(
-        model="grok-3",
-        messages=[
-            {"role": "system", "content": SYSTEM_GUARDRAILS},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"},
-        max_completion_tokens=2048
-    )
-    
-    try:
-        content = response.choices[0].message.content or "{}"
-        return json.loads(content)
-    except json.JSONDecodeError:
-        return {}
+    return call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
 
 
 def get_source_learning_context(user_id: str) -> str:
@@ -1835,21 +1648,11 @@ Output JSON:
 }}"""
 
     if mode == "auto":
-        response = client.chat.completions.create(
-            model="grok-3-fast",
-            messages=[
-                {"role": "system", "content": "You analyze user intent for a video content system."},
-                {"role": "user", "content": detection_prompt}
-            ],
-            response_format={"type": "json_object"},
-            max_completion_tokens=512
-        )
-        
-        try:
-            content = response.choices[0].message.content or "{}"
-            detection = json.loads(content)
+        system = "You analyze user intent for a video content system."
+        detection = call_ai(detection_prompt, system, json_output=True, max_tokens=512)
+        if detection:
             mode = detection.get('mode', 'create')
-        except:
+        else:
             mode = 'create'
             detection = {}
     else:
