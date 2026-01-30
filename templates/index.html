@@ -4259,12 +4259,14 @@
         
         .chat-visual-option {
             aspect-ratio: 16/9;
+            min-height: 80px;
             border-radius: 8px;
             overflow: hidden;
             cursor: pointer;
             position: relative;
             border: 3px solid transparent;
             transition: all 0.2s ease;
+            background: rgba(255,255,255,0.05);
         }
         
         .chat-visual-option:hover {
@@ -7399,10 +7401,11 @@
                 if (allVisuals.length > 0) {
                     const htmlContent = allVisuals.slice(0, 9).map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             style="cursor: pointer;"
+                             style="cursor: pointer; min-height: 80px; background: rgba(255,255,255,0.05);"
                              data-url="${img.url}"
                              data-img-idx="${imgIdx}">
-                            <img src="${img.url}" alt="Visual option" loading="lazy" style="pointer-events: none;">
+                            <img src="${img.thumbnail || img.url}" alt="Visual option" style="pointer-events: none; width: 100%; height: 100%; object-fit: cover;"
+                                 onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim);font-size:11px;\\'>Image unavailable</div>'">
                         </div>
                     `).join('');
                     
@@ -7477,6 +7480,7 @@
             const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
             if (grid) {
                 grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Refreshing visuals...</div>';
+                grid.dataset.loaded = 'false'; // Clear loaded flag to force refresh
             }
             // Clear backups and loading state for this scene
             if (window.backupVisuals) {
