@@ -6386,12 +6386,12 @@
                     <div class="section-title">Scene Visuals</div>
                     <div class="visual-summary" id="visual-summary">
                         <p style="color: var(--text-dim); text-align: center; padding: 1rem;">
-                            Pick visuals for each scene. Click the button below to open the visual picker for each scene.
+                            Pick visuals for each scene. Click the button below to open the visual picker.
                         </p>
-                        <button class="btn btn-secondary" onclick="showAnchorCards()" style="margin: 1rem auto; display: block;">
-                            Open Scene Visual Picker
+                        <button class="btn btn-secondary" id="visual-picker-toggle" onclick="toggleVisualPicker()" style="margin: 1rem auto; display: block;">
+                            Curate Visuals
                         </button>
-                        <div id="anchor-cards-container" style="margin-top: 1rem;"></div>
+                        <div id="anchor-cards-container" style="margin-top: 1rem; display: none;"></div>
                     </div>
                     <div class="workflow-card-footer">
                         <button class="btn btn-primary" onclick="advanceToCard('voices')">Continue to Voice Casting</button>
@@ -7095,6 +7095,26 @@
                 setTimeout(() => {
                     renderSingleSceneVisualPicker(containerDiv, currentAnchors, 0);
                 }, 300);
+            }
+        }
+        
+        // Toggle visual picker open/closed
+        let visualPickerOpen = false;
+        function toggleVisualPicker() {
+            const container = document.getElementById('anchor-cards-container');
+            const btn = document.getElementById('visual-picker-toggle');
+            if (!container || !btn) return;
+            
+            visualPickerOpen = !visualPickerOpen;
+            
+            if (visualPickerOpen) {
+                container.style.display = 'block';
+                btn.textContent = 'Close Visual Picker';
+                showAnchorCards();
+            } else {
+                container.style.display = 'none';
+                btn.textContent = 'Curate Visuals';
+                renderedSceneIndex = -1; // Reset so next open renders fresh
             }
         }
         
