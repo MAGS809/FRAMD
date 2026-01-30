@@ -7240,10 +7240,20 @@
         // Load visuals automatically for a scene
         async function loadSceneVisualsAuto(sceneIndex) {
             const anchor = currentAnchors[sceneIndex];
-            if (!anchor) return;
+            if (!anchor) {
+                console.warn('[loadSceneVisualsAuto] No anchor at index', sceneIndex);
+                return;
+            }
             
             const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
-            if (!grid) return;
+            if (!grid) {
+                console.warn('[loadSceneVisualsAuto] No grid found for scene', sceneIndex);
+                return;
+            }
+            
+            // Show loading bar at top
+            startLoading();
+            console.log('[loadSceneVisualsAuto] Loading visuals for scene', sceneIndex);
             
             try {
                 const response = await fetch('/scene-visuals', {
@@ -7256,10 +7266,16 @@
                     })
                 });
                 
-                if (!response.ok) throw new Error('Server error');
+                if (!response.ok) {
+                    console.error('[loadSceneVisualsAuto] Server error:', response.status);
+                    throw new Error('Server error');
+                }
                 const data = await response.json();
+                console.log('[loadSceneVisualsAuto] Received data:', data);
                 
                 const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                console.log('[loadSceneVisualsAuto] Total visuals:', allVisuals.length);
+                
                 // Store extra visuals as backups for failed loads
                 window.backupVisuals = window.backupVisuals || {};
                 window.backupVisuals[sceneIndex] = allVisuals.slice(9, 20);
@@ -7293,8 +7309,11 @@
                     grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">No visuals found. Try refreshing.</div>';
                 }
             } catch (err) {
-                console.error('Error loading visuals:', err);
+                console.error('[loadSceneVisualsAuto] Error:', err);
                 grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: red;">Error loading visuals. Try refreshing.</div>';
+            } finally {
+                // Always stop loading bar
+                stopLoading();
             }
         }
         
@@ -7328,12 +7347,13 @@
         function refreshSceneVisuals(sceneIndex) {
             const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
             if (grid) {
-                grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Loading visuals...</div>';
+                grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Refreshing visuals...</div>';
             }
             // Clear backups for this scene
             if (window.backupVisuals) {
                 window.backupVisuals[sceneIndex] = [];
             }
+            showToast('Refreshing visuals...');
             loadSceneVisualsAuto(sceneIndex);
         }
         
@@ -7378,6 +7398,7 @@
             if (!preview) return;
             
             preview.innerHTML = '<div style="color: var(--text-dim); font-size: 12px; padding: 8px;">Loading pop-up options...</div>';
+            startLoading();
             
             const anchor = currentAnchors[sceneIndex];
             try {
@@ -7425,6 +7446,8 @@
                 }
             } catch (err) {
                 preview.innerHTML = '<div style="color: red; font-size: 12px; padding: 8px;">Error loading pop-up options.</div>';
+            } finally {
+                stopLoading();
             }
         }
         
