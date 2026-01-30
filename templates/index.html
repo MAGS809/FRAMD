@@ -1807,31 +1807,6 @@
             max-width: 320px;
         }
         
-        .progress-bar-container {
-            width: 100%;
-            height: 6px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), #ffb700);
-            border-radius: 3px;
-            width: 0%;
-            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .progress-bar-fill.pulsing {
-            animation: progressPulse 1.5s ease-in-out infinite;
-        }
-        
-        @keyframes progressPulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        
         .progress-steps {
             display: flex;
             justify-content: space-between;
@@ -9690,9 +9665,6 @@
             msg.innerHTML = `
                 <div class="message-content">
                     <div class="progress-stages">
-                        <div class="progress-bar-container">
-                            <div class="progress-bar-fill" id="progress-fill"></div>
-                        </div>
                         <div class="progress-steps">
                             <div class="progress-step active" id="step-1">
                                 <span class="progress-step-icon">1</span>
@@ -9713,10 +9685,8 @@
             messages.appendChild(msg);
             messages.scrollTop = messages.scrollHeight;
             
-            // Animate progress bar and stages
+            // Animate stages
             let currentStage = 1;
-            const progressFill = msg.querySelector('#progress-fill');
-            if (progressFill) progressFill.style.width = '33%';
             
             const stageInterval = setInterval(() => {
                 if (currentStage < 3) {
@@ -9734,22 +9704,14 @@
                     // Activate next stage
                     const nextEl = msg.querySelector('#step-' + currentStage);
                     if (nextEl) nextEl.classList.add('active');
-                    
-                    // Update progress bar (33%, 66%, 100%)
-                    const progress = (currentStage / 3) * 100;
-                    if (progressFill) progressFill.style.width = progress + '%';
                 } else {
-                    // Final stage complete - add pulsing effect
+                    // Final stage complete
                     const finalEl = msg.querySelector('#step-3');
                     if (finalEl) {
                         finalEl.classList.remove('active');
                         finalEl.classList.add('complete');
                         const icon = finalEl.querySelector('.progress-step-icon');
                         if (icon) icon.textContent = '✓';
-                    }
-                    if (progressFill) {
-                        progressFill.style.width = '100%';
-                        progressFill.classList.add('pulsing');
                     }
                 }
             }, 2000);
