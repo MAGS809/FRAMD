@@ -7260,21 +7260,34 @@
                 const data = await response.json();
                 
                 const allVisuals = [...(data.curated || []), ...(data.backgrounds || [])];
+                // Store extra visuals as backups for failed loads
+                window.backupVisuals = window.backupVisuals || {};
+                window.backupVisuals[sceneIndex] = allVisuals.slice(9, 20);
+                
                 if (allVisuals.length > 0) {
                     grid.innerHTML = allVisuals.slice(0, 9).map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
                              style="cursor: pointer;"
-                             data-url="${img.url}">
+                             data-url="${img.url}"
+                             data-img-idx="${imgIdx}">
                             <img src="${img.url}" alt="Visual option" loading="lazy" style="pointer-events: none;">
                         </div>
                     `).join('');
                     
-                    // Add click handlers
+                    // Add click handlers and error handlers
                     grid.querySelectorAll('.chat-visual-option').forEach((el) => {
                         el.addEventListener('click', function() {
                             const url = this.dataset.url;
                             selectSingleSceneVisual(sceneIndex, url, grid);
                         });
+                        
+                        // Add error handler for failed images
+                        const img = el.querySelector('img');
+                        if (img) {
+                            img.onerror = function() {
+                                replaceFailedImage(el, sceneIndex, grid);
+                            };
+                        }
                     });
                 } else {
                     grid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">No visuals found. Try refreshing.</div>';
@@ -7285,11 +7298,41 @@
             }
         }
         
+        // Replace a failed image with a backup or remove it
+        function replaceFailedImage(element, sceneIndex, grid) {
+            const backups = window.backupVisuals?.[sceneIndex] || [];
+            
+            if (backups.length > 0) {
+                // Get a backup image
+                const backup = backups.shift();
+                const newUrl = backup.url;
+                
+                // Update the element
+                element.dataset.url = newUrl;
+                const img = element.querySelector('img');
+                if (img) {
+                    img.src = newUrl;
+                    // Add error handler for the new image too
+                    img.onerror = function() {
+                        replaceFailedImage(element, sceneIndex, grid);
+                    };
+                }
+            } else {
+                // No more backups - hide the broken image card
+                element.style.display = 'none';
+                element.classList.add('failed-image');
+            }
+        }
+        
         // Refresh visuals for current scene
         function refreshSceneVisuals(sceneIndex) {
             const grid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
             if (grid) {
                 grid.innerHTML = '<div class="chat-visual-loading" style="grid-column: span 3; text-align: center; padding: 20px; color: var(--text-dim);">Loading visuals...</div>';
+            }
+            // Clear backups for this scene
+            if (window.backupVisuals) {
+                window.backupVisuals[sceneIndex] = [];
             }
             loadSceneVisualsAuto(sceneIndex);
         }
