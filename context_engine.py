@@ -999,11 +999,14 @@ def search_wikimedia_images(query: str, per_page: int = 4) -> list[dict]:
         }
         
         response = requests.get(search_url, params=search_params, headers=headers, timeout=10)
+        print(f"[Wikimedia Images] Query: '{query}', Status: {response.status_code}")
+        
         if response.status_code != 200:
             return []
         
         data = response.json()
         pages = data.get('query', {}).get('pages', {})
+        print(f"[Wikimedia Images] Found {len(pages)} pages")
         
         images = []
         for page_id, page in pages.items():
@@ -1014,18 +1017,23 @@ def search_wikimedia_images(query: str, per_page: int = 4) -> list[dict]:
             thumb_url = imageinfo.get('thumburl') or imageinfo.get('url')
             full_url = imageinfo.get('url')
             
-            if thumb_url and full_url:
+            # More lenient: use full_url as thumbnail if no thumb
+            if not thumb_url and full_url:
+                thumb_url = full_url
+            
+            if full_url:
                 title = page.get('title', '').replace('File:', '').replace('_', ' ')
                 images.append({
                     "id": f"wikimedia_{page.get('pageid')}",
                     "url": full_url,
-                    "thumbnail": thumb_url,
+                    "thumbnail": thumb_url or full_url,
                     "alt": title[:100] if title else query
                 })
         
+        print(f"[Wikimedia Images] Returning {len(images)} images")
         return images[:per_page]
     except Exception as e:
-        print(f"Error searching Wikimedia for '{query}': {e}")
+        print(f"[Wikimedia Images] Error for '{query}': {e}")
         return []
 
 
@@ -1033,25 +1041,32 @@ def search_visuals_unified(query: str, per_page: int = 6) -> list[dict]:
     """Search all visual sources and combine results. Priority: Unsplash > Wikimedia > Pixabay > Pexels."""
     all_results = []
     
+    print(f"[Unified Search] Starting search for: '{query}'")
+    
     # Try Unsplash first (highest quality, pending approval)
     unsplash_results = search_unsplash(query, per_page=2)
     all_results.extend(unsplash_results)
+    print(f"[Unified Search] Unsplash: {len(unsplash_results)} results")
     
     # Try Wikimedia Commons (best for documentary/historical)
     if len(all_results) < per_page:
-        wiki_results = search_wikimedia_images(query, per_page=2)
+        wiki_results = search_wikimedia_images(query, per_page=3)
         all_results.extend(wiki_results)
+        print(f"[Unified Search] Wikimedia: {len(wiki_results)} results")
     
     # Try Pixabay
     if len(all_results) < per_page:
         pixabay_results = search_pixabay(query, per_page=2)
         all_results.extend(pixabay_results)
+        print(f"[Unified Search] Pixabay: {len(pixabay_results)} results")
     
     # Fallback to Pexels if still need more
     if len(all_results) < per_page:
         pexels_results = search_pexels(query, per_page=per_page - len(all_results))
         all_results.extend(pexels_results)
+        print(f"[Unified Search] Pexels: {len(pexels_results)} results")
     
+    print(f"[Unified Search] Total: {len(all_results)} results for '{query}'")
     return all_results[:per_page]
 
 

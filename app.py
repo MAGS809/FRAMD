@@ -1710,7 +1710,7 @@ CRITICAL:
                         search_url = 'https://commons.wikimedia.org/w/api.php'
                         wiki_headers = {'User-Agent': 'EchoEngine/1.0 (content creation tool)'}
                         
-                        search_results = []
+                        pages = {}
                         
                         # Strategy 1: Search for IMAGES first (much more content available)
                         image_params = {
@@ -1725,19 +1725,17 @@ CRITICAL:
                             'iiurlwidth': 800
                         }
                         img_resp = requests.get(search_url, params=image_params, headers=wiki_headers, timeout=10)
+                        print(f"[Wikimedia] Query: {query}, Status: {img_resp.status_code}")
+                        
                         if img_resp.status_code == 200:
                             data = img_resp.json()
                             pages = data.get('query', {}).get('pages', {})
-                            search_results = [{'pageid': int(pid), 'title': p.get('title', '')} for pid, p in pages.items() if pid != '-1']
                         
-                        print(f"[Wikimedia] Query: {query}, Found {len(search_results)} images")
+                        print(f"[Wikimedia] Query: {query}, Found {len(pages)} images")
                         
-                        # Image search already includes imageinfo, use directly
                         if not pages:
                             print(f"[Wikimedia] No results for: {query}")
                             continue
-                        
-                        print(f"[Wikimedia] Query: {query}, Found {len(pages)} images")
                         
                         for page_id, page in pages.items():
                             if page_id == '-1':
@@ -1770,12 +1768,21 @@ CRITICAL:
                             
                             source_page = f"https://commons.wikimedia.org/wiki/{page.get('title', '').replace(' ', '_')}"
                             
+                            # Use thumbnail if available, otherwise use full URL
+                            thumbnail_url = imageinfo.get('thumburl') or imageinfo.get('url')
+                            download_url = imageinfo.get('url')
+                            
+                            # Skip if no valid URLs
+                            if not thumbnail_url or not download_url:
+                                print(f"[Wikimedia] Skipping {asset_id} - no valid URL")
+                                continue
+                            
                             video_data = {
                                 'id': asset_id,
                                 'source': 'wikimedia',
                                 'source_page': source_page,
-                                'thumbnail': imageinfo.get('thumburl'),
-                                'download_url': imageinfo.get('url'),
+                                'thumbnail': thumbnail_url,
+                                'download_url': download_url,
                                 'license': our_license,
                                 'license_url': license_url or 'https://creativecommons.org/licenses/',
                                 'attribution': f"{artist} / Wikimedia Commons / {our_license}",
