@@ -5056,6 +5056,14 @@ def unified_engine():
     try:
         result = unified_content_engine(user_input, user_id, mode)
         
+        if result.get('mode') == 'greeting':
+            return jsonify({
+                'mode': 'greeting',
+                'status': 'conversational',
+                'reply': result.get('reply', "What's on your mind the world should get to know?"),
+                'needs_content': True
+            })
+        
         if result.get('status') == 'ready':
             if result.get('mode') == 'clip':
                 source = SourceContent(

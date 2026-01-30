@@ -1611,15 +1611,18 @@ INPUT:
 {user_input[:2000]}
 
 Are they:
-1. CREATING: Starting from an idea, asking for a script
-2. CLIPPING: Providing source material (transcript, link, video) to extract clips from
-3. REFINING: Adjusting existing content
+1. GREETING: Just saying hello, hi, hey, or casual greeting with no content
+2. CREATING: Starting from an idea, asking for a script (has actual content/topic)
+3. CLIPPING: Providing source material (transcript, link, video) to extract clips from
+4. REFINING: Adjusting existing content
+
+IMPORTANT: If the input is very short (under 20 characters) and contains no clear topic or idea, it's likely a GREETING.
 
 Output JSON:
 {{
-    "mode": "create/clip/refine",
+    "mode": "greeting/create/clip/refine",
     "detected_thesis": "If thesis is clear, state it. Otherwise null",
-    "source_type": "If clipping: transcript/link/idea. If creating: null",
+    "source_type": "If clipping: transcript/link/idea. Otherwise null",
     "needs_clarification": true/false,
     "clarification_question": "If unclear, what to ask"
 }}"""
@@ -1648,6 +1651,14 @@ Output JSON:
     user_context = get_user_context(user_id)
     source_learning = get_source_learning_context(user_id)
     full_context = f"{user_context}\n\n{source_learning}" if source_learning else user_context
+    
+    if mode == "greeting":
+        return {
+            "mode": "greeting",
+            "status": "conversational",
+            "reply": "What's on your mind the world should get to know?",
+            "needs_content": True
+        }
     
     if mode == "clip":
         result = process_source_for_clipping(user_input)

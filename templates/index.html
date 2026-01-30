@@ -9599,6 +9599,17 @@
                     const unifiedData = await unifiedResponse.json();
                     removeTypingIndicator();
                     
+                    // Handle greeting mode - conversational response
+                    if (unifiedData.mode === 'greeting') {
+                        addMessage(unifiedData.reply || "What's on your mind the world should get to know?");
+                        conversationHistory.push({ role: 'assistant', content: unifiedData.reply });
+                        saveConversation();
+                        renderChatPanelMessages();
+                        showUnreadBadge();
+                        stopLoading();
+                        return;
+                    }
+                    
                     if (unifiedData.success && unifiedData.result) {
                         handleUnifiedResponse(unifiedData.result);
                         
