@@ -4190,6 +4190,66 @@
             border-bottom: 1px solid var(--border);
         }
         
+        .chat-visual-picker-script {
+            padding: 12px 16px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: var(--text);
+            background: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--border);
+            font-style: italic;
+        }
+        
+        .character-models-grid {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .character-model-card {
+            width: 80px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255,214,10,0.05);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .character-model-card:hover {
+            border-color: var(--gold);
+            background: rgba(255,214,10,0.1);
+        }
+        
+        .character-model-card.has-model img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--gold);
+        }
+        
+        .character-model-card .char-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255,214,10,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gold);
+        }
+        
+        .character-model-card .generate-hint {
+            font-size: 9px;
+            color: var(--gold);
+            opacity: 0.6;
+        }
+        
         .chat-visual-picker-grid {
             padding: 12px;
             display: grid;
@@ -6301,17 +6361,13 @@
                 </div>
                 </div>
                 
-                <!-- WORKFLOW CARD 2: VISUALS -->
+                <!-- WORKFLOW CARD 2: VISUALS (simplified - visuals picked in anchor cards) -->
                 <div class="workflow-card" id="workflow-card-visuals" style="display:none;">
-                    <div class="section-title scene-composer-header">
-                        <span>Scene Visuals</span>
-                        <button class="framd-ai-btn" onclick="openFramdAI()">Framd AI</button>
-                    </div>
-                    <div class="scene-composer" id="scene-composer">
-                        <div class="scenes-container" id="scenes-container">
-                            <!-- Scenes populated dynamically -->
-                        </div>
-                        <button class="btn btn-secondary add-scene-btn" onclick="addNewScene()">+ Add Scene</button>
+                    <div class="section-title">Scene Visuals</div>
+                    <div class="visual-summary" id="visual-summary">
+                        <p style="color: var(--text-dim); text-align: center; padding: 2rem;">
+                            Visuals are selected per scene in the chat above. Use the anchor cards to pick backgrounds, curated visuals, and character models for each scene.
+                        </p>
                     </div>
                     <div class="workflow-card-footer">
                         <button class="btn btn-primary" onclick="advanceToCard('voices')">Continue to Voice Casting</button>
@@ -6975,17 +7031,34 @@
         let activeSceneIndex = null;
         
         // Anchors Display - Scenes List Format
-        function displayAnchors(anchors) {
+        async function displayAnchors(anchors) {
             currentAnchors = anchors || [];
             
             if (currentAnchors.length > 0) {
                 // Show brief scene summary and immediately open Scene 1 visual picker
                 addMessage(`Your script has ${currentAnchors.length} scenes. Let's pick visuals for each one.`, false);
                 
+                // Detect characters from full script first, then open visual picker
+                if (currentScript && detectedCharacters.length === 0) {
+                    try {
+                        const resp = await fetch('/detect-characters', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ script: currentScript })
+                        });
+                        const data = await resp.json();
+                        if (data.success && data.characters) {
+                            detectedCharacters = data.characters;
+                        }
+                    } catch (err) {
+                        console.warn('Could not detect characters:', err);
+                    }
+                }
+                
                 // Automatically open Scene 1's visual picker
                 setTimeout(() => {
                     openInlineVisuals(0);
-                }, 500);
+                }, 300);
             }
         }
         
@@ -6995,6 +7068,13 @@
             const anchor = currentAnchors[sceneIndex];
             if (!anchor) return;
             
+            // Find characters that speak in this scene
+            const sceneText = (anchor.anchor_text || '').toUpperCase();
+            const sceneCharacters = detectedCharacters.filter(char => {
+                const charName = (char.name || '').toUpperCase();
+                return sceneText.includes(charName) || charName === 'NARRATOR';
+            });
+            
             // Create inline visual picker in chat with 3 sections
             const pickerId = `visual-picker-${sceneIndex}-${Date.now()}`;
             const pickerHtml = `
@@ -7003,11 +7083,32 @@
                         <span class="chat-visual-picker-title">Scene ${sceneIndex + 1}: ${anchor.anchor_type || 'SCENE'}</span>
                     </div>
                     <div class="chat-visual-picker-concept" id="${pickerId}-concept"></div>
+                    <div class="chat-visual-picker-script">${anchor.anchor_text || ''}</div>
                     
                     <div class="visual-category" id="${pickerId}-characters-section">
-                        <div class="visual-category-label">Characters</div>
-                        <div class="chat-visual-picker-grid" id="${pickerId}-characters">
-                            <div class="chat-visual-loading">Detecting characters...</div>
+                        <div class="visual-category-label">Characters in Scene</div>
+                        <div class="chat-visual-picker-grid character-models-grid" id="${pickerId}-characters">
+                            ${sceneCharacters.length > 0 ? sceneCharacters.map(char => {
+                                const safeName = (char.name || '').replace(/'/g, "\\'");
+                                const safePersonality = (char.personality || '').replace(/'/g, "\\'");
+                                const existingModel = extractedModels.find(m => m.name === char.name);
+                                if (existingModel) {
+                                    return `<div class="character-model-card has-model" data-char="${safeName}">
+                                        <img src="${existingModel.image}" alt="${safeName}">
+                                        <span class="visual-label">${char.name}</span>
+                                    </div>`;
+                                } else {
+                                    return `<div class="character-model-card no-model" data-char="${safeName}" onclick="generateCharacterImage('${safeName}', '${safePersonality}')">
+                                        <div class="char-placeholder">
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                                <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/>
+                                            </svg>
+                                        </div>
+                                        <span class="visual-label">${char.name}</span>
+                                        <span class="generate-hint">Click to generate</span>
+                                    </div>`;
+                                }
+                            }).join('') : '<div class="chat-visual-empty">No specific characters in this scene</div>'}
                         </div>
                     </div>
                     
@@ -7060,36 +7161,20 @@
                 }
                 
                 const concept = document.getElementById(`${pickerId}-concept`);
-                const charsGrid = document.getElementById(`${pickerId}-characters`);
                 const curatedGrid = document.getElementById(`${pickerId}-curated`);
                 const bgGrid = document.getElementById(`${pickerId}-backgrounds`);
-                const charsSection = document.getElementById(`${pickerId}-characters-section`);
                 
                 if (concept) concept.textContent = data.suggestions?.visual_concept || '';
                 
-                // Store all images for selection
+                // Store all images for selection (curated and backgrounds only, characters are handled separately)
                 window.tempVisualImages = window.tempVisualImages || {};
-                window.tempVisualImages[pickerId] = [...(data.characters || []), ...(data.curated || []), ...(data.backgrounds || [])];
-                
-                // Render Characters section
-                if (data.characters && data.characters.length > 0) {
-                    charsGrid.innerHTML = data.characters.map((img, imgIdx) => `
-                        <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             onclick="selectInlineVisual(${sceneIndex}, ${imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'character')">
-                            <img src="${img.url}" alt="${img.character_name || 'Character'}" loading="lazy">
-                            <span class="visual-label">${img.character_name || 'Character'}</span>
-                        </div>
-                    `).join('');
-                } else {
-                    charsSection.style.display = 'none';
-                }
+                window.tempVisualImages[pickerId] = [...(data.curated || []), ...(data.backgrounds || [])];
                 
                 // Render Curated visuals
                 if (data.curated && data.curated.length > 0) {
-                    const charLen = (data.characters || []).length;
                     curatedGrid.innerHTML = data.curated.map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             onclick="selectInlineVisual(${sceneIndex}, ${charLen + imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'curated')">
+                             onclick="selectInlineVisual(${sceneIndex}, ${imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'curated')">
                             <img src="${img.url}" alt="${img.alt || 'Visual'}" loading="lazy">
                         </div>
                     `).join('');
@@ -7099,11 +7184,10 @@
                 
                 // Render Backgrounds
                 if (data.backgrounds && data.backgrounds.length > 0) {
-                    const charLen = (data.characters || []).length;
                     const curLen = (data.curated || []).length;
                     bgGrid.innerHTML = data.backgrounds.map((img, imgIdx) => `
                         <div class="chat-visual-option ${sceneVisuals[sceneIndex]?.url === img.url ? 'selected' : ''}" 
-                             onclick="selectInlineVisual(${sceneIndex}, ${charLen + curLen + imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'background')">
+                             onclick="selectInlineVisual(${sceneIndex}, ${curLen + imgIdx}, '${pickerId}', '${img.url.replace(/'/g, "\\'")}', '${(img.photographer || '').replace(/'/g, "\\'")}', 'background')">
                             <img src="${img.url}" alt="${img.alt || 'Background'}" loading="lazy">
                         </div>
                     `).join('');
@@ -9174,10 +9258,7 @@
             });
             
             console.log('Populated', scenes.length, 'scenes from visual board');
-            renderScenes();
-            
-            // Fetch visuals for any sections missing suggested_videos
-            fetchMissingSceneVisuals();
+            // Note: Scene composer UI removed - visuals are selected in anchor cards
             
             // Advance to step 4 - Scene Review
             if (currentWorkflowStep < 4 && scenes.length > 0) {
