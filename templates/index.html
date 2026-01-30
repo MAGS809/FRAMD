@@ -7234,7 +7234,7 @@
                 </div>
             `;
             
-            // Auto-load visuals and popups for this scene
+            // Auto-load visuals and popups immediately
             loadSceneVisualsAuto(sceneIndex);
             loadPopupVisuals(sceneIndex);
         }
@@ -7409,13 +7409,13 @@
                         </div>
                     `).join('');
                     
-                    console.log('[loadSceneVisualsAuto] Grid element ID:', currentGrid.id);
-                    console.log('[loadSceneVisualsAuto] Grid parent visible:', currentGrid.offsetParent !== null);
-                    console.log('[loadSceneVisualsAuto] Setting innerHTML with', allVisuals.slice(0, 9).length, 'items');
+                    console.log('[loadSceneVisualsAuto] Grid ID:', currentGrid.id, 'Parent:', currentGrid.parentElement?.id || currentGrid.parentElement?.className);
                     
                     currentGrid.innerHTML = htmlContent;
+                    currentGrid.dataset.loaded = 'true';
+                    currentGrid.dataset.loadTime = Date.now();
                     
-                    console.log('[loadSceneVisualsAuto] innerHTML set. Children count:', currentGrid.children.length);
+                    console.log('[loadSceneVisualsAuto] SUCCESS! Set', currentGrid.children.length, 'images. Grid marked as loaded.');
                     
                     // Add click handlers and error handlers
                     currentGrid.querySelectorAll('.chat-visual-option').forEach((el) => {
