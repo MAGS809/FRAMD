@@ -2578,9 +2578,7 @@ def generate_project_metadata():
     if not content:
         return jsonify({'success': False, 'error': 'No content provided'})
     
-    try:
-        # Use XAI to generate concise project metadata
-        prompt = f"""Based on this content, generate a project name and description.
+    prompt = f"""Based on this content, generate a project name and description.
 
 Content: {content[:1500]}
 
@@ -2591,37 +2589,66 @@ Rules:
 Return ONLY valid JSON:
 {{"name": "Three Word Name", "description": "One sentence description here."}}"""
 
+    import re
+    
+    # Try Claude first (primary AI)
+    try:
+        print(f"[ProjectMetadata] Generating title with Claude for: {content[:50]}...")
+        response = anthropic_client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=100,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        result_text = response.content[0].text.strip()
+        print(f"[ProjectMetadata] Claude response: {result_text}")
+        
+        json_match = re.search(r'\{[^}]+\}', result_text)
+        if json_match:
+            metadata = json.loads(json_match.group())
+            name = metadata.get('name', 'Untitled')[:50]
+            print(f"[ProjectMetadata] Generated name: {name}")
+            return jsonify({
+                'success': True,
+                'name': name,
+                'description': metadata.get('description', '')[:200]
+            })
+    except Exception as e:
+        print(f"[ProjectMetadata] Claude failed: {e}")
+    
+    # Fallback to xAI
+    try:
+        print(f"[ProjectMetadata] Trying xAI fallback...")
         response = xai_client.chat.completions.create(
             model="grok-3",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
             temperature=0.7
         )
-        
         result_text = response.choices[0].message.content.strip()
+        print(f"[ProjectMetadata] xAI response: {result_text}")
         
-        # Parse JSON from response
-        import re
         json_match = re.search(r'\{[^}]+\}', result_text)
         if json_match:
             metadata = json.loads(json_match.group())
+            name = metadata.get('name', 'Untitled')[:50]
+            print(f"[ProjectMetadata] Generated name: {name}")
             return jsonify({
                 'success': True,
-                'name': metadata.get('name', 'Untitled')[:50],
+                'name': name,
                 'description': metadata.get('description', '')[:200]
             })
-        else:
-            # Fallback: extract first few words as name
-            words = content.split()[:3]
-            return jsonify({
-                'success': True,
-                'name': ' '.join(words)[:50],
-                'description': content[:100]
-            })
-            
     except Exception as e:
-        print(f"Error generating project metadata: {e}")
-        return jsonify({'success': False, 'error': str(e)})
+        print(f"[ProjectMetadata] xAI failed: {e}")
+    
+    # Final fallback: extract first few words as name
+    words = content.split()[:3]
+    fallback_name = ' '.join(words)[:50]
+    print(f"[ProjectMetadata] Using fallback name: {fallback_name}")
+    return jsonify({
+        'success': True,
+        'name': fallback_name,
+        'description': content[:100]
+    })
 
 
 @app.route('/projects/<int:project_id>', methods=['GET'])
