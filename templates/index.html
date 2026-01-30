@@ -7135,15 +7135,23 @@
             
             // Render single-scene visual picker (one at a time)
             currentVisualSceneIndex = 0;
+            renderedSceneIndex = -1; // Reset so we can render fresh
             visualPickerContainer = container; // Store reference for navigation
             renderSingleSceneVisualPicker(container, anchors, 0);
         }
         
         // Track current scene in visual picker
         let currentVisualSceneIndex = 0;
+        let renderedSceneIndex = -1; // Track which scene is currently rendered
         
         // Render a single scene visual picker with navigation
-        function renderSingleSceneVisualPicker(container, anchors, sceneIndex) {
+        function renderSingleSceneVisualPicker(container, anchors, sceneIndex, forceRender = false) {
+            // Prevent re-rendering the same scene (which would reset "Loading visuals..." and lose loaded images)
+            if (!forceRender && renderedSceneIndex === sceneIndex) {
+                console.log('[renderSingleSceneVisualPicker] Scene', sceneIndex, 'already rendered - skipping');
+                return;
+            }
+            renderedSceneIndex = sceneIndex;
             const anchor = anchors[sceneIndex];
             if (!anchor) return;
             
