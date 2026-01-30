@@ -85,7 +85,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 **Technical Implementations:**
 - **Flask Web Application**: `app.py` serves as the backend for REST API endpoints.
 - **Context Engine**: `context_engine.py` manages the core processing pipeline and conversation memory.
-- **Unified Content Engine**: A single AI brain handles both content creation and clipping modes.
+- **Unified Content Engine**: A single AI brain handles content creation. Written content (essays, letters, ideas) always goes to script creation. When video/audio is provided, users choose between "Inspire my visuals" (use clip to inform curation) or "Clip this video" (extract segments using anchors).
 - **Thesis-Driven Architecture**: Content is structured around a single core thesis, with scripts built on anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
 - **AI Reasoning**: A 4-question framework guides content generation.
 - **Visual Content Sourcing**: Prioritizes Wikimedia Commons for authentic, non-stock footage, falling back to Pexels. Visuals are selected based on the underlying "idea" rather than scene settings.
