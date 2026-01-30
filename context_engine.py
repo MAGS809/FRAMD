@@ -8,7 +8,8 @@ from openai import OpenAI
 
 # Krakd AI - powered by xAI
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
-PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
+UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")
+PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY")
 
 # Krakd client for text generation (xAI backend)
 client = OpenAI(
@@ -79,9 +80,8 @@ HARD BOUNDARIES:
 - VISUAL BAN: Strictly NO sexualized or thirst-driven content (bikinis, lingerie, erotic poses, etc.).
 
 VISUAL SOURCING:
-- Pexels, Unsplash, Pixabay, Mixkit, Coverr, Wikimedia Commons ONLY.
+- Unsplash, Pixabay, Wikimedia Commons ONLY.
 - Generic search queries only. No celebrities, no brands.
-- Store source and license for every asset.
 
 POLITICAL/SOCIAL:
 - No ragebait, slogans, or demonization. 
@@ -833,39 +833,123 @@ If no people/characters mentioned, return empty array."""}
         return {"characters": [], "has_people": False}
 
 
-def search_pexels_safe(query: str, per_page: int = 6) -> list[dict]:
-    """Search Pexels for copyright-free stock images matching query."""
-    if not PEXELS_API_KEY:
+def search_unsplash(query: str, per_page: int = 6) -> list[dict]:
+    """Search Unsplash for high quality stock images."""
+    if not UNSPLASH_ACCESS_KEY:
         return []
     
-    headers = {"Authorization": PEXELS_API_KEY}
-    url = "https://api.pexels.com/v1/search"
+    url = "https://api.unsplash.com/search/photos"
     params = {
         "query": query,
         "per_page": per_page,
         "orientation": "landscape"
     }
+    headers = {"Authorization": f"Client-ID {UNSPLASH_ACCESS_KEY}"}
     
     try:
         response = requests.get(url, headers=headers, params=params, timeout=10)
         if response.status_code == 200:
             data = response.json()
             images = []
-            for photo in data.get("photos", []):
+            for photo in data.get("results", []):
                 images.append({
-                    "id": photo.get("id"),
-                    "url": photo.get("src", {}).get("large2x") or photo.get("src", {}).get("large"),
-                    "thumbnail": photo.get("src", {}).get("medium"),
-                    "photographer": photo.get("photographer", "Unknown"),
-                    "pexels_url": photo.get("url"),
-                    "alt": photo.get("alt", query),
-                    "attribution": f"Photo by {photo.get('photographer', 'Unknown')} on Pexels"
+                    "id": f"unsplash_{photo.get('id')}",
+                    "url": photo.get("urls", {}).get("regular"),
+                    "thumbnail": photo.get("urls", {}).get("small"),
+                    "alt": photo.get("alt_description") or query
                 })
             return images
     except Exception as e:
-        print(f"Error searching Pexels for '{query}': {e}")
+        print(f"Error searching Unsplash for '{query}': {e}")
     
     return []
+
+
+def search_pixabay(query: str, per_page: int = 6) -> list[dict]:
+    """Search Pixabay for free stock images and videos."""
+    if not PIXABAY_API_KEY:
+        return []
+    
+    url = "https://pixabay.com/api/"
+    params = {
+        "key": PIXABAY_API_KEY,
+        "q": query,
+        "per_page": per_page,
+        "orientation": "horizontal",
+        "safesearch": "true",
+        "image_type": "photo"
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            images = []
+            for hit in data.get("hits", []):
+                images.append({
+                    "id": f"pixabay_{hit.get('id')}",
+                    "url": hit.get("largeImageURL") or hit.get("webformatURL"),
+                    "thumbnail": hit.get("previewURL"),
+                    "alt": query
+                })
+            return images
+    except Exception as e:
+        print(f"Error searching Pixabay for '{query}': {e}")
+    
+    return []
+
+
+def search_pixabay_videos(query: str, per_page: int = 4) -> list[dict]:
+    """Search Pixabay for free stock videos."""
+    if not PIXABAY_API_KEY:
+        return []
+    
+    url = "https://pixabay.com/api/videos/"
+    params = {
+        "key": PIXABAY_API_KEY,
+        "q": query,
+        "per_page": per_page,
+        "safesearch": "true"
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            videos = []
+            for hit in data.get("hits", []):
+                video_files = hit.get("videos", {})
+                medium = video_files.get("medium", {})
+                videos.append({
+                    "id": f"pixabay_v_{hit.get('id')}",
+                    "download_url": medium.get("url"),
+                    "thumbnail": f"https://i.vimeocdn.com/video/{hit.get('picture_id')}_640x360.jpg",
+                    "title": query,
+                    "duration": hit.get("duration", 0)
+                })
+            return videos
+    except Exception as e:
+        print(f"Error searching Pixabay videos for '{query}': {e}")
+    
+    return []
+
+
+def search_visuals_unified(query: str, per_page: int = 6) -> list[dict]:
+    """Search all visual sources (Unsplash, Pixabay, Wikimedia) and combine results."""
+    all_results = []
+    
+    unsplash_results = search_unsplash(query, per_page=3)
+    all_results.extend(unsplash_results)
+    
+    pixabay_results = search_pixabay(query, per_page=3)
+    all_results.extend(pixabay_results)
+    
+    return all_results[:per_page]
+
+
+def search_pexels_safe(query: str, per_page: int = 6) -> list[dict]:
+    """Deprecated: Use search_visuals_unified instead. This now redirects to unified search."""
+    return search_visuals_unified(query, per_page)
 
 
 def build_post_from_script(user_script: str) -> dict:

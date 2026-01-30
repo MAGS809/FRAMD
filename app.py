@@ -987,7 +987,7 @@ def deduct_tokens():
     return jsonify({'success': True, 'balance': token_entry.balance})
 
 # Asset Library - Legal Media with Licensing
-ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Pexels License']
+ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Unsplash License', 'Pixabay License']
 
 # License validation - HARD REJECT list (checked FIRST)
 REJECTED_LICENSE_PATTERNS = ['nc', 'nd', 'editorial', 'all rights reserved', 'getty', 'shutterstock']
@@ -2067,7 +2067,7 @@ def remove_background():
             img = Image.open(io.BytesIO(image_data))
         else:
             from urllib.parse import urlparse
-            allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'pexels.com', 'images.pexels.com']
+            allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'unsplash.com', 'images.unsplash.com', 'pixabay.com']
             parsed = urlparse(image_url)
             if not any(domain in parsed.netloc for domain in allowed_domains):
                 return jsonify({'error': 'Image URL not from approved source'}), 403
@@ -3173,7 +3173,7 @@ def validate_loop_endpoint():
 @app.route('/scene-visuals', methods=['POST'])
 def get_scene_visuals_endpoint():
     """Get AI-curated visual suggestions for a specific scene with 3 categories."""
-    from context_engine import get_scene_visuals, search_pexels_safe, detect_characters_in_scene
+    from context_engine import get_scene_visuals, search_visuals_unified, detect_characters_in_scene
     
     data = request.get_json()
     scene_text = data.get('scene_text')
@@ -3196,13 +3196,13 @@ def get_scene_visuals_endpoint():
                 search_query = char.get('search_query', char_name)
                 
                 if char_type == 'historical' and search_query:
-                    results = search_pexels_safe(search_query, per_page=2)
+                    results = search_visuals_unified(search_query, per_page=2)
                     for r in results:
                         r['character_name'] = char_name
                         r['category'] = 'character'
                     characters.extend(results)
                 elif char_type == 'generic':
-                    results = search_pexels_safe(search_query or 'person silhouette', per_page=2)
+                    results = search_visuals_unified(search_query or 'person silhouette', per_page=2)
                     for r in results:
                         r['character_name'] = char_name or 'Character'
                         r['category'] = 'character'
@@ -3214,7 +3214,7 @@ def get_scene_visuals_endpoint():
         curated = []
         for query in visual_suggestions.get('search_queries', [])[:2]:
             try:
-                results = search_pexels_safe(query, per_page=3)
+                results = search_visuals_unified(query, per_page=3)
                 for r in results:
                     r['category'] = 'curated'
                 curated.extend(results)
@@ -3228,7 +3228,7 @@ def get_scene_visuals_endpoint():
             bg_queries = ['cinematic background', 'dramatic atmosphere']
         for query in bg_queries[:2]:
             try:
-                results = search_pexels_safe(query, per_page=2)
+                results = search_visuals_unified(query, per_page=2)
                 for r in results:
                     r['category'] = 'background'
                 backgrounds.extend(results)
