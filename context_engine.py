@@ -10,6 +10,7 @@ from openai import OpenAI
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")
 PIXABAY_API_KEY = os.environ.get("PIXABAY_API_KEY")
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
 # Krakd client for text generation (xAI backend)
 client = OpenAI(
@@ -934,21 +935,61 @@ def search_pixabay_videos(query: str, per_page: int = 4) -> list[dict]:
     return []
 
 
+def search_pexels(query: str, per_page: int = 6) -> list[dict]:
+    """Search Pexels for stock images (fallback source)."""
+    if not PEXELS_API_KEY:
+        return []
+    
+    headers = {"Authorization": PEXELS_API_KEY}
+    url = "https://api.pexels.com/v1/search"
+    params = {
+        "query": query,
+        "per_page": per_page,
+        "orientation": "landscape"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, params=params, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            images = []
+            for photo in data.get("photos", []):
+                images.append({
+                    "id": f"pexels_{photo.get('id')}",
+                    "url": photo.get("src", {}).get("large2x") or photo.get("src", {}).get("large"),
+                    "thumbnail": photo.get("src", {}).get("medium"),
+                    "alt": photo.get("alt", query)
+                })
+            return images
+    except Exception as e:
+        print(f"Error searching Pexels for '{query}': {e}")
+    
+    return []
+
+
 def search_visuals_unified(query: str, per_page: int = 6) -> list[dict]:
-    """Search all visual sources (Unsplash, Pixabay, Wikimedia) and combine results."""
+    """Search all visual sources and combine results. Priority: Unsplash > Pixabay > Pexels."""
     all_results = []
     
+    # Try Unsplash first (highest quality, pending approval)
     unsplash_results = search_unsplash(query, per_page=3)
     all_results.extend(unsplash_results)
     
-    pixabay_results = search_pixabay(query, per_page=3)
-    all_results.extend(pixabay_results)
+    # Try Pixabay
+    if len(all_results) < per_page:
+        pixabay_results = search_pixabay(query, per_page=3)
+        all_results.extend(pixabay_results)
+    
+    # Fallback to Pexels if still need more
+    if len(all_results) < per_page:
+        pexels_results = search_pexels(query, per_page=per_page - len(all_results))
+        all_results.extend(pexels_results)
     
     return all_results[:per_page]
 
 
 def search_pexels_safe(query: str, per_page: int = 6) -> list[dict]:
-    """Deprecated: Use search_visuals_unified instead. This now redirects to unified search."""
+    """Alias for unified search for backward compatibility."""
     return search_visuals_unified(query, per_page)
 
 

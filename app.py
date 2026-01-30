@@ -987,7 +987,7 @@ def deduct_tokens():
     return jsonify({'success': True, 'balance': token_entry.balance})
 
 # Asset Library - Legal Media with Licensing
-ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Unsplash License', 'Pixabay License']
+ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Unsplash License', 'Pixabay License', 'Pexels License']
 
 # License validation - HARD REJECT list (checked FIRST)
 REJECTED_LICENSE_PATTERNS = ['nc', 'nd', 'editorial', 'all rights reserved', 'getty', 'shutterstock']
@@ -2067,7 +2067,7 @@ def remove_background():
             img = Image.open(io.BytesIO(image_data))
         else:
             from urllib.parse import urlparse
-            allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'unsplash.com', 'images.unsplash.com', 'pixabay.com']
+            allowed_domains = ['wikimedia.org', 'upload.wikimedia.org', 'unsplash.com', 'images.unsplash.com', 'pixabay.com', 'pexels.com', 'images.pexels.com']
             parsed = urlparse(image_url)
             if not any(domain in parsed.netloc for domain in allowed_domains):
                 return jsonify({'error': 'Image URL not from approved source'}), 403
