@@ -7166,8 +7166,15 @@
         
         // Render a single scene visual picker with navigation
         function renderSingleSceneVisualPicker(container, anchors, sceneIndex, forceRender = false) {
-            // Prevent re-rendering the same scene (which would reset "Loading visuals..." and lose loaded images)
-            if (!forceRender && renderedSceneIndex === sceneIndex) {
+            // Check if this scene's grid already exists and has loaded content
+            const existingGrid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
+            if (!forceRender && existingGrid && existingGrid.dataset.loaded === 'true') {
+                console.log('[renderSingleSceneVisualPicker] Scene', sceneIndex, 'already has loaded content - skipping');
+                return;
+            }
+            
+            // Also skip if same scene is being rendered (backup guard)
+            if (!forceRender && renderedSceneIndex === sceneIndex && existingGrid) {
                 console.log('[renderSingleSceneVisualPicker] Scene', sceneIndex, 'already rendered - skipping');
                 return;
             }
