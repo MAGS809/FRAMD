@@ -9751,6 +9751,10 @@
             document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
             document.getElementById('stage-review').classList.add('active');
             
+            // Ensure chat bar is visible
+            const chatBar = document.getElementById('bottom-chat-bar');
+            if (chatBar) chatBar.style.display = 'block';
+            
             // Update script card with current script
             if (currentScript) {
                 const scriptText = typeof currentScript === 'string' ? currentScript : currentScript.full_script;
