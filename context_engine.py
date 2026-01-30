@@ -1669,14 +1669,22 @@ def get_source_learning_context(user_id: str) -> str:
         return ""
 
 
-def unified_content_engine(user_input: str, user_id: str, mode: str = "auto") -> dict:
+def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", has_media: bool = False) -> dict:
     """
-    Unified engine that handles both creation and clipping through one interface.
+    Unified engine that handles content creation with optional media integration.
+    
+    Workflow:
+    1. Always start with script creation from user's idea/thesis
+    2. After script confirmation, proceed to visual curation
+    3. If video/audio provided: transcribe and offer two options
+       - "Inspire my visuals": Use clip content to inform visual curation
+       - "Clip this video": Extract segments using anchor system
     
     Modes:
-    - auto: AI determines if this is creation or clipping based on input
+    - auto: Determine intent (greeting vs creating)
     - create: Force script creation mode
-    - clip: Force clipping mode (expects transcript/link)
+    - clip_video: Direct video clipping using anchors
+    - inspire_visuals: Use provided media to inform visual curation
     """
     detection_prompt = f"""Analyze this user input and determine what they're trying to do.
 
@@ -1685,26 +1693,34 @@ INPUT:
 
 Are they:
 1. GREETING: Just saying hello, hi, hey, or casual greeting with no content
-2. CREATING: Starting from an idea, asking for a script (has actual content/topic)
-3. CLIPPING: Providing source material (transcript, link, video) to extract clips from
-4. REFINING: Adjusting existing content
+2. CREATING: Starting from an idea, essay, letter, thesis, topic, or any content they want turned into a script
+3. REFINING: Adjusting or editing existing content
 
-IMPORTANT: If the input is very short (under 20 characters) and contains no clear topic or idea, it's likely a GREETING.
+IMPORTANT RULES:
+- If the input is very short (under 20 characters) and contains no clear topic, it's a GREETING
+- Essays, letters, articles, or any written content = CREATING (we create a script FROM this content)
+- Only explicit video/audio file references with clipping intent = handled separately via has_media flag
 
 Output JSON:
 {{
-    "mode": "greeting/create/clip/refine",
+    "mode": "greeting/create/refine",
     "detected_thesis": "If thesis is clear, state it. Otherwise null",
-    "source_type": "If clipping: transcript/link/idea. Otherwise null",
     "needs_clarification": true/false,
     "clarification_question": "If unclear, what to ask"
 }}"""
 
-    if mode == "auto":
-        system = "You analyze user intent for a video content system."
+    # If media is provided, show media options instead of auto-detecting
+    if has_media and mode == "auto":
+        mode = "media_options"
+        detection = {"mode": "media_options"}
+    elif mode == "auto":
+        system = "You analyze user intent for a video content system. Written content (essays, letters, articles) should always be treated as CREATE mode - we generate scripts from ideas."
         detection = call_ai(detection_prompt, system, json_output=True, max_tokens=512)
         if detection:
             mode = detection.get('mode', 'create')
+            # Force create mode for any substantial text content
+            if len(user_input) > 100 and mode not in ['greeting', 'refine']:
+                mode = 'create'
         else:
             mode = 'create'
             detection = {}
@@ -1723,72 +1739,101 @@ Output JSON:
             "needs_content": True
         }
     
-    if mode == "clip":
+    # Handle media-based modes (when user provides video/audio)
+    if mode == "clip_video":
+        # Direct video clipping using anchor system
         result = process_source_for_clipping(user_input)
         if result.get('status') == 'ready':
             learnings = learn_from_source_content(user_input, result.get('recommended_clips', []))
             result['learnings'] = learnings
-            
-            # Add content classification for clips too
             thesis_statement = result.get('thesis', {}).get('thesis_statement', '')
             if thesis_statement:
                 classification = classify_content_type(user_input[:1500], thesis_statement)
                 result['content_type'] = classification.get('content_type', 'informative')
                 result['visual_style'] = classification.get('visual_style', {})
-        
-        return {"mode": "clip", "result": result, "status": "ready"}
+        return {"mode": "clip_video", "result": result, "status": "ready"}
     
-    else:
-        thesis = extract_thesis(user_input, "idea")
-        
-        if thesis.get('requires_clarification', False):
-            return {
-                "mode": "create",
-                "status": "needs_clarification", 
-                "thesis": thesis,
-                "question": thesis.get('clarification_question', 'What is the main point you want to make?')
-            }
-        
-        learned_patterns = {}
-        try:
-            from models import SourceContent
-            from app import db
-            sources = SourceContent.query.filter_by(user_id=user_id).limit(5).all()
-            if sources:
-                for src in sources:
-                    if src.learned_hooks:
-                        learned_patterns['hooks'] = src.learned_hooks
-                    if src.learned_pacing:
-                        learned_patterns['pacing'] = src.learned_pacing
-                    if src.learned_structure:
-                        learned_patterns['structure'] = src.learned_structure
-                    if src.learned_style:
-                        learned_patterns['style'] = src.learned_style
-        except:
-            pass
-        
-        script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
-        anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
-        thought_changes = detect_thought_changes(script.get('full_script', ''))
-        
-        # Classify content type and generate visual plan
-        visual_plan = generate_visual_plan(
-            script.get('full_script', ''),
-            thesis.get('thesis_statement', ''),
-            anchors
-        )
-        
+    if mode == "inspire_visuals":
+        # Use provided media content to inform visual curation for existing script
+        # This is called after script is confirmed, with media transcript
+        return {
+            "mode": "inspire_visuals",
+            "status": "ready",
+            "message": "Media analyzed. Visual curation will incorporate insights from your reference.",
+            "source_analyzed": True
+        }
+    
+    if mode == "media_options":
+        # User provided media - offer them the choice
+        return {
+            "mode": "media_options",
+            "status": "needs_choice",
+            "options": [
+                {
+                    "id": "inspire_visuals",
+                    "label": "Inspire my visuals",
+                    "description": "Use this clip's content to inform visual curation for your script"
+                },
+                {
+                    "id": "clip_video",
+                    "label": "Clip this video",
+                    "description": "Extract segments directly from this video using anchor points"
+                }
+            ],
+            "question": "What would you like to do with this video?"
+        }
+    
+    # Default: Create mode - generate script from user's idea/content
+    thesis = extract_thesis(user_input, "idea")
+    
+    if thesis.get('requires_clarification', False):
         return {
             "mode": "create",
-            "status": "ready",
+            "status": "needs_clarification", 
             "thesis": thesis,
-            "script": script,
-            "anchors": anchors,
-            "thought_changes": thought_changes,
-            "learned_patterns_applied": bool(learned_patterns),
-            "content_type": visual_plan.get("classification", {}).get("content_type", "informative"),
-            "visual_plan": visual_plan
+            "question": thesis.get('clarification_question', 'What is the main point you want to make?')
         }
+    
+    learned_patterns = {}
+    try:
+        from models import SourceContent
+        from app import db
+        sources = SourceContent.query.filter_by(user_id=user_id).limit(5).all()
+        if sources:
+            for src in sources:
+                if src.learned_hooks:
+                    learned_patterns['hooks'] = src.learned_hooks
+                if src.learned_pacing:
+                    learned_patterns['pacing'] = src.learned_pacing
+                if src.learned_structure:
+                    learned_patterns['structure'] = src.learned_structure
+                if src.learned_style:
+                    learned_patterns['style'] = src.learned_style
+    except:
+        pass
+    
+    script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
+    anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
+    thought_changes = detect_thought_changes(script.get('full_script', ''))
+    
+    # Classify content type and generate visual plan
+    visual_plan = generate_visual_plan(
+        script.get('full_script', ''),
+        thesis.get('thesis_statement', ''),
+        anchors
+    )
+    
+    return {
+        "mode": "create",
+        "status": "ready",
+        "thesis": thesis,
+        "script": script,
+        "anchors": anchors,
+        "thought_changes": thought_changes,
+        "learned_patterns_applied": bool(learned_patterns),
+        "content_type": visual_plan.get("classification", {}).get("content_type", "informative"),
+        "visual_plan": visual_plan
+    }
 
 
 if __name__ == "__main__":

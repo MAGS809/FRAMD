@@ -5022,6 +5022,8 @@ def unified_engine():
     """
     Unified content engine - handles both creation and clipping in one interface.
     Automatically detects mode from input, or accepts explicit mode parameter.
+    
+    When has_media=True, shows options: "Inspire my visuals" or "Clip this video"
     """
     from flask_login import current_user
     from models import SourceContent, ProjectThesis, ScriptAnchor, ThoughtChange, Project
@@ -5030,6 +5032,7 @@ def unified_engine():
     user_input = data.get('input', '')
     mode = data.get('mode', 'auto')
     project_id = data.get('project_id')
+    has_media = data.get('has_media', False)  # True when video/audio is uploaded
     
     user_id = current_user.id if current_user.is_authenticated else 'dev_user'
     
@@ -5037,7 +5040,7 @@ def unified_engine():
         return jsonify({'error': 'No input provided'}), 400
     
     try:
-        result = unified_content_engine(user_input, user_id, mode)
+        result = unified_content_engine(user_input, user_id, mode, has_media)
         
         if result.get('mode') == 'greeting':
             return jsonify({
@@ -5047,8 +5050,17 @@ def unified_engine():
                 'needs_content': True
             })
         
+        # Handle media options - user needs to choose what to do with their media
+        if result.get('mode') == 'media_options':
+            return jsonify({
+                'mode': 'media_options',
+                'status': 'needs_choice',
+                'options': result.get('options', []),
+                'question': result.get('question', 'What would you like to do with this video?')
+            })
+        
         if result.get('status') == 'ready':
-            if result.get('mode') == 'clip':
+            if result.get('mode') == 'clip_video':
                 source = SourceContent(
                     user_id=user_id,
                     content_type='transcript',
