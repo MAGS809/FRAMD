@@ -191,10 +191,7 @@
             white-space: nowrap;
         }
         
-        .project-name-display:hover {
-            border-color: var(--gold);
-            background: rgba(255,214,10,0.05);
-        }
+        /* Project name is not clickable */
         
         .project-name-display.empty {
             display: none;
@@ -5851,7 +5848,7 @@
                 <div class="back-to-projects" id="back-to-projects" onclick="goToProjects()">← Back to projects</div>
             </div>
             <div class="header-center">
-                <div class="project-name-display empty" id="project-name-display" onclick="goToProjects()">Select a project</div>
+                <div class="project-name-display empty" id="project-name-display">Untitled</div>
             </div>
             <div class="header-right">
                 <button class="avatar-btn" id="avatar-btn" onclick="toggleAvatarMenu()">
@@ -10405,6 +10402,8 @@
             // If no project exists yet, create one with AI-generated name/description
             if (!currentProjectId && message) {
                 try {
+                    console.log('[Project] Generating metadata for:', message.substring(0, 50));
+                    
                     // Generate AI name and description
                     const metaRes = await fetch('/generate-project-metadata', {
                         method: 'POST',
@@ -10412,9 +10411,12 @@
                         body: JSON.stringify({ idea: message })
                     });
                     const metaData = await metaRes.json();
+                    console.log('[Project] Metadata response:', metaData);
                     
                     const projectName = metaData.success ? metaData.name : 'Untitled';
                     const projectDesc = metaData.success ? metaData.description : message.substring(0, 100);
+                    
+                    console.log('[Project] Creating project with name:', projectName);
                     
                     // Create project with AI metadata
                     const createRes = await fetch('/projects', {
@@ -10423,14 +10425,16 @@
                         body: JSON.stringify({ name: projectName, description: projectDesc })
                     });
                     const createData = await createRes.json();
+                    console.log('[Project] Create response:', createData);
+                    
                     if (createData.success) {
                         currentProjectId = createData.project.id;
                         updateProjectNameDisplay(projectName);
                         document.getElementById('back-to-projects').style.display = 'block';
-                        console.log('Project created:', projectName);
+                        console.log('[Project] Successfully created:', projectName);
                     }
                 } catch (err) {
-                    console.error('Error creating project:', err);
+                    console.error('[Project] Error creating project:', err);
                 }
             }
             
