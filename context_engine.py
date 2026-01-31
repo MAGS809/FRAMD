@@ -1128,11 +1128,24 @@ Output as JSON:
     }
 
 
-def extract_thesis(content: str, content_type: str = "idea") -> dict:
+def extract_thesis(content: str, content_type: str = "idea", has_clarification: bool = False) -> dict:
     """
     Extract the core thesis from any content - ideas, transcripts, or scripts.
     The thesis is the single central idea that everything else must serve.
     """
+    # If user has already provided clarification, be more aggressive about proceeding
+    clarification_instruction = ""
+    if has_clarification:
+        clarification_instruction = """
+IMPORTANT: The user has already provided clarification about their angle/direction.
+You MUST proceed with generating a thesis. Do NOT set requires_clarification to true.
+Use the clarification they provided to determine the angle and generate the thesis."""
+    else:
+        clarification_instruction = """
+If the content is unclear or could go multiple directions, set requires_clarification to true and provide:
+1. A clear, direct question (not listing options in the question text)
+2. 3-4 short, distinct answer options (each 2-6 words max)"""
+    
     prompt = f"""Analyze this {content_type} and extract the SINGLE CORE THESIS.
 
 CONTENT:
@@ -1148,9 +1161,7 @@ A thesis IS:
 - Something that can be argued for or against
 - The central idea that all other points should support
 
-If the content is unclear or could go multiple directions, set requires_clarification to true and provide:
-1. A clear, direct question (not listing options in the question text)
-2. 3-4 short, distinct answer options (each 2-6 words max)
+{clarification_instruction}
 
 Output JSON:
 {{
@@ -1810,10 +1821,12 @@ Output JSON:
         }
     
     # Default: Create mode - generate script from user's idea/content
-    thesis = extract_thesis(user_input, "idea")
+    # If user has already provided clarification (clarification_count > 0), tell AI to proceed
+    has_clarification = clarification_count > 0
+    thesis = extract_thesis(user_input, "idea", has_clarification=has_clarification)
     
-    # Handle clarification - but respect max clarification limit
-    if thesis.get('requires_clarification', False) and not force_generate and clarification_count < 3:
+    # Handle clarification - but respect max clarification limit (2 max, not 3)
+    if thesis.get('requires_clarification', False) and not force_generate and clarification_count < 2:
         # Get question and options from AI
         question = thesis.get('clarification_question', 'What is the main point you want to make?')
         
@@ -1843,8 +1856,8 @@ Output JSON:
             "clarification_number": clarification_count + 1
         }
     
-    # If force_generate or max clarifications reached, use AI's knowledge to fill gaps
-    if force_generate or clarification_count >= 3:
+    # If force_generate or max clarifications reached (2), use AI's knowledge to fill gaps
+    if force_generate or clarification_count >= 2:
         # Override thesis to force script generation - use AI to generate thesis
         if not thesis.get('thesis_statement') or thesis.get('requires_clarification'):
             # Use AI to research and generate a thesis based on the topic
