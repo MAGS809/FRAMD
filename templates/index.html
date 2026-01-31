@@ -8420,6 +8420,33 @@
                 
                 if (data.success) {
                     showNotification('Project deleted', 'success');
+                    
+                    // Immediately remove the project card from DOM
+                    const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
+                    if (projectCard) {
+                        projectCard.style.transition = 'opacity 0.3s, transform 0.3s';
+                        projectCard.style.opacity = '0';
+                        projectCard.style.transform = 'scale(0.9)';
+                        setTimeout(() => projectCard.remove(), 300);
+                    }
+                    
+                    // Remove from projects array
+                    const projectIndex = projects.findIndex(p => p.id === projectId);
+                    if (projectIndex !== -1) {
+                        projects.splice(projectIndex, 1);
+                    }
+                    
+                    // If this was the current project, clear the workspace
+                    if (currentProjectId === projectId) {
+                        currentProjectId = null;
+                        currentScript = null;
+                        currentAnchors = [];
+                        sceneVisuals = {};
+                        conversationHistory = [];
+                        localStorage.removeItem('currentProjectId');
+                    }
+                    
+                    // Reload project lists to ensure sync
                     loadProjects();
                     loadDashboardProjects();
                 } else {
@@ -8645,7 +8672,7 @@
                 
                 html += `
                     <div class="project-card-item ${p.is_successful ? 'successful' : ''} ${isGenerating ? 'generating' : ''}" 
-                         id="project-card-${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
+                         id="project-card-${p.id}" data-project-id="${p.id}" onclick="${isGenerating ? '' : `openProject(${p.id})`}">
                         <button class="project-delete-btn" onclick="showDeleteConfirmation(${p.id}, event)" title="Delete project">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
@@ -8832,7 +8859,7 @@
             }
             
             container.innerHTML = projects.map(p => `
-                <div class="project-card ${p.is_successful ? 'successful' : ''}" onclick="loadProject(${p.id})">
+                <div class="project-card ${p.is_successful ? 'successful' : ''}" data-project-id="${p.id}" onclick="loadProject(${p.id})">
                     <div class="project-name">
                         ${escapeHtml(p.name)}
                         ${p.is_successful ? '<span class="project-success-badge">Posted</span>' : ''}
