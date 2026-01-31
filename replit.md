@@ -88,6 +88,8 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Unified Content Engine**: A single AI brain handles content creation. Written content (essays, letters, ideas) always goes to script creation. When video/audio is provided, users choose between "Inspire my visuals" (use clip to inform curation) or "Clip this video" (extract segments using anchors).
 - **Thesis-Driven Architecture**: Content is structured around a single core thesis, with scripts built on anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
 - **AI Reasoning**: A 4-question framework guides content generation.
+- **Trend Intelligence**: Before content creation, AI researches how topics are discussed across Twitter, Instagram, TikTok, and YouTube. Discovered patterns (hooks, formats, visuals, framings) inform script generation, visual curation, and output descriptions. Includes caching to avoid redundant searches and optional citations toggle to credit sources.
+- **Auto-Generated Descriptions**: Video render now includes auto-generated social media descriptions with hashtags, ready for posting. Citations can be toggled to credit trend research sources.
 - **Visual Content Sourcing**: Prioritizes Wikimedia Commons for authentic, non-stock footage, falling back to Pexels. Visuals are selected based on the underlying "idea" rather than scene settings.
 - **Legal Media Asset Library**: Stores links with full licensing metadata.
 - **Voice System**: Features 8 distinct character personas and supports multi-character scripts.
