@@ -963,11 +963,15 @@ def stripe_webhook():
     except ValueError:
         return jsonify({'error': 'Invalid payload'}), 400
     
+    # Token amounts per tier
+    TIER_TOKENS = {'free': 50, 'creator': 300, 'pro': 1000}
+    
     if event['type'] == 'checkout.session.completed':
         session_data = event['data']['object']
         
         if session_data.get('mode') == 'subscription':
             user_id = session_data.get('metadata', {}).get('user_id')
+            plan = session_data.get('metadata', {}).get('plan', 'pro')
             subscription_id = session_data.get('subscription')
             customer_id = session_data.get('customer')
             
@@ -979,9 +983,12 @@ def stripe_webhook():
                 
                 sub.stripe_customer_id = customer_id
                 sub.stripe_subscription_id = subscription_id
-                sub.tier = 'pro'
+                sub.tier = plan  # 'creator' or 'pro'
                 sub.status = 'active'
+                sub.token_balance = TIER_TOKENS.get(plan, 300)
+                sub.token_refresh_date = datetime.now()
                 db.session.commit()
+                print(f"[stripe-webhook] New {plan} subscription for {user_id}, {sub.token_balance} tokens")
         else:
             token_amount = int(session_data.get('metadata', {}).get('token_amount', 0))
             if token_amount > 0:
@@ -989,6 +996,20 @@ def stripe_webhook():
                 if token_entry:
                     token_entry.balance += token_amount
                     db.session.commit()
+    
+    elif event['type'] == 'invoice.paid':
+        # Subscription renewal - refresh tokens
+        invoice_data = event['data']['object']
+        subscription_id = invoice_data.get('subscription')
+        
+        if subscription_id:
+            sub = Subscription.query.filter_by(stripe_subscription_id=subscription_id).first()
+            if sub and sub.status == 'active':
+                # Refresh tokens to full monthly allowance
+                sub.token_balance = TIER_TOKENS.get(sub.tier, 50)
+                sub.token_refresh_date = datetime.now()
+                db.session.commit()
+                print(f"[stripe-webhook] Token refresh for {sub.user_id}: {sub.token_balance} tokens")
     
     elif event['type'] == 'customer.subscription.updated':
         subscription_data = event['data']['object']
@@ -1011,6 +1032,7 @@ def stripe_webhook():
         if sub:
             sub.status = 'canceled'
             sub.tier = 'free'
+            sub.token_balance = TIER_TOKENS['free']  # Reset to free tier tokens
             db.session.commit()
     
     return jsonify({'received': True})
@@ -3758,6 +3780,12 @@ Output as JSON:
     })
 
 
+TOKEN_COSTS = {
+    'base_video': 25,
+    'per_character': 3,
+    'per_sfx': 1
+}
+
 @app.route('/generate-video', methods=['POST'])
 def generate_video():
     """Generate a video mockup combining stock footage with voiceover."""
@@ -3776,25 +3804,56 @@ def generate_video():
     else:
         user_id = session.get('dev_user_id')
     
+    # Calculate token cost
+    data = request.get_json()
+    extra_characters = max(0, len(data.get('character_layers', [])) - 1)
+    sfx_count = len(data.get('sound_effects', []))
+    token_cost = TOKEN_COSTS['base_video'] + (extra_characters * TOKEN_COSTS['per_character']) + (sfx_count * TOKEN_COSTS['per_sfx'])
+    
     # Dev mode (server-side flag): fully free
     if is_dev_mode:
-        print("[generate-video] Dev mode - free access")
+        print(f"[generate-video] Dev mode - free access (would cost {token_cost} tokens)")
     else:
-        # Check subscription only (free tier deducted in render-video to avoid double-charge)
         sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
         user = User.query.get(user_id) if user_id else None
         
-        has_active_sub = sub and sub.is_active()
-        has_free_generation = user and hasattr(user, 'free_video_generations') and (user.free_video_generations or 0) > 0
-        
-        if not has_active_sub and not has_free_generation:
+        # Check if user can generate (has tokens or free tier with video export)
+        if sub:
+            # Initialize token balance if needed
+            if sub.token_balance is None:
+                tier_tokens = {'free': 50, 'creator': 300, 'pro': 1000}
+                sub.token_balance = tier_tokens.get(sub.tier, 50)
+                db.session.commit()
+            
+            # Free tier cannot export videos
+            if sub.tier == 'free':
+                return jsonify({
+                    'error': 'Video export requires Creator or Pro subscription',
+                    'requires_subscription': True,
+                    'message': 'Upgrade to Creator ($10/mo) or Pro ($25/mo) to export videos.'
+                }), 403
+            
+            # Check token balance
+            if sub.token_balance < token_cost:
+                return jsonify({
+                    'error': 'Not enough tokens',
+                    'token_balance': sub.token_balance,
+                    'token_cost': token_cost,
+                    'message': f'You need {token_cost} tokens but only have {sub.token_balance}. Tokens refresh monthly or upgrade your plan.'
+                }), 403
+            
+            # Deduct tokens
+            sub.token_balance -= token_cost
+            db.session.commit()
+            print(f"[generate-video] Deducted {token_cost} tokens. New balance: {sub.token_balance}")
+        else:
+            # No subscription at all
             return jsonify({
-                'error': 'Pro subscription required',
+                'error': 'Subscription required',
                 'requires_subscription': True,
-                'message': 'Video generation requires a Pro subscription ($10/month). Your free generation has been used.'
+                'message': 'Video generation requires a Creator or Pro subscription.'
             }), 403
     
-    data = request.get_json()
     voiceover_url = data.get('voiceover_url')
     stock_videos = data.get('stock_videos', [])
     script = data.get('script', '')
