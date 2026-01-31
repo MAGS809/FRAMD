@@ -3075,6 +3075,130 @@ def get_caption_preferences():
     return jsonify({})
 
 
+@app.route('/video-history', methods=['GET'])
+def get_video_history():
+    """Get user's video download history."""
+    from models import VideoHistory
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'videos': []})
+    
+    videos = VideoHistory.query.filter_by(user_id=user_id).order_by(VideoHistory.created_at.desc()).limit(50).all()
+    
+    return jsonify({
+        'videos': [{
+            'id': v.id,
+            'project_name': v.project_name,
+            'video_path': v.video_path,
+            'thumbnail_path': v.thumbnail_path,
+            'duration_seconds': v.duration_seconds,
+            'format': v.format,
+            'created_at': v.created_at.isoformat() if v.created_at else None
+        } for v in videos]
+    })
+
+
+@app.route('/save-video-history', methods=['POST'])
+def save_video_history():
+    """Save a generated video to download history."""
+    from models import VideoHistory
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json() or {}
+    
+    video_history = VideoHistory(
+        user_id=user_id,
+        project_id=data.get('project_id'),
+        project_name=data.get('project_name', 'Untitled Video'),
+        video_path=data.get('video_path', ''),
+        thumbnail_path=data.get('thumbnail_path'),
+        duration_seconds=data.get('duration_seconds'),
+        format=data.get('format', '9:16'),
+        file_size_bytes=data.get('file_size_bytes'),
+        captions_data=data.get('captions_data')
+    )
+    
+    db.session.add(video_history)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'id': video_history.id})
+
+
+@app.route('/email-preferences', methods=['GET'])
+def get_email_preferences():
+    """Get user's email notification preferences."""
+    from models import EmailNotification
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({})
+    
+    notifications = EmailNotification.query.filter_by(user_id=user_id).all()
+    prefs = {n.notification_type: n.enabled for n in notifications}
+    
+    return jsonify({
+        'video_ready': prefs.get('video_ready', True),
+        'low_tokens': prefs.get('low_tokens', True),
+        'weekly_digest': prefs.get('weekly_digest', False)
+    })
+
+
+@app.route('/email-preferences', methods=['POST'])
+def save_email_preferences():
+    """Save user's email notification preferences."""
+    from models import EmailNotification
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json() or {}
+    
+    for notif_type in ['video_ready', 'low_tokens', 'weekly_digest']:
+        if notif_type in data:
+            notif = EmailNotification.query.filter_by(user_id=user_id, notification_type=notif_type).first()
+            if not notif:
+                notif = EmailNotification(user_id=user_id, notification_type=notif_type)
+                db.session.add(notif)
+            notif.enabled = bool(data[notif_type])
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+
+def format_user_error(error_msg):
+    """Convert technical error messages to user-friendly versions."""
+    error_lower = error_msg.lower()
+    
+    if 'api key' in error_lower or 'authentication' in error_lower:
+        return "We're having trouble connecting to our AI service. Please try again in a moment."
+    elif 'rate limit' in error_lower:
+        return "Our AI is handling a lot of requests right now. Please wait a minute and try again."
+    elif 'timeout' in error_lower or 'timed out' in error_lower:
+        return "This is taking longer than expected. Please try again with a shorter script."
+    elif 'no visual content' in error_lower or 'no scenes' in error_lower:
+        return "Please add some visual content before generating your video."
+    elif 'no audio' in error_lower or 'voiceover' in error_lower:
+        return "Please generate a voiceover first before creating the video."
+    elif 'insufficient tokens' in error_lower or 'not enough tokens' in error_lower:
+        return "You don't have enough tokens for this video. Please add more tokens or upgrade your plan."
+    elif 'file not found' in error_lower or 'no such file' in error_lower:
+        return "Some files are missing. Please try regenerating your content."
+    elif 'ffmpeg' in error_lower:
+        return "There was an issue assembling your video. Please try again."
+    elif 'connection' in error_lower or 'network' in error_lower:
+        return "Connection issue. Please check your internet and try again."
+    elif 'invalid' in error_lower and 'url' in error_lower:
+        return "One of the media links appears to be broken. Try refreshing your visual content."
+    else:
+        return f"Something went wrong: {error_msg[:100]}. Please try again or contact support."
+
+
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'm4a'}
@@ -6605,11 +6729,11 @@ def render_video():
             
             return jsonify(response_data)
         else:
-            return jsonify({'error': 'Video render failed'}), 500
+            return jsonify({'error': format_user_error('Video render failed')}), 500
             
     except Exception as e:
         print(f"Render error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': format_user_error(str(e))}), 500
 
 
 @app.route('/submit-feedback', methods=['POST'])

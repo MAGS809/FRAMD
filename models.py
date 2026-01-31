@@ -340,3 +340,35 @@ class ThoughtChange(db.Model):
     
     project = db.relationship('Project', backref=db.backref('project_thought_changes', lazy='dynamic'))
     source_content = db.relationship('SourceContent', backref=db.backref('detected_thought_changes', lazy='dynamic'))
+
+
+class VideoHistory(db.Model):
+    """Track generated videos for download history"""
+    __tablename__ = 'video_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    project_name = db.Column(db.String(255), nullable=False)
+    video_path = db.Column(db.String(500), nullable=False)
+    thumbnail_path = db.Column(db.String(500), nullable=True)
+    duration_seconds = db.Column(db.Float, nullable=True)
+    format = db.Column(db.String(20), default='9:16')
+    file_size_bytes = db.Column(db.Integer, nullable=True)
+    captions_data = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('video_history', lazy='dynamic'))
+    project = db.relationship('Project', backref=db.backref('video_history', lazy='dynamic'))
+
+
+class EmailNotification(db.Model):
+    """Track email notification preferences and history"""
+    __tablename__ = 'email_notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    notification_type = db.Column(db.String(50), nullable=False)
+    enabled = db.Column(db.Boolean, default=True)
+    last_sent = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('email_notifications', lazy='dynamic'))
