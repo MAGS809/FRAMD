@@ -7498,7 +7498,11 @@
             if (!anchor) return;
             
             const input = document.getElementById(`scene-direction-${sceneIndex}`);
-            if (input) input.value = 'Generating...';
+            if (input) input.value = 'Analyzing...';
+            
+            // Get visual description if available
+            const visual = sceneVisuals[sceneIndex];
+            const visualDescription = visual?.alt || visual?.description || '';
             
             try {
                 const response = await fetch('/generate-scene-direction', {
@@ -7506,7 +7510,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         scene_text: anchor.anchor_text || '',
-                        scene_type: anchor.anchor_type || 'SCENE'
+                        scene_type: anchor.anchor_type || 'SCENE',
+                        visual_description: visualDescription
                     })
                 });
                 
@@ -7515,6 +7520,7 @@
                     const direction = data.direction || 'static';
                     sceneDirections[sceneIndex] = direction;
                     if (input) input.value = direction;
+                    showToast(`Direction: ${direction}`);
                 } else {
                     if (input) input.value = 'static';
                     sceneDirections[sceneIndex] = 'static';
@@ -11571,13 +11577,36 @@
             btn.innerHTML = '⏹';
             btn.classList.add('playing');
             
+            // Unique sample text for each voice to showcase its character
+            const voiceSamples = {
+                'Adam': "The facts speak for themselves. Let me walk you through what really happened.",
+                'Antoni': "Here's what you need to understand about this situation.",
+                'Arnold': "Listen closely. This is important.",
+                'Bella': "I want to share something with you that changed my perspective.",
+                'Domi': "You won't believe what I discovered. It's absolutely fascinating!",
+                'Elli': "Let me tell you a story that might surprise you.",
+                'Josh': "So here's the thing nobody's talking about.",
+                'Rachel': "The evidence points to one clear conclusion.",
+                'Sam': "Breaking this down step by step, the answer becomes obvious.",
+                'The Analyst': "Looking at the data, we can draw several conclusions.",
+                'The Narrator': "In a world of noise, clarity cuts through.",
+                'The Storyteller': "Once upon a time, there was an idea that changed everything.",
+                'The Teacher': "Let me explain this in a way that makes sense.",
+                'The Critic': "Here's where most people get it wrong.",
+                'The Advocate': "We need to talk about what really matters here.",
+                'The Philosopher': "Consider for a moment what this truly means.",
+                'The Journalist': "The story behind this is more complex than you think."
+            };
+            
+            const sampleText = voiceSamples[voiceName] || `This is ${voiceName}. Clear, confident, ready to tell your story.`;
+            
             try {
                 const response = await fetch('/preview-voice', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         voice_name: voiceName,
-                        text: 'This is how I sound. Clear, confident, and ready to tell your story.'
+                        text: sampleText
                     })
                 });
                 
@@ -11674,9 +11703,110 @@
             }
         }
         
-        // Confirm voice casting and proceed to render
+        // Confirm voice casting and show caption options
         function confirmVoiceCasting() {
-            addMessage('Voices confirmed! Starting render...', true);
+            addMessage('Voices confirmed! Now customize your captions:', true);
+            showCaptionOptionsCard();
+        }
+        
+        // Show caption options inline before rendering
+        function showCaptionOptionsCard() {
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'message ai';
+            cardDiv.innerHTML = `
+                <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Caption Settings</div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">Caption Position</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="setCaptionPosition('top', this)" class="btn btn-secondary caption-pos-btn" style="flex: 1; font-size: 12px; padding: 8px;">Top</button>
+                            <button onclick="setCaptionPosition('center', this)" class="btn btn-secondary caption-pos-btn active" style="flex: 1; font-size: 12px; padding: 8px; background: var(--gold); color: #000;">Center</button>
+                            <button onclick="setCaptionPosition('bottom', this)" class="btn btn-secondary caption-pos-btn" style="flex: 1; font-size: 12px; padding: 8px;">Bottom</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">Animation Style</label>
+                        <select id="inline-caption-animation" onchange="setCaptionAnimation(this.value)" style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px;">
+                            <option value="highlight" selected>Word Highlight</option>
+                            <option value="fade">Fade In</option>
+                            <option value="bounce">Bounce</option>
+                            <option value="typewriter">Typewriter</option>
+                            <option value="none">No Animation</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">Font Style</label>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                            <button onclick="setCaptionFontInline('Bebas Neue', this)" class="btn btn-secondary font-btn active" style="font-family: 'Bebas Neue'; font-size: 14px; padding: 8px; background: var(--gold); color: #000;">BEBAS</button>
+                            <button onclick="setCaptionFontInline('Montserrat', this)" class="btn btn-secondary font-btn" style="font-family: 'Montserrat'; font-size: 11px; font-weight: 900; padding: 8px;">MONTSERRAT</button>
+                            <button onclick="setCaptionFontInline('Anton', this)" class="btn btn-secondary font-btn" style="font-family: 'Anton'; font-size: 14px; padding: 8px;">ANTON</button>
+                            <button onclick="setCaptionFontInline('Oswald', this)" class="btn btn-secondary font-btn" style="font-family: 'Oswald'; font-size: 12px; font-weight: 700; padding: 8px;">OSWALD</button>
+                            <button onclick="setCaptionFontInline('Poppins', this)" class="btn btn-secondary font-btn" style="font-family: 'Poppins'; font-size: 11px; font-weight: 800; padding: 8px;">POPPINS</button>
+                            <button onclick="setCaptionFontInline('Bangers', this)" class="btn btn-secondary font-btn" style="font-family: 'Bangers'; font-size: 14px; padding: 8px;">BANGERS</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px;">Highlight Color</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="setHighlightColor('#FFD60A', this)" class="btn color-btn active" style="width: 32px; height: 32px; border-radius: 50%; background: #FFD60A; border: 2px solid #FFD60A;"></button>
+                            <button onclick="setHighlightColor('#FF6B6B', this)" class="btn color-btn" style="width: 32px; height: 32px; border-radius: 50%; background: #FF6B6B; border: 2px solid transparent;"></button>
+                            <button onclick="setHighlightColor('#4ECDC4', this)" class="btn color-btn" style="width: 32px; height: 32px; border-radius: 50%; background: #4ECDC4; border: 2px solid transparent;"></button>
+                            <button onclick="setHighlightColor('#A855F7', this)" class="btn color-btn" style="width: 32px; height: 32px; border-radius: 50%; background: #A855F7; border: 2px solid transparent;"></button>
+                            <button onclick="setHighlightColor('#FFFFFF', this)" class="btn color-btn" style="width: 32px; height: 32px; border-radius: 50%; background: #FFFFFF; border: 2px solid transparent;"></button>
+                        </div>
+                    </div>
+                    
+                    <button onclick="confirmCaptionsAndRender()" class="btn btn-primary" style="width: 100%; margin-top: 8px; font-size: 14px; padding: 12px;">Confirm & Render Video</button>
+                </div>
+            `;
+            messagesDiv.appendChild(cardDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Caption option setters for inline card
+        function setCaptionPosition(position, btn) {
+            selectedCaptionPosition = position;
+            document.querySelectorAll('.caption-pos-btn').forEach(b => {
+                b.style.background = '';
+                b.style.color = '';
+            });
+            btn.style.background = 'var(--gold)';
+            btn.style.color = '#000';
+        }
+        
+        function setCaptionAnimation(animation) {
+            selectedCaptionAnimation = animation;
+        }
+        
+        function setCaptionFontInline(font, btn) {
+            selectedCaptionFont = `'${font}', sans-serif`;
+            document.querySelectorAll('.font-btn').forEach(b => {
+                b.style.background = '';
+                b.style.color = '';
+                b.classList.remove('active');
+            });
+            btn.style.background = 'var(--gold)';
+            btn.style.color = '#000';
+            btn.classList.add('active');
+        }
+        
+        function setHighlightColor(color, btn) {
+            selectedHighlightColor = color;
+            document.querySelectorAll('.color-btn').forEach(b => {
+                b.style.borderColor = 'transparent';
+            });
+            btn.style.borderColor = color;
+        }
+        
+        function confirmCaptionsAndRender() {
+            addMessage('Captions configured! Rendering your video...', true);
             proceedToRender();
         }
         

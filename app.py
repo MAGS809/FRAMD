@@ -4526,13 +4526,41 @@ def preview_voice():
         'Sam': 'yoZ06aMxZJJ28mfd3POQ'
     }
     
+    # OpenAI voice mapping - each voice gets a distinct sound
+    # OpenAI voices: alloy, echo, fable, onyx, nova, shimmer
+    openai_voice_map = {
+        # Male voices
+        'Adam': 'onyx',       # Deep, authoritative
+        'Antoni': 'echo',     # Clear, neutral
+        'Arnold': 'onyx',     # Strong, deep
+        'Josh': 'fable',      # Warm, expressive
+        'Sam': 'echo',        # Neutral, professional
+        # Female voices
+        'Bella': 'nova',      # Warm, friendly
+        'Domi': 'shimmer',    # Expressive, dynamic
+        'Elli': 'shimmer',    # Soft, gentle
+        'Rachel': 'nova',     # Clear, professional
+        # Persona-based voices
+        'The Analyst': 'echo',
+        'The Narrator': 'onyx',
+        'The Storyteller': 'fable',
+        'The Teacher': 'nova',
+        'The Critic': 'echo',
+        'The Advocate': 'fable',
+        'The Philosopher': 'onyx',
+        'The Journalist': 'alloy',
+    }
+    
     # Use direct mapping if voice name matches, otherwise use get_voice_config
     if voice in elevenlabs_voice_map:
         elevenlabs_voice_id = elevenlabs_voice_map[voice]
-        base_voice = 'alloy'  # Fallback for OpenAI
+        base_voice = openai_voice_map.get(voice, 'alloy')
     else:
         # Get voice config for persona-based voices
         base_voice, elevenlabs_voice_id, system_prompt = get_voice_config(voice)
+        # Override with OpenAI mapping if available
+        if voice in openai_voice_map:
+            base_voice = openai_voice_map[voice]
     
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     
