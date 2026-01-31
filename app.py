@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory, session, url_for
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, url_for, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.utils import secure_filename
@@ -4316,20 +4316,39 @@ def generate_voiceover():
 def preview_voice():
     """Generate a short voice preview sample using ElevenLabs (primary) or OpenAI (fallback)."""
     import uuid
+    from io import BytesIO
     
     data = request.get_json()
     text = data.get('text', '')
-    voice = data.get('voice', 'alloy')
+    voice = data.get('voice', data.get('voice_name', 'alloy'))
     
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
-    # Get voice config
-    base_voice, elevenlabs_voice_id, system_prompt = get_voice_config(voice)
+    # Direct ElevenLabs voice ID mapping for common voices
+    elevenlabs_voice_map = {
+        'Adam': 'pNInz6obpgDQGcFmaJgB',
+        'Antoni': 'ErXwobaYiN019PkySvjV',
+        'Arnold': 'VR6AewLTigWG4xSOukaG',
+        'Bella': 'EXAVITQu4vr4xnSDxMaL',
+        'Domi': 'AZnzlk1XvdvUeBnXmlld',
+        'Elli': 'MF3mGyEYCl7XYWbV9V6O',
+        'Josh': 'TxGEqnHWrfWFTfGW9XjX',
+        'Rachel': '21m00Tcm4TlvDq8ikWAM',
+        'Sam': 'yoZ06aMxZJJ28mfd3POQ'
+    }
+    
+    # Use direct mapping if voice name matches, otherwise use get_voice_config
+    if voice in elevenlabs_voice_map:
+        elevenlabs_voice_id = elevenlabs_voice_map[voice]
+        base_voice = 'alloy'  # Fallback for OpenAI
+    else:
+        # Get voice config for persona-based voices
+        base_voice, elevenlabs_voice_id, system_prompt = get_voice_config(voice)
     
     elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
     
-    # Try ElevenLabs first
+    # Try ElevenLabs first - return audio directly as stream
     if elevenlabs_key:
         try:
             from elevenlabs.client import ElevenLabs
@@ -4349,30 +4368,27 @@ def preview_voice():
                 }
             )
             
-            filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
-            filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+            # Collect audio bytes for direct streaming
+            audio_buffer = BytesIO()
+            for chunk in audio:
+                if isinstance(chunk, bytes):
+                    audio_buffer.write(chunk)
             
-            audio_written = False
-            with open(filepath, 'wb') as f:
-                for chunk in audio:
-                    if isinstance(chunk, bytes):
-                        f.write(chunk)
-                        audio_written = True
+            audio_buffer.seek(0)
             
-            # Verify file was written and has content
-            if audio_written and os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                return jsonify({
-                    'success': True,
-                    'audio_url': f'/output/{filename}',
-                    'engine': 'elevenlabs'
-                })
+            if audio_buffer.getbuffer().nbytes > 0:
+                return Response(
+                    audio_buffer.getvalue(),
+                    mimetype='audio/mpeg',
+                    headers={'Content-Type': 'audio/mpeg'}
+                )
             else:
                 print("ElevenLabs preview produced empty audio, falling back to OpenAI")
                 
         except Exception as e:
             print(f"ElevenLabs preview error, falling back to OpenAI: {e}")
     
-    # Fallback to OpenAI
+    # Fallback to OpenAI - also return audio directly
     try:
         from openai import OpenAI
         
@@ -4385,14 +4401,17 @@ def preview_voice():
             speed=1.25
         )
         
-        filename = f"preview_{voice}_{uuid.uuid4().hex[:6]}.mp3"
-        filepath = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-        response.stream_to_file(filepath)
+        # Stream response directly
+        audio_buffer = BytesIO()
+        for chunk in response.iter_bytes():
+            audio_buffer.write(chunk)
         
-        return jsonify({
-            'success': True,
-            'audio_url': f'/output/{filename}'
-        })
+        audio_buffer.seek(0)
+        return Response(
+            audio_buffer.getvalue(),
+            mimetype='audio/mpeg',
+            headers={'Content-Type': 'audio/mpeg'}
+        )
             
     except Exception as e:
         return jsonify({'error': str(e)}), 500

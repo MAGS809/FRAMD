@@ -8236,10 +8236,7 @@
                         docHasScript = true;
                         displayScriptInEditor(result.script.full_script);
                         updateTimelineControls(true);
-                        showAIFeedback('Script ready! Edit it directly above, or continue to the next step.', [
-                            { type: 'cast_voices', label: 'Assign Voices' },
-                            { type: 'find_visuals', label: 'Find Visuals' }
-                        ]);
+                        // Script card inline now handles the flow - no showAIFeedback actions needed
                         
                         const contentTypeLabel = result.content_type ? `<span class="content-type-badge ${result.content_type}">${result.content_type}</span> ` : '';
                         const learnNote = result.learned_patterns_applied ? 
@@ -11090,10 +11087,7 @@
                             docHasScript = true;
                             displayScriptInEditor(data.refined_script || reply);
                             updateTimelineControls(true);
-                            showAIFeedback('Script ready! Edit it directly above, or continue to the next step.', [
-                                { type: 'cast_voices', label: 'Assign Voices' },
-                                { type: 'find_visuals', label: 'Find Visuals' }
-                            ]);
+                            // Script card inline now handles the flow - no showAIFeedback actions needed
                             
                             // Show confirmation via chat (not modal)
                             showReviewConfirmation();
@@ -11164,7 +11158,7 @@
             }
         }
         
-        // Render script card inline in chat messages
+        // Render script card inline in chat messages (edit-first flow)
         function renderScriptCardInChat(scriptText) {
             if (!scriptText) return;
             
@@ -11196,17 +11190,31 @@
                         </div>
                     </div>
                     <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; font-style: italic;">"${escapeHtml(hook)}${hook.length >= 120 ? '...' : ''}"</div>
-                    <div class="script-preview" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 12px;">${escapeHtml(scriptText)}</div>
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <div class="script-preview" id="script-preview-text" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 12px;">${escapeHtml(scriptText)}</div>
+                    <div class="script-card-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
                         <button class="btn btn-secondary" onclick="editScriptInline(this)" style="font-size: 12px; padding: 8px 16px;">Edit Script</button>
-                        <button class="btn btn-primary" onclick="proceedToVisuals()" style="font-size: 12px; padding: 8px 16px;">Pick Visuals</button>
-                        <button class="btn btn-secondary" onclick="proceedToVoices()" style="font-size: 12px; padding: 8px 16px;">Cast Voices</button>
+                        <button class="btn btn-primary" onclick="confirmScriptAndProceed()" style="font-size: 12px; padding: 8px 16px;">Confirm & Continue</button>
                     </div>
                 </div>
             `;
             
             messagesDiv.appendChild(cardDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Confirm script and proceed to visuals
+        function confirmScriptAndProceed() {
+            addMessage('Script confirmed! Now let\'s find visuals for each scene.', false);
+            currentWorkflowStep = 3;
+            
+            // Remove the buttons from the script card
+            const buttons = document.querySelector('.script-card-buttons');
+            if (buttons) {
+                buttons.innerHTML = '<span style="color: var(--gold); font-size: 12px;">✓ Script confirmed</span>';
+            }
+            
+            // Proceed to visuals
+            setTimeout(() => proceedToVisuals(), 300);
         }
         
         // Edit script inline
@@ -11338,6 +11346,78 @@
             }
         }
         
+        // Voice preview audio element
+        let voicePreviewAudio = null;
+        let currentlyPreviewingVoice = null;
+        
+        // ElevenLabs voice IDs (common voices)
+        const elevenLabsVoices = {
+            'Adam': { id: 'pNInz6obpgDQGcFmaJgB', gender: 'male', description: 'Deep, authoritative' },
+            'Antoni': { id: 'ErXwobaYiN019PkySvjV', gender: 'male', description: 'Warm, conversational' },
+            'Arnold': { id: 'VR6AewLTigWG4xSOukaG', gender: 'male', description: 'Strong, confident' },
+            'Bella': { id: 'EXAVITQu4vr4xnSDxMaL', gender: 'female', description: 'Soft, expressive' },
+            'Domi': { id: 'AZnzlk1XvdvUeBnXmlld', gender: 'female', description: 'Strong, clear' },
+            'Elli': { id: 'MF3mGyEYCl7XYWbV9V6O', gender: 'female', description: 'Emotional, young' },
+            'Josh': { id: 'TxGEqnHWrfWFTfGW9XjX', gender: 'male', description: 'Deep, dramatic' },
+            'Rachel': { id: '21m00Tcm4TlvDq8ikWAM', gender: 'female', description: 'Calm, professional' },
+            'Sam': { id: 'yoZ06aMxZJJ28mfd3POQ', gender: 'male', description: 'Energetic, youthful' }
+        };
+        
+        // Preview voice sample
+        async function previewVoiceSample(voiceName, btn) {
+            // Stop any currently playing preview
+            if (voicePreviewAudio) {
+                voicePreviewAudio.pause();
+                voicePreviewAudio = null;
+            }
+            
+            // Reset all preview buttons
+            document.querySelectorAll('.voice-preview-btn').forEach(b => {
+                b.innerHTML = '▶';
+                b.classList.remove('playing');
+            });
+            
+            // If clicking same voice, just stop
+            if (currentlyPreviewingVoice === voiceName) {
+                currentlyPreviewingVoice = null;
+                return;
+            }
+            
+            currentlyPreviewingVoice = voiceName;
+            btn.innerHTML = '⏹';
+            btn.classList.add('playing');
+            
+            try {
+                const response = await fetch('/preview-voice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        voice_name: voiceName,
+                        text: 'This is how I sound. Clear, confident, and ready to tell your story.'
+                    })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    voicePreviewAudio = new Audio(url);
+                    voicePreviewAudio.onended = () => {
+                        btn.innerHTML = '▶';
+                        btn.classList.remove('playing');
+                        currentlyPreviewingVoice = null;
+                    };
+                    voicePreviewAudio.play();
+                } else {
+                    btn.innerHTML = '▶';
+                    currentlyPreviewingVoice = null;
+                }
+            } catch (err) {
+                console.error('Voice preview error:', err);
+                btn.innerHTML = '▶';
+                currentlyPreviewingVoice = null;
+            }
+        }
+        
         // Show voice picker UI inline in chat
         function showVoicePickerUI() {
             currentWorkflowStep = 5;
@@ -11357,18 +11437,35 @@
                 characters.push('Narrator');
             }
             
-            // Build voice picker card
-            const voices = ['Adam', 'Antoni', 'Arnold', 'Bella', 'Domi', 'Elli', 'Josh', 'Rachel', 'Sam'];
+            // Build voice picker card with previews
+            const voiceNames = Object.keys(elevenLabsVoices);
             
             let html = `<div class="voice-picker-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">`;
-            html += `<div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Cast Your Voices</div>`;
+            html += `<div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 16px;">Cast Your Voices</div>`;
             
+            // Voice preview section
+            html += `<div style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">`;
+            html += `<div style="font-size: 12px; color: var(--text-dim); margin-bottom: 10px;">Preview voices:</div>`;
+            html += `<div style="display: flex; flex-wrap: wrap; gap: 8px;">`;
+            for (const voice of voiceNames) {
+                const info = elevenLabsVoices[voice];
+                const genderIcon = info.gender === 'male' ? '♂' : '♀';
+                html += `<div style="display: flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); padding: 6px 10px; border-radius: 6px; font-size: 12px;">`;
+                html += `<button class="voice-preview-btn" onclick="previewVoiceSample('${voice}', this)" style="background: none; border: none; color: var(--gold); cursor: pointer; padding: 0; font-size: 14px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">▶</button>`;
+                html += `<span style="color: var(--text);">${voice}</span>`;
+                html += `<span style="color: var(--text-dim); font-size: 10px;">${genderIcon}</span>`;
+                html += `</div>`;
+            }
+            html += `</div></div>`;
+            
+            // Character assignment section
             for (const char of characters) {
                 html += `<div style="margin-bottom: 12px;">`;
                 html += `<label style="display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px;">${char}</label>`;
                 html += `<select onchange="updateCharacterVoice('${char}', this.value)" style="width: 100%; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">`;
-                for (const voice of voices) {
-                    html += `<option value="${voice}">${voice}</option>`;
+                for (const voice of voiceNames) {
+                    const info = elevenLabsVoices[voice];
+                    html += `<option value="${voice}">${voice} - ${info.description}</option>`;
                 }
                 html += `</select>`;
                 html += `</div>`;
@@ -11389,7 +11486,7 @@
             // Initialize voice assignments
             currentVoiceAssignments = {};
             for (const char of characters) {
-                currentVoiceAssignments[char] = voices[0];
+                currentVoiceAssignments[char] = voiceNames[0];
             }
         }
         
@@ -11399,11 +11496,46 @@
             proceedToRender();
         }
         
+        // Build scenes array from sceneVisuals and anchors
+        function buildScenesForRender() {
+            const scenes = [];
+            const anchors = currentAnchors || (currentScript?.anchors || []);
+            
+            for (let i = 0; i < anchors.length; i++) {
+                const anchor = anchors[i];
+                const visual = sceneVisuals[i] || {};
+                
+                scenes.push({
+                    index: i,
+                    text: anchor.text || anchor.content || '',
+                    type: anchor.type || 'CLAIM',
+                    character: anchor.character || 'Narrator',
+                    visual_url: visual.url || visual.popupUrl || null,
+                    motion: visual.motion || 'static',
+                    duration: anchor.duration || 5
+                });
+            }
+            
+            return scenes;
+        }
+        
         // Proceed to render
         async function proceedToRender() {
             currentWorkflowStep = 6;
             addTypingIndicator();
             addMessage('Rendering your video...');
+            
+            // Build scenes from visuals and anchors
+            const scenes = buildScenesForRender();
+            
+            if (scenes.length === 0) {
+                removeTypingIndicator();
+                addMessage('No scenes to render. Please go back and configure visuals first.');
+                return;
+            }
+            
+            // Build script text for captions
+            const scriptText = scenes.map(s => s.text).join('\n');
             
             try {
                 const response = await fetch('/render-video', {
@@ -11411,9 +11543,11 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         project_id: currentProjectId,
-                        script: currentScript,
+                        scenes: scenes,
+                        script: scriptText,
                         voice_assignments: currentVoiceAssignments || {},
-                        format: '9:16'
+                        format: '9:16',
+                        captions: { enabled: true }
                     })
                 });
                 
