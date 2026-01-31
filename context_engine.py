@@ -1787,6 +1787,30 @@ def get_source_learning_context(user_id: str) -> str:
         return ""
 
 
+def get_global_patterns_context() -> str:
+    """
+    Get global learned patterns that benefit ALL users.
+    These patterns are learned from the collective success of all content.
+    """
+    from app import db
+    
+    try:
+        patterns = get_global_learned_patterns(db.session)
+        
+        if not patterns:
+            return ""
+        
+        pattern_lines = []
+        for p in patterns[:5]:
+            pattern_lines.append(f"- {p['type'].upper()}: {p['description']} (success: {p['success_rate']:.0%})")
+        
+        return "## GLOBALLY LEARNED PATTERNS (from all successful content):\n" + "\n".join(pattern_lines)
+    
+    except Exception as e:
+        print(f"Error fetching global patterns: {e}")
+        return ""
+
+
 def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", has_media: bool = False, clarification_count: int = 0, force_generate: bool = False) -> dict:
     """
     Unified engine that handles content creation with optional media integration.
@@ -1846,7 +1870,15 @@ Output JSON: {{"mode": "greeting/create"}}"""
     
     user_context = get_user_context(user_id)
     source_learning = get_source_learning_context(user_id)
-    full_context = f"{user_context}\n\n{source_learning}" if source_learning else user_context
+    global_patterns = get_global_patterns_context()
+    
+    # Build full context with user-specific AND global learnings
+    context_parts = [user_context]
+    if source_learning:
+        context_parts.append(source_learning)
+    if global_patterns:
+        context_parts.append(global_patterns)
+    full_context = "\n\n".join(context_parts)
     
     if mode == "greeting":
         return {
@@ -2035,6 +2067,137 @@ IMPORTANT: Generate BOTH thesis AND script. Do NOT ask for clarification."""
         "content_type": visual_plan.get("classification", {}).get("content_type", "informative"),
         "visual_plan": visual_plan
     }
+
+
+def analyze_editing_patterns_global(video_data: dict, clips_data: list = None) -> dict:
+    """
+    Analyze editing patterns from video content for global AI learning.
+    Called when videos are processed or clips are uploaded.
+    Returns patterns that should be stored globally.
+    """
+    transcript = video_data.get('transcript', '')
+    recommended_clips = clips_data or video_data.get('recommended_clips', [])
+    
+    if not transcript and not recommended_clips:
+        return {'patterns': [], 'success': False}
+    
+    prompt = f"""Analyze this video content for GLOBAL editing patterns that can help improve future content for ALL users.
+
+TRANSCRIPT (if any):
+{transcript[:4000]}
+
+CLIPS/SEGMENTS (if any):
+{json.dumps(recommended_clips[:10], indent=2) if recommended_clips else 'None'}
+
+Extract UNIVERSAL editing patterns that work well:
+
+1. PACING PATTERNS: Cut timing, segment lengths, rhythm
+2. TRANSITION PATTERNS: How segments flow together
+3. HOOK PATTERNS: Opening techniques that grab attention
+4. STRUCTURE PATTERNS: How content is organized
+5. EMOTIONAL BEATS: Where intensity rises/falls
+
+Output JSON:
+{{
+    "editing_patterns": [
+        {{
+            "pattern_type": "pacing|transition|hook|structure|emotional",
+            "description": "What the pattern is",
+            "example": "Brief example from content",
+            "strength": 0.0-1.0
+        }}
+    ],
+    "avg_segment_duration": 3.5,
+    "total_segments": 6,
+    "dominant_style": "fast_cuts|moderate|slow_build",
+    "key_insight": "One-sentence summary of what makes this content work"
+}}
+
+IMPORTANT: Respond with valid JSON only."""
+
+    try:
+        response = call_ai(prompt, max_tokens=800)
+        result = json.loads(response)
+        return {'patterns': result.get('editing_patterns', []), 'success': True, 'analysis': result}
+    except Exception as e:
+        print(f"[Global Learning] Error analyzing patterns: {e}")
+        return {'patterns': [], 'success': False, 'error': str(e)}
+
+
+def store_global_patterns(patterns: list, db_session=None):
+    """
+    Store analyzed patterns in the GlobalPattern table for all users to benefit.
+    Should be called with a database session.
+    """
+    if not patterns or not db_session:
+        return False
+    
+    try:
+        from models import GlobalPattern
+        
+        for pattern in patterns:
+            pattern_type = f"editing_{pattern.get('pattern_type', 'general')}"
+            pattern_data = {
+                'description': pattern.get('description', ''),
+                'example': pattern.get('example', ''),
+                'strength': pattern.get('strength', 0.5)
+            }
+            
+            existing = db_session.query(GlobalPattern).filter_by(
+                pattern_type=pattern_type
+            ).first()
+            
+            if existing:
+                existing.usage_count += 1
+                if pattern.get('strength', 0.5) > 0.7:
+                    existing.success_count += 1
+                existing.success_rate = existing.success_count / max(existing.usage_count, 1)
+                if pattern.get('strength', 0.5) > existing.pattern_data.get('strength', 0):
+                    existing.pattern_data = pattern_data
+            else:
+                new_pattern = GlobalPattern(
+                    pattern_type=pattern_type,
+                    pattern_data=pattern_data,
+                    success_count=1 if pattern.get('strength', 0.5) > 0.7 else 0,
+                    usage_count=1,
+                    success_rate=1.0 if pattern.get('strength', 0.5) > 0.7 else 0.0
+                )
+                db_session.add(new_pattern)
+        
+        db_session.commit()
+        print(f"[Global Learning] Stored {len(patterns)} patterns")
+        return True
+    except Exception as e:
+        print(f"[Global Learning] Error storing patterns: {e}")
+        return False
+
+
+def get_global_learned_patterns(db_session=None) -> list:
+    """
+    Retrieve top-performing global patterns to inject into AI prompts.
+    Returns patterns that have proven successful across all users.
+    """
+    if not db_session:
+        return []
+    
+    try:
+        from models import GlobalPattern
+        
+        top_patterns = db_session.query(GlobalPattern).filter(
+            GlobalPattern.pattern_type.like('editing_%'),
+            GlobalPattern.success_rate > 0.5,
+            GlobalPattern.usage_count >= 3
+        ).order_by(GlobalPattern.success_rate.desc()).limit(10).all()
+        
+        return [{
+            'type': p.pattern_type.replace('editing_', ''),
+            'description': p.pattern_data.get('description', ''),
+            'example': p.pattern_data.get('example', ''),
+            'success_rate': p.success_rate
+        } for p in top_patterns]
+    except Exception as e:
+        print(f"[Global Learning] Error retrieving patterns: {e}")
+        return []
 
 
 if __name__ == "__main__":

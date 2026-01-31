@@ -6952,6 +6952,7 @@
         let currentThoughtChanges = [];
         let clipSuggestions = [];
         let learnedPatternsApplied = false;
+        let sceneDirections = {}; // Store scene directions by index
         
         // Document Editor State
         let docEditTimeout = null;
@@ -7442,6 +7443,30 @@
                         </div>
                     </div>
                     
+                    <!-- Scene Directions (editable) -->
+                    <div style="padding: 0 16px 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 13px; color: var(--text-dim);">Scene Direction:</span>
+                            <button class="btn btn-secondary" onclick="generateSceneDirection(${sceneIndex})" style="font-size: 11px; padding: 4px 8px; min-width: auto;">
+                                AI Suggest
+                            </button>
+                        </div>
+                        <input type="text" 
+                            id="scene-direction-${sceneIndex}" 
+                            class="scene-direction-input"
+                            placeholder="e.g. slow zoom, pan left, hold static..."
+                            value="${sceneDirections[sceneIndex] || ''}"
+                            onchange="updateSceneDirection(${sceneIndex}, this.value)"
+                            style="width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 13px;">
+                        <div style="font-size: 11px; color: var(--text-dim); margin-top: 6px;">
+                            Directions: <code style="background: rgba(255,214,10,0.1); padding: 2px 4px; border-radius: 3px;">zoom in</code>, 
+                            <code style="background: rgba(255,214,10,0.1); padding: 2px 4px; border-radius: 3px;">pan left</code>, 
+                            <code style="background: rgba(255,214,10,0.1); padding: 2px 4px; border-radius: 3px;">pan right</code>, 
+                            <code style="background: rgba(255,214,10,0.1); padding: 2px 4px; border-radius: 3px;">zoom out</code>, 
+                            <code style="background: rgba(255,214,10,0.1); padding: 2px 4px; border-radius: 3px;">static</code>
+                        </div>
+                    </div>
+                    
                     <!-- Navigation buttons -->
                     <div style="display: flex; gap: 12px; padding: 16px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2);">
                         <button class="btn btn-secondary" onclick="navigateVisualScene(${sceneIndex - 1})" style="flex: 1; ${sceneIndex === 0 ? 'opacity: 0.5; pointer-events: none;' : ''}">
@@ -7457,6 +7482,46 @@
             // Auto-load visuals and popups immediately
             loadSceneVisualsAuto(sceneIndex);
             loadPopupVisuals(sceneIndex);
+        }
+        
+        // Update scene direction from user input
+        function updateSceneDirection(sceneIndex, value) {
+            sceneDirections[sceneIndex] = value;
+            console.log(`Scene ${sceneIndex} direction updated:`, value);
+        }
+        
+        // Generate AI suggestion for scene direction
+        async function generateSceneDirection(sceneIndex) {
+            const anchor = currentAnchors[sceneIndex];
+            if (!anchor) return;
+            
+            const input = document.getElementById(`scene-direction-${sceneIndex}`);
+            if (input) input.value = 'Generating...';
+            
+            try {
+                const response = await fetch('/generate-scene-direction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_text: anchor.anchor_text || '',
+                        scene_type: anchor.anchor_type || 'SCENE'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const direction = data.direction || 'static';
+                    sceneDirections[sceneIndex] = direction;
+                    if (input) input.value = direction;
+                } else {
+                    if (input) input.value = 'static';
+                    sceneDirections[sceneIndex] = 'static';
+                }
+            } catch (err) {
+                console.error('Error generating scene direction:', err);
+                if (input) input.value = 'static';
+                sceneDirections[sceneIndex] = 'static';
+            }
         }
         
         // Load popup visuals for a scene
@@ -11621,6 +11686,7 @@
             for (let i = 0; i < anchors.length; i++) {
                 const anchor = anchors[i];
                 const visual = sceneVisuals[i] || {};
+                const direction = sceneDirections[i] || 'static';
                 
                 scenes.push({
                     index: i,
@@ -11628,6 +11694,9 @@
                     type: anchor.type || 'CLAIM',
                     character: anchor.character || 'Narrator',
                     visual_url: visual.url || visual.popupUrl || null,
+                    image_url: visual.url || visual.thumbnail || visual.popupUrl || null,
+                    thumbnail: visual.thumbnail || visual.url || null,
+                    direction: direction,
                     motion: visual.motion || 'static',
                     duration: anchor.duration || 5
                 });

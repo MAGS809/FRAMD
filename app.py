@@ -22,7 +22,8 @@ from context_engine import (
     extract_thesis, identify_anchors, detect_thought_changes,
     generate_thesis_driven_script, process_source_for_clipping,
     learn_from_source_content, unified_content_engine,
-    call_ai, SYSTEM_GUARDRAILS
+    call_ai, SYSTEM_GUARDRAILS,
+    analyze_editing_patterns_global, store_global_patterns, get_global_learned_patterns
 )
 
 logging.basicConfig(level=logging.DEBUG)
@@ -3382,6 +3383,43 @@ def get_scene_visuals_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/generate-scene-direction', methods=['POST'])
+def generate_scene_direction():
+    """Generate AI suggestion for scene camera direction based on content."""
+    data = request.get_json()
+    scene_text = data.get('scene_text', '')
+    scene_type = data.get('scene_type', 'SCENE')
+    
+    if not scene_text:
+        return jsonify({'direction': 'static'})
+    
+    # Map scene types to default directions
+    type_defaults = {
+        'HOOK': 'zoom in slowly',
+        'CLAIM': 'static',
+        'EVIDENCE': 'pan left',
+        'PIVOT': 'zoom out',
+        'COUNTER': 'pan right',
+        'CLOSER': 'zoom in slowly'
+    }
+    
+    # Simple heuristics for direction based on content
+    text_lower = scene_text.lower()
+    
+    if any(word in text_lower for word in ['reveal', 'but', 'however', 'actually']):
+        direction = 'zoom in slowly'
+    elif any(word in text_lower for word in ['look at', 'consider', 'across', 'span']):
+        direction = 'pan left'
+    elif any(word in text_lower for word in ['return', 'back to', 'meanwhile']):
+        direction = 'pan right'
+    elif any(word in text_lower for word in ['big picture', 'overall', 'in the end']):
+        direction = 'zoom out'
+    else:
+        direction = type_defaults.get(scene_type.upper(), 'static')
+    
+    return jsonify({'direction': direction})
+
+
 @app.route('/find-clips', methods=['POST'])
 def find_clips():
     data = request.get_json()
@@ -5381,6 +5419,18 @@ def clip_source():
         if result.get('status') == 'ready':
             learnings = learn_from_source_content(transcript, result.get('recommended_clips', []))
             
+            # Global AI learning - analyze and store patterns for all users
+            try:
+                global_analysis = analyze_editing_patterns_global(
+                    {'transcript': transcript},
+                    result.get('recommended_clips', [])
+                )
+                if global_analysis.get('success') and global_analysis.get('patterns'):
+                    store_global_patterns(global_analysis['patterns'], db.session)
+                    print(f"[Global Learning] Stored {len(global_analysis['patterns'])} patterns from clip source")
+            except Exception as ge:
+                print(f"[Global Learning] Error: {ge}")
+            
             source = SourceContent(
                 user_id=user_id,
                 content_type='transcript',
@@ -5721,7 +5771,8 @@ def render_video():
                 print(f"Could not get audio duration: {e}")
         
         # Calculate clip durations based on audio length
-        num_scenes = len([s for s in scenes if s.get('video_url')])
+        # Count scenes with video OR image URLs
+        num_scenes = len([s for s in scenes if s.get('video_url') or s.get('image_url') or s.get('visual') or s.get('thumbnail')])
         if audio_duration and num_scenes > 0:
             # Distribute clips evenly across audio duration
             base_clip_duration = audio_duration / num_scenes
@@ -5733,47 +5784,129 @@ def render_video():
         from concurrent.futures import ThreadPoolExecutor, as_completed
         
         def download_and_trim_clip(args):
-            """Download and trim a single clip - runs in parallel."""
+            """Download and trim a single clip - runs in parallel. Supports both video and image URLs."""
             i, scene, duration, output_id = args
             video_url = scene.get('video_url', '')
-            if not video_url:
+            image_url = scene.get('image_url', '') or scene.get('visual', '') or scene.get('thumbnail', '')
+            
+            if not video_url and not image_url:
+                print(f"Clip {i}: No video_url or image_url found")
                 return None, i, duration
             
             raw_path = f'output/raw_{output_id}_{i}.mp4'
             clip_path = f'output/clip_{output_id}_{i}.mp4'
             
             try:
-                # Download video clip
-                req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
-                with urllib.request.urlopen(req, timeout=20) as response:
-                    with open(raw_path, 'wb') as f:
-                        f.write(response.read())
-                
-                # Trim clip - no per-clip threading to avoid CPU oversubscription
-                trim_cmd = [
-                    'ffmpeg', '-y',
-                    '-ss', '0',
-                    '-i', os.path.abspath(raw_path),
-                    '-t', str(duration),
-                    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26',
-                    '-an',
-                    os.path.abspath(clip_path)
-                ]
-                result = subprocess.run(trim_cmd, capture_output=True, timeout=45)
-                
-                if result.returncode != 0:
-                    import shutil
-                    shutil.copy(raw_path, clip_path)
-                
-                if os.path.exists(raw_path):
-                    os.remove(raw_path)
+                if video_url:
+                    # Download video clip
+                    req = urllib.request.Request(video_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=20) as response:
+                        with open(raw_path, 'wb') as f:
+                            f.write(response.read())
+                    
+                    # Trim clip
+                    trim_cmd = [
+                        'ffmpeg', '-y',
+                        '-ss', '0',
+                        '-i', os.path.abspath(raw_path),
+                        '-t', str(duration),
+                        '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '26',
+                        '-an',
+                        os.path.abspath(clip_path)
+                    ]
+                    result = subprocess.run(trim_cmd, capture_output=True, timeout=45)
+                    
+                    if result.returncode != 0:
+                        import shutil
+                        shutil.copy(raw_path, clip_path)
+                    
+                    if os.path.exists(raw_path):
+                        os.remove(raw_path)
+                else:
+                    # Image URL - convert static image to video clip
+                    img_path = f'output/img_{output_id}_{i}.jpg'
+                    direction = scene.get('direction', 'static')
+                    print(f"Clip {i}: Converting image to video - direction: {direction}")
+                    
+                    # Download image
+                    req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+                    with urllib.request.urlopen(req, timeout=20) as response:
+                        with open(img_path, 'wb') as f:
+                            f.write(response.read())
+                    
+                    # Get target dimensions based on format
+                    format_sizes = {
+                        '9:16': (1080, 1920),
+                        '1:1': (1080, 1080),
+                        '4:5': (1080, 1350),
+                        '16:9': (1920, 1080)
+                    }
+                    target_w, target_h = format_sizes.get(video_format, (1080, 1920))
+                    
+                    # Build video filter based on direction
+                    # Default: static with center crop
+                    base_filter = f'scale={target_w}:{target_h}:force_original_aspect_ratio=decrease,pad={target_w}:{target_h}:(ow-iw)/2:(oh-ih)/2:black'
+                    
+                    # Apply camera movement only if explicitly specified (not 'static')
+                    if direction and direction.lower() not in ['static', '']:
+                        # Scale image larger for movement headroom
+                        if 'zoom in' in direction.lower():
+                            # Zoom in: start at 100%, end at 110%
+                            motion_filter = f'scale={int(target_w*1.2)}:{int(target_h*1.2)}:force_original_aspect_ratio=decrease,zoompan=z=\'min(zoom+0.0015,1.1)\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d={int(duration*30)}:s={target_w}x{target_h}'
+                        elif 'zoom out' in direction.lower():
+                            # Zoom out: start at 110%, end at 100%
+                            motion_filter = f'scale={int(target_w*1.2)}:{int(target_h*1.2)}:force_original_aspect_ratio=decrease,zoompan=z=\'if(lte(zoom,1.0),1.1,max(zoom-0.0015,1.0))\':x=\'iw/2-(iw/zoom/2)\':y=\'ih/2-(ih/zoom/2)\':d={int(duration*30)}:s={target_w}x{target_h}'
+                        elif 'pan left' in direction.lower():
+                            # Pan left: move from right to left
+                            motion_filter = f'scale={int(target_w*1.3)}:-1,crop={target_w}:{target_h}:x=\'(iw-{target_w})*t/{duration}\':y=0'
+                        elif 'pan right' in direction.lower():
+                            # Pan right: move from left to right
+                            motion_filter = f'scale={int(target_w*1.3)}:-1,crop={target_w}:{target_h}:x=\'(iw-{target_w})*(1-t/{duration})\':y=0'
+                        else:
+                            motion_filter = base_filter
+                        vf = motion_filter
+                    else:
+                        vf = base_filter
+                    
+                    # Convert image to video
+                    img_to_vid_cmd = [
+                        'ffmpeg', '-y',
+                        '-loop', '1',
+                        '-i', os.path.abspath(img_path),
+                        '-t', str(duration),
+                        '-vf', vf,
+                        '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+                        '-pix_fmt', 'yuv420p',
+                        '-an',
+                        os.path.abspath(clip_path)
+                    ]
+                    result = subprocess.run(img_to_vid_cmd, capture_output=True, timeout=60)
+                    
+                    if result.returncode != 0:
+                        print(f"Clip {i}: FFmpeg error - {result.stderr.decode()[:200]}")
+                        # Fallback to simple static conversion
+                        fallback_cmd = [
+                            'ffmpeg', '-y', '-loop', '1',
+                            '-i', os.path.abspath(img_path),
+                            '-t', str(duration),
+                            '-vf', base_filter,
+                            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '23',
+                            '-pix_fmt', 'yuv420p', '-an',
+                            os.path.abspath(clip_path)
+                        ]
+                        subprocess.run(fallback_cmd, capture_output=True, timeout=60)
+                    
+                    # Cleanup temp image
+                    if os.path.exists(img_path):
+                        os.remove(img_path)
                 
                 if os.path.exists(clip_path):
+                    print(f"Clip {i}: Success - {duration:.1f}s")
                     return clip_path, i, duration
                 return None, i, duration
             except Exception as e:
                 print(f"Clip {i} error: {e}")
-                for f in [raw_path, clip_path]:
+                for f in [raw_path, clip_path, f'output/img_{output_id}_{i}.jpg']:
                     if os.path.exists(f):
                         os.remove(f)
                 return None, i, duration
