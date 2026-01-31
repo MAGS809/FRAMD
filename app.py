@@ -2826,6 +2826,7 @@ def get_project(project_id):
 def update_project(project_id):
     """Update a project."""
     from models import Project
+    import re
     
     user_id = get_user_id()
     if not user_id:
@@ -2845,6 +2846,19 @@ def update_project(project_id):
         project.status = data['status']
     if 'script' in data:
         project.script = data['script']
+        # Auto-generate title from script if still untitled
+        if project.name in ['Untitled', 'Untitled Project', 'New Project', '']:
+            script_text = data['script']
+            # Try to extract hook (first meaningful line)
+            lines = [l.strip() for l in script_text.split('\n') if l.strip() and not l.strip().startswith('[')]
+            if lines:
+                first_line = lines[0]
+                # Remove character prefixes like "NARRATOR:" or "HOST:"
+                first_line = re.sub(r'^[A-Z]+:\s*', '', first_line)
+                # Truncate to 50 chars max
+                if len(first_line) > 50:
+                    first_line = first_line[:47] + '...'
+                project.name = first_line
     if 'visual_plan' in data:
         project.visual_plan = data['visual_plan']
     if 'voice_assignments' in data:
@@ -2856,7 +2870,7 @@ def update_project(project_id):
     
     db.session.commit()
     
-    return jsonify({'success': True, 'project_id': project.id})
+    return jsonify({'success': True, 'project_id': project.id, 'name': project.name})
 
 
 @app.route('/project/<int:project_id>', methods=['DELETE'])
@@ -2989,6 +3003,76 @@ def get_ai_learning():
         'learned_topics': ai_learning.learned_topics or [],
         'can_auto_generate': ai_learning.can_auto_generate
     })
+
+
+@app.route('/save-caption-preferences', methods=['POST'])
+def save_caption_preferences():
+    """Save user's caption style preferences for AI learning."""
+    from models import AILearning
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json() or {}
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        ai_learning = AILearning(user_id=user_id)
+        db.session.add(ai_learning)
+    
+    # Store caption preferences in learned_styles
+    caption_prefs = {
+        'caption_position': data.get('caption_position', 'bottom'),
+        'caption_offset': data.get('caption_offset', 10),
+        'caption_size': data.get('caption_size', 22),
+        'caption_opacity': data.get('caption_opacity', 80),
+        'caption_color': data.get('caption_color', '#ffffff')
+    }
+    
+    current_styles = ai_learning.learned_styles or []
+    # Update or add caption preferences
+    style_updated = False
+    for i, style in enumerate(current_styles):
+        if isinstance(style, dict) and style.get('type') == 'caption_prefs':
+            current_styles[i] = {'type': 'caption_prefs', **caption_prefs}
+            style_updated = True
+            break
+    
+    if not style_updated:
+        current_styles.append({'type': 'caption_prefs', **caption_prefs})
+    
+    ai_learning.learned_styles = current_styles
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Caption preferences saved'})
+
+
+@app.route('/get-caption-preferences', methods=['GET'])
+def get_caption_preferences():
+    """Get user's saved caption style preferences."""
+    from models import AILearning
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({})
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        return jsonify({})
+    
+    # Find caption preferences in learned_styles
+    for style in (ai_learning.learned_styles or []):
+        if isinstance(style, dict) and style.get('type') == 'caption_prefs':
+            return jsonify({
+                'caption_position': style.get('caption_position', 'bottom'),
+                'caption_offset': style.get('caption_offset', 10),
+                'caption_size': style.get('caption_size', 22),
+                'caption_opacity': style.get('caption_opacity', 80),
+                'caption_color': style.get('caption_color', '#ffffff')
+            })
+    
+    return jsonify({})
 
 
 UPLOAD_FOLDER = 'uploads'
@@ -3580,6 +3664,11 @@ def serve_output(filename):
 @app.route('/uploads/<filename>')
 def serve_uploads(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('static', 'favicon.svg', mimetype='image/svg+xml')
 
 
 @app.route('/refine-script', methods=['POST'])
@@ -7114,16 +7203,10 @@ def generator_settings():
 def generator_confidence():
     """Calculate AI confidence for auto-generation based on liked projects."""
     from models import Project, AILearning, GlobalPattern
-    from flask_login import current_user
     
     UNLOCK_THRESHOLD = 5  # Need 5 liked projects to unlock auto-generation
     
-    user_id = None
-    if current_user.is_authenticated:
-        user_id = current_user.id
-    else:
-        user_id = session.get('dev_user_id')
-    
+    user_id = get_user_id()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
     

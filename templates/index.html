@@ -6107,6 +6107,18 @@
                     <button class="close-dashboard" onclick="toggleDashboard()">&times;</button>
                 </div>
                 
+                <!-- Token Balance Display -->
+                <div class="token-balance-header" style="background: linear-gradient(135deg, rgba(255,214,10,0.15), rgba(255,214,10,0.05)); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Token Balance</div>
+                        <div style="display: flex; align-items: baseline; gap: 8px;">
+                            <span id="dashboard-token-balance" style="font-size: 32px; font-weight: 700; color: var(--gold);">0</span>
+                            <span style="font-size: 13px; color: var(--text-dim);">tokens</span>
+                        </div>
+                    </div>
+                    <a href="/pricing" style="font-size: 12px; color: var(--gold); text-decoration: none; padding: 8px 16px; border: 1px solid var(--gold); border-radius: 20px; transition: all 0.2s;" onmouseover="this.style.background='var(--gold)';this.style.color='var(--bg)'" onmouseout="this.style.background='transparent';this.style.color='var(--gold)'">Get More</a>
+                </div>
+                
                 <div class="ai-learning-section">
                     <div class="learning-header">
                         <h3>Echo Engine Learning</h3>
@@ -6250,12 +6262,129 @@
                 <div class="projects-grid" id="dashboard-projects-grid">
                 </div>
             </div>
-            <button class="fab-new-project" onclick="startNewProject()" title="New Project">
+            <button class="fab-new-project" onclick="showTemplatePickerModal()" title="New Project">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
             </button>
+        </div>
+        
+        <!-- TEMPLATE PICKER MODAL -->
+        <div class="template-picker-modal" id="template-picker-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 10000; align-items: center; justify-content: center;">
+            <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 24px; max-width: 440px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="font-size: 18px; font-weight: 600;">Choose a Template</h3>
+                    <button onclick="closeTemplatePickerModal()" style="background: none; border: none; color: var(--text-dim); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
+                    <div onclick="createProjectFromTemplate('hot_take'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">🔥</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Hot Take</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">30-45s opinion piece</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('explainer'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">💡</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Explainer</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">45-60s breakdown</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('story'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(155,89,182,0.08); border: 1px solid rgba(155,89,182,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📖</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Story Time</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">60-75s narrative</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('commentary'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">📰</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Commentary</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">35-50s reaction</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('letter'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s; grid-column: span 2;">
+                        <div style="font-size: 24px; margin-bottom: 8px;">✉️</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Open Letter</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">45-60s direct address</div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; padding-top: 12px; border-top: 1px solid var(--border);">
+                    <button onclick="startNewProject(); closeTemplatePickerModal();" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">
+                        Start from scratch
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- POST-RENDER VIDEO EDITOR MODAL -->
+        <div class="video-editor-modal" id="video-editor-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; overflow-y: auto;">
+            <div style="max-width: 800px; margin: 20px auto; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="font-size: 20px; font-weight: 600; color: var(--gold);">Edit Your Video</h3>
+                    <button onclick="closeVideoEditor()" style="background: none; border: none; color: var(--text); font-size: 28px; cursor: pointer;">&times;</button>
+                </div>
+                
+                <!-- Video Preview -->
+                <div style="background: #000; border-radius: 12px; overflow: hidden; margin-bottom: 20px; position: relative;">
+                    <video id="editor-video" controls style="width: 100%; max-height: 50vh;">
+                        Your browser does not support video.
+                    </video>
+                    <!-- Caption Preview Overlay -->
+                    <div id="caption-preview-overlay" style="position: absolute; bottom: 0; left: 0; right: 0; pointer-events: none; display: flex; justify-content: center; padding: 20px;">
+                        <div id="preview-caption" style="background: rgba(0,0,0,0.8); color: white; padding: 8px 16px; border-radius: 8px; font-size: 18px; font-weight: 600; text-align: center;">
+                            Preview Caption Text
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Editor Controls -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <!-- Caption Position -->
+                    <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 16px;">
+                        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--gold);">Caption Position</h4>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                            <button onclick="setCaptionPosition('top')" class="position-btn" data-pos="top" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer;">Top</button>
+                            <button onclick="setCaptionPosition('middle')" class="position-btn" data-pos="middle" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer;">Middle</button>
+                            <button onclick="setCaptionPosition('bottom')" class="position-btn active" data-pos="bottom" style="flex: 1; padding: 10px; background: var(--gold); border: 1px solid var(--gold); border-radius: 8px; color: var(--bg); cursor: pointer;">Bottom</button>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 6px;">Vertical Offset</label>
+                            <input type="range" id="caption-offset" min="0" max="100" value="10" oninput="updateCaptionOffset(this.value)" style="width: 100%; accent-color: var(--gold);">
+                        </div>
+                    </div>
+                    
+                    <!-- Caption Style -->
+                    <div style="background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 12px; padding: 16px;">
+                        <h4 style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--gold);">Caption Style</h4>
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 6px;">Font Size</label>
+                            <input type="range" id="caption-size" min="14" max="36" value="22" oninput="updateCaptionSize(this.value)" style="width: 100%; accent-color: var(--gold);">
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <label style="font-size: 12px; color: var(--text-dim); display: block; margin-bottom: 6px;">Background Opacity</label>
+                            <input type="range" id="caption-opacity" min="0" max="100" value="80" oninput="updateCaptionOpacity(this.value)" style="width: 100%; accent-color: var(--gold);">
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button onclick="setCaptionColor('#ffffff')" style="width: 32px; height: 32px; background: #fff; border: 2px solid var(--border); border-radius: 6px; cursor: pointer;"></button>
+                            <button onclick="setCaptionColor('#ffd60a')" style="width: 32px; height: 32px; background: #ffd60a; border: 2px solid var(--border); border-radius: 6px; cursor: pointer;"></button>
+                            <button onclick="setCaptionColor('#4ECDC4')" style="width: 32px; height: 32px; background: #4ECDC4; border: 2px solid var(--border); border-radius: 6px; cursor: pointer;"></button>
+                            <button onclick="setCaptionColor('#E74C3C')" style="width: 32px; height: 32px; background: #E74C3C; border: 2px solid var(--border); border-radius: 6px; cursor: pointer;"></button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Save Preset Option -->
+                <div style="margin-top: 20px; padding: 16px; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="save-as-preset" style="accent-color: var(--gold); width: 18px; height: 18px;">
+                        <span style="font-size: 14px;">Save as my default style (AI will remember this)</span>
+                    </label>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end;">
+                    <button onclick="closeVideoEditor()" style="padding: 12px 24px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer;">Cancel</button>
+                    <button onclick="applyEditorChanges()" style="padding: 12px 24px; background: var(--gold); border: none; border-radius: 8px; color: var(--bg); font-weight: 600; cursor: pointer;">Re-render with Changes</button>
+                </div>
+            </div>
         </div>
         
         <!-- DISCOVER FEED STAGE -->
@@ -6952,11 +7081,37 @@
     
     <!-- Loading overlay -->
     <div class="loading-overlay" id="loading-overlay">
-        <div class="loading-content">
+        <div class="loading-content" style="max-width: 400px; width: 90%;">
             <div class="loading-spinner"></div>
             <div class="loading-title">Rendering your video</div>
             <div class="loading-timer" id="loading-timer">0:00</div>
-            <div class="loading-status" id="loading-status">Generating voiceover...</div>
+            
+            <!-- Progress Bar -->
+            <div style="margin: 20px 0;">
+                <div style="background: rgba(255,255,255,0.1); border-radius: 8px; height: 8px; overflow: hidden;">
+                    <div id="render-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--gold) 0%, #f0c000 100%); border-radius: 8px; transition: width 0.5s ease;"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 12px;">
+                    <div id="step-voice" class="render-step" style="text-align: center; opacity: 0.4; transition: opacity 0.3s;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🎙️</div>
+                        <div style="font-size: 10px; color: var(--text-dim);">Voice</div>
+                    </div>
+                    <div id="step-scenes" class="render-step" style="text-align: center; opacity: 0.4; transition: opacity 0.3s;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🎬</div>
+                        <div style="font-size: 10px; color: var(--text-dim);">Scenes</div>
+                    </div>
+                    <div id="step-captions" class="render-step" style="text-align: center; opacity: 0.4; transition: opacity 0.3s;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">📝</div>
+                        <div style="font-size: 10px; color: var(--text-dim);">Captions</div>
+                    </div>
+                    <div id="step-render" class="render-step" style="text-align: center; opacity: 0.4; transition: opacity 0.3s;">
+                        <div style="font-size: 20px; margin-bottom: 4px;">🎥</div>
+                        <div style="font-size: 10px; color: var(--text-dim);">Render</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="loading-status" id="loading-status" style="margin-top: 16px;">Generating voiceover...</div>
         </div>
     </div>
     
@@ -8977,7 +9132,55 @@
             
             // Show empty state if no projects
             if (!projects || projects.length === 0) {
-                html = '<div class="empty-projects-message">No projects yet. Tap + to start.</div>';
+                const likedCount = autoGenerateConfidence.liked_count || 0;
+                const remaining = 5 - likedCount;
+                html = `
+                    <div class="empty-state-container" style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.8;">🎬</div>
+                        <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text);">Start Your First Project</h3>
+                        <p style="color: var(--text-dim); margin-bottom: 24px; max-width: 300px; margin-left: auto; margin-right: auto;">Choose a template to get started, or start from scratch with your own idea.</p>
+                        
+                        <div class="template-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 400px; margin: 0 auto 24px;">
+                            <div class="template-card" onclick="createProjectFromTemplate('hot_take')" style="cursor: pointer; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="font-size: 20px; margin-bottom: 8px;">🔥</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Hot Take</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">30-45s opinion piece</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('explainer')" style="cursor: pointer; background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="font-size: 20px; margin-bottom: 8px;">💡</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Explainer</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">45-60s breakdown</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('story')" style="cursor: pointer; background: rgba(155,89,182,0.08); border: 1px solid rgba(155,89,182,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="font-size: 20px; margin-bottom: 8px;">📖</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Story Time</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">60-75s narrative</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('commentary')" style="cursor: pointer; background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="font-size: 20px; margin-bottom: 8px;">📰</div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Commentary</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">35-50s reaction</div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="startNewProject()" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 24px;">
+                            Or start from scratch
+                        </button>
+                        
+                        <div style="background: rgba(255,214,10,0.1); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; max-width: 350px; margin: 0 auto;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <span style="color: var(--gold);">✦</span>
+                                <span style="font-weight: 600; font-size: 13px;">Unlock Auto-Generate</span>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px;">
+                                Complete ${remaining > 0 ? remaining + ' more projects' : 'projects'} and like them to unlock AI auto-generation. Echo Engine learns your style and creates content automatically.
+                            </p>
+                            <div style="display: flex; gap: 4px;">
+                                ${[1,2,3,4,5].map(i => `<div style="width: 20%; height: 4px; border-radius: 2px; background: ${i <= likedCount ? 'var(--gold)' : 'rgba(255,255,255,0.1)'};"></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
                 grid.innerHTML = html;
                 return;
             }
@@ -9316,6 +9519,240 @@
                 }
             } catch (err) {
                 console.error('Error creating project:', err);
+            }
+        }
+        
+        const templatePrompts = {
+            hot_take: "I want to create a hot take video (30-45 seconds). Help me craft a bold, opinion-driven piece that challenges conventional thinking. What controversial or thought-provoking topic should we explore?",
+            explainer: "I want to create an explainer video (45-60 seconds). Help me break down a complex topic in a clear, educational way. What concept or process should we simplify for the audience?",
+            story: "I want to create a story time video (60-75 seconds). Help me craft a compelling narrative with a beginning, middle, and end. What personal story or anecdote should we tell?",
+            commentary: "I want to create a news commentary video (35-50 seconds). Help me react to a current event or trending topic with a unique perspective. What recent news should we discuss?",
+            letter: "I want to create an open letter video (45-60 seconds). Help me write a direct, personal address to a specific group or individual. Who should we speak to and what message do they need to hear?"
+        };
+        
+        function showTemplatePickerModal() {
+            const modal = document.getElementById('template-picker-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+        
+        function closeTemplatePickerModal() {
+            const modal = document.getElementById('template-picker-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+        
+        // Video Editor State
+        let editorState = {
+            videoUrl: '',
+            captionPosition: 'bottom',
+            captionOffset: 10,
+            captionSize: 22,
+            captionOpacity: 80,
+            captionColor: '#ffffff'
+        };
+        
+        function openVideoEditor(videoUrl) {
+            editorState.videoUrl = videoUrl;
+            const modal = document.getElementById('video-editor-modal');
+            const video = document.getElementById('editor-video');
+            if (modal && video) {
+                video.src = videoUrl;
+                modal.style.display = 'block';
+                // Load saved preferences if any
+                loadEditorPreferences();
+            }
+        }
+        
+        function closeVideoEditor() {
+            const modal = document.getElementById('video-editor-modal');
+            const video = document.getElementById('editor-video');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            if (video) {
+                video.pause();
+                video.src = '';
+            }
+        }
+        
+        function setCaptionPosition(position) {
+            editorState.captionPosition = position;
+            const overlay = document.getElementById('caption-preview-overlay');
+            const buttons = document.querySelectorAll('.position-btn');
+            
+            buttons.forEach(btn => {
+                if (btn.dataset.pos === position) {
+                    btn.style.background = 'var(--gold)';
+                    btn.style.borderColor = 'var(--gold)';
+                    btn.style.color = 'var(--bg)';
+                } else {
+                    btn.style.background = 'rgba(255,255,255,0.05)';
+                    btn.style.borderColor = 'var(--border)';
+                    btn.style.color = 'var(--text)';
+                }
+            });
+            
+            if (overlay) {
+                overlay.style.bottom = position === 'bottom' ? '0' : 'auto';
+                overlay.style.top = position === 'top' ? '0' : (position === 'middle' ? '50%' : 'auto');
+                overlay.style.transform = position === 'middle' ? 'translateY(-50%)' : 'none';
+            }
+        }
+        
+        function updateCaptionOffset(value) {
+            editorState.captionOffset = parseInt(value);
+            const overlay = document.getElementById('caption-preview-overlay');
+            if (overlay) {
+                overlay.style.padding = `${value}px 20px`;
+            }
+        }
+        
+        function updateCaptionSize(value) {
+            editorState.captionSize = parseInt(value);
+            const caption = document.getElementById('preview-caption');
+            if (caption) {
+                caption.style.fontSize = `${value}px`;
+            }
+        }
+        
+        function updateCaptionOpacity(value) {
+            editorState.captionOpacity = parseInt(value);
+            const caption = document.getElementById('preview-caption');
+            if (caption) {
+                caption.style.background = `rgba(0,0,0,${value/100})`;
+            }
+        }
+        
+        function setCaptionColor(color) {
+            editorState.captionColor = color;
+            const caption = document.getElementById('preview-caption');
+            if (caption) {
+                caption.style.color = color;
+            }
+        }
+        
+        async function loadEditorPreferences() {
+            try {
+                // Try to load from server first
+                const response = await fetch('/get-caption-preferences');
+                if (response.ok) {
+                    const prefs = await response.json();
+                    if (Object.keys(prefs).length > 0) {
+                        applyPreferences(prefs);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not load preferences from server');
+            }
+            
+            // Fallback to localStorage
+            try {
+                const saved = localStorage.getItem('framd_caption_prefs');
+                if (saved) {
+                    applyPreferences(JSON.parse(saved));
+                }
+            } catch (e) {
+                console.warn('Could not load editor preferences from localStorage');
+            }
+        }
+        
+        function applyPreferences(prefs) {
+            if (prefs.caption_position || prefs.captionPosition) {
+                setCaptionPosition(prefs.caption_position || prefs.captionPosition);
+            }
+            if (prefs.caption_offset !== undefined || prefs.captionOffset !== undefined) {
+                const offset = prefs.caption_offset ?? prefs.captionOffset;
+                document.getElementById('caption-offset').value = offset;
+                updateCaptionOffset(offset);
+            }
+            if (prefs.caption_size !== undefined || prefs.captionSize !== undefined) {
+                const size = prefs.caption_size ?? prefs.captionSize;
+                document.getElementById('caption-size').value = size;
+                updateCaptionSize(size);
+            }
+            if (prefs.caption_opacity !== undefined || prefs.captionOpacity !== undefined) {
+                const opacity = prefs.caption_opacity ?? prefs.captionOpacity;
+                document.getElementById('caption-opacity').value = opacity;
+                updateCaptionOpacity(opacity);
+            }
+            if (prefs.caption_color || prefs.captionColor) {
+                setCaptionColor(prefs.caption_color || prefs.captionColor);
+            }
+            editorState = { 
+                ...editorState, 
+                captionPosition: prefs.caption_position || prefs.captionPosition || editorState.captionPosition,
+                captionOffset: prefs.caption_offset ?? prefs.captionOffset ?? editorState.captionOffset,
+                captionSize: prefs.caption_size ?? prefs.captionSize ?? editorState.captionSize,
+                captionOpacity: prefs.caption_opacity ?? prefs.captionOpacity ?? editorState.captionOpacity,
+                captionColor: prefs.caption_color || prefs.captionColor || editorState.captionColor
+            };
+        }
+        
+        async function applyEditorChanges() {
+            const savePreset = document.getElementById('save-as-preset').checked;
+            
+            if (savePreset) {
+                // Save preferences locally
+                localStorage.setItem('framd_caption_prefs', JSON.stringify(editorState));
+                
+                // Save to AI learning system
+                try {
+                    await fetch('/save-caption-preferences', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            caption_position: editorState.captionPosition,
+                            caption_offset: editorState.captionOffset,
+                            caption_size: editorState.captionSize,
+                            caption_opacity: editorState.captionOpacity,
+                            caption_color: editorState.captionColor
+                        })
+                    });
+                } catch (e) {
+                    console.warn('Could not save caption preferences to server');
+                }
+            }
+            
+            showToast('Caption preferences saved! Next render will use these settings.');
+            closeVideoEditor();
+        }
+        
+        async function createProjectFromTemplate(templateType) {
+            try {
+                const response = await fetch('/projects', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'New Project', description: templateType })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    currentProjectId = data.project.id;
+                    document.getElementById('dashboard-overlay').classList.remove('open');
+                    
+                    // Reset conversation and switch to create stage
+                    conversationHistory = [];
+                    saveConversation();
+                    
+                    document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+                    document.getElementById('stage-create').classList.add('active');
+                    
+                    const chatBar = document.getElementById('bottom-chat-bar');
+                    if (chatBar) chatBar.style.display = 'block';
+                    
+                    const messagesEl = document.getElementById('messages');
+                    if (messagesEl) messagesEl.innerHTML = '';
+                    
+                    // Add template-specific prompt
+                    const prompt = templatePrompts[templateType] || "What message should the world know?";
+                    addMessage(prompt, false);
+                }
+            } catch (err) {
+                console.error('Error creating project from template:', err);
             }
         }
         
@@ -12110,6 +12547,7 @@
                     
                     <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                         <a href="${videoUrl}" download class="btn btn-primary" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
+                        <button class="btn btn-secondary" onclick="openVideoEditor('${videoUrl}')" style="font-size: 12px; padding: 8px 16px;">Edit Captions</button>
                         <button class="btn btn-secondary" onclick="likeVideo()" style="font-size: 12px; padding: 8px 16px;">Like</button>
                         <button class="btn btn-secondary" onclick="showDislikeOptions()" style="font-size: 12px; padding: 8px 16px;">Needs Work</button>
                     </div>
@@ -12373,12 +12811,16 @@
                 renderStartTime = Date.now();
                 updateTimer();
                 renderTimer = setInterval(updateTimer, 1000);
+                // Reset progress bar
+                updateRenderProgress(0, '');
             } else {
                 overlay.classList.remove('show');
                 if (renderTimer) {
                     clearInterval(renderTimer);
                     renderTimer = null;
                 }
+                // Reset progress bar after delay
+                setTimeout(() => updateRenderProgress(0, ''), 500);
             }
         }
         
@@ -12392,6 +12834,22 @@
         
         function updateLoadingStatus(status) {
             document.getElementById('loading-status').textContent = status;
+        }
+        
+        function updateRenderProgress(percent, step) {
+            const bar = document.getElementById('render-progress-bar');
+            if (bar) bar.style.width = percent + '%';
+            
+            // Update step indicators
+            const steps = ['voice', 'scenes', 'captions', 'render'];
+            const stepIndex = steps.indexOf(step);
+            
+            steps.forEach((s, i) => {
+                const stepEl = document.getElementById('step-' + s);
+                if (stepEl) {
+                    stepEl.style.opacity = i <= stepIndex ? '1' : '0.4';
+                }
+            });
         }
         
         // Session spending tracker
@@ -12537,6 +12995,7 @@
             try {
                 // Step 1: Generate voiceover from script with character voices
                 updateLoadingStatus('Generating voiceover...');
+                updateRenderProgress(20, 'voice');
                 if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 20, 'Generating voiceover...');
                 
                 // Get stage directions from input
@@ -12570,6 +13029,7 @@
                 
                 // Step 2: Build scenes array from visual plan or scene composer
                 updateLoadingStatus('Preparing scenes...');
+                updateRenderProgress(50, 'scenes');
                 if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 50, 'Preparing scenes...');
                 
                 let scenesForRender = [];
@@ -12614,7 +13074,12 @@
                 }
                 
                 // Step 3: Render final video with captions
-                updateLoadingStatus('Assembling video with captions...');
+                updateLoadingStatus('Adding captions...');
+                updateRenderProgress(65, 'captions');
+                setTimeout(() => {
+                    updateLoadingStatus('Assembling final video...');
+                    updateRenderProgress(80, 'render');
+                }, 2000);
                 if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 75, 'Assembling video...');
                 
                 const renderResponse = await fetch('/render-video', {
@@ -12635,6 +13100,7 @@
                 document.body.classList.remove('loading');
                 
                 if (renderData.success) {
+                    updateRenderProgress(100, 'render');
                     if (generatingProjectId) updateProjectCardProgress(generatingProjectId, 100, 'Complete!');
                     document.getElementById('export-video').src = renderData.video_path;
                     
@@ -13120,6 +13586,11 @@
                     const tokenEl = document.getElementById('token-count');
                     if (data.balance !== undefined && tokenEl) {
                         tokenEl.textContent = data.balance;
+                    }
+                    // Also update dashboard token balance
+                    const dashboardTokenEl = document.getElementById('dashboard-token-balance');
+                    if (data.balance !== undefined && dashboardTokenEl) {
+                        dashboardTokenEl.textContent = data.balance;
                     }
                 });
         });

@@ -1,1 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#3b82f6"/><path d="M35 35 L65 50 L35 65 Z" fill="white"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="6" fill="#0a1f14"/>
+  <text x="16" y="22" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#ffd60a" text-anchor="middle">F</text>
+</svg>
