@@ -6311,17 +6311,31 @@
                         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Commentary</div>
                         <div style="font-size: 11px; color: var(--text-dim);">35-50s reaction</div>
                     </div>
-                    <div onclick="createProjectFromTemplate('letter'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s; grid-column: span 2;">
+                    <div onclick="createProjectFromTemplate('letter'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
                         <div style="margin-bottom: 8px; color: #2ecc71;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
                         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Open Letter</div>
                         <div style="font-size: 11px; color: var(--text-dim);">45-60s direct address</div>
                     </div>
-                </div>
-                
-                <div style="text-align: center; padding-top: 12px; border-top: 1px solid var(--border);">
-                    <button onclick="startNewProject(); closeTemplatePickerModal();" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 13px;">
-                        Start from scratch
-                    </button>
+                    <div onclick="createProjectFromTemplate('meme'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="margin-bottom: 8px; color: #ffa500;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Meme / Funny</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Trend-driven comedy</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('ad'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(52,152,219,0.08); border: 1px solid rgba(52,152,219,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="margin-bottom: 8px; color: #3498db;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Make an Ad</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Product promo video</div>
+                    </div>
+                    <div onclick="createProjectFromTemplate('tiktok_edit'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(238,88,166,0.08); border: 1px solid rgba(238,88,166,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
+                        <div style="margin-bottom: 8px; color: #ee58a6;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">TikTok Edit</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Beat-synced visual edit</div>
+                    </div>
+                    <div onclick="startNewProject(); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; transition: all 0.2s; grid-column: span 2;">
+                        <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Start from Scratch</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Open canvas, your idea</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -9280,11 +9294,32 @@
                                 <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Commentary</div>
                                 <div style="font-size: 11px; color: var(--text-dim);">35-50s reaction</div>
                             </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('letter')" style="cursor: pointer; background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="margin-bottom: 8px; color: #2ecc71;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Open Letter</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">45-60s direct address</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('meme')" style="cursor: pointer; background: rgba(255,165,0,0.08); border: 1px solid rgba(255,165,0,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="margin-bottom: 8px; color: #ffa500;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Meme / Funny</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">Trend-driven comedy</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('ad')" style="cursor: pointer; background: rgba(52,152,219,0.08); border: 1px solid rgba(52,152,219,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="margin-bottom: 8px; color: #3498db;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Make an Ad</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">Product promo video</div>
+                            </div>
+                            <div class="template-card" onclick="createProjectFromTemplate('tiktok_edit')" style="cursor: pointer; background: rgba(238,88,166,0.08); border: 1px solid rgba(238,88,166,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
+                                <div style="margin-bottom: 8px; color: #ee58a6;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">TikTok Edit</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">Beat-synced visual edit</div>
+                            </div>
+                            <div class="template-card" onclick="startNewProject()" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s; grid-column: span 2;">
+                                <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Start from Scratch</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">Open canvas, your idea</div>
+                            </div>
                         </div>
-                        
-                        <button onclick="startNewProject()" style="background: transparent; border: 1px solid var(--border); color: var(--text); padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-bottom: 24px;">
-                            Or start from scratch
-                        </button>
                         
                         <div style="background: rgba(255,214,10,0.1); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; max-width: 350px; margin: 0 auto;">
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
@@ -9646,7 +9681,10 @@
             explainer: "I want to create an explainer video (45-60 seconds). Help me break down a complex topic in a clear, educational way. What concept or process should we simplify for the audience?",
             story: "I want to create a story time video (60-75 seconds). Help me craft a compelling narrative with a beginning, middle, and end. What personal story or anecdote should we tell?",
             commentary: "I want to create a news commentary video (35-50 seconds). Help me react to a current event or trending topic with a unique perspective. What recent news should we discuss?",
-            letter: "I want to create an open letter video (45-60 seconds). Help me write a direct, personal address to a specific group or individual. Who should we speak to and what message do they need to hear?"
+            letter: "I want to create an open letter video (45-60 seconds). Help me write a direct, personal address to a specific group or individual. Who should we speak to and what message do they need to hear?",
+            meme: "Let's create something funny! I'll research what meme formats and comedy styles are trending right now, then help you create viral-worthy content. What topic, person, or situation do you want to make a meme about?",
+            ad: "Let's create a professional ad for your product or service! Do you have product photos or brand assets to include? If not, I can generate a logo for you (this will use extra tokens). Tell me about what you're promoting.",
+            tiktok_edit: "Let's create a beat-synced TikTok edit! What song do you want to sync your edit to? I'll analyze the beat and create an audioless video with exact timestamps for when to start and end the music."
         };
         
         function showTemplatePickerModal() {
