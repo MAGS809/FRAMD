@@ -10662,7 +10662,7 @@
             // Remove option buttons from the message (already selected)
             const optionButtons = document.querySelectorAll('.option-buttons');
             optionButtons.forEach(btns => {
-                btns.innerHTML = `<div style="color: var(--gold); font-size: 12px; font-style: italic;">Selected: ${escapeHtml(option)}</div>`;
+                btns.innerHTML = `<div style="display: block; margin-top: 16px; padding: 10px 14px; background: rgba(255, 214, 10, 0.15); border-left: 3px solid var(--gold); border-radius: 4px; color: var(--gold); font-size: 13px;"><span style="opacity: 0.7;">You selected:</span> <strong>${escapeHtml(option)}</strong></div>`;
             });
             
             // Note: clarificationCount is incremented in sendMessageWithContext, not here
