@@ -8241,18 +8241,21 @@
                     const learnNote = result.result?.learnings ? ' Learning from this content...' : '';
                     addMessage(`Found ${clipCount} potential clips.${learnNote} Select one to use as your script.`);
                 } else {
-                    // Create mode - show thesis, anchors, script, content type, visual layers
+                    // Create mode - show thesis first, then script
+                    // IMPORTANT: Do NOT show visuals yet - wait for script confirmation
                     displayThesis(result.thesis);
-                    displayAnchors(result.anchors);
+                    
+                    // Store anchors for later (after script confirmation)
+                    currentAnchors = result.anchors || [];
                     
                     // Display content type badge
                     if (result.content_type) {
                         displayContentType(result.content_type);
                     }
                     
-                    // Display visual layers
+                    // Store visual plan for later
                     if (result.visual_plan) {
-                        displayVisualLayers(result.visual_plan);
+                        currentVisualPlan = result.visual_plan;
                     }
                     
                     if (result.script?.full_script) {
@@ -11305,6 +11308,11 @@
         
         // Proceed to visuals from inline card
         function proceedToVisuals() {
+            // Display visual layers if we have them stored
+            if (currentVisualPlan) {
+                displayVisualLayers(currentVisualPlan);
+            }
+            
             if (!currentAnchors || currentAnchors.length === 0) {
                 // Need to extract anchors first
                 if (currentScript) {

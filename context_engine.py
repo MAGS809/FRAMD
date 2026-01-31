@@ -1187,6 +1187,92 @@ IMPORTANT for clarification_options:
     return result if result else {"thesis_statement": "", "confidence": 0.0, "requires_clarification": True}
 
 
+def extract_thesis_and_generate_script(content: str, user_context: str = "", learned_patterns: dict = None, has_clarification: bool = False) -> dict:
+    """
+    COMBINED function: Extract thesis AND generate script in ONE AI call.
+    Saves ~10 seconds by eliminating a separate API call.
+    """
+    learning_section = ""
+    if learned_patterns:
+        learning_section = f"""
+LEARNED FROM YOUR PREVIOUS CONTENT:
+- Hook styles that work: {learned_patterns.get('hooks', 'None yet')}
+- Pacing preferences: {learned_patterns.get('pacing', 'Default')}
+- Structure patterns: {learned_patterns.get('structure', 'Standard')}
+- Voice/style: {learned_patterns.get('style', 'Default')}
+"""
+
+    clarification_instruction = ""
+    if has_clarification:
+        clarification_instruction = """
+IMPORTANT: The user has already provided clarification about their angle/direction.
+You MUST proceed with generating the thesis and script. Do NOT set requires_clarification to true.
+Use the clarification they provided to determine the angle."""
+    else:
+        clarification_instruction = """
+If the content is too vague to write a compelling script, set requires_clarification to true.
+But if you can reasonably infer an angle, proceed with your best interpretation."""
+
+    prompt = f"""Analyze this content, extract the CORE THESIS, and write a SHORT-FORM VIDEO SCRIPT in ONE response.
+
+CONTENT:
+{content[:6000]}
+
+{clarification_instruction}
+
+{learning_section}
+
+{user_context}
+
+THESIS REQUIREMENTS:
+- One specific claim or insight (not a topic)
+- Something that can be argued for or against
+- The central idea that all script lines must support
+
+SCRIPT REQUIREMENTS:
+1. EVERY line must serve the thesis
+2. HOOK must grab attention in 3 seconds
+3. 30-60 seconds total (punchy, no filler)
+4. CLOSER must bring viewer back to core claim
+
+Output JSON:
+{{
+    "requires_clarification": true/false,
+    "clarification_question": "If unclear, a simple question",
+    "clarification_options": ["Option 1", "Option 2", "Option 3"],
+    "thesis": {{
+        "thesis_statement": "One clear sentence stating the core claim",
+        "thesis_type": "argument/observation/revelation/challenge/question",
+        "core_claim": "The underlying truth being asserted",
+        "target_audience": "Who needs to hear this",
+        "intended_impact": "What should change in viewer's mind",
+        "confidence": 0.8
+    }},
+    "script": {{
+        "full_script": "Complete script text",
+        "hook": "Opening 3-second hook",
+        "closer": "Final statement",
+        "tone": "calm/urgent/ironic/analytical/reflective",
+        "visual_direction": "Overall visual approach",
+        "estimated_duration": "30/45/60 seconds"
+    }}
+}}
+
+IMPORTANT: Generate BOTH thesis AND script together. Respond with valid JSON only."""
+
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=3000)
+    
+    if not result:
+        return {
+            "requires_clarification": True,
+            "clarification_question": "What's the main point you want to make?",
+            "thesis": {"thesis_statement": "", "confidence": 0.0},
+            "script": None
+        }
+    
+    return result
+
+
 def identify_anchors(script: str, thesis: str) -> list:
     """
     Identify anchor points in a script - key statements that structure the argument.
@@ -1723,44 +1809,38 @@ def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", ha
     - After 3 clarifications, force script generation using AI's own knowledge
     - AI should research and fill gaps rather than asking endless questions
     """
-    detection_prompt = f"""Analyze this user input and determine what they're trying to do.
-
-INPUT:
-{user_input[:2000]}
-
-Are they:
-1. GREETING: Just saying hello, hi, hey, or casual greeting with no content
-2. CREATING: Starting from an idea, essay, letter, thesis, topic, or any content they want turned into a script
-3. REFINING: Adjusting or editing existing content
-
-IMPORTANT RULES:
-- If the input is very short (under 20 characters) and contains no clear topic, it's a GREETING
-- Essays, letters, articles, or any written content = CREATING (we create a script FROM this content)
-- Only explicit video/audio file references with clipping intent = handled separately via has_media flag
-
-Output JSON:
-{{
-    "mode": "greeting/create/refine",
-    "detected_thesis": "If thesis is clear, state it. Otherwise null",
-    "needs_clarification": true/false,
-    "clarification_question": "If unclear, what to ask"
-}}"""
-
-    # If media is provided, show media options instead of auto-detecting
+    # OPTIMIZATION: Skip intent detection for substantial content (saves ~5 seconds)
+    # Only do intent detection for short ambiguous inputs
     if has_media and mode == "auto":
         mode = "media_options"
         detection = {"mode": "media_options"}
     elif mode == "auto":
-        system = "You analyze user intent for a video content system. Written content (essays, letters, articles) should always be treated as CREATE mode - we generate scripts from ideas."
-        detection = call_ai(detection_prompt, system, json_output=True, max_tokens=512)
-        if detection:
-            mode = detection.get('mode', 'create')
-            # Force create mode for any substantial text content
-            if len(user_input) > 100 and mode not in ['greeting', 'refine']:
-                mode = 'create'
-        else:
+        input_lower = user_input.lower().strip()
+        # Check for refine keywords first
+        refine_keywords = ['edit', 'rewrite', 'adjust', 'change', 'modify', 'update the script', 'fix']
+        is_refine = any(kw in input_lower for kw in refine_keywords)
+        
+        if is_refine:
+            mode = 'refine'
+            detection = {"mode": "refine"}
+        elif len(user_input.strip()) > 50:
+            # Substantial content - skip AI call, assume create mode
             mode = 'create'
-            detection = {}
+            detection = {"mode": "create"}
+        elif len(user_input.strip()) < 20:
+            # Very short - likely a greeting
+            mode = 'greeting'
+            detection = {"mode": "greeting"}
+        else:
+            # Only call AI for ambiguous mid-length inputs
+            detection_prompt = f"""Analyze this user input. Is it:
+1. GREETING: Just hello/hi with no content
+2. CREATING: Starting a new idea/topic
+
+Output JSON: {{"mode": "greeting/create"}}"""
+            system = "You analyze user intent. Be concise."
+            detection = call_ai(detection_prompt, system, json_output=True, max_tokens=64)
+            mode = detection.get('mode', 'create') if detection else 'create'
     else:
         detection = {"mode": mode}
     
@@ -1821,100 +1901,10 @@ Output JSON:
         }
     
     # Default: Create mode - generate script from user's idea/content
-    # If user has already provided clarification (clarification_count > 0), tell AI to proceed
-    has_clarification = clarification_count > 0
-    thesis = extract_thesis(user_input, "idea", has_clarification=has_clarification)
+    # OPTIMIZATION: Use combined thesis+script function (saves ~10 seconds)
+    has_clarification = clarification_count > 0 or force_generate
     
-    # Handle clarification - but respect max clarification limit (2 max, not 3)
-    if thesis.get('requires_clarification', False) and not force_generate and clarification_count < 2:
-        # Get question and options from AI
-        question = thesis.get('clarification_question', 'What is the main point you want to make?')
-        
-        # Use AI-generated options directly (clean, short options)
-        options = thesis.get('clarification_options', [])
-        
-        # Ensure options are clean and add "Something else..." if we have options
-        if options and len(options) >= 2:
-            # Clean up options - ensure they're short and don't repeat question text
-            clean_options = []
-            for opt in options[:4]:  # Max 4 options
-                if isinstance(opt, str) and len(opt.strip()) > 0:
-                    opt_clean = opt.strip()
-                    # Skip if option is too long or too similar to question
-                    if len(opt_clean) <= 50 and not opt_clean.lower().startswith('what'):
-                        clean_options.append(opt_clean)
-            options = clean_options
-            if options:
-                options.append('Something else...')
-        
-        return {
-            "mode": "create",
-            "status": "needs_clarification", 
-            "thesis": thesis,
-            "question": question,
-            "options": options,
-            "clarification_number": clarification_count + 1
-        }
-    
-    # If force_generate or max clarifications reached (2), use AI's knowledge to fill gaps
-    if force_generate or clarification_count >= 2:
-        # Override thesis to force script generation - use AI to generate thesis
-        if not thesis.get('thesis_statement') or thesis.get('requires_clarification'):
-            # Use AI to research and generate a thesis based on the topic
-            force_thesis_prompt = f"""You are generating content for a short-form video. The user has provided this input but we need to proceed without further clarification.
-
-USER INPUT:
-{user_input[:2000]}
-
-Based on your knowledge of this topic, generate a compelling thesis for a 30-60 second video.
-Research what you know about the subjects mentioned and identify the most interesting angle.
-
-If this involves public figures, research their known positions, contradictions, or notable dynamics.
-If this is about a concept, find the most compelling insight or revelation.
-If the tone is comedic/satirical, lean into absurdity while making a real point.
-
-Output JSON:
-{{
-    "thesis_statement": "One clear, punchy sentence stating the core insight or claim",
-    "thesis_type": "one of [argument, satire, revelation, observation, comedy]",
-    "core_claim": "The underlying truth or insight being explored",
-    "tone": "The overall tone (satirical, serious, comedic, etc.)",
-    "target_audience": "Who will find this interesting",
-    "intended_impact": "What reaction or understanding should viewers have",
-    "key_research_points": ["3-5 specific facts/details you'll use in the script"],
-    "confidence": 0.8
-}}
-
-IMPORTANT: Do NOT ask for clarification. Use your knowledge to make smart assumptions."""
-            
-            system = "You are a content researcher and thesis generator. Your job is to take incomplete ideas and turn them into compelling video concepts using your knowledge."
-            
-            forced_thesis = call_ai(force_thesis_prompt, system, json_output=True, max_tokens=1024)
-            
-            if forced_thesis and forced_thesis.get('thesis_statement'):
-                thesis = {
-                    'thesis_statement': forced_thesis.get('thesis_statement'),
-                    'thesis_type': forced_thesis.get('thesis_type', 'observation'),
-                    'core_claim': forced_thesis.get('core_claim', user_input[:300]),
-                    'target_audience': forced_thesis.get('target_audience', 'General audience'),
-                    'intended_impact': forced_thesis.get('intended_impact', 'Inform and entertain'),
-                    'confidence': forced_thesis.get('confidence', 0.8),
-                    'requires_clarification': False,
-                    'key_research_points': forced_thesis.get('key_research_points', []),
-                    'tone': forced_thesis.get('tone', 'informative')
-                }
-            else:
-                # Final fallback if AI call fails
-                thesis = {
-                    'thesis_statement': f"An exploration of: {user_input[:100]}",
-                    'thesis_type': 'observation',
-                    'core_claim': user_input[:300],
-                    'target_audience': 'General audience',
-                    'intended_impact': 'Inform and entertain',
-                    'confidence': 0.6,
-                    'requires_clarification': False
-                }
-    
+    # Get learned patterns for the combined call
     learned_patterns = {}
     try:
         from models import SourceContent
@@ -1933,7 +1923,97 @@ IMPORTANT: Do NOT ask for clarification. Use your knowledge to make smart assump
     except:
         pass
     
-    script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
+    # COMBINED CALL: Extract thesis AND generate script in one AI call
+    combined_result = extract_thesis_and_generate_script(
+        user_input, 
+        full_context, 
+        learned_patterns, 
+        has_clarification=has_clarification
+    )
+    
+    # Handle clarification if needed (max 2 clarifications)
+    if combined_result.get('requires_clarification', False) and not force_generate and clarification_count < 2:
+        question = combined_result.get('clarification_question', 'What is the main point you want to make?')
+        options = combined_result.get('clarification_options', [])
+        
+        # Clean up options
+        if options and len(options) >= 2:
+            clean_options = []
+            for opt in options[:4]:
+                if isinstance(opt, str) and len(opt.strip()) > 0:
+                    opt_clean = opt.strip()
+                    if len(opt_clean) <= 50 and not opt_clean.lower().startswith('what'):
+                        clean_options.append(opt_clean)
+            options = clean_options
+            if options:
+                options.append('Something else...')
+        
+        return {
+            "mode": "create",
+            "status": "needs_clarification", 
+            "thesis": combined_result.get('thesis', {}),
+            "question": question,
+            "options": options,
+            "clarification_number": clarification_count + 1
+        }
+    
+    # Extract thesis and script from combined result
+    thesis = combined_result.get('thesis', {})
+    script = combined_result.get('script', {})
+    
+    # FORCE-GENERATE FALLBACK: If still requiring clarification after max attempts, force generate
+    if (force_generate or clarification_count >= 2) and (not thesis.get('thesis_statement') or combined_result.get('requires_clarification')):
+        # Use AI to research and force generate thesis+script
+        force_prompt = f"""Generate content for a short-form video. Proceed without further clarification.
+
+USER INPUT:
+{user_input[:2000]}
+
+Based on your knowledge, generate a compelling thesis AND script for a 30-60 second video.
+Make smart assumptions about the angle and tone.
+
+Output JSON:
+{{
+    "thesis": {{
+        "thesis_statement": "One clear sentence stating the core claim",
+        "thesis_type": "argument/observation/revelation",
+        "core_claim": "The underlying truth",
+        "target_audience": "Who needs to hear this",
+        "intended_impact": "What should change in viewer's mind",
+        "confidence": 0.8
+    }},
+    "script": {{
+        "full_script": "Complete script text (30-60 seconds)",
+        "hook": "Opening hook",
+        "closer": "Final statement",
+        "tone": "calm/urgent/ironic",
+        "estimated_duration": "45 seconds"
+    }}
+}}
+
+IMPORTANT: Generate BOTH thesis AND script. Do NOT ask for clarification."""
+        
+        forced_result = call_ai(force_prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=3000)
+        if forced_result:
+            thesis = forced_result.get('thesis', thesis)
+            script = forced_result.get('script', script)
+    
+    # Final fallback if combined result is incomplete
+    if not thesis.get('thesis_statement'):
+        thesis = {
+            'thesis_statement': f"An exploration of: {user_input[:100]}",
+            'thesis_type': 'observation',
+            'core_claim': user_input[:300],
+            'target_audience': 'General audience',
+            'intended_impact': 'Inform and entertain',
+            'confidence': 0.6
+        }
+    
+    if not script or not script.get('full_script'):
+        # Fallback to separate script generation if combined failed
+        script = generate_thesis_driven_script(thesis, full_context, learned_patterns)
+    
+    # Identify anchors from the script
     anchors = identify_anchors(script.get('full_script', ''), thesis.get('thesis_statement', ''))
     thought_changes = detect_thought_changes(script.get('full_script', ''))
     
