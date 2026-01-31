@@ -8435,69 +8435,6 @@
             }
         }
         
-        // Show auto-generate info tooltip
-        function showAutoGenInfo(event) {
-            event.stopPropagation();
-            
-            // Remove any existing tooltip
-            const existing = document.querySelector('.autogen-info-tooltip');
-            if (existing) {
-                existing.remove();
-                return;
-            }
-            
-            const tooltip = document.createElement('div');
-            tooltip.className = 'autogen-info-tooltip';
-            tooltip.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: var(--bg-secondary);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 20px;
-                max-width: 320px;
-                z-index: 10000;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-            `;
-            
-            tooltip.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-size: 15px; font-weight: 600; color: var(--gold);">Auto Generate Content</div>
-                    <button onclick="closeAutoGenInfo()" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 18px;">×</button>
-                </div>
-                <p style="font-size: 13px; color: var(--text); line-height: 1.6; margin: 0;">
-                    Help the AI learn your style by liking 5 of your creations. Once unlocked, the AI can automatically generate content that matches your tone, format, and preferences.
-                </p>
-            `;
-            
-            // Add backdrop
-            const backdrop = document.createElement('div');
-            backdrop.className = 'autogen-info-backdrop';
-            backdrop.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.5);
-                z-index: 9999;
-            `;
-            backdrop.onclick = closeAutoGenInfo;
-            
-            document.body.appendChild(backdrop);
-            document.body.appendChild(tooltip);
-        }
-        
-        // Close auto-generate info modal
-        function closeAutoGenInfo() {
-            const tooltip = document.querySelector('.autogen-info-tooltip');
-            const backdrop = document.querySelector('.autogen-info-backdrop');
-            if (tooltip) tooltip.remove();
-            if (backdrop) backdrop.remove();
-        }
-        
         // Show delete confirmation modal
         function showDeleteConfirmation(projectId, event) {
             event.stopPropagation();
