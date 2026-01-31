@@ -3264,6 +3264,28 @@ def analyze():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/research-trends', methods=['POST'])
+def research_trends_endpoint():
+    """Research how a topic is being discussed across platforms - Trend Intelligence feature."""
+    from context_engine import research_topic_trends
+    
+    data = request.get_json()
+    topic = data.get('topic')
+    platform = data.get('platform', 'all')
+    
+    if not topic:
+        return jsonify({'error': 'Missing topic'}), 400
+    
+    try:
+        trends = research_topic_trends(topic, platform)
+        return jsonify({
+            'success': True,
+            'trends': trends
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/generate-script', methods=['POST'])
 def generate_script_endpoint():
     data = request.get_json()
@@ -3276,6 +3298,11 @@ def generate_script_endpoint():
     
     try:
         script = generate_script(idea, transcript, duration)
+        
+        # Store trend sources in session for later use in render
+        if script and script.get('trend_intel', {}).get('sources'):
+            session['last_trend_sources'] = script['trend_intel']['sources']
+        
         return jsonify({
             'success': True,
             'script': script
@@ -6407,11 +6434,30 @@ def render_video():
             pass
         
         if os.path.exists(output_path):
-            return jsonify({
+            response_data = {
                 'success': True,
                 'video_path': '/' + output_path,
                 'format': video_format
-            })
+            }
+            
+            # Generate video description using Trend Intelligence
+            try:
+                from context_engine import generate_video_description
+                
+                # Get trend sources from session
+                trend_sources = session.get('last_trend_sources', [])
+                
+                # Generate description with trend sources for context
+                desc_result = generate_video_description(script_text or '', trend_sources=trend_sources)
+                response_data['description'] = desc_result.get('description', '')
+                response_data['hashtags'] = desc_result.get('hashtags', [])
+                response_data['trend_sources'] = trend_sources
+            except Exception as desc_err:
+                print(f"Description generation error: {desc_err}")
+                response_data['description'] = ''
+                response_data['trend_sources'] = []
+            
+            return jsonify(response_data)
         else:
             return jsonify({'error': 'Video render failed'}), 500
             

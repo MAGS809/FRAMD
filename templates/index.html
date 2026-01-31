@@ -6092,6 +6092,32 @@
                     <p class="learning-tip" id="learning-tip">Complete more projects to help Echo Engine learn your style.</p>
                 </div>
                 
+                <!-- Trend Intelligence Section -->
+                <div class="ai-learning-section" style="background: linear-gradient(135deg, rgba(78,205,196,0.08), rgba(78,205,196,0.02)); border-color: rgba(78,205,196,0.15);">
+                    <div class="learning-header">
+                        <h3 style="display: flex; align-items: center; gap: 8px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ECDC4" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            Trend Intelligence
+                        </h3>
+                        <span class="learning-status" style="color: #4ECDC4;">Active</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
+                        AI researches how your topic is being discussed across platforms before creating content.
+                    </p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                        <span style="font-size: 10px; padding: 4px 8px; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; color: #4ECDC4;">Twitter</span>
+                        <span style="font-size: 10px; padding: 4px 8px; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; color: #4ECDC4;">Instagram</span>
+                        <span style="font-size: 10px; padding: 4px 8px; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; color: #4ECDC4;">TikTok</span>
+                        <span style="font-size: 10px; padding: 4px 8px; background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.2); border-radius: 12px; color: #4ECDC4;">YouTube</span>
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-dim); margin-top: 10px; font-style: italic;">
+                        Discovers successful hooks, formats, and visuals for your topic.
+                    </p>
+                </div>
+                
                 <!-- Generator Settings -->
                 <div class="generator-settings-section">
                     <div class="settings-header">
@@ -10669,6 +10695,49 @@
             setTimeout(() => toast.classList.remove('show'), duration);
         }
         
+        // Copy video description to clipboard
+        function copyDescription() {
+            const textarea = document.getElementById('video-description');
+            if (textarea) {
+                const citations = document.getElementById('citations-text');
+                const includeCitations = document.getElementById('include-citations')?.checked;
+                let text = textarea.value;
+                if (includeCitations && citations) {
+                    text += '\n\n' + citations.textContent;
+                }
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Description copied!');
+                }).catch(() => {
+                    showToast('Failed to copy');
+                });
+            }
+        }
+        
+        // Toggle citations visibility
+        function toggleCitations() {
+            const citationsDiv = document.getElementById('citations-text');
+            const checkbox = document.getElementById('include-citations');
+            if (citationsDiv && checkbox) {
+                citationsDiv.style.display = checkbox.checked ? 'block' : 'none';
+            }
+        }
+        
+        // Like video feedback
+        function likeVideo() {
+            showToast('Thanks for the feedback! This helps improve future results.');
+            // Store positive feedback for AI learning
+            fetch('/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'like', project_id: currentProjectId })
+            }).catch(() => {});
+        }
+        
+        // Show dislike options
+        function showDislikeOptions() {
+            addMessage('What would you like to improve? (e.g., pacing, visuals, voice, script)', true);
+        }
+        
         // Loading bar helpers
         let loadingProgress = 0;
         let loadingInterval = null;
@@ -11899,6 +11968,9 @@
             cardDiv.className = 'message ai video-result-message';
             cardDiv.id = 'video-result-' + Date.now();
             
+            const trendSources = renderData.trend_sources || [];
+            const hasSources = trendSources.length > 0;
+            
             cardDiv.innerHTML = `
                 <div class="inline-video-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
                     <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Your Video is Ready!</div>
@@ -11906,6 +11978,27 @@
                         <source src="${videoUrl}" type="video/mp4">
                         Your browser does not support video playback.
                     </video>
+                    
+                    <!-- Video Description Section -->
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 12px; font-weight: 600; color: var(--gold);">Video Description</span>
+                            <button onclick="copyDescription()" class="btn btn-secondary" style="font-size: 11px; padding: 4px 12px;">Copy</button>
+                        </div>
+                        <textarea id="video-description" readonly style="width: 100%; height: 60px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; padding: 8px; resize: none;">${renderData.description || 'Generating description...'}</textarea>
+                        ${hasSources ? `
+                        <div style="margin-top: 8px;">
+                            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); cursor: pointer;">
+                                <input type="checkbox" id="include-citations" onchange="toggleCitations()" style="accent-color: var(--gold);">
+                                Include citations
+                            </label>
+                            <div id="citations-text" style="display: none; margin-top: 6px; font-size: 11px; color: var(--text-dim); padding: 8px; background: rgba(0,0,0,0.15); border-radius: 4px;">
+                                Sources: ${trendSources.map(s => s.title || s.url).join(', ')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
                     <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
                         <a href="${videoUrl}" download class="btn btn-primary" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
                         <button class="btn btn-secondary" onclick="likeVideo()" style="font-size: 12px; padding: 8px 16px;">Like</button>

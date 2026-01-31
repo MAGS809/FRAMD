@@ -6,6 +6,10 @@ import requests
 from typing import Optional, List
 from openai import OpenAI
 import anthropic
+from duckduckgo_search import DDGS
+
+# Topic trend research cache to avoid redundant searches
+_trend_cache = {}
 
 # API Keys
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
@@ -201,6 +205,162 @@ def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, ma
     except Exception as e:
         print(f"[xAI Error] {e}")
         return {}
+
+
+def generate_video_description(script_text: str, trend_sources: list = None, include_hashtags: bool = True) -> dict:
+    """Generate a social media description for the video."""
+    sources_context = ""
+    if trend_sources:
+        sources_context = f"\nResearch sources used: {', '.join([s.get('title', s.get('url', ''))[:50] for s in trend_sources[:3]])}"
+    
+    prompt = f"""Generate a compelling social media description for this video.
+
+SCRIPT/CONTENT:
+{script_text[:2000]}
+{sources_context}
+
+Create:
+1. A hook line (attention-grabbing first line)
+2. 2-3 sentences summarizing the value
+3. Call to action
+{'4. 3-5 relevant hashtags' if include_hashtags else ''}
+
+Keep it under 300 characters for Instagram/TikTok compatibility.
+
+Output JSON:
+{{
+    "description": "The full description text ready to post",
+    "hook_line": "Just the hook line",
+    "hashtags": ["tag1", "tag2", "tag3"]
+}}"""
+
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=512)
+    return result if result else {
+        "description": "Check out this video!",
+        "hook_line": "Check out this video!",
+        "hashtags": ["content", "video", "viral"]
+    }
+
+
+def research_topic_trends(topic: str, target_platform: str = "all") -> dict:
+    """
+    Research how a topic is being discussed across platforms.
+    Returns insights on successful formats, hooks, visuals, and framings.
+    Uses caching to avoid redundant searches.
+    """
+    global _trend_cache
+    
+    cache_key = f"{topic}:{target_platform}"
+    if cache_key in _trend_cache:
+        print(f"[TrendIntel] Using cached research for: {topic}")
+        return _trend_cache[cache_key]
+    
+    print(f"[TrendIntel] Researching trends for: {topic}")
+    
+    platforms = ["Twitter", "Instagram Reels", "TikTok", "YouTube Shorts"] if target_platform == "all" else [target_platform]
+    
+    search_results = []
+    try:
+        with DDGS() as ddgs:
+            for platform in platforms:
+                query = f"{topic} {platform} viral video format 2025"
+                results = list(ddgs.text(query, max_results=3))
+                for r in results:
+                    search_results.append({
+                        "platform": platform,
+                        "title": r.get("title", ""),
+                        "snippet": r.get("body", ""),
+                        "source": r.get("href", "")
+                    })
+                    
+            general_query = f"{topic} short form video trends hooks what works"
+            general_results = list(ddgs.text(general_query, max_results=5))
+            for r in general_results:
+                search_results.append({
+                    "platform": "general",
+                    "title": r.get("title", ""),
+                    "snippet": r.get("body", ""),
+                    "source": r.get("href", "")
+                })
+    except Exception as e:
+        print(f"[TrendIntel] Web search error: {e}")
+        search_results = []
+    
+    if not search_results:
+        default_result = {
+            "topic": topic,
+            "patterns": {
+                "hooks": ["Direct question hook", "Controversial statement", "Statistics lead"],
+                "formats": ["Talking head with text overlay", "Documentary style", "Quick cuts with captions"],
+                "visuals": ["Professional lighting", "Clean background", "Dynamic b-roll"],
+                "framings": ["Educational angle", "Personal story", "News commentary"]
+            },
+            "platform_insights": {},
+            "sources": [],
+            "cached": False
+        }
+        return default_result
+    
+    search_context = "\n".join([
+        f"[{r['platform']}] {r['title']}: {r['snippet']}"
+        for r in search_results[:15]
+    ])
+    
+    prompt = f"""Analyze this web research about how "{topic}" is being discussed in short-form video content.
+
+RESEARCH FINDINGS:
+{search_context}
+
+Based on this research, extract:
+
+1. HOOKS: What opening lines/techniques are working for this topic?
+2. FORMATS: What video formats are being used? (talking head, documentary, reaction, etc.)
+3. VISUALS: What imagery/b-roll styles are associated with this topic?
+4. FRAMINGS: What angles/perspectives are creators taking?
+5. PLATFORM SPECIFICS: Any platform-specific patterns noticed?
+
+Output JSON:
+{{
+    "patterns": {{
+        "hooks": ["specific hook style 1", "specific hook style 2", "specific hook style 3"],
+        "formats": ["format 1", "format 2", "format 3"],
+        "visuals": ["visual style 1", "visual style 2", "visual style 3"],
+        "framings": ["framing angle 1", "framing angle 2", "framing angle 3"]
+    }},
+    "platform_insights": {{
+        "Twitter": "what works on Twitter for this topic",
+        "Instagram": "what works on Instagram for this topic",
+        "TikTok": "what works on TikTok for this topic",
+        "YouTube": "what works on YouTube Shorts for this topic"
+    }},
+    "successful_examples": ["brief description of a successful video format found"],
+    "avoid": ["what to avoid based on research"]
+}}
+
+Focus on ACTIONABLE patterns that can inform content creation."""
+
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    
+    if result:
+        result["topic"] = topic
+        result["sources"] = [{"title": r["title"], "url": r["source"]} for r in search_results[:5]]
+        result["cached"] = False
+        _trend_cache[cache_key] = result
+        print(f"[TrendIntel] Research complete for: {topic}")
+        return result
+    
+    return {
+        "topic": topic,
+        "patterns": {
+            "hooks": ["Direct statement", "Question hook", "Statistic lead"],
+            "formats": ["Talking head", "Text overlay", "Documentary"],
+            "visuals": ["Professional", "Authentic", "Dynamic"],
+            "framings": ["Educational", "Commentary", "Personal"]
+        },
+        "platform_insights": {},
+        "sources": [],
+        "cached": False
+    }
 
 
 def get_user_context(user_id: str, limit: int = 10) -> str:
@@ -403,19 +563,38 @@ Focus on substance, not viral moments. Identify ideas worth exploring, not sound
     return result if result else []
 
 
-def generate_script(idea: dict, transcript: str, duration: int = 30) -> dict:
-    """Generate a script for a specific idea. Script-first approach."""
+def generate_script(idea: dict, transcript: str, duration: int = 30, use_trends: bool = True) -> dict:
+    """Generate a script for a specific idea. Script-first approach with optional trend research."""
+    
+    trend_context = ""
+    trend_data = None
+    
+    if use_trends:
+        topic = idea.get('idea', '')[:100]
+        trend_data = research_topic_trends(topic)
+        if trend_data and trend_data.get('patterns'):
+            patterns = trend_data['patterns']
+            trend_context = f"""
+TREND INTELLIGENCE (what's working for this topic):
+- Successful hooks: {', '.join(patterns.get('hooks', [])[:3])}
+- Popular formats: {', '.join(patterns.get('formats', [])[:3])}
+- Visual styles: {', '.join(patterns.get('visuals', [])[:3])}
+- Effective framings: {', '.join(patterns.get('framings', [])[:3])}
+
+Use these patterns to inform your script - mimic what works but make it original.
+"""
+    
     prompt = f"""Write a {duration}-second video script based on this idea:
 
 IDEA: {idea['idea']}
 TYPE: {idea['type']}
 CONTEXT: {idea.get('context', 'N/A')}
-
+{trend_context}
 FULL TRANSCRIPT FOR REFERENCE:
 {transcript[:8000]}
 
 The script must contain:
-1. HOOK: An opening that creates clarity, not shock (1-2 sentences)
+1. HOOK: An opening that creates clarity, not shock (1-2 sentences) - USE PATTERNS THAT WORK
 2. CORE_CLAIM: The central argument or observation (2-3 sentences)
 3. GROUNDING: Explanation that provides context and nuance (2-3 sentences)
 4. CLOSING: A line that reinforces meaning without being preachy (1 sentence)
@@ -426,7 +605,15 @@ Also specify:
 
 Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_intent, full_script"""
 
-    return call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
+    
+    if result and trend_data:
+        result['trend_intel'] = {
+            'patterns_used': trend_data.get('patterns', {}),
+            'sources': trend_data.get('sources', [])[:3]
+        }
+    
+    return result
 
 
 def validate_loop_score(thesis: str, script: dict) -> dict:
@@ -475,15 +662,25 @@ Output JSON with:
     return result
 
 
-def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -> dict:
-    """Get AI-curated visual suggestions for a specific scene/anchor using lateral thinking."""
+def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None, topic_trends: dict = None) -> dict:
+    """Get AI-curated visual suggestions for a specific scene/anchor using lateral thinking and trend research."""
     keywords_str = ", ".join(keywords) if keywords else ""
+    
+    trend_visual_context = ""
+    if topic_trends and topic_trends.get('patterns', {}).get('visuals'):
+        trend_visuals = topic_trends['patterns']['visuals']
+        trend_visual_context = f"""
+TREND INTELLIGENCE - Visual styles working for this topic:
+{', '.join(trend_visuals[:4])}
+Use these visual patterns to inform your search queries.
+"""
     
     prompt = f"""You are a visual researcher who thinks LATERALLY. Your job is to find stock imagery that REPRESENTS the idea, not matches literal words.
 
 SCENE TYPE: {scene_type}
 SCENE TEXT: "{scene_text}"
 KEYWORDS: {keywords_str}
+{trend_visual_context}
 
 ## LATERAL THINKING METHOD
 Ask yourself: "What image would a viewer ASSOCIATE with this message?" — NOT "What words are in this sentence?"
