@@ -96,13 +96,16 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Scene Composer**: Enables background picking and character layering with Pillow-based background removal.
 - **Stage Directions**: AI-generated audio direction layer with effects like [PAUSE], [BEAT], [SILENCE], [TRANSITION].
 - **Sound FX System**: 10 synthesized effects (e.g., whoosh, impact) are auto-mixed into videos using [SOUND: type] tags.
-- **Token Cost System**: Displays per-feature token costs, with a session-based spending tracker.
+- **Token Cost System**: Token-based pricing with per-video costs (25 base + 3/character + 1/SFX). Token value: $0.04 each.
 - **Character Generation**: DALL-E integration for AI-generated characters.
 - **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
 - **Video Feedback System**: Like/Dislike buttons on generated videos. If disliked, users can add comments and send back to AI for refinement. Free users get 3 revisions, Pro gets unlimited.
 - **AI Self-Improvement**: Tracks feedback patterns, success rates, and injects learned patterns into future prompts. Stores feedback in VideoFeedback table and tracks global patterns in GlobalPattern table.
 - **Auto-Generator System**: Fully configurable content auto-generation with user-controlled settings (tone, format, length, voice style, topics). Locked until 5 liked projects (faded button shows "X/5 liked to unlock"), then unlocked for AI-powered content creation using learned patterns.
-- **Subscription Model**: Free tier for script writing and basic features; Pro tier ($10/month) for unlimited video generation, hosting, and unlimited revisions via Stripe.
+- **Subscription Model (3-Tier)**:
+  - **Free** ($0/mo): 50 tokens, script generation only, no video export
+  - **Creator** ($10/mo): 300 tokens, video export, premium voices
+  - **Pro** ($25/mo): 1000 tokens, unlimited revisions, auto-generator, priority rendering
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
 
 ## External Dependencies
