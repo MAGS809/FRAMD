@@ -3385,39 +3385,69 @@ def get_scene_visuals_endpoint():
 
 @app.route('/generate-scene-direction', methods=['POST'])
 def generate_scene_direction():
-    """Generate AI suggestion for scene camera direction based on content."""
+    """Generate AI suggestion for scene camera direction based on content using Claude."""
+    from context_engine import call_ai
+    
     data = request.get_json()
     scene_text = data.get('scene_text', '')
     scene_type = data.get('scene_type', 'SCENE')
+    visual_description = data.get('visual_description', '')
     
     if not scene_text:
         return jsonify({'direction': 'static'})
     
-    # Map scene types to default directions
-    type_defaults = {
-        'HOOK': 'zoom in slowly',
-        'CLAIM': 'static',
-        'EVIDENCE': 'pan left',
-        'PIVOT': 'zoom out',
-        'COUNTER': 'pan right',
-        'CLOSER': 'zoom in slowly'
-    }
-    
-    # Simple heuristics for direction based on content
-    text_lower = scene_text.lower()
-    
-    if any(word in text_lower for word in ['reveal', 'but', 'however', 'actually']):
-        direction = 'zoom in slowly'
-    elif any(word in text_lower for word in ['look at', 'consider', 'across', 'span']):
-        direction = 'pan left'
-    elif any(word in text_lower for word in ['return', 'back to', 'meanwhile']):
-        direction = 'pan right'
-    elif any(word in text_lower for word in ['big picture', 'overall', 'in the end']):
-        direction = 'zoom out'
-    else:
-        direction = type_defaults.get(scene_type.upper(), 'static')
-    
-    return jsonify({'direction': direction})
+    prompt = f"""Based on this scene content, suggest ONE camera direction that best matches the emotional and narrative tone.
+
+Scene type: {scene_type}
+Scene text: "{scene_text}"
+{f'Visual description: {visual_description}' if visual_description else ''}
+
+Available directions:
+- "zoom in slowly" - for reveals, emphasis, drawing viewer in, intimate moments
+- "zoom out" - for big picture moments, conclusions, pulling back to show context
+- "pan left" - for transitions, showing progression, scanning across a scene
+- "pan right" - for returning to something, contrast, counter-movement
+- "static" - for direct statements, stable moments, letting content speak
+
+Consider:
+1. The emotional arc of the text
+2. Whether this is building tension or releasing it
+3. What movement would enhance rather than distract from the message
+
+Respond with ONLY the direction (e.g. "zoom in slowly" or "static"). No explanation."""
+
+    try:
+        response = call_ai(prompt, max_tokens=20)
+        direction = response.strip().lower().strip('"\'')
+        
+        valid_directions = ['zoom in slowly', 'zoom out', 'pan left', 'pan right', 'static', 'zoom in', 'slow zoom']
+        if not any(d in direction for d in valid_directions):
+            direction = 'static'
+        
+        if 'zoom in' in direction:
+            direction = 'zoom in slowly'
+        elif 'zoom out' in direction:
+            direction = 'zoom out'
+        elif 'pan left' in direction:
+            direction = 'pan left'
+        elif 'pan right' in direction:
+            direction = 'pan right'
+        else:
+            direction = 'static'
+            
+        return jsonify({'direction': direction})
+        
+    except Exception as e:
+        print(f"[Scene Direction AI] Error: {e}")
+        type_defaults = {
+            'HOOK': 'zoom in slowly',
+            'CLAIM': 'static',
+            'EVIDENCE': 'pan left',
+            'PIVOT': 'zoom out',
+            'COUNTER': 'pan right',
+            'CLOSER': 'zoom in slowly'
+        }
+        return jsonify({'direction': type_defaults.get(scene_type.upper(), 'static')})
 
 
 @app.route('/find-clips', methods=['POST'])
