@@ -1797,9 +1797,19 @@
         }
         
         .message.user {
-            padding-left: 2rem;
+            display: flex;
+            justify-content: flex-end;
+            padding-left: 20%;
             color: var(--text);
             animation: userMessageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .message.user .message-content {
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 16px 16px 4px 16px;
+            padding: 10px 14px;
+            max-width: 100%;
         }
         
         @keyframes userMessageIn {
@@ -1814,8 +1824,38 @@
         }
         
         .message.ai {
+            display: flex;
+            justify-content: flex-start;
+            padding-right: 20%;
             color: var(--text);
             animation: aiMessageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .message.ai .message-content {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 16px 16px 16px 4px;
+            padding: 10px 14px;
+            max-width: 100%;
+        }
+        
+        /* Workflow cards appear centered */
+        .message.ai.script-card-message,
+        .message.ai.visual-picker-message,
+        .message.ai.video-result-message {
+            justify-content: center;
+            padding-left: 0;
+            padding-right: 0;
+        }
+        
+        .message.ai.script-card-message .message-content,
+        .message.ai.visual-picker-message .message-content,
+        .message.ai.video-result-message .message-content {
+            background: none;
+            border: none;
+            padding: 0;
+            max-width: 100%;
+            width: 100%;
         }
         
         @keyframes aiMessageIn {
@@ -8127,9 +8167,20 @@
             if (result.status === 'needs_clarification') {
                 // AI needs clarification - show with clickable options
                 const question = result.question || 'What is the main point you want to make?';
-                const options = result.options || extractOptionsFromQuestion(question);
+                // Use options from backend if available, otherwise extract from question
+                const options = (result.options && result.options.length > 0) 
+                    ? result.options 
+                    : extractOptionsFromQuestion(question);
                 addMessageWithOptions(question, options);
                 if (result.thesis) displayThesis(result.thesis);
+                
+                // Set flag to indicate we're awaiting clarification
+                awaitingClarification = true;
+                
+                // Track clarification number
+                if (result.clarification_number) {
+                    console.log(`[Clarification ${result.clarification_number}/3]`);
+                }
             } else if (result.status === 'ready') {
                 if (result.mode === 'clip') {
                     // Clipping mode - show suggested clips
@@ -10584,25 +10635,82 @@
             // Remove option buttons from the message (already selected)
             const optionButtons = document.querySelectorAll('.option-buttons');
             optionButtons.forEach(btns => {
-                // Fade out and mark as selected
-                const selected = btns.querySelector(`button`);
                 btns.innerHTML = `<div style="color: var(--gold); font-size: 12px; font-style: italic;">Selected: ${escapeHtml(option)}</div>`;
             });
             
+            // Note: clarificationCount is incremented in sendMessageWithContext, not here
+            // This prevents double-counting
+            
             if (option.toLowerCase().includes('something else')) {
-                // Focus the input for custom answer
+                // Focus the input for custom answer - don't increment yet, wait for typed response
                 const input = document.getElementById('composer-input');
                 if (input) {
                     input.focus();
                     input.placeholder = 'Type your answer...';
                 }
             } else {
-                // Send the selected option as a message
+                // Combine selected option with original context
+                const combinedMessage = originalIdea 
+                    ? `${originalIdea}\n\nUser clarification: ${option}`
+                    : option;
+                
                 const input = document.getElementById('composer-input');
                 if (input) {
-                    input.value = option;
-                    sendMessage();
+                    // Show just the option in chat for cleaner look
+                    addMessage(option, true);
+                    input.value = '';
+                    
+                    // Increment and reset flag, then send combined context to AI
+                    clarificationCount++;
+                    awaitingClarification = false;  // Reset after handling option selection
+                    sendMessageWithContext(combinedMessage, clarificationCount);
                 }
+            }
+        }
+        
+        // Send message with context (for clarification flow)
+        async function sendMessageWithContext(fullMessage, clarifyCount) {
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = true;
+            startLoading();
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/unified-engine', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        input: fullMessage,
+                        mode: 'auto',
+                        clarification_count: clarifyCount,
+                        force_generate: clarifyCount >= MAX_CLARIFICATIONS
+                    })
+                });
+                
+                const data = await response.json();
+                removeTypingIndicator();
+                
+                if (data.mode === 'greeting') {
+                    addMessage(data.reply || "What's on your mind the world should get to know?");
+                } else if (data.success && data.result) {
+                    handleUnifiedResponse(data.result);
+                    
+                    // Reset clarification tracking on successful script generation
+                    if (data.result.status === 'ready' && data.result.script?.full_script) {
+                        clarificationCount = 0;
+                        originalIdea = '';
+                        awaitingClarification = false;
+                    }
+                } else {
+                    addMessage('Could not process. Try rephrasing your idea.');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                removeTypingIndicator();
+                addMessage('Connection error. Please try again.');
+            } finally {
+                stopLoading();
+                sendBtn.disabled = false;
             }
         }
         
@@ -10613,6 +10721,11 @@
             let message = input.value.trim();
             
             if (!message && !uploadedFile) return;
+            
+            // Store original idea if this is a new conversation (not a clarification response)
+            if (message && !originalIdea && clarificationCount === 0) {
+                originalIdea = message;
+            }
             
             // Save original input for rebuild functionality
             if (message && !localStorage.getItem('lastProjectInput')) {
@@ -10772,14 +10885,25 @@
                 // Always use unified engine with auto-detection - AI determines create vs clip
                 const useUnified = true;
                 
+                // If this is a typed clarification response (user typed after "Something else...")
+                // combine with original context
+                let messageToSend = fullMessage;
+                if (awaitingClarification && originalIdea) {
+                    messageToSend = `${originalIdea}\n\nUser clarification: ${fullMessage}`;
+                    clarificationCount++;  // Increment only once for typed responses
+                    awaitingClarification = false;  // Reset flag after handling
+                }
+                
                 if (useUnified) {
                     // Use unified engine for thesis extraction and clipping - auto-detect mode
                     const unifiedResponse = await fetch('/unified-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            input: fullMessage,
-                            mode: 'auto'  // AI auto-detects create vs clip
+                            input: messageToSend,
+                            mode: 'auto',
+                            clarification_count: clarificationCount,
+                            force_generate: clarificationCount >= MAX_CLARIFICATIONS
                         })
                     });
                     
@@ -10799,6 +10923,13 @@
                     
                     if (unifiedData.success && unifiedData.result) {
                         handleUnifiedResponse(unifiedData.result);
+                        
+                        // Reset clarification tracking on successful script generation
+                        if (unifiedData.result.status === 'ready' && unifiedData.result.script?.full_script) {
+                            clarificationCount = 0;
+                            originalIdea = '';
+                            awaitingClarification = false;
+                        }
                         
                         // Create a meaningful message based on mode
                         let responseMsg = 'Processing complete.';
@@ -10900,6 +11031,13 @@
         
         // Workflow step tracking - All transitions happen via chat
         let currentWorkflowStep = 1;
+        
+        // Clarification tracking - max 3 clarifications then force script generation
+        let clarificationCount = 0;
+        let originalIdea = '';  // Store the original idea to maintain context
+        let awaitingClarification = false;  // Flag to track if we're in clarification mode
+        const MAX_CLARIFICATIONS = 3;
+        
         const WORKFLOW_STEPS = {
             1: { name: 'Script Writing', guide: null, action: null },
             2: { name: 'Scene Review', guide: null, action: null },

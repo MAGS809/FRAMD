@@ -1669,7 +1669,7 @@ def get_source_learning_context(user_id: str) -> str:
         return ""
 
 
-def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", has_media: bool = False) -> dict:
+def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", has_media: bool = False, clarification_count: int = 0, force_generate: bool = False) -> dict:
     """
     Unified engine that handles content creation with optional media integration.
     
@@ -1685,6 +1685,11 @@ def unified_content_engine(user_input: str, user_id: str, mode: str = "auto", ha
     - create: Force script creation mode
     - clip_video: Direct video clipping using anchors
     - inspire_visuals: Use provided media to inform visual curation
+    
+    Clarification Rules:
+    - Max 3 clarifying questions allowed
+    - After 3 clarifications, force script generation using AI's own knowledge
+    - AI should research and fill gaps rather than asking endless questions
     """
     detection_prompt = f"""Analyze this user input and determine what they're trying to do.
 
@@ -1786,13 +1791,91 @@ Output JSON:
     # Default: Create mode - generate script from user's idea/content
     thesis = extract_thesis(user_input, "idea")
     
-    if thesis.get('requires_clarification', False):
+    # Handle clarification - but respect max clarification limit
+    if thesis.get('requires_clarification', False) and not force_generate and clarification_count < 3:
+        # Generate smart clarifying question with options
+        question = thesis.get('clarification_question', 'What is the main point you want to make?')
+        
+        # Try to extract options from the question for button display
+        options = []
+        if ' or ' in question.lower():
+            # AI provided options in question - extract them
+            import re
+            parts = re.split(r',?\s+or\s+', question, flags=re.IGNORECASE)
+            for part in parts:
+                clean = part.strip().rstrip('?').strip()
+                if clean and len(clean) > 5 and len(clean) < 100:
+                    options.append(clean[0].upper() + clean[1:] if clean else clean)
+            if len(options) >= 2:
+                options.append('Something else...')
+        
         return {
             "mode": "create",
             "status": "needs_clarification", 
             "thesis": thesis,
-            "question": thesis.get('clarification_question', 'What is the main point you want to make?')
+            "question": question,
+            "options": options,
+            "clarification_number": clarification_count + 1
         }
+    
+    # If force_generate or max clarifications reached, use AI's knowledge to fill gaps
+    if force_generate or clarification_count >= 3:
+        # Override thesis to force script generation - use AI to generate thesis
+        if not thesis.get('thesis_statement') or thesis.get('requires_clarification'):
+            # Use AI to research and generate a thesis based on the topic
+            force_thesis_prompt = f"""You are generating content for a short-form video. The user has provided this input but we need to proceed without further clarification.
+
+USER INPUT:
+{user_input[:2000]}
+
+Based on your knowledge of this topic, generate a compelling thesis for a 30-60 second video.
+Research what you know about the subjects mentioned and identify the most interesting angle.
+
+If this involves public figures, research their known positions, contradictions, or notable dynamics.
+If this is about a concept, find the most compelling insight or revelation.
+If the tone is comedic/satirical, lean into absurdity while making a real point.
+
+Output JSON:
+{{
+    "thesis_statement": "One clear, punchy sentence stating the core insight or claim",
+    "thesis_type": "one of [argument, satire, revelation, observation, comedy]",
+    "core_claim": "The underlying truth or insight being explored",
+    "tone": "The overall tone (satirical, serious, comedic, etc.)",
+    "target_audience": "Who will find this interesting",
+    "intended_impact": "What reaction or understanding should viewers have",
+    "key_research_points": ["3-5 specific facts/details you'll use in the script"],
+    "confidence": 0.8
+}}
+
+IMPORTANT: Do NOT ask for clarification. Use your knowledge to make smart assumptions."""
+            
+            system = "You are a content researcher and thesis generator. Your job is to take incomplete ideas and turn them into compelling video concepts using your knowledge."
+            
+            forced_thesis = call_ai(force_thesis_prompt, system, json_output=True, max_tokens=1024)
+            
+            if forced_thesis and forced_thesis.get('thesis_statement'):
+                thesis = {
+                    'thesis_statement': forced_thesis.get('thesis_statement'),
+                    'thesis_type': forced_thesis.get('thesis_type', 'observation'),
+                    'core_claim': forced_thesis.get('core_claim', user_input[:300]),
+                    'target_audience': forced_thesis.get('target_audience', 'General audience'),
+                    'intended_impact': forced_thesis.get('intended_impact', 'Inform and entertain'),
+                    'confidence': forced_thesis.get('confidence', 0.8),
+                    'requires_clarification': False,
+                    'key_research_points': forced_thesis.get('key_research_points', []),
+                    'tone': forced_thesis.get('tone', 'informative')
+                }
+            else:
+                # Final fallback if AI call fails
+                thesis = {
+                    'thesis_statement': f"An exploration of: {user_input[:100]}",
+                    'thesis_type': 'observation',
+                    'core_claim': user_input[:300],
+                    'target_audience': 'General audience',
+                    'intended_impact': 'Inform and entertain',
+                    'confidence': 0.6,
+                    'requires_clarification': False
+                }
     
     learned_patterns = {}
     try:

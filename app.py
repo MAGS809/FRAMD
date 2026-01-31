@@ -5060,6 +5060,8 @@ def unified_engine():
     mode = data.get('mode', 'auto')
     project_id = data.get('project_id')
     has_media = data.get('has_media', False)  # True when video/audio is uploaded
+    clarification_count = data.get('clarification_count', 0)
+    force_generate = data.get('force_generate', False)
     
     user_id = current_user.id if current_user.is_authenticated else 'dev_user'
     
@@ -5067,7 +5069,7 @@ def unified_engine():
         return jsonify({'error': 'No input provided'}), 400
     
     try:
-        result = unified_content_engine(user_input, user_id, mode, has_media)
+        result = unified_content_engine(user_input, user_id, mode, has_media, clarification_count, force_generate)
         
         if result.get('mode') == 'greeting':
             return jsonify({
