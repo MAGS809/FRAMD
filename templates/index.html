@@ -8125,9 +8125,10 @@
         // Handle Unified Engine Response
         function handleUnifiedResponse(result) {
             if (result.status === 'needs_clarification') {
-                // AI needs clarification
+                // AI needs clarification - show with clickable options
                 const question = result.question || 'What is the main point you want to make?';
-                addMessage(question);
+                const options = result.options || extractOptionsFromQuestion(question);
+                addMessageWithOptions(question, options);
                 if (result.thesis) displayThesis(result.thesis);
             } else if (result.status === 'ready') {
                 if (result.mode === 'clip') {
@@ -10508,6 +10509,101 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        // Extract options from a question like "Is the goal X, or Y?"
+        function extractOptionsFromQuestion(question) {
+            if (!question) return [];
+            
+            // Try to find options separated by ", or " or " or "
+            const orPattern = /(.+?)(?:,\s*or\s+|\s+or\s+)(.+?)(?:\?|$)/i;
+            const match = question.match(orPattern);
+            
+            if (match) {
+                const options = [];
+                // Split by commas and "or"
+                const parts = question.replace(/\?$/, '').split(/,\s*or\s+|\s+or\s+|,\s+/i);
+                
+                for (let part of parts) {
+                    // Clean up the option text
+                    let cleaned = part.trim()
+                        .replace(/^(is the goal|is it|do you want|would you like|should it be)\s+/i, '')
+                        .replace(/\?$/, '')
+                        .trim();
+                    
+                    if (cleaned && cleaned.length > 2 && cleaned.length < 100) {
+                        // Capitalize first letter
+                        cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+                        options.push(cleaned);
+                    }
+                }
+                
+                // Add "Something else" option if we have valid options
+                if (options.length >= 2) {
+                    options.push('Something else...');
+                    return options;
+                }
+            }
+            
+            return [];
+        }
+        
+        // Add message with clickable option buttons
+        function addMessageWithOptions(content, options) {
+            const messages = document.getElementById('messages');
+            if (!messages) return;
+            
+            const msg = document.createElement('div');
+            msg.className = 'message ai';
+            
+            // Clean the question text (remove the options part for cleaner display)
+            let questionText = content;
+            
+            let html = `<div class="message-content">${escapeHtml(questionText)}</div>`;
+            
+            // Add option buttons if we have any
+            if (options && options.length > 0) {
+                html += `<div class="option-buttons" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">`;
+                
+                for (const option of options) {
+                    const isOther = option.toLowerCase().includes('something else');
+                    const btnClass = isOther ? 'btn-secondary' : 'btn-primary';
+                    html += `<button class="btn ${btnClass} option-btn" onclick="selectOption('${escapeHtml(option.replace(/'/g, "\\'"))}')" style="font-size: 12px; padding: 8px 16px;">${escapeHtml(option)}</button>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            msg.innerHTML = html;
+            messages.appendChild(msg);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Handle option button click
+        function selectOption(option) {
+            // Remove option buttons from the message (already selected)
+            const optionButtons = document.querySelectorAll('.option-buttons');
+            optionButtons.forEach(btns => {
+                // Fade out and mark as selected
+                const selected = btns.querySelector(`button`);
+                btns.innerHTML = `<div style="color: var(--gold); font-size: 12px; font-style: italic;">Selected: ${escapeHtml(option)}</div>`;
+            });
+            
+            if (option.toLowerCase().includes('something else')) {
+                // Focus the input for custom answer
+                const input = document.getElementById('composer-input');
+                if (input) {
+                    input.focus();
+                    input.placeholder = 'Type your answer...';
+                }
+            } else {
+                // Send the selected option as a message
+                const input = document.getElementById('composer-input');
+                if (input) {
+                    input.value = option;
+                    sendMessage();
+                }
+            }
         }
         
         // Send message
