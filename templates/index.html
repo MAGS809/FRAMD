@@ -6153,7 +6153,7 @@
                             <span class="stat-label">Progress</span>
                         </div>
                     </div>
-                    <p class="learning-tip" id="learning-tip">Complete more projects to help Echo Engine learn your style.</p>
+                    <p class="learning-tip" id="learning-tip">Like more videos to help Echo Engine learn your style.</p>
                 </div>
                 
                 <!-- Trend Intelligence Section -->
@@ -6249,7 +6249,7 @@
                     </div>
                     <div class="auto-gen-status" id="auto-gen-status">
                         <span class="status-icon" id="auto-gen-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
-                        <span class="status-text" id="auto-gen-text">0/5 liked to unlock auto-generation</span>
+                        <span class="status-text" id="auto-gen-text">0/5 videos liked to unlock</span>
                     </div>
                 </div>
                 
@@ -8749,7 +8749,7 @@
         let currentProjectId = null;
         let generatingProjectId = null;
         let aiLearningData = { learning_progress: 0, can_auto_generate: false };
-        let autoGenerateConfidence = { is_unlocked: false, liked_count: 0, unlock_threshold: 5, progress_message: '0/5 liked to unlock' };
+        let autoGenerateConfidence = { is_unlocked: false, liked_count: 0, unlock_threshold: 5, progress_message: '0/5 videos liked to unlock' };
         
         // Fetch auto-generate confidence status
         async function fetchAutoGenerateConfidence() {
@@ -9320,7 +9320,7 @@
                                 <span style="font-weight: 600; font-size: 13px;">Unlock Auto-Generate</span>
                             </div>
                             <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 8px;">
-                                Complete ${remaining > 0 ? remaining + ' more projects' : 'projects'} and like them to unlock AI auto-generation. Echo Engine learns your style and creates content automatically.
+                                Like ${remaining > 0 ? remaining + ' more videos' : 'videos'} to unlock AI auto-generation. Echo Engine learns from what you approve.
                             </p>
                             <div style="display: flex; gap: 4px;">
                                 ${[1,2,3,4,5].map(i => `<div style="width: 20%; height: 4px; border-radius: 2px; background: ${i <= likedCount ? 'var(--gold)' : 'rgba(255,255,255,0.1)'};"></div>`).join('')}
@@ -9629,7 +9629,7 @@
                 } else if (learning.learning_progress >= 50) {
                     tip.textContent = `${5 - (learning.successful_projects || 0)} more successful posts to unlock auto-generation.`;
                 } else {
-                    tip.textContent = 'Complete more projects to help Echo Engine learn your style.';
+                    tip.textContent = 'Like more videos to help Echo Engine learn your style.';
                 }
             }
         }

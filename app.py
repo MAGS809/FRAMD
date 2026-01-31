@@ -7604,22 +7604,19 @@ def generator_settings():
 
 @app.route('/generator-confidence', methods=['GET'])
 def generator_confidence():
-    """Calculate AI confidence for auto-generation based on liked projects."""
-    from models import Project, AILearning, GlobalPattern
+    """Calculate AI confidence for auto-generation based on liked videos."""
+    from models import Project, AILearning, GlobalPattern, VideoFeedback
     
-    UNLOCK_THRESHOLD = 5  # Need 5 liked projects to unlock auto-generation
+    UNLOCK_THRESHOLD = 5  # Need 5 liked videos to unlock auto-generation
     
     user_id = get_user_id()
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
     
     try:
-        # Count liked projects for this user
-        liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
-        total_with_feedback = Project.query.filter(
-            Project.user_id == user_id,
-            Project.liked.isnot(None)
-        ).count()
+        # Count liked videos (not projects) for this user
+        liked_count = VideoFeedback.query.filter_by(user_id=user_id, liked=True).count()
+        total_with_feedback = VideoFeedback.query.filter_by(user_id=user_id).count()
         
         # Calculate success rate
         success_rate = (liked_count / total_with_feedback * 100) if total_with_feedback > 0 else 0
@@ -7632,7 +7629,7 @@ def generator_confidence():
             progress_message = "Auto-Generate unlocked!"
         else:
             remaining = UNLOCK_THRESHOLD - liked_count
-            progress_message = f"{liked_count}/{UNLOCK_THRESHOLD} liked to unlock"
+            progress_message = f"{liked_count}/{UNLOCK_THRESHOLD} videos liked to unlock"
         
         # Get learned patterns for confidence
         learned_patterns = GlobalPattern.query.filter(
@@ -7662,7 +7659,7 @@ def generator_confidence():
 @app.route('/auto-generate', methods=['POST'])
 def auto_generate():
     """Auto-generate content using learned patterns and user settings."""
-    from models import Project, GeneratorSettings, GlobalPattern, AILearning
+    from models import Project, GeneratorSettings, GlobalPattern, AILearning, VideoFeedback
     from flask_login import current_user
     import os
     
@@ -7677,12 +7674,12 @@ def auto_generate():
     if not user_id:
         return jsonify({'error': 'Authentication required'}), 401
     
-    # Check if unlocked
-    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+    # Check if unlocked (count liked videos, not projects)
+    liked_count = VideoFeedback.query.filter_by(user_id=user_id, liked=True).count()
     if liked_count < UNLOCK_THRESHOLD:
         return jsonify({
             'error': 'Auto-generation not unlocked',
-            'message': f'Need {UNLOCK_THRESHOLD - liked_count} more liked projects to unlock',
+            'message': f'Need {UNLOCK_THRESHOLD - liked_count} more liked videos to unlock',
             'requires_unlock': True
         }), 403
     
