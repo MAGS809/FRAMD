@@ -476,45 +476,66 @@ Output JSON with:
 
 
 def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -> dict:
-    """Get AI-curated visual suggestions for a specific scene/anchor."""
+    """Get AI-curated visual suggestions for a specific scene/anchor using lateral thinking."""
     keywords_str = ", ".join(keywords) if keywords else ""
     
-    prompt = f"""You are a visual researcher for short-form video. Your job is to find the PERFECT stock imagery for this scene.
+    prompt = f"""You are a visual researcher who thinks LATERALLY. Your job is to find stock imagery that REPRESENTS the idea, not matches literal words.
 
 SCENE TYPE: {scene_type}
 SCENE TEXT: "{scene_text}"
 KEYWORDS: {keywords_str}
 
-CRITICAL RULES FOR SEARCH QUERIES:
-1. Be LITERAL and SPECIFIC - stock sites need exact visual descriptions
-2. Use 2-4 word phrases that describe WHAT IS VISIBLE in the image
-3. Include specific nouns: people, objects, places, actions
-4. Avoid abstract concepts - translate them to visuals
+## LATERAL THINKING METHOD
+Ask yourself: "What image would a viewer ASSOCIATE with this message?" — NOT "What words are in this sentence?"
 
-GOOD QUERIES (specific, visual):
-- "Epstein island documents" → "private jet interior", "tropical island aerial", "legal documents pile"
-- "political corruption" → "courthouse steps", "politician podium", "money briefcase"
-- "cover-up scandal" → "shredded documents", "closed door meeting", "redacted files"
-- "elite connections" → "luxury penthouse", "private club entrance", "champagne toast"
-- "media silence" → "empty newsroom", "microphone off", "newspaper headlines"
-- "victim testimony" → "courtroom witness stand", "emotional testimony", "legal trial"
+Stock sites have common imagery. Search for what EXISTS, not what you wish existed.
 
-BAD QUERIES (too abstract):
-- "the truth" (not visual)
-- "implications" (not searchable)
-- "what really happened" (not an image)
+## EXAMPLES BY CONTENT TYPE
+
+TECH/SOFTWARE:
+- "Clip tools make you scrub timelines" → "filmmaker editing computer", "video production workspace", "creative professional laptop", "digital timeline interface"
+- "AI does the heavy lifting" → "robot arm assembly", "automation machinery", "hands-free workflow", "futuristic technology"
+- "Stop wasting hours on editing" → "clock time lapse", "frustrated person desk", "hourglass sand falling", "productive workflow"
+
+BUSINESS/STARTUP:
+- "Most startups fail in year one" → "empty office chairs", "closed business sign", "entrepreneur stressed", "financial charts declining"
+- "Scale your revenue" → "growth chart upward", "team celebrating success", "money stacks", "expanding cityscape"
+
+LIFESTYLE/SELF-IMPROVEMENT:
+- "Break free from the 9-5" → "person leaving office building", "laptop beach view", "sunrise freedom", "open road driving"
+- "Build habits that stick" → "morning routine coffee", "gym workout", "journal writing", "calendar checkmarks"
+
+DOCUMENTARY/NEWS:
+- "Political corruption exposed" → "courthouse steps", "politician podium", "gavel courtroom", "redacted documents"
+- "The truth they hide" → "shredded paper", "closed door meeting", "surveillance camera", "locked filing cabinet"
+
+CREATIVE/ARTISTIC:
+- "Your story deserves to be heard" → "microphone spotlight", "audience listening", "storyteller stage", "emotional performance"
+- "Create content that resonates" → "creator studio setup", "audience engagement", "viral social media", "authentic moment"
+
+## BAD QUERIES (will return garbage):
+- Abstract nouns: "truth", "success", "implications"
+- Full sentences: "what really happened"  
+- Brand names without context: "Adobe Premiere"
+- Overly specific tech: "timeline scrubbing feature"
+
+## GOOD QUERIES use:
+- People doing actions: "filmmaker editing", "entrepreneur working"
+- Objects with context: "laptop creative workspace", "camera studio setup"
+- Emotional scenes: "frustrated person computer", "celebrating team office"
+- Universal visuals: "clock spinning", "growth chart", "sunrise city"
 
 Output JSON:
 {{
-    "visual_concept": "One sentence describing the ideal visual for this scene",
-    "search_queries": ["specific visual 1", "specific visual 2", "specific visual 3"],
-    "background_queries": ["atmospheric background 1", "cinematic setting 2"],
-    "visual_style": "documentary | atmospheric | archival | portrait | b-roll",
+    "visual_concept": "One sentence describing what visual REPRESENTS this idea",
+    "search_queries": ["lateral visual 1", "lateral visual 2", "lateral visual 3", "lateral visual 4"],
+    "background_queries": ["atmospheric setting 1", "cinematic backdrop 2"],
+    "visual_style": "tech | lifestyle | documentary | creative | business | atmospheric",
     "motion": "static | slow_pan | zoom | dynamic",
-    "mood": "tense | hopeful | dramatic | somber | neutral"
+    "mood": "inspiring | tense | hopeful | dramatic | calm | energetic"
 }}
 
-Remember: Someone will search these exact terms on a stock photo site. Make them FINDABLE."""
+Think like a music video director: What B-ROLL represents this feeling?"""
 
     result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=512)
     if not result:
