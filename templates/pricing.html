@@ -317,124 +317,127 @@
             <p>No hidden fees. No token games. Just clear value for serious creators.</p>
         </section>
         
-        <section class="extras">
-            <h2>Pay-As-You-Go Add-ons</h2>
-            <div class="extras-grid">
-                <div class="extra-item">
-                    <h4>Extra Video Export</h4>
-                    <div class="extra-price">$2</div>
-                    <p>One additional video render</p>
-                </div>
-                <div class="extra-item">
-                    <h4>Premium Voice Pack</h4>
-                    <div class="extra-price">$5</div>
-                    <p>10 premium voiceover credits</p>
-                </div>
-                <div class="extra-item">
-                    <h4>AI Character</h4>
-                    <div class="extra-price">$3</div>
-                    <p>Generate a custom character</p>
-                </div>
-            </div>
-        </section>
-        
         <section class="philosophy">
             <h2>Our Philosophy</h2>
             <p>We believe in quality over quantity. Every feature is built to help you create content that matters — content that's clear, intentional, and resonant. We don't optimize for virality or cheap engagement. We optimize for impact.</p>
         </section>
         
-        <div class="pricing-grid">
+        <div class="pricing-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <!-- Free Tier -->
             <div class="pricing-card">
                 <h3>Free</h3>
                 <div class="price">$0<span>/month</span></div>
-                <p class="description">Perfect for trying out the platform and creating your first scripts.</p>
+                <div style="color: var(--text); font-size: 0.9rem; margin-bottom: 1rem;">50 tokens/month</div>
+                <p class="description">Try the platform and generate scripts.</p>
                 <ul class="feature-list">
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Unlimited script generation
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Script generation
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Thesis extraction & anchors
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        AI voice preview
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Clipper-to-post automation
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span style="opacity: 0.5;">Video export</span>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        3 video exports per month
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span style="opacity: 0.5;">Premium voices</span>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Basic voice options
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span style="opacity: 0.5;">Auto-generator</span>
                     </li>
                 </ul>
                 <a href="{{ url_for('replit_auth.login') }}" class="btn btn-secondary">Get Started</a>
             </div>
             
-            <div class="pricing-card featured">
-                <div class="featured-badge">Most Popular</div>
-                <h3>Pro</h3>
+            <!-- Creator Tier -->
+            <div class="pricing-card">
+                <h3>Creator</h3>
                 <div class="price">$10<span>/month</span></div>
-                <p class="description">For creators who need unlimited power and premium quality.</p>
+                <div style="color: var(--text); font-size: 0.9rem; margin-bottom: 1rem;">300 tokens/month</div>
+                <p class="description">For creators ready to export videos.</p>
                 <ul class="feature-list">
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Everything in Free
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Script generation
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        <strong>Unlimited video exports</strong>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>Video export</strong>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Premium ElevenLabs voices
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Premium voices
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Video hosting
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <span style="opacity: 0.5;">Unlimited revisions</span>
+                    </li>
+                </ul>
+                <a href="/subscribe?tier=creator" class="btn btn-primary">Get Creator</a>
+            </div>
+            
+            <!-- Pro Tier -->
+            <div class="pricing-card featured">
+                <div class="featured-badge">BEST VALUE</div>
+                <h3>Pro</h3>
+                <div class="price">$25<span>/month</span></div>
+                <div style="color: var(--text); font-size: 0.9rem; margin-bottom: 1rem;">1000 tokens/month</div>
+                <p class="description">Unlimited power for serious creators.</p>
+                <ul class="feature-list">
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Everything in Creator
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>Unlimited revisions</strong>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>Auto-generator</strong>
+                    </li>
+                    <li>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         AI character generation
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Multi-character scripts
-                    </li>
-                    <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Cloud hosting for videos
-                    </li>
-                    <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Priority support
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Priority rendering
                     </li>
                 </ul>
-                <a href="/subscribe" class="btn btn-primary">Subscribe Now</a>
+                <a href="/subscribe?tier=pro" class="btn btn-primary" style="background: var(--text); color: var(--bg);">Get Pro</a>
             </div>
         </div>
+        
+        <section class="extras" style="margin-top: 3rem;">
+            <h2>Token Costs</h2>
+            <div class="extras-grid">
+                <div class="extra-item">
+                    <h4>Base Video</h4>
+                    <div class="extra-price">25 tokens</div>
+                    <p>Script, voice, captions, render</p>
+                </div>
+                <div class="extra-item">
+                    <h4>Extra Character</h4>
+                    <div class="extra-price">+3 tokens</div>
+                    <p>Each additional character</p>
+                </div>
+                <div class="extra-item">
+                    <h4>Sound Effect</h4>
+                    <div class="extra-price">+1 token</div>
+                    <p>Per [SOUND: effect] tag</p>
+                </div>
+            </div>
+        </section>
         
         <footer>
             <p>&copy; 2026 Framd. Quality content for those who care.</p>
