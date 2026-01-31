@@ -6835,7 +6835,7 @@
                     </div>
                 </div>
                     <div class="workflow-card-footer" style="margin-top: 1rem;">
-                        <button class="btn btn-primary" id="generate-btn" onclick="generateVideo()">Generate Video — <span id="token-cost">25</span> tokens</button>
+                        <button class="btn btn-primary" id="generate-btn" onclick="generateVideo()">Generate Video — <span id="token-cost">25</span> tokens (<span id="dollar-cost">~$1.56</span>)</button>
                     </div>
                 </div>
                 
@@ -8859,10 +8859,79 @@
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();" style="margin-top: 8px;">Maybe Later</button>
+                    <!-- Token Purchase Section -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; margin-top: 8px;">
+                        <h3 style="font-size: 16px; margin-bottom: 12px; color: var(--text);">Or Buy Tokens Directly</h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; background: rgba(255,214,10,0.1); padding: 10px; border-radius: 8px; border-left: 3px solid var(--gold);">
+                            Tokens are used for: Video rendering, AI voiceovers, and Auto-generator. Script generation is always free. Tokens never expire.
+                        </p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;">
+                            <button class="btn btn-secondary" onclick="purchaseTokens(50); this.closest('.modal-overlay').remove();" style="padding: 12px 8px; flex-direction: column; display: flex; align-items: center;">
+                                <span style="font-size: 18px; font-weight: 700;">50</span>
+                                <span style="font-size: 11px; color: var(--text-muted);">tokens</span>
+                                <span style="font-size: 14px; color: var(--gold); margin-top: 4px;">$5</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="purchaseTokens(150); this.closest('.modal-overlay').remove();" style="padding: 12px 8px; flex-direction: column; display: flex; align-items: center;">
+                                <span style="font-size: 18px; font-weight: 700;">150</span>
+                                <span style="font-size: 11px; color: var(--text-muted);">tokens</span>
+                                <span style="font-size: 14px; color: var(--gold); margin-top: 4px;">$12</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="purchaseTokens(400); this.closest('.modal-overlay').remove();" style="padding: 12px 8px; flex-direction: column; display: flex; align-items: center; border-color: var(--gold);">
+                                <span style="font-size: 18px; font-weight: 700;">400</span>
+                                <span style="font-size: 11px; color: var(--text-muted);">tokens</span>
+                                <span style="font-size: 14px; color: var(--gold); margin-top: 4px;">$25</span>
+                            </button>
+                            <button class="btn btn-secondary" onclick="purchaseTokens(1000); this.closest('.modal-overlay').remove();" style="padding: 12px 8px; flex-direction: column; display: flex; align-items: center;">
+                                <span style="font-size: 18px; font-weight: 700;">1000</span>
+                                <span style="font-size: 11px; color: var(--text-muted);">tokens</span>
+                                <span style="font-size: 14px; color: var(--gold); margin-top: 4px;">$50</span>
+                            </button>
+                        </div>
+                        
+                        <div style="font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px;">
+                            <strong style="color: var(--text); display: block; margin-bottom: 6px;">Token Costs:</strong>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
+                                <span>Video render (base): 25 tokens</span>
+                                <span>Extra character: +3 tokens</span>
+                                <span>Sound effect: +1 token each</span>
+                                <span>Script generation: Free</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();" style="margin-top: 16px;">Maybe Later</button>
                 </div>
             `;
             document.body.appendChild(modal);
+        }
+        
+        // Token purchase function
+        async function purchaseTokens(amount) {
+            const prices = { 50: 500, 150: 1200, 400: 2500, 1000: 5000 }; // cents
+            const priceInCents = prices[amount];
+            if (!priceInCents) {
+                showToast('Invalid token amount');
+                return;
+            }
+            
+            showToast('Redirecting to payment...');
+            
+            try {
+                const response = await fetch('/create-token-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokens: amount, price: priceInCents })
+                });
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    showToast(data.error || 'Payment failed');
+                }
+            } catch (err) {
+                showToast('Payment error: ' + err.message);
+            }
         }
         
         // === PROJECT DASHBOARD FUNCTIONS ===
@@ -12370,6 +12439,13 @@
             const costEl = document.getElementById('token-cost');
             if (costEl) {
                 costEl.textContent = totalCost;
+            }
+            
+            // Update dollar cost estimate (based on 400 token pack: $25/400 = ~$0.0625/token)
+            const dollarCost = (totalCost * 0.0625).toFixed(2);
+            const dollarEl = document.getElementById('dollar-cost');
+            if (dollarEl) {
+                dollarEl.textContent = '~$' + dollarCost;
             }
         }
         

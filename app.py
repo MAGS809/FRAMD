@@ -738,9 +738,13 @@ def get_stripe_credentials():
 
 # Token pricing
 TOKEN_PACKAGES = {
-    100: 200,    # 100 tokens = $2.00 (200 cents) - 60% cheaper with Krakd
-    500: 800,    # 500 tokens = $8.00 (800 cents) - 60% cheaper with Krakd
-    2000: 2500   # 2000 tokens = $25.00 (2500 cents) - 58% cheaper with Krakd
+    50: 500,     # 50 tokens = $5.00
+    100: 200,    # 100 tokens = $2.00 (legacy)
+    150: 1200,   # 150 tokens = $12.00
+    400: 2500,   # 400 tokens = $25.00
+    500: 800,    # 500 tokens = $8.00 (legacy)
+    1000: 5000,  # 1000 tokens = $50.00
+    2000: 2500   # 2000 tokens = $25.00 (legacy)
 }
 
 @app.route('/create-checkout-session', methods=['POST'])
@@ -785,6 +789,59 @@ def create_checkout_session():
             cancel_url=f'{base_url}/?canceled=true',
             metadata={
                 'token_amount': str(token_amount)
+            }
+        )
+        
+        return jsonify({'url': checkout_session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/create-token-checkout', methods=['POST'])
+def create_token_checkout():
+    """Create a Stripe checkout session for direct token purchase."""
+    try:
+        data = request.get_json()
+        token_amount = data.get('tokens')
+        
+        if not token_amount:
+            return jsonify({'error': 'Missing token amount'}), 400
+        
+        # Server-side price lookup only - ignore any client-provided price
+        if token_amount not in TOKEN_PACKAGES:
+            return jsonify({'error': 'Invalid token amount'}), 400
+        
+        price_cents = TOKEN_PACKAGES[token_amount]
+        
+        _, secret_key = get_stripe_credentials()
+        if not secret_key:
+            return jsonify({'error': 'Payment not configured'}), 500
+        
+        stripe.api_key = secret_key
+        
+        domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+        domain = domains.split(',')[0] if domains else 'localhost:5000'
+        protocol = 'https' if 'replit' in domain else 'http'
+        base_url = f"{protocol}://{domain}"
+        
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f'{token_amount} Framd Tokens',
+                        'description': f'Unlock video rendering, AI voices, auto-generator & all premium features. Tokens never expire.',
+                    },
+                    'unit_amount': price_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=f'{base_url}/?success=true&tokens={token_amount}',
+            cancel_url=f'{base_url}/?canceled=true',
+            metadata={
+                'token_amount': str(token_amount),
+                'purchase_type': 'token_pack'
             }
         )
         
