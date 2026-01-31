@@ -1139,6 +1139,10 @@ A thesis IS:
 - Something that can be argued for or against
 - The central idea that all other points should support
 
+If the content is unclear or could go multiple directions, set requires_clarification to true and provide:
+1. A clear, direct question (not listing options in the question text)
+2. 3-4 short, distinct answer options (each 2-6 words max)
+
 Output JSON:
 {{
     "thesis_statement": "One clear sentence stating the core claim",
@@ -1148,8 +1152,16 @@ Output JSON:
     "intended_impact": "What should change in the viewer's mind",
     "confidence": 0.0-1.0 confidence score,
     "requires_clarification": true/false,
-    "clarification_question": "If unclear, what ONE question would clarify the thesis"
-}}"""
+    "clarification_question": "A clear, simple question WITHOUT listing options in it",
+    "clarification_options": ["Short option 1", "Short option 2", "Short option 3"]
+}}
+
+IMPORTANT for clarification_options:
+- Each option should be 2-6 words max
+- Options should be distinct, meaningful choices
+- Do NOT repeat parts of the question in the options
+- Examples of GOOD options: ["The hypocrisy", "The cover-up", "The human cost"]
+- Examples of BAD options: ["What specific pattern", "Revelation in these files matters"]"""
 
     result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
     return result if result else {"thesis_statement": "", "confidence": 0.0, "requires_clarification": True}
@@ -1793,20 +1805,24 @@ Output JSON:
     
     # Handle clarification - but respect max clarification limit
     if thesis.get('requires_clarification', False) and not force_generate and clarification_count < 3:
-        # Generate smart clarifying question with options
+        # Get question and options from AI
         question = thesis.get('clarification_question', 'What is the main point you want to make?')
         
-        # Try to extract options from the question for button display
-        options = []
-        if ' or ' in question.lower():
-            # AI provided options in question - extract them
-            import re
-            parts = re.split(r',?\s+or\s+', question, flags=re.IGNORECASE)
-            for part in parts:
-                clean = part.strip().rstrip('?').strip()
-                if clean and len(clean) > 5 and len(clean) < 100:
-                    options.append(clean[0].upper() + clean[1:] if clean else clean)
-            if len(options) >= 2:
+        # Use AI-generated options directly (clean, short options)
+        options = thesis.get('clarification_options', [])
+        
+        # Ensure options are clean and add "Something else..." if we have options
+        if options and len(options) >= 2:
+            # Clean up options - ensure they're short and don't repeat question text
+            clean_options = []
+            for opt in options[:4]:  # Max 4 options
+                if isinstance(opt, str) and len(opt.strip()) > 0:
+                    opt_clean = opt.strip()
+                    # Skip if option is too long or too similar to question
+                    if len(opt_clean) <= 50 and not opt_clean.lower().startswith('what'):
+                        clean_options.append(opt_clean)
+            options = clean_options
+            if options:
                 options.append('Something else...')
         
         return {
