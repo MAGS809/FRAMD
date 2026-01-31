@@ -3199,6 +3199,285 @@ def format_user_error(error_msg):
         return f"Something went wrong: {error_msg[:100]}. Please try again or contact support."
 
 
+@app.route('/export-platform-format', methods=['POST'])
+def export_platform_format():
+    """Export video in platform-specific format."""
+    import subprocess
+    import uuid
+    
+    data = request.get_json() or {}
+    video_url = data.get('video_url', '')
+    platform = data.get('platform', 'tiktok')
+    
+    if not video_url:
+        return jsonify({'success': False, 'error': 'No video URL provided', 'platform': platform}), 400
+    
+    # Handle both local paths and URLs
+    source_path = video_url.lstrip('/')
+    
+    # Check multiple possible locations
+    possible_paths = [
+        source_path,
+        os.path.join('output', os.path.basename(source_path)),
+        source_path.replace('/output/', 'output/')
+    ]
+    
+    actual_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            actual_path = path
+            break
+    
+    if not actual_path:
+        return jsonify({'success': False, 'error': f'Video not found for {platform}', 'platform': platform}), 404
+    
+    # Platform-specific settings
+    platform_configs = {
+        'tiktok': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
+        'instagram': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
+        'youtube': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
+        'twitter': {'width': 1920, 'height': 1080, 'ratio': '16:9'}
+    }
+    
+    config = platform_configs.get(platform, platform_configs['tiktok'])
+    output_id = str(uuid.uuid4())[:8]
+    output_path = f'output/{platform}_{output_id}.mp4'
+    
+    try:
+        # Re-encode with platform-specific dimensions
+        cmd = [
+            'ffmpeg', '-y', '-i', actual_path,
+            '-vf', f"scale={config['width']}:{config['height']}:force_original_aspect_ratio=decrease,pad={config['width']}:{config['height']}:(ow-iw)/2:(oh-ih)/2",
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-c:a', 'aac', '-b:a', '128k',
+            output_path
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, timeout=300)
+        
+        if result.returncode == 0 and os.path.exists(output_path):
+            return jsonify({
+                'success': True,
+                'video_path': '/' + output_path,
+                'platform': platform,
+                'format': config['ratio']
+            })
+        else:
+            error_msg = result.stderr.decode()[:200] if result.stderr else 'Unknown error'
+            print(f"FFmpeg error for {platform}: {error_msg}")
+            return jsonify({'success': False, 'error': f'Export failed for {platform}', 'platform': platform}), 500
+            
+    except Exception as e:
+        print(f"Platform export error for {platform}: {e}")
+        return jsonify({'success': False, 'error': format_user_error(str(e)), 'platform': platform}), 500
+
+
+@app.route('/generate-promo-pack', methods=['POST'])
+def generate_promo_pack():
+    """Generate promotional content from video script."""
+    from context_engine import call_ai
+    import json
+    
+    data = request.get_json() or {}
+    script = data.get('script', '')
+    
+    if not script:
+        return jsonify({'error': 'No script provided'}), 400
+    
+    try:
+        # Use AI to extract quotes, detect humor, and generate promo content
+        prompt = f"""Analyze this video script and generate promotional content:
+
+Script:
+{script}
+
+Generate a JSON response with:
+1. "quote_cards": Array of 3-4 powerful standalone quotes from the script. Each has:
+   - "quote": The exact quote (max 100 chars)
+   - "bg_color": A hex color for background
+   - "accent_color": A complementary hex color
+
+2. "has_humor": Boolean - is this content funny/memeable?
+
+3. "memes": If has_humor is true, array of 2-3 meme ideas with:
+   - "top_text": Top meme text
+   - "bottom_text": Bottom meme text
+   - "format": Meme format name (e.g., "Drake", "Distracted Boyfriend", "Change My Mind")
+
+4. "infographics": Array of 2-3 key statistics or facts with:
+   - "stat": The number or key stat (e.g., "73%", "2.5x")
+   - "label": Brief description (max 50 chars)
+
+Only include memes array if the content genuinely has humor potential.
+Respond with ONLY valid JSON, no markdown."""
+
+        response = call_ai(prompt, max_tokens=1500)
+        
+        # Parse AI response
+        try:
+            # Clean response
+            response_text = response.strip()
+            if response_text.startswith('```'):
+                response_text = response_text.split('```')[1]
+                if response_text.startswith('json'):
+                    response_text = response_text[4:]
+            
+            promo_data = json.loads(response_text)
+            
+            return jsonify({
+                'success': True,
+                'quote_cards': promo_data.get('quote_cards', []),
+                'memes': promo_data.get('memes', []) if promo_data.get('has_humor') else [],
+                'infographics': promo_data.get('infographics', []),
+                'has_humor': promo_data.get('has_humor', False)
+            })
+            
+        except json.JSONDecodeError:
+            # Fallback with basic quote extraction
+            lines = [l.strip() for l in script.split('\n') if l.strip() and not l.startswith('[')]
+            quotes = lines[:3] if len(lines) >= 3 else lines
+            
+            return jsonify({
+                'success': True,
+                'quote_cards': [{'quote': q[:100], 'bg_color': '#1a1a2e', 'accent_color': '#16213e'} for q in quotes],
+                'memes': [],
+                'infographics': [{'stat': str(len(lines)), 'label': 'Key points covered'}],
+                'has_humor': False
+            })
+            
+    except Exception as e:
+        print(f"Promo pack error: {e}")
+        return jsonify({'error': format_user_error(str(e))}), 500
+
+
+@app.route('/download-promo-pack', methods=['POST'])
+def download_promo_pack():
+    """Generate downloadable promo assets."""
+    import zipfile
+    import uuid
+    from PIL import Image, ImageDraw, ImageFont
+    
+    data = request.get_json() or {}
+    approved_items = data.get('approved_items', [])
+    promo_data = data.get('promo_data', {})
+    
+    if not approved_items:
+        return jsonify({'error': 'No items selected'}), 400
+    
+    try:
+        # Create output directory
+        pack_id = str(uuid.uuid4())[:8]
+        pack_dir = f'output/promo_pack_{pack_id}'
+        os.makedirs(pack_dir, exist_ok=True)
+        
+        generated_files = []
+        
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        
+        def create_gradient(size, color1, color2):
+            img = Image.new('RGB', size)
+            for y in range(size[1]):
+                r = int(color1[0] + (color2[0] - color1[0]) * y / size[1])
+                g = int(color1[1] + (color2[1] - color1[1]) * y / size[1])
+                b = int(color1[2] + (color2[2] - color1[2]) * y / size[1])
+                for x in range(size[0]):
+                    img.putpixel((x, y), (r, g, b))
+            return img
+        
+        # Generate each approved item as an image
+        for item_key in approved_items:
+            item_type, idx = item_key.split('-')
+            idx = int(idx)
+            
+            try:
+                font_large = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 56)
+                font_med = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 40)
+                font_small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 28)
+            except:
+                font_large = ImageFont.load_default()
+                font_med = font_large
+                font_small = font_large
+            
+            if item_type == 'quote' and idx < len(promo_data.get('quote_cards', [])):
+                card = promo_data['quote_cards'][idx]
+                bg_color = hex_to_rgb(card.get('bg_color', '#1a1a2e'))
+                accent_color = hex_to_rgb(card.get('accent_color', '#16213e'))
+                img = create_gradient((1080, 1080), bg_color, accent_color)
+                draw = ImageDraw.Draw(img)
+                quote_text = f'"{card.get("quote", "")}"'
+                # Word wrap for long quotes
+                words = quote_text.split()
+                lines = []
+                current_line = ""
+                for word in words:
+                    test_line = current_line + " " + word if current_line else word
+                    if len(test_line) > 30:
+                        lines.append(current_line)
+                        current_line = word
+                    else:
+                        current_line = test_line
+                if current_line:
+                    lines.append(current_line)
+                y_offset = 540 - (len(lines) * 35)
+                for line in lines:
+                    draw.text((540, y_offset), line, fill='white', font=font_med, anchor='mm')
+                    y_offset += 70
+                # Add branding
+                draw.text((540, 1000), "framd.io", fill=(255, 255, 255, 128), font=font_small, anchor='mm')
+                
+            elif item_type == 'meme' and idx < len(promo_data.get('memes', [])):
+                meme = promo_data['memes'][idx]
+                img = Image.new('RGB', (1080, 1080), color='#000000')
+                draw = ImageDraw.Draw(img)
+                # Meme style text with outline
+                top = meme.get('top_text', '').upper()
+                bottom = meme.get('bottom_text', '').upper()
+                # Draw text with black outline
+                for offset in [(-3,-3), (-3,3), (3,-3), (3,3), (-3,0), (3,0), (0,-3), (0,3)]:
+                    draw.text((540+offset[0], 80+offset[1]), top, fill='black', font=font_large, anchor='mm')
+                    draw.text((540+offset[0], 1000+offset[1]), bottom, fill='black', font=font_large, anchor='mm')
+                draw.text((540, 80), top, fill='white', font=font_large, anchor='mm')
+                draw.text((540, 1000), bottom, fill='white', font=font_large, anchor='mm')
+                # Add format label
+                draw.text((540, 540), f"[{meme.get('format', 'Meme')}]", fill='#666666', font=font_small, anchor='mm')
+                
+            elif item_type == 'info' and idx < len(promo_data.get('infographics', [])):
+                info = promo_data['infographics'][idx]
+                img = create_gradient((1080, 1080), (10, 31, 20), (26, 61, 42))
+                draw = ImageDraw.Draw(img)
+                draw.text((540, 400), info.get('stat', ''), fill='#ffd60a', font=font_large, anchor='mm')
+                draw.text((540, 520), info.get('label', ''), fill='white', font=font_med, anchor='mm')
+                draw.text((540, 1000), "framd.io", fill=(255, 255, 255, 128), font=font_small, anchor='mm')
+            else:
+                continue
+            
+            # Save image
+            img_path = f'{pack_dir}/{item_type}_{idx}.png'
+            img.save(img_path)
+            generated_files.append(img_path)
+        
+        # Create zip file
+        zip_path = f'output/promo_pack_{pack_id}.zip'
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            for file_path in generated_files:
+                zipf.write(file_path, os.path.basename(file_path))
+        
+        # Cleanup individual files
+        import shutil
+        shutil.rmtree(pack_dir, ignore_errors=True)
+        
+        return jsonify({
+            'success': True,
+            'download_url': '/' + zip_path
+        })
+        
+    except Exception as e:
+        print(f"Promo pack download error: {e}")
+        return jsonify({'error': format_user_error(str(e))}), 500
+
+
 UPLOAD_FOLDER = 'uploads'
 OUTPUT_FOLDER = 'output'
 ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'webm', 'mp3', 'wav', 'm4a'}
