@@ -791,12 +791,35 @@ def create_checkout_session():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+SUBSCRIPTION_TIERS = {
+    'creator': {
+        'name': 'Framd Creator',
+        'price_cents': 1000,  # $10/month
+        'tokens': 300,
+        'description': '300 tokens/month, video export, premium voices'
+    },
+    'pro': {
+        'name': 'Framd Pro',
+        'price_cents': 2500,  # $25/month
+        'tokens': 1000,
+        'description': '1000 tokens/month, unlimited revisions, auto-generator'
+    }
+}
+
 @app.route('/create-subscription', methods=['POST'])
 def create_subscription():
-    """Create a Stripe subscription checkout session for Pro tier ($10/month)."""
+    """Create a Stripe subscription checkout session for Creator or Pro tier."""
     try:
         from models import Subscription
         from flask_login import current_user
+        
+        data = request.get_json() or {}
+        tier = data.get('tier', 'pro')
+        
+        if tier not in SUBSCRIPTION_TIERS:
+            return jsonify({'error': 'Invalid tier'}), 400
+        
+        tier_info = SUBSCRIPTION_TIERS[tier]
         
         _, secret_key = get_stripe_credentials()
         if not secret_key:
@@ -821,10 +844,10 @@ def create_subscription():
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': 'Framd Pro',
-                        'description': 'Unlimited video generation & hosting - $10/month',
+                        'name': tier_info['name'],
+                        'description': tier_info['description'],
                     },
-                    'unit_amount': 1000,
+                    'unit_amount': tier_info['price_cents'],
                     'recurring': {
                         'interval': 'month',
                     },
@@ -832,11 +855,11 @@ def create_subscription():
                 'quantity': 1,
             }],
             mode='subscription',
-            success_url=f'{base_url}/?subscription=success',
+            success_url=f'{base_url}/?subscription=success&tier={tier}',
             cancel_url=f'{base_url}/?subscription=canceled',
             metadata={
                 'user_id': user_id,
-                'plan': 'pro'
+                'plan': tier
             }
         )
         
@@ -847,13 +870,21 @@ def create_subscription():
 
 @app.route('/subscription-status', methods=['GET'])
 def subscription_status():
-    """Check current user's subscription status."""
+    """Check current user's subscription status and token balance."""
     from models import Subscription, User
     from flask_login import current_user
+    from datetime import datetime
     
     # Dev mode always has Pro access
     if session.get('dev_mode'):
-        return jsonify({'tier': 'pro', 'status': 'active', 'is_pro': True, 'lifetime': True})
+        return jsonify({
+            'tier': 'pro', 
+            'status': 'active', 
+            'is_pro': True, 
+            'lifetime': True,
+            'token_balance': 1000,
+            'monthly_tokens': 1000
+        })
     
     user_id = None
     user_email = None
@@ -864,22 +895,52 @@ def subscription_status():
         user_id = session.get('dev_user_id')
     
     if not user_id:
-        return jsonify({'tier': 'free', 'status': 'inactive', 'is_pro': False})
+        return jsonify({
+            'tier': 'free', 
+            'status': 'inactive', 
+            'is_pro': False,
+            'token_balance': 50,
+            'monthly_tokens': 50
+        })
     
     # Lifetime Pro for specific email
     if user_email and user_email.lower() == 'alonbenmeir9@gmail.com':
-        return jsonify({'tier': 'pro', 'status': 'active', 'is_pro': True, 'lifetime': True})
+        return jsonify({
+            'tier': 'pro', 
+            'status': 'active', 
+            'is_pro': True, 
+            'lifetime': True,
+            'token_balance': 1000,
+            'monthly_tokens': 1000
+        })
     
     sub = Subscription.query.filter_by(user_id=user_id).first()
-    if sub and sub.is_active():
+    if sub:
+        tier_tokens = {'free': 50, 'creator': 300, 'pro': 1000}
+        monthly = tier_tokens.get(sub.tier, 50)
+        
+        # Initialize token balance if needed
+        if sub.token_balance is None:
+            sub.token_balance = monthly
+            db.session.commit()
+        
         return jsonify({
             'tier': sub.tier,
             'status': sub.status,
-            'is_pro': True,
+            'is_pro': sub.tier == 'pro' and sub.status == 'active',
+            'is_creator': sub.tier == 'creator' and sub.status == 'active',
+            'token_balance': sub.token_balance,
+            'monthly_tokens': monthly,
             'current_period_end': sub.current_period_end.isoformat() if sub.current_period_end else None
         })
     
-    return jsonify({'tier': 'free', 'status': 'inactive', 'is_pro': False})
+    return jsonify({
+        'tier': 'free', 
+        'status': 'inactive', 
+        'is_pro': False,
+        'token_balance': 50,
+        'monthly_tokens': 50
+    })
 
 
 @app.route('/stripe-webhook', methods=['POST'])

@@ -6321,34 +6321,52 @@
                         <div class="billing-plan-name" id="billing-plan-name">Free Plan</div>
                         <div class="billing-plan-price" id="billing-plan-price">$0<span>/month</span></div>
                     </div>
+                    
+                    <!-- Token Balance Display -->
+                    <div class="token-balance-section" style="background: rgba(255,214,10,0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Token Balance</div>
+                                <div style="font-size: 24px; font-weight: 700; color: var(--gold);" id="billing-token-balance">50</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Monthly Allowance</div>
+                                <div style="font-size: 16px; color: var(--text);" id="billing-monthly-tokens">50 tokens</div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(0,0,0,0.3); border-radius: 4px; height: 8px; margin-top: 12px; overflow: hidden;">
+                            <div id="billing-token-bar" style="background: var(--gold); height: 100%; width: 100%; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    
                     <ul class="billing-features" id="billing-features">
                         <li>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"/>
                             </svg>
-                            Unlimited script writing
+                            Script generation
                         </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
+                        <li id="billing-feature-export">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                             </svg>
-                            3 video generations per month
+                            Video export
                         </li>
-                        <li>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
+                        <li id="billing-feature-revisions">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                             </svg>
-                            3 revision requests
+                            Unlimited revisions
                         </li>
                     </ul>
                 </div>
                 
                 <div id="billing-upgrade-section">
-                    <button class="settings-btn settings-btn-primary" onclick="upgradeToPro()" style="width: 100%; padding: 1rem; font-size: 1rem;">
-                        Upgrade to Pro - $10/month
+                    <button class="settings-btn settings-btn-primary" onclick="showUpgradePrompt()" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                        View Plans & Upgrade
                     </button>
                     <p style="text-align: center; color: rgba(255,214,10,0.5); font-size: 0.85rem; margin-top: 0.75rem;">
-                        Unlimited videos, hosting, and revisions
+                        Get more tokens and unlock video export
                     </p>
                 </div>
                 
@@ -8622,10 +8640,14 @@
             }
         }
         
-        async function startSubscription() {
+        async function startSubscription(tier = 'pro') {
             try {
                 showNotification('Redirecting to checkout...', 'info');
-                const resp = await fetch('/create-subscription', { method: 'POST' });
+                const resp = await fetch('/create-subscription', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: tier })
+                });
                 const data = await resp.json();
                 if (data.url) {
                     window.location.href = data.url;
@@ -8641,18 +8663,62 @@
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
             modal.innerHTML = `
-                <div class="modal-content upgrade-modal">
-                    <h2>Upgrade to Pro</h2>
-                    <p>Video generation requires a Pro subscription.</p>
-                    <div class="upgrade-price">$10<span>/month</span></div>
-                    <ul class="upgrade-features">
-                        <li>Unlimited video generation</li>
-                        <li>Host videos with shareable links</li>
-                        <li>No watermarks</li>
-                        <li>Priority processing</li>
-                    </ul>
-                    <button class="btn btn-primary" onclick="startSubscription(); this.closest('.modal-overlay').remove();">Subscribe Now</button>
-                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();">Maybe Later</button>
+                <div class="modal-content upgrade-modal" style="max-width: 800px;">
+                    <h2 style="margin-bottom: 8px;">Choose Your Plan</h2>
+                    <p style="color: var(--text-muted); margin-bottom: 24px;">Unlock video generation and more features</p>
+                    
+                    <div class="pricing-tiers" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <!-- Free Tier -->
+                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                            <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Free</h3>
+                            <div style="font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 4px;">$0<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
+                            <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">50 tokens/month</div>
+                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted);">
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Script generation</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Video export</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Premium voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Unlimited revisions</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Auto-generator</li>
+                            </ul>
+                            <button class="btn btn-secondary" style="width: 100%; margin-top: 16px;" disabled>Current Plan</button>
+                        </div>
+                        
+                        <!-- Creator Tier -->
+                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid var(--gold);">
+                            <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Creator</h3>
+                            <div style="font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 4px;">$10<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
+                            <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">300 tokens/month</div>
+                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted);">
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Script generation</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Video export</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Premium voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Unlimited revisions</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Auto-generator</li>
+                            </ul>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="startSubscription('creator'); this.closest('.modal-overlay').remove();">Get Creator</button>
+                        </div>
+                        
+                        <!-- Pro Tier -->
+                        <div class="pricing-tier" style="background: linear-gradient(135deg, rgba(255,214,10,0.1) 0%, rgba(0,0,0,0.3) 100%); border-radius: 12px; padding: 20px; border: 2px solid var(--gold); position: relative;">
+                            <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 11px; font-weight: 600; padding: 2px 12px; border-radius: 10px;">BEST VALUE</div>
+                            <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Pro</h3>
+                            <div style="font-size: 28px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">$25<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
+                            <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">1000 tokens/month</div>
+                            <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted);">
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Script generation</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Video export</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Premium voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Unlimited revisions</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Auto-generator</li>
+                            </ul>
+                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px; background: var(--gold); color: #000;" onclick="startSubscription('pro'); this.closest('.modal-overlay').remove();">Get Pro</button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove();" style="margin-top: 8px;">Maybe Later</button>
                 </div>
             `;
             document.body.appendChild(modal);
@@ -13001,19 +13067,63 @@
                 const response = await fetch('/subscription-status');
                 if (response.ok) {
                     const data = await response.json();
-                    const isPro = data.is_pro;
+                    const tier = data.tier || 'free';
+                    const tokenBalance = data.token_balance || 50;
+                    const monthlyTokens = data.monthly_tokens || 50;
                     
-                    if (isPro) {
+                    // Update token display
+                    const balanceEl = document.getElementById('billing-token-balance');
+                    const monthlyEl = document.getElementById('billing-monthly-tokens');
+                    const barEl = document.getElementById('billing-token-bar');
+                    if (balanceEl) balanceEl.textContent = tokenBalance;
+                    if (monthlyEl) monthlyEl.textContent = monthlyTokens + ' tokens';
+                    if (barEl) barEl.style.width = Math.min(100, (tokenBalance / monthlyTokens) * 100) + '%';
+                    
+                    const checkSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+                    const xSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+                    
+                    if (tier === 'pro') {
                         document.getElementById('billing-plan-name').textContent = 'Pro Plan';
-                        document.getElementById('billing-plan-price').innerHTML = '$10<span>/month</span>';
+                        document.getElementById('billing-plan-price').innerHTML = '$25<span>/month</span>';
                         document.getElementById('billing-features').innerHTML = `
-                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited script writing</li>
-                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited video generations</li>
-                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Unlimited revisions</li>
-                            <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Video hosting included</li>
+                            <li>${checkSvg} Script generation</li>
+                            <li>${checkSvg} Video export</li>
+                            <li>${checkSvg} Premium voices</li>
+                            <li>${checkSvg} Unlimited revisions</li>
+                            <li>${checkSvg} Auto-generator</li>
                         `;
                         document.getElementById('billing-upgrade-section').style.display = 'none';
                         document.getElementById('billing-manage-section').style.display = 'block';
+                    } else if (tier === 'creator') {
+                        document.getElementById('billing-plan-name').textContent = 'Creator Plan';
+                        document.getElementById('billing-plan-price').innerHTML = '$10<span>/month</span>';
+                        document.getElementById('billing-features').innerHTML = `
+                            <li>${checkSvg} Script generation</li>
+                            <li>${checkSvg} Video export</li>
+                            <li>${checkSvg} Premium voices</li>
+                            <li>${xSvg} Unlimited revisions</li>
+                            <li>${xSvg} Auto-generator</li>
+                        `;
+                        document.getElementById('billing-upgrade-section').innerHTML = `
+                            <button class="settings-btn settings-btn-primary" onclick="startSubscription('pro')" style="width: 100%; padding: 1rem; font-size: 1rem;">
+                                Upgrade to Pro - $25/month
+                            </button>
+                            <p style="text-align: center; color: rgba(255,214,10,0.5); font-size: 0.85rem; margin-top: 0.75rem;">
+                                Get unlimited revisions and auto-generator
+                            </p>
+                        `;
+                        document.getElementById('billing-manage-section').style.display = 'block';
+                    } else {
+                        // Free tier
+                        document.getElementById('billing-plan-name').textContent = 'Free Plan';
+                        document.getElementById('billing-plan-price').innerHTML = '$0<span>/month</span>';
+                        document.getElementById('billing-features').innerHTML = `
+                            <li>${checkSvg} Script generation</li>
+                            <li>${xSvg} Video export</li>
+                            <li>${xSvg} Premium voices</li>
+                            <li>${xSvg} Unlimited revisions</li>
+                            <li>${xSvg} Auto-generator</li>
+                        `;
                     }
                 }
             } catch (err) {

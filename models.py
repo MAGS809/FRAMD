@@ -124,8 +124,10 @@ class Subscription(db.Model):
     user_id = db.Column(db.String, db.ForeignKey('users.id'), unique=True, nullable=False)
     stripe_customer_id = db.Column(db.String(255), nullable=True)
     stripe_subscription_id = db.Column(db.String(255), nullable=True)
-    tier = db.Column(db.String(20), default='free')
+    tier = db.Column(db.String(20), default='free')  # 'free', 'creator', 'pro'
     status = db.Column(db.String(20), default='inactive')
+    token_balance = db.Column(db.Integer, default=50)  # Monthly tokens
+    token_refresh_date = db.Column(db.DateTime, nullable=True)  # When tokens refresh
     current_period_end = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
@@ -133,7 +135,14 @@ class Subscription(db.Model):
     user = db.relationship('User', backref=db.backref('subscription', uselist=False))
     
     def is_active(self):
+        return self.status == 'active' and self.tier in ('creator', 'pro')
+    
+    def is_pro(self):
         return self.status == 'active' and self.tier == 'pro'
+    
+    def get_monthly_tokens(self):
+        tier_tokens = {'free': 50, 'creator': 300, 'pro': 1000}
+        return tier_tokens.get(self.tier, 50)
 
 
 class HostedVideo(db.Model):
