@@ -98,6 +98,8 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Scene Composer**: Enables background picking and character layering with Pillow-based background removal.
 - **Stage Directions**: AI-generated audio direction layer with effects like [PAUSE], [BEAT], [SILENCE], [TRANSITION].
 - **Sound FX System**: 10 synthesized effects (e.g., whoosh, impact) are auto-mixed into videos using [SOUND: type] tags.
+- **Multi-Platform Export**: After video render, users can export to TikTok (9:16), Instagram Reels (9:16), YouTube Shorts (9:16), and Twitter (16:9) with platform-optimized formats. Per-platform progress tracking with success/failure feedback.
+- **Promo Pack Generator**: AI analyzes completed scripts to extract powerful quotes, detect humor potential, and generate shareable content. Creates quote cards with gradient backgrounds, meme-style text overlays with black outlines, and infographics with key statistics. Tap-to-approve UI lets users select which assets to download as a zip pack.
 - **Token Cost System**: Token-based pricing with per-video costs (25 base + 3/character + 1/SFX). Token value: $0.04 each.
 - **Character Generation**: DALL-E integration for AI-generated characters.
 - **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
