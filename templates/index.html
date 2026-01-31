@@ -10833,27 +10833,183 @@
         
         // Show review confirmation via chat (not modal) - now proceeds to scenes
         function showReviewConfirmation() {
-            // Advance to step 2 - Scene Review
+            // Advance to step 2 - Scene Review (track state but stay in chat)
             currentWorkflowStep = 2;
             updateProjectWorkflowStep(2);
             storeWorkflowPreference('script_completed', true);
             
-            // Show the review stage with script card
-            document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
-            document.getElementById('stage-review').classList.add('active');
-            
-            // Ensure chat bar is visible
-            const chatBar = document.getElementById('bottom-chat-bar');
-            if (chatBar) chatBar.style.display = 'block';
-            
-            // Reset to first workflow card
-            advanceToCard('script');
-            
-            // Update script card with current script
+            // DON'T navigate away - stay in chat and render script card inline
+            // Show script card inline in chat
             if (currentScript) {
                 const scriptText = typeof currentScript === 'string' ? currentScript : currentScript.full_script;
-                updateScriptCard(scriptText);
+                renderScriptCardInChat(scriptText);
             }
+        }
+        
+        // Render script card inline in chat messages
+        function renderScriptCardInChat(scriptText) {
+            if (!scriptText) return;
+            
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            // Create inline script card
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'message ai script-card-message';
+            cardDiv.id = 'inline-script-card-' + Date.now();
+            
+            // Calculate metadata
+            const wordCount = scriptText.split(/\s+/).length;
+            const duration = Math.round(wordCount / 2.5); // ~2.5 words per second
+            const sceneMatches = scriptText.match(/\[SCENE|\[HOOK|\[CLAIM|\[EVIDENCE|\[PIVOT|\[COUNTER|\[CLOSER/gi);
+            const sceneCount = sceneMatches ? sceneMatches.length : 1;
+            
+            // Extract hook (first meaningful line)
+            const lines = scriptText.split('\n').filter(l => l.trim() && !l.trim().startsWith('['));
+            const hook = lines[0]?.substring(0, 120) || 'Your script';
+            
+            cardDiv.innerHTML = `
+                <div class="inline-script-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Your Script</div>
+                        <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-dim);">
+                            <span>${duration}s</span>
+                            <span>${sceneCount} scenes</span>
+                        </div>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; font-style: italic;">"${escapeHtml(hook)}${hook.length >= 120 ? '...' : ''}"</div>
+                    <div class="script-preview" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 12px;">${escapeHtml(scriptText)}</div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" onclick="editScriptInline(this)" style="font-size: 12px; padding: 8px 16px;">Edit Script</button>
+                        <button class="btn btn-primary" onclick="proceedToVisuals()" style="font-size: 12px; padding: 8px 16px;">Pick Visuals</button>
+                        <button class="btn btn-secondary" onclick="proceedToVoices()" style="font-size: 12px; padding: 8px 16px;">Cast Voices</button>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(cardDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Edit script inline
+        function editScriptInline(btn) {
+            const card = btn.closest('.inline-script-card');
+            const preview = card.querySelector('.script-preview');
+            if (!preview) return;
+            
+            const currentText = preview.textContent;
+            
+            // Replace preview with textarea
+            const textarea = document.createElement('textarea');
+            textarea.className = 'script-edit-textarea';
+            textarea.style.cssText = 'width: 100%; min-height: 200px; font-size: 13px; line-height: 1.6; color: var(--text); background: rgba(0,0,0,0.3); border: 1px solid var(--gold); border-radius: 8px; padding: 12px; resize: vertical; font-family: inherit;';
+            textarea.value = currentText;
+            
+            preview.replaceWith(textarea);
+            textarea.focus();
+            
+            // Change button to Save
+            btn.textContent = 'Save Changes';
+            btn.onclick = function() {
+                const newText = textarea.value.trim();
+                if (newText) {
+                    // Update current script
+                    if (typeof currentScript === 'object') {
+                        currentScript.full_script = newText;
+                    } else {
+                        currentScript = newText;
+                    }
+                    
+                    // Replace textarea with preview
+                    const newPreview = document.createElement('div');
+                    newPreview.className = 'script-preview';
+                    newPreview.style.cssText = 'max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 12px;';
+                    newPreview.textContent = newText;
+                    textarea.replaceWith(newPreview);
+                    
+                    // Reset button
+                    btn.textContent = 'Edit Script';
+                    btn.onclick = function() { editScriptInline(btn); };
+                    
+                    addMessage('Script updated! Ready to continue.', false);
+                }
+            };
+        }
+        
+        // Proceed to visuals from inline card
+        function proceedToVisuals() {
+            if (!currentAnchors || currentAnchors.length === 0) {
+                // Need to extract anchors first
+                if (currentScript) {
+                    const scriptText = typeof currentScript === 'string' ? currentScript : currentScript.full_script;
+                    addMessage('Breaking your script into scenes...', false);
+                    
+                    // Call backend to extract anchors
+                    fetch('/extract-anchors', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ script: scriptText })
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.anchors) {
+                            displayAnchors(data.anchors);
+                        } else {
+                            addMessage('Could not break script into scenes. Try editing your script first.', false);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Anchor extraction error:', err);
+                        addMessage('Error extracting scenes. Please try again.', false);
+                    });
+                } else {
+                    addMessage('No script available. Share your idea first.', false);
+                }
+            } else {
+                // Already have anchors, show visual picker inline
+                displayAnchors(currentAnchors);
+            }
+        }
+        
+        // Proceed to voices from inline card
+        function proceedToVoices() {
+            currentWorkflowStep = 4;
+            addMessage('Ready for voice casting. I can suggest voices that match each scene, or you can pick them yourself.', false);
+            // TODO: Render voice picker inline in chat
+        }
+        
+        // Render video result inline in chat
+        function renderVideoResultInChat(renderData) {
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            const videoUrl = renderData.video_url || renderData.url;
+            if (!videoUrl) {
+                addMessage('Video rendered but no URL available.', false);
+                return;
+            }
+            
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'message ai video-result-message';
+            cardDiv.id = 'video-result-' + Date.now();
+            
+            cardDiv.innerHTML = `
+                <div class="inline-video-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Your Video is Ready!</div>
+                    <video controls style="width: 100%; max-height: 400px; border-radius: 8px; background: #000;">
+                        <source src="${videoUrl}" type="video/mp4">
+                        Your browser does not support video playback.
+                    </video>
+                    <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
+                        <a href="${videoUrl}" download class="btn btn-primary" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
+                        <button class="btn btn-secondary" onclick="likeVideo()" style="font-size: 12px; padding: 8px 16px;">Like</button>
+                        <button class="btn btn-secondary" onclick="showDislikeOptions()" style="font-size: 12px; padding: 8px 16px;">Needs Work</button>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(cardDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
         // Store workflow preference for AI learning
@@ -11018,9 +11174,10 @@
                     // Populate scene composer with sections from visual board
                     populateScenesFromVisualBoard(data.visual_board);
                     
-                    // Transition to review stage
-                    showStage('review');
-                    showToast('Visuals curated - ' + (data.visual_board.sections?.length || 0) + ' scenes ready');
+                    // Stay in chat - show success message inline
+                    const sceneCount = data.visual_board.sections?.length || 0;
+                    addMessage(`Visuals curated - ${sceneCount} scenes ready. Ready for voice casting.`, false);
+                    showToast('Visuals curated!');
                 } else {
                     console.error('Curate failed:', data.error);
                     showToast(data.error || 'Failed to curate visuals');
@@ -11365,7 +11522,8 @@
                     storeWorkflowPreference('video_rendered', true);
                     renderWorkflowGuide(7);
                     
-                    showStage('export');
+                    // Stay in chat - show video result inline
+                    renderVideoResultInChat(renderData);
                     showToast('Video ready!');
                     
                     // Clear progress after a short delay
@@ -11502,12 +11660,15 @@
                         currentRevisionCount = data.revision_number;
                     }
                     
-                    // Hide export, show review stage to regenerate
+                    // Stay in chat - hide dislike modal and show revised script inline
                     cancelDislike();
-                    showStage('review');
                     
-                    // Add AI message about what was changed
+                    // Add AI message about what was changed and show new script card
                     addMessage(data.ai_message || 'Script revised based on your feedback. Review and regenerate when ready.', false, true);
+                    if (currentScript) {
+                        const scriptText = typeof currentScript === 'string' ? currentScript : currentScript.full_script;
+                        renderScriptCardInChat(scriptText);
+                    }
                     showToast('Script refined. Ready to regenerate.');
                 } else if (data.requires_subscription) {
                     // Handle revision limit reached
