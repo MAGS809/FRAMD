@@ -427,18 +427,52 @@
             <div class="extras-grid">
                 <div class="extra-item">
                     <h4>Base Video</h4>
-                    <div class="extra-price">25 tokens</div>
+                    <div class="extra-price">25 tokens (~$1.56)</div>
                     <p>Script, voice, captions, render</p>
                 </div>
                 <div class="extra-item">
                     <h4>Extra Character</h4>
-                    <div class="extra-price">+3 tokens</div>
+                    <div class="extra-price">+3 tokens (~$0.19)</div>
                     <p>Each additional character</p>
                 </div>
                 <div class="extra-item">
                     <h4>Sound Effect</h4>
-                    <div class="extra-price">+1 token</div>
+                    <div class="extra-price">+1 token (~$0.06)</div>
                     <p>Per [SOUND: effect] tag</p>
+                </div>
+                <div class="extra-item">
+                    <h4>Script Generation</h4>
+                    <div class="extra-price">Free</div>
+                    <p>Always included</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="extras" style="margin-top: 2rem;">
+            <h2>Buy Tokens Directly</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,214,10,0.1); border-radius: 8px; border-left: 3px solid var(--gold);">
+                Tokens are used for: Video rendering, AI voiceovers, and Auto-generator. Script generation is always free. Tokens never expire.
+            </p>
+            <div class="extras-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(50)">
+                    <h4>50 Tokens</h4>
+                    <div class="extra-price" style="color: var(--gold);">$5</div>
+                    <p>~2 videos</p>
+                </div>
+                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(150)">
+                    <h4>150 Tokens</h4>
+                    <div class="extra-price" style="color: var(--gold);">$12</div>
+                    <p>~6 videos</p>
+                </div>
+                <div class="extra-item" style="cursor: pointer; border-color: var(--gold);" onclick="purchaseTokens(400)">
+                    <h4>400 Tokens</h4>
+                    <div class="extra-price" style="color: var(--gold);">$25</div>
+                    <p>~16 videos</p>
+                </div>
+                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(1000)">
+                    <h4>1000 Tokens</h4>
+                    <div class="extra-price" style="color: var(--gold);">$50</div>
+                    <p>~40 videos</p>
                 </div>
             </div>
         </section>
@@ -447,5 +481,30 @@
             <p>&copy; 2026 Framd. Quality content for those who care.</p>
         </footer>
     </div>
+    
+    <script>
+        async function purchaseTokens(amount) {
+            const btn = event.target.closest('.extra-item');
+            if (btn) btn.style.opacity = '0.6';
+            
+            try {
+                const response = await fetch('/create-token-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokens: amount })
+                });
+                const data = await response.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    alert(data.error || 'Payment setup failed. Please try again.');
+                    if (btn) btn.style.opacity = '1';
+                }
+            } catch (err) {
+                alert('Connection error. Please try again.');
+                if (btn) btn.style.opacity = '1';
+            }
+        }
+    </script>
 </body>
 </html>
