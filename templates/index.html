@@ -8932,41 +8932,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showNotification('Project deleted', 'success');
-                    
-                    // Immediately remove the project card from DOM
-                    const projectCard = document.querySelector(`[data-project-id="${projectId}"]`);
-                    if (projectCard) {
-                        projectCard.style.transition = 'opacity 0.3s, transform 0.3s';
-                        projectCard.style.opacity = '0';
-                        projectCard.style.transform = 'scale(0.9)';
-                        setTimeout(() => projectCard.remove(), 300);
-                    }
-                    
-                    // Remove from projects array
-                    const projectIndex = projects.findIndex(p => p.id === projectId);
-                    if (projectIndex !== -1) {
-                        projects.splice(projectIndex, 1);
-                    }
-                    
-                    // If this was the current project, clear the workspace
-                    if (currentProjectId === projectId) {
-                        currentProjectId = null;
-                        currentScript = null;
-                        currentAnchors = [];
-                        sceneVisuals = {};
-                        conversationHistory = [];
-                        localStorage.removeItem('currentProjectId');
-                    }
-                    
-                    // Reload project lists to ensure sync
-                    loadProjects();
-                    loadDashboardProjects();
+                    // Reload the page to ensure clean state
+                    window.location.reload();
                 } else {
-                    showNotification(data.error || 'Could not delete project', 'error');
+                    alert(data.error || 'Could not delete project');
                 }
             } catch (error) {
-                showNotification('Could not delete project', 'error');
+                alert('Could not delete project');
             }
         }
         
