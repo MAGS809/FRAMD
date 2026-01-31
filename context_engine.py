@@ -479,40 +479,49 @@ def get_scene_visuals(scene_text: str, scene_type: str, keywords: list = None) -
     """Get AI-curated visual suggestions for a specific scene/anchor."""
     keywords_str = ", ".join(keywords) if keywords else ""
     
-    prompt = f"""Translate this script scene into CONCRETE, SEARCHABLE visual terms.
+    prompt = f"""You are a visual researcher for short-form video. Your job is to find the PERFECT stock imagery for this scene.
 
 SCENE TYPE: {scene_type}
-SCENE TEXT: {scene_text}
+SCENE TEXT: "{scene_text}"
 KEYWORDS: {keywords_str}
 
-CRITICAL: Abstract ideas must become concrete visuals. Stock image sites need SPECIFIC, TANGIBLE search terms.
+CRITICAL RULES FOR SEARCH QUERIES:
+1. Be LITERAL and SPECIFIC - stock sites need exact visual descriptions
+2. Use 2-4 word phrases that describe WHAT IS VISIBLE in the image
+3. Include specific nouns: people, objects, places, actions
+4. Avoid abstract concepts - translate them to visuals
 
-TRANSLATION EXAMPLES:
-- "coexistence" → "diverse group gathering", "interfaith community", "handshake different cultures"
-- "division" → "wall barrier", "separated crowd", "border fence"
-- "salvation" → "light through clouds", "helping hand reach", "sunrise hope"
-- "cringe" → "awkward reaction face", "uncomfortable moment", "embarrassed expression"
-- "peace" → "olive branch", "white dove", "calm landscape", "meditation"
-- "conflict" → "protest crowd", "tense standoff", "breaking news scene"
-- "history" → "archival photograph sepia", "old documents", "historical monument"
-- "trust" → "handshake close up", "eye contact portrait", "team collaboration"
+GOOD QUERIES (specific, visual):
+- "Epstein island documents" → "private jet interior", "tropical island aerial", "legal documents pile"
+- "political corruption" → "courthouse steps", "politician podium", "money briefcase"
+- "cover-up scandal" → "shredded documents", "closed door meeting", "redacted files"
+- "elite connections" → "luxury penthouse", "private club entrance", "champagne toast"
+- "media silence" → "empty newsroom", "microphone off", "newspaper headlines"
+- "victim testimony" → "courtroom witness stand", "emotional testimony", "legal trial"
 
-For Wikimedia Commons, use: historical terms, place names, monuments, archival, documentary
-For stock photos, use: emotional states, human interactions, atmospheric scenes
+BAD QUERIES (too abstract):
+- "the truth" (not visual)
+- "implications" (not searchable)
+- "what really happened" (not an image)
 
-Output JSON with:
-- "visual_concept": One sentence describing the ideal visual
-- "search_queries": Array of 3 CONCRETE search terms (nouns, actions, tangible things)
-- "background_queries": Array of 2 atmospheric/setting searches
-- "visual_style": "documentary" | "atmospheric" | "archival" | "diagram" | "portrait" | "b-roll"
-- "motion": "static" | "slow_pan" | "zoom" | "dynamic"
-- "mood": Brief mood description"""
+Output JSON:
+{{
+    "visual_concept": "One sentence describing the ideal visual for this scene",
+    "search_queries": ["specific visual 1", "specific visual 2", "specific visual 3"],
+    "background_queries": ["atmospheric background 1", "cinematic setting 2"],
+    "visual_style": "documentary | atmospheric | archival | portrait | b-roll",
+    "motion": "static | slow_pan | zoom | dynamic",
+    "mood": "tense | hopeful | dramatic | somber | neutral"
+}}
+
+Remember: Someone will search these exact terms on a stock photo site. Make them FINDABLE."""
 
     result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=512)
     if not result:
         return {
             "visual_concept": "Supportive visual for this scene",
-            "search_queries": ["abstract background", "documentary footage"],
+            "search_queries": ["documentary footage", "news archive", "dramatic lighting"],
+            "background_queries": ["dark cinematic background", "dramatic atmosphere"],
             "visual_style": "atmospheric",
             "motion": "static",
             "mood": "neutral"

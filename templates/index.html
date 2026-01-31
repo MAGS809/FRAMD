@@ -7492,12 +7492,14 @@
         function navigateVisualScene(newIndex) {
             if (newIndex < 0) return;
             if (newIndex >= currentAnchors.length) {
-                // Finished all scenes - show the Continue button
-                const footer = document.getElementById('visuals-footer');
-                if (footer) footer.style.display = 'block';
+                // Finished all scenes - auto-advance to voice casting
+                currentWorkflowStep = 4;
+                addMessage(`Visuals set for all ${currentAnchors.length} scenes. Moving to voice casting...`, false);
                 
-                addMessage(`All ${currentAnchors.length} scenes have visuals configured. Click "Continue to Voice Casting" when ready.`, false);
-                currentWorkflowStep = 3;
+                // Short delay then show voice options
+                setTimeout(() => {
+                    showVoiceCastingOptions();
+                }, 500);
                 return;
             }
             
@@ -7505,6 +7507,22 @@
             if (visualPickerContainer) {
                 renderSingleSceneVisualPicker(visualPickerContainer, currentAnchors, newIndex);
             }
+        }
+        
+        // Track if voice casting options have been shown
+        let voiceCastingShown = false;
+        
+        // Show voice casting options inline
+        function showVoiceCastingOptions() {
+            // Prevent duplicate prompts
+            if (voiceCastingShown) {
+                console.log('[showVoiceCastingOptions] Already shown, skipping');
+                return;
+            }
+            voiceCastingShown = true;
+            
+            const options = ['Auto-assign voices', 'Let me pick voices', 'Skip to render'];
+            addMessageWithOptions('How would you like to handle voice casting?', options);
         }
         
         // Track loading state to prevent duplicate calls
@@ -8731,6 +8749,13 @@
             currentProjectId = null;
             conversationHistory = [];
             saveConversation();
+            
+            // Reset workflow state
+            voiceCastingShown = false;
+            clarificationCount = 0;
+            originalIdea = '';
+            awaitingClarification = false;
+            currentWorkflowStep = 1;
             
             // Clear last project input for rebuild functionality
             localStorage.removeItem('lastProjectInput');
@@ -10681,6 +10706,22 @@
                 btns.innerHTML = `<div style="display: block; margin-top: 16px; padding: 10px 14px; background: rgba(255, 214, 10, 0.15); border-left: 3px solid var(--gold); border-radius: 4px; color: var(--gold); font-size: 13px;"><span style="opacity: 0.7;">You selected:</span> <strong>${escapeHtml(option)}</strong></div>`;
             });
             
+            // Handle voice casting options specially
+            const optionLower = option.toLowerCase();
+            if (optionLower.includes('auto-assign voices') || optionLower.includes('auto assign voices')) {
+                addMessage(option, true);
+                autoAssignVoices();
+                return;
+            } else if (optionLower.includes('let me pick') || optionLower.includes('pick voices')) {
+                addMessage(option, true);
+                showVoicePickerUI();
+                return;
+            } else if (optionLower.includes('skip to render') || optionLower.includes('skip render')) {
+                addMessage(option, true);
+                proceedToRender();
+                return;
+            }
+            
             // Note: clarificationCount is incremented in sendMessageWithContext, not here
             // This prevents double-counting
             
@@ -11251,8 +11292,144 @@
         // Proceed to voices from inline card
         function proceedToVoices() {
             currentWorkflowStep = 4;
-            addMessage('Ready for voice casting. I can suggest voices that match each scene, or you can pick them yourself.', false);
-            // TODO: Render voice picker inline in chat
+            showVoiceCastingOptions();
+        }
+        
+        // Auto-assign voices to characters
+        async function autoAssignVoices() {
+            currentWorkflowStep = 5;
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/auto-assign-voices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProjectId,
+                        script: currentScript
+                    })
+                });
+                
+                removeTypingIndicator();
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentVoiceAssignments = data.voice_assignments || {};
+                    addMessage(`Voices auto-assigned! ${Object.keys(currentVoiceAssignments).length} character(s) ready.`);
+                    
+                    // Show voice assignments summary
+                    let summary = 'Voice casting:\n';
+                    for (const [char, voice] of Object.entries(currentVoiceAssignments)) {
+                        summary += `• ${char}: ${voice}\n`;
+                    }
+                    addMessage(summary.trim());
+                    
+                    // Auto-advance to render
+                    setTimeout(() => proceedToRender(), 500);
+                } else {
+                    addMessage(data.error || 'Failed to auto-assign voices. Try picking manually.');
+                    showVoicePickerUI();
+                }
+            } catch (err) {
+                removeTypingIndicator();
+                console.error('Auto-assign voices error:', err);
+                addMessage('Error assigning voices. Try picking manually.');
+                showVoicePickerUI();
+            }
+        }
+        
+        // Show voice picker UI inline in chat
+        function showVoicePickerUI() {
+            currentWorkflowStep = 5;
+            
+            // Get characters from current script
+            const characters = [];
+            if (currentScript && currentScript.anchors) {
+                for (const anchor of currentScript.anchors) {
+                    const char = anchor.character || 'Narrator';
+                    if (!characters.includes(char)) {
+                        characters.push(char);
+                    }
+                }
+            }
+            
+            if (characters.length === 0) {
+                characters.push('Narrator');
+            }
+            
+            // Build voice picker card
+            const voices = ['Adam', 'Antoni', 'Arnold', 'Bella', 'Domi', 'Elli', 'Josh', 'Rachel', 'Sam'];
+            
+            let html = `<div class="voice-picker-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">`;
+            html += `<div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Cast Your Voices</div>`;
+            
+            for (const char of characters) {
+                html += `<div style="margin-bottom: 12px;">`;
+                html += `<label style="display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 4px;">${char}</label>`;
+                html += `<select onchange="updateCharacterVoice('${char}', this.value)" style="width: 100%; padding: 8px 12px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 13px;">`;
+                for (const voice of voices) {
+                    html += `<option value="${voice}">${voice}</option>`;
+                }
+                html += `</select>`;
+                html += `</div>`;
+            }
+            
+            html += `<button onclick="confirmVoiceCasting()" class="btn btn-primary" style="width: 100%; margin-top: 8px; font-size: 13px; padding: 10px;">Confirm & Render</button>`;
+            html += `</div>`;
+            
+            const messagesDiv = document.getElementById('messages');
+            if (messagesDiv) {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'message ai';
+                cardDiv.innerHTML = html;
+                messagesDiv.appendChild(cardDiv);
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+            
+            // Initialize voice assignments
+            currentVoiceAssignments = {};
+            for (const char of characters) {
+                currentVoiceAssignments[char] = voices[0];
+            }
+        }
+        
+        // Confirm voice casting and proceed to render
+        function confirmVoiceCasting() {
+            addMessage('Voices confirmed! Starting render...', true);
+            proceedToRender();
+        }
+        
+        // Proceed to render
+        async function proceedToRender() {
+            currentWorkflowStep = 6;
+            addTypingIndicator();
+            addMessage('Rendering your video...');
+            
+            try {
+                const response = await fetch('/render-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: currentProjectId,
+                        script: currentScript,
+                        voice_assignments: currentVoiceAssignments || {},
+                        format: '9:16'
+                    })
+                });
+                
+                removeTypingIndicator();
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderVideoResultInChat(data);
+                } else {
+                    addMessage(data.error || 'Failed to render video. Please try again.');
+                }
+            } catch (err) {
+                removeTypingIndicator();
+                console.error('Render error:', err);
+                addMessage('Error rendering video. Please try again.');
+            }
         }
         
         // Render video result inline in chat
@@ -11451,10 +11628,16 @@
                     // Populate scene composer with sections from visual board
                     populateScenesFromVisualBoard(data.visual_board);
                     
-                    // Stay in chat - show success message inline
+                    // Stay in chat - auto-advance to voice casting
                     const sceneCount = data.visual_board.sections?.length || 0;
-                    addMessage(`Visuals curated - ${sceneCount} scenes ready. Ready for voice casting.`, false);
+                    currentWorkflowStep = 4;
+                    addMessage(`Visuals curated for ${sceneCount} scenes. Moving to voice casting...`, false);
                     showToast('Visuals curated!');
+                    
+                    // Auto-advance to voice options
+                    setTimeout(() => {
+                        showVoiceCastingOptions();
+                    }, 500);
                 } else {
                     console.error('Curate failed:', data.error);
                     showToast(data.error || 'Failed to curate visuals');

@@ -5436,6 +5436,59 @@ def process_full():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/auto-assign-voices', methods=['POST'])
+def auto_assign_voices():
+    """Auto-assign voices to characters based on script context."""
+    data = request.get_json()
+    script = data.get('script', {})
+    
+    # Get characters from script anchors
+    characters = set()
+    anchors = script.get('anchors', [])
+    for anchor in anchors:
+        char = anchor.get('character', 'Narrator')
+        characters.add(char)
+    
+    if not characters:
+        characters.add('Narrator')
+    
+    # Default voice mappings based on character type
+    voice_pool = {
+        'male': ['Adam', 'Antoni', 'Arnold', 'Josh', 'Sam'],
+        'female': ['Bella', 'Domi', 'Elli', 'Rachel'],
+        'neutral': ['Adam', 'Rachel']
+    }
+    
+    # Simple heuristic for voice assignment
+    voice_assignments = {}
+    male_idx = 0
+    female_idx = 0
+    
+    for char in sorted(characters):
+        char_lower = char.lower()
+        
+        # Guess gender from common names/patterns
+        if any(name in char_lower for name in ['narrator', 'host', 'adam', 'john', 'mike', 'david', 'james']):
+            voice_assignments[char] = voice_pool['male'][male_idx % len(voice_pool['male'])]
+            male_idx += 1
+        elif any(name in char_lower for name in ['sarah', 'rachel', 'bella', 'emma', 'lisa', 'amy']):
+            voice_assignments[char] = voice_pool['female'][female_idx % len(voice_pool['female'])]
+            female_idx += 1
+        else:
+            # Default to alternating
+            if male_idx <= female_idx:
+                voice_assignments[char] = voice_pool['male'][male_idx % len(voice_pool['male'])]
+                male_idx += 1
+            else:
+                voice_assignments[char] = voice_pool['female'][female_idx % len(voice_pool['female'])]
+                female_idx += 1
+    
+    return jsonify({
+        'success': True,
+        'voice_assignments': voice_assignments
+    })
+
+
 @app.route('/render-video', methods=['POST'])
 def render_video():
     """Render final video from selected scenes and voiceover."""
