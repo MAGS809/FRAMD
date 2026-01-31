@@ -10647,20 +10647,26 @@
             // Clean the question text (remove the options part for cleaner display)
             let questionText = content;
             
-            let html = `<div class="message-content">${escapeHtml(questionText)}</div>`;
+            // Use flex column layout to stack question and options vertically
+            let html = `<div style="display: flex; flex-direction: column; gap: 16px;">`;
+            html += `<div class="message-content" style="margin-bottom: 0;">${escapeHtml(questionText)}</div>`;
             
-            // Add option buttons if we have any
+            // Add option buttons if we have any - stacked vertically for cleaner look
             if (options && options.length > 0) {
-                html += `<div class="option-buttons" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">`;
+                html += `<div class="option-buttons" style="display: flex; flex-direction: column; gap: 10px; padding-left: 8px;">`;
                 
                 for (const option of options) {
                     const isOther = option.toLowerCase().includes('something else');
-                    const btnClass = isOther ? 'btn-secondary' : 'btn-primary';
-                    html += `<button class="btn ${btnClass} option-btn" onclick="selectOption('${escapeHtml(option.replace(/'/g, "\\'"))}')" style="font-size: 12px; padding: 8px 16px;">${escapeHtml(option)}</button>`;
+                    const btnStyle = isOther 
+                        ? 'background: transparent; border: 1px solid var(--border); color: var(--text-dim);' 
+                        : 'background: var(--gold); color: #000;';
+                    html += `<button class="btn option-btn" onclick="selectOption('${escapeHtml(option.replace(/'/g, "\\'"))}')" style="font-size: 13px; padding: 10px 18px; border-radius: 8px; text-align: left; ${btnStyle} transition: all 0.2s; cursor: pointer;">${escapeHtml(option)}</button>`;
                 }
                 
                 html += `</div>`;
             }
+            
+            html += `</div>`;
             
             msg.innerHTML = html;
             messages.appendChild(msg);
