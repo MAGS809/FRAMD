@@ -315,6 +315,59 @@
             position: relative;
         }
         
+        .token-balance-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,214,10,0.1);
+            border: 1px solid rgba(255,214,10,0.25);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--gold);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .token-balance-pill:hover {
+            background: rgba(255,214,10,0.15);
+            border-color: rgba(255,214,10,0.4);
+        }
+        
+        .token-balance-pill .token-icon {
+            font-size: 14px;
+        }
+        
+        .token-balance-pill .token-count {
+            font-weight: 600;
+        }
+        
+        .token-balance-pill.low {
+            background: rgba(239,68,68,0.1);
+            border-color: rgba(239,68,68,0.25);
+            color: #ef4444;
+        }
+        
+        .quick-action-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-dim);
+        }
+        
+        .quick-action-btn:hover {
+            background: rgba(255,255,255,0.08);
+            color: var(--text);
+        }
+        
         .avatar-btn {
             width: 36px;
             height: 36px;
@@ -1196,24 +1249,117 @@
         
         .project-workflow-steps {
             display: flex;
-            gap: 0.25rem;
-            margin-top: 0.5rem;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            padding: 8px 0;
+        }
+        
+        .workflow-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            flex: 1;
+            position: relative;
         }
         
         .workflow-step-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             background: rgba(255,255,255,0.15);
             transition: all 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .workflow-step-label {
+            font-size: 9px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            opacity: 0.6;
+            transition: all 0.2s;
+        }
+        
+        .workflow-step.complete .workflow-step-label,
+        .workflow-step.active .workflow-step-label {
+            opacity: 1;
+        }
+        
+        .workflow-step.complete .workflow-step-label {
+            color: var(--gold);
+        }
+        
+        .workflow-step.active .workflow-step-label {
+            color: rgba(255,214,10,0.8);
         }
         
         .workflow-step-dot.complete {
             background: var(--gold);
+            box-shadow: 0 0 8px rgba(255,214,10,0.4);
         }
         
         .workflow-step-dot.active {
             background: rgba(255,214,10,0.5);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+        
+        .workflow-step-line {
+            position: absolute;
+            top: 5px;
+            left: calc(50% + 8px);
+            width: calc(100% - 8px);
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .workflow-step.complete .workflow-step-line {
+            background: var(--gold);
+        }
+        
+        .workflow-step:last-child .workflow-step-line {
+            display: none;
+        }
+        
+        .project-template-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255,214,10,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .project-card-header-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .project-hook-preview {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 4px;
+            padding: 6px 8px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 6px;
+            border-left: 2px solid var(--gold);
+            max-height: 32px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
         
         /* Auto-Generate Button Styles */
@@ -6081,6 +6227,16 @@
                 </div>
             </div>
             <div class="header-right">
+                <div class="token-balance-pill" id="header-token-pill" onclick="openSettings('billing')" title="Click to manage tokens">
+                    <span class="token-icon">✦</span>
+                    <span class="token-count" id="header-token-count">--</span>
+                    <span>tokens</span>
+                </div>
+                <button class="quick-action-btn" onclick="startNewProject()" title="New Project">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                </button>
                 <button class="avatar-btn" id="avatar-btn" onclick="toggleAvatarMenu()">
                     {{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}
                 </button>
@@ -9400,7 +9556,26 @@
                     <div class="empty-state-container" style="text-align: center; padding: 40px 20px; max-height: calc(100vh - 120px); overflow-y: auto;">
                         <div style="margin-bottom: 16px; opacity: 0.8;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg></div>
                         <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text);">Start Your First Project</h3>
-                        <p style="color: var(--text-dim); margin-bottom: 24px; max-width: 340px; margin-left: auto; margin-right: auto;">All templates include integrated video clipping and AI visual curation. Pick one to get started.</p>
+                        <p style="color: var(--text-dim); margin-bottom: 16px; max-width: 340px; margin-left: auto; margin-right: auto;">All templates include integrated video clipping and AI visual curation. Pick one to get started.</p>
+                        
+                        <div style="display: flex; justify-content: center; gap: 24px; margin-bottom: 24px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--dark-green);">1</div>
+                                <span style="font-size: 12px; color: var(--text-dim);">Write Script</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,214,10,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--gold);">2</div>
+                                <span style="font-size: 12px; color: var(--text-dim);">Add Voice</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,214,10,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--gold);">3</div>
+                                <span style="font-size: 12px; color: var(--text-dim);">Pick Visuals</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,214,10,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: var(--gold);">4</div>
+                                <span style="font-size: 12px; color: var(--text-dim);">Export</span>
+                            </div>
+                        </div>
                         
                         <div class="template-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 400px; margin: 0 auto 24px;">
                             <div class="template-card" onclick="createProjectFromTemplate('hot_take')" style="cursor: pointer; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
@@ -9474,11 +9649,47 @@
                 const step = p.workflow_step || 1;
                 const isReady = step >= 4; // Ready for generation at step 4+
                 
-                // Generate workflow step dots (4 main steps: Script, Voice, Visuals, Ready)
+                // Generate workflow step dots with labels
+                const stepNames = ['Script', 'Voice', 'Visuals', 'Export'];
                 let stepDots = '';
                 for (let i = 1; i <= 4; i++) {
+                    const stepClass = i < step ? 'complete' : (i === step ? 'active' : '');
                     const dotClass = i < step ? 'complete' : (i === step ? 'active' : '');
-                    stepDots += `<div class="workflow-step-dot ${dotClass}" title="${getStepName(i)}"></div>`;
+                    stepDots += `
+                        <div class="workflow-step ${stepClass}">
+                            <div class="workflow-step-dot ${dotClass}"></div>
+                            <span class="workflow-step-label">${stepNames[i-1]}</span>
+                            ${i < 4 ? '<div class="workflow-step-line"></div>' : ''}
+                        </div>`;
+                }
+                
+                // Get template icon (matching actual template_type values from createProjectFromTemplate)
+                const templateIcons = {
+                    'hot_take': '🔥',
+                    'explainer': '📚',
+                    'story': '📖',
+                    'story_time': '📖',
+                    'commentary': '💬',
+                    'letter': '✉️',
+                    'open_letter': '✉️',
+                    'meme': '😂',
+                    'meme_funny': '😂',
+                    'ad': '📢',
+                    'make_an_ad': '📢',
+                    'tiktok_edit': '🎬',
+                    'start_from_scratch': '✨'
+                };
+                const templateIcon = templateIcons[p.template_type] || '✨';
+                
+                // Get hook preview (first meaningful line of script)
+                let hookPreview = '';
+                if (p.script) {
+                    const lines = p.script.split('\n').filter(l => l.trim() && !l.trim().startsWith('[') && !l.trim().match(/^(INT\.|EXT\.)/));
+                    if (lines.length > 0) {
+                        let firstLine = lines[0].replace(/^[A-Z]+:\s*/, '').trim();
+                        if (firstLine.length > 80) firstLine = firstLine.substring(0, 77) + '...';
+                        hookPreview = firstLine;
+                    }
                 }
                 
                 const projectName = p.name || 'Untitled Project';
@@ -9497,21 +9708,24 @@
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
                         </button>
-                        <div class="project-card-header" style="margin-bottom: 8px;">
-                            <span class="project-card-status" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">${statusText}</span>
+                        <div class="project-card-header-row">
+                            <div class="project-template-icon" title="${(p.template_type || 'start_from_scratch').replace(/_/g, ' ')}">${templateIcon}</div>
+                            <div>
+                                <span class="project-card-status" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">${statusText}</span>
+                            </div>
                         </div>
                         <div class="project-card-title">
                             ${escapeHtml(projectName)}
                             ${p.is_successful ? '<span class="success-badge">Posted</span>' : ''}
                             ${isReady && !p.is_successful ? '<span class="project-ready-badge">Ready</span>' : ''}
                         </div>
-                        <div class="project-card-desc">${escapeHtml(projectDesc)}</div>
+                        ${hookPreview ? `<div class="project-hook-preview">"${escapeHtml(hookPreview)}"</div>` : `<div class="project-card-desc">${escapeHtml(projectDesc)}</div>`}
                         <div class="project-workflow-steps">${stepDots}</div>
                         <div class="project-card-autogen" style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);">
                             <div class="autogen-tooltip">Like 5 of your creations to unlock Auto Generate. The AI learns your style and can create content that matches your tone and preferences.</div>
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <span style="color: var(--gold); font-size: 12px;">✦</span>
-                                <span style="font-size: 11px; color: var(--text-dim);">Auto Generate Content</span>
+                                <span style="font-size: 11px; color: var(--text-dim);">Auto Generate</span>
                             </div>
                             <span style="font-size: 11px; color: ${progressColor};">${progressText}</span>
                         </div>
@@ -14996,6 +15210,14 @@
                     if (balanceEl) balanceEl.textContent = tokenBalance;
                     if (monthlyEl) monthlyEl.textContent = monthlyTokens + ' tokens';
                     if (barEl) barEl.style.width = Math.min(100, (tokenBalance / monthlyTokens) * 100) + '%';
+                    
+                    // Update header token pill
+                    const headerTokenPill = document.getElementById('header-token-pill');
+                    const headerTokenCount = document.getElementById('header-token-count');
+                    if (headerTokenCount) headerTokenCount.textContent = tokenBalance;
+                    if (headerTokenPill) {
+                        headerTokenPill.classList.toggle('low', tokenBalance < 20);
+                    }
                     
                     const checkSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
                     const xSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';

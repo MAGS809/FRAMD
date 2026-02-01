@@ -161,11 +161,19 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 ### Blueprint Refactoring (In Progress)
 The codebase is being refactored to use Flask Blueprints for better organization:
 - **routes/__init__.py**: Blueprint exports
-- **routes/utils.py**: Shared utilities (Stripe credentials, token packages)
+- **routes/utils.py**: Shared utilities (Stripe credentials, token packages, get_user_id helper)
 - **routes/auth.py**: Authentication routes (/, /pricing, /dev, /logout, /health)
 - **routes/payments.py**: Stripe payment and subscription routes
+- **routes/projects.py**: Project CRUD, workflow steps, AI learning, drafts (14 routes)
+- **routes/video.py**: Caption preferences, video history, feedback, hosting (8 routes)
 
 Current status: Blueprints registered at `/v2` prefix for parallel testing. Original routes in app.py still active. Future work will migrate remaining routes and remove duplicates.
+
+### UI/UX Enhancements (Feb 2026)
+- **Project Cards**: Template icons (emoji), hook preview (first script line), labeled workflow progress dots
+- **Progress Dots**: Now show labels (Script, Voice, Visuals, Export) with visual states (complete/active)
+- **Empty State**: "How it Works" step guide (1-4) for onboarding
+- **Header**: Token balance pill with quick "New Project" action button
 
 ### Database
 - PostgreSQL with 20+ tables
