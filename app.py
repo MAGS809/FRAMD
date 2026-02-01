@@ -2651,6 +2651,8 @@ def get_projects():
             'workflow_step': getattr(p, 'workflow_step', 1) or 1,
             'is_successful': p.is_successful,
             'success_score': p.success_score,
+            'auto_generate_enabled': getattr(p, 'auto_generate_enabled', False) or False,
+            'liked': getattr(p, 'liked', None),
             'created_at': p.created_at.isoformat() if p.created_at else None,
             'updated_at': p.updated_at.isoformat() if p.updated_at else None
         } for p in projects],

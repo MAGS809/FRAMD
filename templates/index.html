@@ -9883,10 +9883,15 @@
                     <div class="project-name">
                         ${escapeHtml(p.name)}
                         ${p.is_successful ? '<span class="project-success-badge">Posted</span>' : ''}
+                        ${p.liked === true ? '<span class="project-liked-badge" style="background: rgba(46,204,113,0.2); color: #2ecc71; font-size: 10px; padding: 2px 6px; border-radius: 8px; margin-left: 6px;">Liked</span>' : ''}
                     </div>
                     <div class="project-meta">
                         <span class="project-status">${p.status}</span>
                         <span class="project-date">${formatDate(p.updated_at)}</span>
+                        <span class="project-autogen-toggle" onclick="event.stopPropagation(); toggleProjectAutoGen(${p.id}, ${!p.auto_generate_enabled})" title="Toggle AI Auto-Generation" style="margin-left: auto; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 12px; font-size: 10px; ${p.auto_generate_enabled ? 'background: rgba(255,214,10,0.15); color: var(--gold);' : 'background: rgba(255,255,255,0.05); color: var(--text-dim);'}">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                            ${p.auto_generate_enabled ? 'Auto' : 'Manual'}
+                        </span>
                     </div>
                 </div>
             `).join('');
@@ -9896,6 +9901,26 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        async function toggleProjectAutoGen(projectId, enable) {
+            try {
+                const response = await fetch(`/projects/${projectId}/toggle-auto-generate`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Auto-generation ${data.auto_generate_enabled ? 'enabled' : 'disabled'}`, 'success');
+                    await loadProjects();
+                } else {
+                    showToast(data.error || 'Could not toggle auto-generation', 'error');
+                }
+            } catch (err) {
+                console.error('Error toggling auto-gen:', err);
+                showToast('Could not toggle auto-generation', 'error');
+            }
         }
         
         function formatDate(dateStr) {
