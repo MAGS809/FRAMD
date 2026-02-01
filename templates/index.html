@@ -2936,10 +2936,11 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.95);
             z-index: 1000;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
         }
         
         .image-placement-popup.show {
@@ -2947,12 +2948,15 @@
         }
         
         .image-placement-content {
-            background: var(--surface);
+            background: #0a1f14;
             border-radius: 16px;
             padding: 1.5rem;
             max-width: 400px;
             width: 90%;
             text-align: center;
+            max-height: 85vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 214, 10, 0.2);
         }
         
         .image-placement-preview {
@@ -11939,6 +11943,7 @@
             }
             
             popup.classList.add('show');
+            document.body.style.overflow = 'hidden';
             
             document.getElementById('content-rights-check').checked = false;
             document.getElementById('confirm-upload-btn').disabled = true;
@@ -11991,6 +11996,7 @@
             pendingImagePath = null;
             pendingImageAnalysis = null;
             document.getElementById('image-placement-popup').classList.remove('show');
+            document.body.style.overflow = '';
         }
         
         async function confirmImagePlacement() {
@@ -12030,6 +12036,7 @@
             document.getElementById('file-name').textContent = `${pendingImageFile.name} (${modeLabel})`;
             document.getElementById('file-preview').classList.add('show');
             document.getElementById('image-placement-popup').classList.remove('show');
+            document.body.style.overflow = '';
             
             const vidPreview = document.getElementById('video-placement-preview');
             if (vidPreview) {
