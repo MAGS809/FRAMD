@@ -6289,7 +6289,7 @@
                     <h3 style="font-size: 18px; font-weight: 600;">Choose a Template</h3>
                     <button onclick="closeTemplatePickerModal()" style="background: none; border: none; color: var(--text-dim); font-size: 24px; cursor: pointer; padding: 0; line-height: 1;">&times;</button>
                 </div>
-                <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 20px;">All templates include integrated video clipping and visual curation.</p>
+                <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 20px;">All templates include integrated video clipping and AI visual curation.</p>
                 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px;">
                     <div onclick="createProjectFromTemplate('hot_take'); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; transition: all 0.2s;">
@@ -9269,10 +9269,10 @@
                 const likedCount = autoGenerateConfidence.liked_count || 0;
                 const remaining = 5 - likedCount;
                 html = `
-                    <div class="empty-state-container" style="text-align: center; padding: 40px 20px;">
+                    <div class="empty-state-container" style="text-align: center; padding: 40px 20px; max-height: calc(100vh - 120px); overflow-y: auto;">
                         <div style="margin-bottom: 16px; opacity: 0.8;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg></div>
                         <h3 style="font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text);">Start Your First Project</h3>
-                        <p style="color: var(--text-dim); margin-bottom: 24px; max-width: 340px; margin-left: auto; margin-right: auto;">All templates include integrated video clipping and visual curation. Pick one to get started.</p>
+                        <p style="color: var(--text-dim); margin-bottom: 24px; max-width: 340px; margin-left: auto; margin-right: auto;">All templates include integrated video clipping and AI visual curation. Pick one to get started.</p>
                         
                         <div class="template-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-width: 400px; margin: 0 auto 24px;">
                             <div class="template-card" onclick="createProjectFromTemplate('hot_take')" style="cursor: pointer; background: rgba(255,214,10,0.08); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s;">
