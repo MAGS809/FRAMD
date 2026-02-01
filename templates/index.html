@@ -13844,16 +13844,50 @@
                     if (uploadData.success) {
                         fileContext = `[Uploaded: ${uploadedFile.name}, path: ${uploadData.filename}]`;
                         
-                        // Auto-transcribe audio/video
-                        if (uploadedFile.name.match(/\.(mp4|mov|webm|mp3|wav|m4a)$/i)) {
-                            const transRes = await fetch('/transcribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ filename: uploadData.filename })
-                            });
-                            const transData = await transRes.json();
-                            if (transData.success) {
-                                fileContext = `[Transcript: "${transData.transcript.substring(0, 2000)}"]`;
+                        // Include video/image analysis that was captured during placement popup
+                        if (uploadedFile.analysis) {
+                            const analysis = uploadedFile.analysis;
+                            if (analysis.content_type === 'video') {
+                                // Video analysis with transcript and frame description
+                                let videoContext = `\n\n[VIDEO ANALYSIS]`;
+                                if (analysis.duration) {
+                                    videoContext += `\nDuration: ${analysis.duration.toFixed(1)} seconds`;
+                                }
+                                if (analysis.frame_analysis) {
+                                    videoContext += `\nVisual content: ${analysis.frame_analysis}`;
+                                }
+                                if (analysis.transcript) {
+                                    videoContext += `\nAudio transcript: "${analysis.transcript.substring(0, 2000)}"`;
+                                }
+                                fileContext += videoContext;
+                            } else if (analysis.description) {
+                                // Image analysis
+                                fileContext += `\n[IMAGE ANALYSIS]\nDescription: ${analysis.description}\nMood: ${analysis.mood || 'neutral'}`;
+                            }
+                        } else if (uploadedFile.name.match(/\.(mp4|mov|webm|avi|mkv|m4v)$/i)) {
+                            // Fallback: analyze video now if not already done
+                            try {
+                                const analyzeRes = await fetch('/analyze-video', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ file_path: uploadData.filename })
+                                });
+                                const analyzeData = await analyzeRes.json();
+                                if (analyzeData.success && analyzeData.analysis) {
+                                    let videoContext = `\n\n[VIDEO ANALYSIS]`;
+                                    if (analyzeData.analysis.duration) {
+                                        videoContext += `\nDuration: ${analyzeData.analysis.duration.toFixed(1)} seconds`;
+                                    }
+                                    if (analyzeData.analysis.frame_analysis) {
+                                        videoContext += `\nVisual content: ${analyzeData.analysis.frame_analysis}`;
+                                    }
+                                    if (analyzeData.analysis.transcript) {
+                                        videoContext += `\nAudio transcript: "${analyzeData.analysis.transcript.substring(0, 2000)}"`;
+                                    }
+                                    fileContext += videoContext;
+                                }
+                            } catch (err) {
+                                console.error('Video analysis fallback error:', err);
                             }
                         }
                     }
