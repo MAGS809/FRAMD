@@ -2183,7 +2183,7 @@
         }
         
         .message {
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.75rem;
             animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
@@ -13134,7 +13134,7 @@
                 return;
             } else if (optionLower.includes('skip to render') || optionLower.includes('skip render')) {
                 addMessage(option, true);
-                proceedToRender();
+                showRenderConfirmation();
                 return;
             }
             
@@ -13758,8 +13758,8 @@
                     }
                     addMessage(summary.trim());
                     
-                    // Auto-advance to render
-                    setTimeout(() => proceedToRender(), 500);
+                    // Show render confirmation with cost estimate
+                    setTimeout(() => showRenderConfirmation(), 500);
                 } else {
                     addMessage(data.error || 'Failed to auto-assign voices. Try picking manually.');
                     showVoicePickerUI();
@@ -14042,8 +14042,43 @@
         }
         
         function confirmCaptionsAndRender() {
-            addMessage('Captions configured! Rendering your video...', true);
-            proceedToRender();
+            addMessage('Captions configured!', true);
+            showRenderConfirmation();
+        }
+        
+        // Show token cost estimate before rendering
+        function showRenderConfirmation() {
+            // Calculate token cost
+            const anchors = currentAnchors || (currentScript?.anchors || []);
+            const characterCount = new Set(anchors.map(a => a.character || 'Narrator')).size;
+            const sfxCount = anchors.filter(a => (a.text || '').includes('[SOUND:')).length;
+            const baseCost = 25;
+            const charCost = characterCount * 3;
+            const sfxCostVal = sfxCount * 1;
+            const totalCost = baseCost + charCost + sfxCostVal;
+            const dollarCost = (totalCost * 0.04).toFixed(2);
+            
+            const confirmHtml = `
+                <div class="render-confirm-card" style="background: rgba(255,214,10,0.05); border: 1px solid rgba(255,214,10,0.3); border-radius: 12px; padding: 16px; margin: 8px 0;">
+                    <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Ready to render your video</div>
+                    <div style="display: flex; gap: 16px; margin-bottom: 12px; font-size: 13px; color: var(--text-dim);">
+                        <div>✦ <strong style="color: var(--gold);">${totalCost}</strong> tokens</div>
+                        <div>≈ <strong>$${dollarCost}</strong></div>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 14px;">
+                        Base: ${baseCost} + Characters: ${charCost} + SFX: ${sfxCostVal}
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button onclick="proceedToRender(); this.closest('.render-confirm-card').remove();" style="flex: 1; padding: 10px 16px; background: var(--gold); color: var(--bg); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: transform 0.15s;">
+                            Render Video
+                        </button>
+                        <button onclick="this.closest('.message').remove();" style="padding: 10px 16px; background: transparent; color: var(--text-dim); border: 1px solid var(--border); border-radius: 8px; cursor: pointer;">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            `;
+            addMessage(confirmHtml, false, true);
         }
         
         // Build scenes array from sceneVisuals and anchors
