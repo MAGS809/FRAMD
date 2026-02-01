@@ -6131,6 +6131,21 @@
                     <button class="close-dashboard" onclick="toggleDashboard()">&times;</button>
                 </div>
                 
+                <!-- Build New / Generator Tabs -->
+                <div class="dashboard-tabs" style="display: flex; gap: 0; margin-bottom: 16px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">
+                    <button class="dashboard-tab active" id="tab-build-new" onclick="switchDashboardTab('build-new')" style="flex: 1; padding: 12px 16px; background: var(--gold); color: var(--bg); border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Build New
+                    </button>
+                    <button class="dashboard-tab" id="tab-generator" onclick="switchDashboardTab('generator')" style="flex: 1; padding: 12px 16px; background: rgba(255,255,255,0.03); color: var(--text-dim); border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; position: relative;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                        Generator
+                        <span id="generator-lock-badge" class="generator-lock-badge" style="position: absolute; top: 4px; right: 8px; font-size: 9px; padding: 2px 6px; background: rgba(255,214,10,0.2); border: 1px solid var(--gold); border-radius: 8px; color: var(--gold);">PRO</span>
+                    </button>
+                </div>
+                
+                <!-- Tab Content: Build New -->
+                <div id="tab-content-build-new" class="dashboard-tab-content">
                 <!-- Token Balance Display -->
                 <div class="token-balance-header" style="background: linear-gradient(135deg, rgba(255,214,10,0.15), rgba(255,214,10,0.05)); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
@@ -6288,6 +6303,64 @@
                     </svg>
                     New Project
                 </button>
+                </div><!-- End Tab Content: Build New -->
+                
+                <!-- Tab Content: Generator (Pro + 5 Likes Required) -->
+                <div id="tab-content-generator" class="dashboard-tab-content" style="display: none;">
+                    <div id="generator-locked-state" style="text-align: center; padding: 40px 20px;">
+                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, rgba(255,214,10,0.2), rgba(255,214,10,0.05)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">AI Auto-Generator</h3>
+                        <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+                            Let Echo Engine create content drafts for you, using trend research and everything it's learned from your style.
+                        </p>
+                        <div style="display: flex; flex-direction: column; gap: 8px; max-width: 260px; margin: 0 auto 20px;">
+                            <div id="generator-req-pro" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px;">
+                                <span id="generator-check-pro" style="width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 12px;">-</span>
+                                <span style="font-size: 13px;">Pro subscription</span>
+                            </div>
+                            <div id="generator-req-likes" style="display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 8px;">
+                                <span id="generator-check-likes" style="width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 12px;">-</span>
+                                <span style="font-size: 13px;"><span id="generator-likes-count">0</span>/5 liked videos</span>
+                            </div>
+                        </div>
+                        <a href="/pricing" style="display: inline-block; padding: 12px 24px; background: var(--gold); color: var(--bg); text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Upgrade to Pro</a>
+                    </div>
+                    
+                    <div id="generator-unlocked-state" style="display: none;">
+                        <div style="background: linear-gradient(135deg, rgba(255,214,10,0.1), rgba(255,214,10,0.03)); border: 1px solid rgba(255,214,10,0.2); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <h3 style="font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    AI Draft Queue
+                                </h3>
+                                <button id="generate-more-btn" onclick="generateMoreDrafts()" style="padding: 8px 16px; background: var(--gold); color: var(--bg); border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                                    Generate Drafts
+                                </button>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 0;">
+                                Each draft uses a unique angle, vibe, and hook style informed by trend research.
+                            </p>
+                        </div>
+                        
+                        <div id="generator-drafts-list" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="generator-empty-state" style="text-align: center; padding: 40px 20px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 12px;">
+                                <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 12px;">No drafts yet. Click "Generate Drafts" to create up to 3 AI-powered content drafts.</p>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+                            <p style="font-size: 11px; color: var(--text-dim); text-align: center;">
+                                Drafts are generated using trend research across Twitter, Instagram, TikTok, and YouTube.
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -9544,6 +9617,224 @@
             if (event.target.id === 'dashboard-overlay') {
                 document.getElementById('dashboard-overlay').classList.remove('open');
             }
+        }
+        
+        function switchDashboardTab(tab) {
+            const buildNewTab = document.getElementById('tab-build-new');
+            const generatorTab = document.getElementById('tab-generator');
+            const buildNewContent = document.getElementById('tab-content-build-new');
+            const generatorContent = document.getElementById('tab-content-generator');
+            
+            if (tab === 'build-new') {
+                buildNewTab.style.background = 'var(--gold)';
+                buildNewTab.style.color = 'var(--bg)';
+                generatorTab.style.background = 'rgba(255,255,255,0.03)';
+                generatorTab.style.color = 'var(--text-dim)';
+                buildNewContent.style.display = 'block';
+                generatorContent.style.display = 'none';
+            } else {
+                buildNewTab.style.background = 'rgba(255,255,255,0.03)';
+                buildNewTab.style.color = 'var(--text-dim)';
+                generatorTab.style.background = 'var(--gold)';
+                generatorTab.style.color = 'var(--bg)';
+                buildNewContent.style.display = 'none';
+                generatorContent.style.display = 'block';
+                checkGeneratorStatus();
+            }
+        }
+        
+        async function checkGeneratorStatus() {
+            try {
+                const response = await fetch('/auto-generate-status');
+                const data = await response.json();
+                
+                const lockedState = document.getElementById('generator-locked-state');
+                const unlockedState = document.getElementById('generator-unlocked-state');
+                const proBadge = document.getElementById('generator-lock-badge');
+                const checkPro = document.getElementById('generator-check-pro');
+                const checkLikes = document.getElementById('generator-check-likes');
+                const likesCount = document.getElementById('generator-likes-count');
+                
+                if (likesCount) likesCount.textContent = data.liked_count || 0;
+                
+                if (data.has_pro) {
+                    checkPro.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+                    checkPro.style.background = 'rgba(46,204,113,0.2)';
+                } else {
+                    checkPro.innerHTML = '-';
+                    checkPro.style.background = 'rgba(255,255,255,0.1)';
+                }
+                
+                if (data.liked_count >= 5) {
+                    checkLikes.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2ecc71" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+                    checkLikes.style.background = 'rgba(46,204,113,0.2)';
+                } else {
+                    checkLikes.innerHTML = '-';
+                    checkLikes.style.background = 'rgba(255,255,255,0.1)';
+                }
+                
+                if (data.eligible) {
+                    lockedState.style.display = 'none';
+                    unlockedState.style.display = 'block';
+                    if (proBadge) proBadge.style.display = 'none';
+                    loadGeneratorDrafts();
+                } else {
+                    lockedState.style.display = 'block';
+                    unlockedState.style.display = 'none';
+                    if (proBadge) proBadge.style.display = 'block';
+                }
+            } catch (err) {
+                console.error('Error checking generator status:', err);
+            }
+        }
+        
+        let currentGeneratorProjectId = null;
+        
+        async function loadGeneratorDrafts() {
+            if (!currentGeneratorProjectId) {
+                const projectsResponse = await fetch('/projects');
+                const projectsData = await projectsResponse.json();
+                if (projectsData.projects && projectsData.projects.length > 0) {
+                    currentGeneratorProjectId = projectsData.projects[0].id;
+                } else {
+                    document.getElementById('generator-drafts-list').innerHTML = `
+                        <div class="generator-empty-state" style="text-align: center; padding: 40px 20px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 12px;">
+                            <p style="color: var(--text-dim); font-size: 13px;">Create a project first to generate AI drafts.</p>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch(`/projects/${currentGeneratorProjectId}/generated-drafts`);
+                const data = await response.json();
+                renderGeneratorDrafts(data.drafts, data.can_generate_more);
+            } catch (err) {
+                console.error('Error loading generator drafts:', err);
+            }
+        }
+        
+        function renderGeneratorDrafts(drafts, canGenerateMore) {
+            const container = document.getElementById('generator-drafts-list');
+            const generateBtn = document.getElementById('generate-more-btn');
+            
+            if (generateBtn) {
+                generateBtn.style.display = canGenerateMore ? 'flex' : 'none';
+            }
+            
+            if (!drafts || drafts.length === 0) {
+                container.innerHTML = `
+                    <div class="generator-empty-state" style="text-align: center; padding: 40px 20px; background: rgba(255,255,255,0.02); border: 1px dashed var(--border); border-radius: 12px;">
+                        <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 12px;">No drafts yet. Click "Generate Drafts" to create up to 3 AI-powered content drafts.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = drafts.map((draft, index) => `
+                <div class="generator-draft-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s;" onclick="openDraftEditor(${draft.id})" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                        <div>
+                            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                                <span style="font-size: 10px; padding: 2px 8px; background: rgba(255,214,10,0.15); border-radius: 10px; color: var(--gold);">${draft.angle_used || 'standard'}</span>
+                                <span style="font-size: 10px; padding: 2px 8px; background: rgba(78,205,196,0.15); border-radius: 10px; color: #4ecdc4;">${draft.vibe_used || 'neutral'}</span>
+                                <span style="font-size: 10px; padding: 2px 8px; background: rgba(155,89,182,0.15); border-radius: 10px; color: #9b59b6;">${draft.hook_type || 'direct'}</span>
+                            </div>
+                            <h4 style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">Draft ${index + 1}</h4>
+                        </div>
+                        <span style="font-size: 11px; color: var(--text-dim);">${new Date(draft.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p style="font-size: 12px; color: var(--text-dim); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">${(draft.script || '').substring(0, 150)}...</p>
+                    <div style="display: flex; gap: 8px; margin-top: 12px;">
+                        <button onclick="event.stopPropagation(); approveDraft(${draft.id})" style="flex: 1; padding: 8px; background: var(--gold); color: var(--bg); border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">Use This</button>
+                        <button onclick="event.stopPropagation(); skipDraft(${draft.id})" style="padding: 8px 12px; background: rgba(255,255,255,0.05); color: var(--text-dim); border: 1px solid var(--border); border-radius: 6px; font-size: 12px; cursor: pointer;">Skip</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function generateMoreDrafts() {
+            if (!currentGeneratorProjectId) {
+                showToast('Select a project first', 'error');
+                return;
+            }
+            
+            const btn = document.getElementById('generate-more-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner"></span> Generating...';
+            }
+            
+            try {
+                const response = await fetch(`/projects/${currentGeneratorProjectId}/generate-drafts`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Generated ${data.drafts_generated} new drafts!`, 'success');
+                    await loadGeneratorDrafts();
+                } else {
+                    showToast(data.error || 'Failed to generate drafts', 'error');
+                }
+            } catch (err) {
+                console.error('Error generating drafts:', err);
+                showToast('Failed to generate drafts', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg> Generate Drafts';
+                }
+            }
+        }
+        
+        async function approveDraft(draftId) {
+            try {
+                const response = await fetch(`/generated-drafts/${draftId}/action`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action: 'approve'})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Draft approved! Loading into editor...', 'success');
+                    document.getElementById('dashboard-overlay').classList.remove('open');
+                    loadProject(data.project_id);
+                } else {
+                    showToast(data.error || 'Failed to approve draft', 'error');
+                }
+            } catch (err) {
+                console.error('Error approving draft:', err);
+                showToast('Failed to approve draft', 'error');
+            }
+        }
+        
+        async function skipDraft(draftId) {
+            try {
+                const response = await fetch(`/generated-drafts/${draftId}/action`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({action: 'skip'})
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Draft skipped', 'info');
+                    await loadGeneratorDrafts();
+                } else {
+                    showToast(data.error || 'Failed to skip draft', 'error');
+                }
+            } catch (err) {
+                console.error('Error skipping draft:', err);
+                showToast('Failed to skip draft', 'error');
+            }
+        }
+        
+        function openDraftEditor(draftId) {
+            showToast('Opening draft editor...', 'info');
         }
         
         async function loadProjects() {
