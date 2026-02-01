@@ -3787,6 +3787,8 @@ def generate_carousel_images(video_path, count, script_text, output_id):
     from context_engine import call_ai
     import json
     
+    count = max(2, min(10, int(count or 5)))
+    
     os.makedirs('output/carousel', exist_ok=True)
     images = []
     
@@ -3797,8 +3799,11 @@ def generate_carousel_images(video_path, count, script_text, output_id):
     except:
         duration = 10
     
-    try:
-        slide_prompt = f"""Create {count} Instagram carousel slides from this script:
+    if not script_text or len(script_text.strip()) < 10:
+        slides = [{"text": f"Slide {i+1}", "timestamp": (i + 0.5) / count} for i in range(count)]
+    else:
+        try:
+            slide_prompt = f"""Create {count} Instagram carousel slides from this script:
 
 {script_text}
 
@@ -3808,19 +3813,21 @@ For each slide, provide:
 
 Return JSON array only:
 [{{"text": "...", "timestamp": 0.1}}, ...]"""
-        
-        ai_response = call_ai(slide_prompt, max_tokens=800)
-        ai_response = ai_response.strip()
-        if '```' in ai_response:
-            ai_response = ai_response.split('```')[1].replace('json', '').strip()
-        slides = json.loads(ai_response)
-    except Exception as e:
-        print(f"AI slide generation failed: {e}")
-        slides = [{"text": f"Slide {i+1}", "timestamp": i/count} for i in range(count)]
+            
+            ai_response = call_ai(slide_prompt, max_tokens=800)
+            ai_response = ai_response.strip()
+            if '```' in ai_response:
+                ai_response = ai_response.split('```')[1].replace('json', '').strip()
+            slides = json.loads(ai_response)
+        except Exception as e:
+            print(f"AI slide generation failed: {e}")
+            slides = [{"text": f"Slide {i+1}", "timestamp": (i + 0.5) / count} for i in range(count)]
     
     for i, slide in enumerate(slides[:count]):
-        timestamp = slide.get('timestamp', i/count) * duration
-        text = slide.get('text', f'Slide {i+1}')
+        raw_timestamp = slide.get('timestamp', (i + 0.5) / count)
+        clamped_timestamp = max(0.0, min(1.0, float(raw_timestamp)))
+        timestamp = clamped_timestamp * duration
+        text = slide.get('text', f'Slide {i+1}')[:100]
         frame_path = f'output/carousel/frame_{output_id}_{i}.png'
         output_path = f'output/carousel/slide_{output_id}_{i}.png'
         
