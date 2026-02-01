@@ -6603,37 +6603,94 @@
         
         <!-- PLATFORM EXPORT MODAL -->
         <div id="platform-export-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 10000; overflow-y: auto;">
-            <div style="max-width: 500px; margin: 60px auto; padding: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="max-width: 560px; margin: 40px auto; padding: 24px; background: var(--bg); border: 1px solid var(--border); border-radius: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h3 style="font-size: 18px; font-weight: 600; color: var(--gold);">Export to Platforms</h3>
                     <button onclick="closePlatformExport()" style="background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer;">&times;</button>
                 </div>
-                <p style="font-size: 13px; color: var(--text-dim); margin-bottom: 16px;">Select platforms to export your video in optimized formats</p>
-                <div id="platform-options" style="display: flex; flex-direction: column; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
-                        <input type="checkbox" name="platform" value="tiktok" checked style="accent-color: var(--gold); width: 18px; height: 18px;">
-                        <div style="flex: 1;"><div style="font-weight: 500;">TikTok</div><div style="font-size: 11px; color: var(--text-dim);">9:16 vertical, optimized for FYP</div></div>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
-                        <input type="checkbox" name="platform" value="instagram" checked style="accent-color: var(--gold); width: 18px; height: 18px;">
-                        <div style="flex: 1;"><div style="font-weight: 500;">Instagram Reels</div><div style="font-size: 11px; color: var(--text-dim);">9:16 vertical, Reels-ready</div></div>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
-                        <input type="checkbox" name="platform" value="youtube" checked style="accent-color: var(--gold); width: 18px; height: 18px;">
-                        <div style="flex: 1;"><div style="font-weight: 500;">YouTube Shorts</div><div style="font-size: 11px; color: var(--text-dim);">9:16 vertical, up to 60 seconds</div></div>
-                    </label>
-                    <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
-                        <input type="checkbox" name="platform" value="twitter" style="accent-color: var(--gold); width: 18px; height: 18px;">
-                        <div style="flex: 1;"><div style="font-weight: 500;">Twitter/X</div><div style="font-size: 11px; color: var(--text-dim);">16:9 horizontal, max engagement</div></div>
-                    </label>
+                
+                <!-- STEP 1: Caption Style -->
+                <div id="export-step-captions" style="margin-bottom: 20px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px;">Caption Style</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;">
+                        <label class="caption-style-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="caption-style" value="bold_centered" checked style="accent-color: var(--gold);">
+                            <div><div style="font-weight: 500; font-size: 13px;">Bold Centered</div><div style="font-size: 10px; color: var(--text-dim);">Large, impactful text</div></div>
+                        </label>
+                        <label class="caption-style-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="caption-style" value="karaoke" style="accent-color: var(--gold);">
+                            <div><div style="font-weight: 500; font-size: 13px;">Karaoke Highlight</div><div style="font-size: 10px; color: var(--text-dim);">Word-by-word sync</div></div>
+                        </label>
+                        <label class="caption-style-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="caption-style" value="minimal" style="accent-color: var(--gold);">
+                            <div><div style="font-weight: 500; font-size: 13px;">Minimal Bottom</div><div style="font-size: 10px; color: var(--text-dim);">Subtle, clean look</div></div>
+                        </label>
+                        <label class="caption-style-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; background: rgba(255,255,255,0.05); border: 2px solid var(--border); border-radius: 10px; cursor: pointer; transition: all 0.2s;">
+                            <input type="radio" name="caption-style" value="none" style="accent-color: var(--gold);">
+                            <div><div style="font-weight: 500; font-size: 13px;">No Captions</div><div style="font-size: 10px; color: var(--text-dim);">Clean video only</div></div>
+                        </label>
+                    </div>
                 </div>
+                
+                <!-- STEP 2: Video Platforms -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--gold);">▶</span> Video Platforms
+                    </div>
+                    <div id="video-platform-options" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+                            <input type="checkbox" name="video-platform" value="tiktok" checked style="accent-color: var(--gold); width: 16px; height: 16px;">
+                            <div style="flex: 1;"><div style="font-weight: 500; font-size: 13px;">TikTok</div><div style="font-size: 10px; color: var(--text-dim);">9:16 vertical, captions placed above UI</div></div>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+                            <input type="checkbox" name="video-platform" value="ig_reels" checked style="accent-color: var(--gold); width: 16px; height: 16px;">
+                            <div style="flex: 1;"><div style="font-weight: 500; font-size: 13px;">Instagram Reels</div><div style="font-size: 10px; color: var(--text-dim);">9:16 vertical, optimized safe zones</div></div>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+                            <input type="checkbox" name="video-platform" value="yt_shorts" checked style="accent-color: var(--gold); width: 16px; height: 16px;">
+                            <div style="flex: 1;"><div style="font-weight: 500; font-size: 13px;">YouTube Shorts</div><div style="font-size: 10px; color: var(--text-dim);">9:16 vertical, up to 60 seconds</div></div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- STEP 3: Post Platforms -->
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        <span style="color: var(--gold);">◼</span> Post Platforms <span style="font-size: 10px; color: var(--text-dim); font-weight: 400;">(AI-optimized for each)</span>
+                    </div>
+                    <div id="post-platform-options" style="display: flex; flex-direction: column; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+                            <input type="checkbox" name="post-platform" value="ig_feed" style="accent-color: var(--gold); width: 16px; height: 16px;">
+                            <div style="flex: 1;"><div style="font-weight: 500; font-size: 13px;">Instagram Feed</div><div style="font-size: 10px; color: var(--text-dim);">4:5 single post, trend-researched for IG</div></div>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;" id="ig-carousel-label">
+                            <input type="checkbox" name="post-platform" value="ig_carousel" style="accent-color: var(--gold); width: 16px; height: 16px;" onchange="toggleCarouselOptions(this)">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 500; font-size: 13px;">Instagram Carousel</div>
+                                <div style="font-size: 10px; color: var(--text-dim);">Multiple slides from your video</div>
+                            </div>
+                        </label>
+                        <div id="carousel-options" style="display: none; margin-left: 28px; padding: 10px; background: rgba(255,214,10,0.05); border-radius: 8px; border: 1px solid rgba(255,214,10,0.2);">
+                            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">Number of slides (max 10)</div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <input type="range" id="carousel-slide-count" min="2" max="10" value="5" style="flex: 1; accent-color: var(--gold);" oninput="updateCarouselCount(this.value)">
+                                <span id="carousel-count-display" style="font-weight: 600; color: var(--gold); min-width: 20px;">5</span>
+                            </div>
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 12px; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); border-radius: 10px; cursor: pointer;">
+                            <input type="checkbox" name="post-platform" value="twitter" style="accent-color: var(--gold); width: 16px; height: 16px;">
+                            <div style="flex: 1;"><div style="font-weight: 500; font-size: 13px;">Twitter/X</div><div style="font-size: 10px; color: var(--text-dim);">16:9 video + trend-researched caption</div></div>
+                        </label>
+                    </div>
+                </div>
+                
                 <div id="export-progress" style="display: none; margin-top: 16px; padding: 12px; background: rgba(255,214,10,0.1); border-radius: 8px;">
-                    <div style="font-size: 12px; color: var(--gold); margin-bottom: 8px;">Generating formats...</div>
+                    <div id="export-progress-label" style="font-size: 12px; color: var(--gold); margin-bottom: 8px;">Generating formats...</div>
                     <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
                         <div id="export-progress-bar" style="width: 0%; height: 100%; background: var(--gold); transition: width 0.3s;"></div>
                     </div>
                 </div>
-                <button onclick="startPlatformExport()" id="export-btn" style="width: 100%; margin-top: 20px; padding: 14px; background: var(--gold); border: none; border-radius: 8px; color: var(--bg); font-weight: 600; cursor: pointer;">Export Selected Formats</button>
+                <button onclick="startPlatformExport()" id="export-btn" style="width: 100%; margin-top: 16px; padding: 14px; background: var(--gold); border: none; border-radius: 8px; color: var(--bg); font-weight: 600; cursor: pointer;">Create Exports</button>
             </div>
         </div>
         
@@ -10473,23 +10530,40 @@
         
         // Platform Export Functions
         let currentExportVideoUrl = '';
+        let currentExportScriptText = '';
+        let currentExportProjectId = null;
         
-        function showPlatformExport(videoUrl) {
+        function showPlatformExport(videoUrl, scriptText, projectId) {
             currentExportVideoUrl = videoUrl;
+            currentExportScriptText = scriptText || '';
+            currentExportProjectId = projectId || currentProjectId;
             document.getElementById('platform-export-modal').style.display = 'block';
             document.getElementById('export-progress').style.display = 'none';
             document.getElementById('export-btn').disabled = false;
+            document.getElementById('carousel-options').style.display = 'none';
         }
         
         function closePlatformExport() {
             document.getElementById('platform-export-modal').style.display = 'none';
         }
         
+        function toggleCarouselOptions(checkbox) {
+            document.getElementById('carousel-options').style.display = checkbox.checked ? 'block' : 'none';
+        }
+        
+        function updateCarouselCount(value) {
+            document.getElementById('carousel-count-display').textContent = value;
+        }
+        
         async function startPlatformExport() {
-            const checkboxes = document.querySelectorAll('input[name="platform"]:checked');
-            const platforms = Array.from(checkboxes).map(cb => cb.value);
+            const captionStyle = document.querySelector('input[name="caption-style"]:checked')?.value || 'bold_centered';
+            const videoPlatforms = Array.from(document.querySelectorAll('input[name="video-platform"]:checked')).map(cb => cb.value);
+            const postPlatforms = Array.from(document.querySelectorAll('input[name="post-platform"]:checked')).map(cb => cb.value);
+            const carouselCount = parseInt(document.getElementById('carousel-slide-count')?.value || '5');
             
-            if (platforms.length === 0) {
+            const allPlatforms = [...videoPlatforms, ...postPlatforms];
+            
+            if (allPlatforms.length === 0) {
                 showToast('Please select at least one platform');
                 return;
             }
@@ -10498,41 +10572,68 @@
             document.getElementById('export-btn').disabled = true;
             
             const progressBar = document.getElementById('export-progress-bar');
-            const progressText = document.getElementById('export-progress').querySelector('div');
+            const progressLabel = document.getElementById('export-progress-label');
             let completed = 0;
             let successful = 0;
             let failed = [];
+            const totalSteps = allPlatforms.length;
             
-            for (const platform of platforms) {
-                progressBar.style.width = ((completed / platforms.length) * 100) + '%';
-                progressText.textContent = `Exporting ${platform}... (${completed + 1}/${platforms.length})`;
+            for (const platform of allPlatforms) {
+                const platformName = {
+                    'tiktok': 'TikTok',
+                    'ig_reels': 'Instagram Reels',
+                    'yt_shorts': 'YouTube Shorts',
+                    'ig_feed': 'Instagram Feed',
+                    'ig_carousel': 'Instagram Carousel',
+                    'twitter': 'Twitter/X'
+                }[platform] || platform;
+                
+                progressBar.style.width = ((completed / totalSteps) * 100) + '%';
+                progressLabel.textContent = `Creating ${platformName}... (${completed + 1}/${totalSteps})`;
                 
                 try {
+                    const isPostPlatform = postPlatforms.includes(platform);
                     const response = await fetch('/export-platform-format', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             video_url: currentExportVideoUrl,
-                            platform: platform
+                            platform: platform,
+                            caption_style: captionStyle,
+                            is_post_platform: isPostPlatform,
+                            carousel_count: platform === 'ig_carousel' ? carouselCount : null,
+                            script_text: currentExportScriptText,
+                            project_id: currentExportProjectId
                         })
                     });
                     
                     const data = await response.json();
-                    if (data.success && data.video_path) {
+                    if (data.success) {
                         successful++;
-                        // Auto-download with delay to prevent browser blocking
-                        setTimeout(() => {
-                            const a = document.createElement('a');
-                            a.href = data.video_path;
-                            a.download = `framd-${platform}.mp4`;
-                            a.click();
-                        }, completed * 500);
+                        if (data.video_path) {
+                            setTimeout(() => {
+                                const a = document.createElement('a');
+                                a.href = data.video_path;
+                                a.download = `framd-${platform}.mp4`;
+                                a.click();
+                            }, completed * 500);
+                        }
+                        if (data.images && data.images.length > 0) {
+                            data.images.forEach((imgPath, idx) => {
+                                setTimeout(() => {
+                                    const a = document.createElement('a');
+                                    a.href = imgPath;
+                                    a.download = `framd-carousel-${idx + 1}.png`;
+                                    a.click();
+                                }, (completed + idx) * 300);
+                            });
+                        }
                     } else {
-                        failed.push(platform);
+                        failed.push(platformName);
                         console.error(`Export to ${platform} failed:`, data.error);
                     }
                 } catch (e) {
-                    failed.push(platform);
+                    failed.push(platformName);
                     console.error(`Export to ${platform} failed:`, e);
                 }
                 
@@ -10542,12 +10643,12 @@
             progressBar.style.width = '100%';
             
             if (failed.length > 0) {
-                showToast(`Exported ${successful} of ${platforms.length}. Failed: ${failed.join(', ')}`);
+                showToast(`Created ${successful} of ${totalSteps}. Failed: ${failed.join(', ')}`);
             } else {
-                showToast(`All ${platforms.length} formats exported successfully!`);
+                showToast(`All ${totalSteps} exports created successfully!`);
             }
             
-            progressText.textContent = 'Export complete!';
+            progressLabel.textContent = 'Export complete!';
             
             setTimeout(() => {
                 closePlatformExport();
@@ -13575,9 +13676,9 @@
                     <div style="margin-top: 16px; padding: 12px; background: linear-gradient(135deg, rgba(255,214,10,0.1), rgba(255,214,10,0.02)); border: 1px solid rgba(255,214,10,0.2); border-radius: 8px;">
                         <div style="font-size: 12px; font-weight: 600; color: var(--gold); margin-bottom: 10px;">Boost Your Reach</div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button onclick="showPlatformExport('${videoUrl}')" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
+                            <button onclick="showPlatformExport('${videoUrl}', currentScript?.full_script || '', currentProjectId)" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></svg>
-                                Export All Formats
+                                Export to Platforms
                             </button>
                             <button onclick="generatePromoPack('${videoUrl}')" class="btn btn-secondary" style="font-size: 11px; padding: 6px 12px; display: flex; align-items: center; gap: 4px;">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>

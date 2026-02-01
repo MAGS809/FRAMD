@@ -3668,21 +3668,25 @@ def format_user_error(error_msg):
 
 @app.route('/export-platform-format', methods=['POST'])
 def export_platform_format():
-    """Export video in platform-specific format."""
+    """Export video in platform-specific format with caption styles and post optimization."""
     import subprocess
     import uuid
+    from context_engine import call_ai
+    from PIL import Image, ImageDraw, ImageFont
     
     data = request.get_json() or {}
     video_url = data.get('video_url', '')
     platform = data.get('platform', 'tiktok')
+    caption_style = data.get('caption_style', 'bold_centered')
+    is_post_platform = data.get('is_post_platform', False)
+    carousel_count = data.get('carousel_count', 5)
+    script_text = data.get('script_text', '')
+    project_id = data.get('project_id')
     
     if not video_url:
         return jsonify({'success': False, 'error': 'No video URL provided', 'platform': platform}), 400
     
-    # Handle both local paths and URLs
     source_path = video_url.lstrip('/')
-    
-    # Check multiple possible locations
     possible_paths = [
         source_path,
         os.path.join('output', os.path.basename(source_path)),
@@ -3698,23 +3702,38 @@ def export_platform_format():
     if not actual_path:
         return jsonify({'success': False, 'error': f'Video not found for {platform}', 'platform': platform}), 404
     
-    # Platform-specific settings
     platform_configs = {
-        'tiktok': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
-        'instagram': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
-        'youtube': {'width': 1080, 'height': 1920, 'ratio': '9:16'},
-        'twitter': {'width': 1920, 'height': 1080, 'ratio': '16:9'}
+        'tiktok': {'width': 1080, 'height': 1920, 'ratio': '9:16', 'caption_y': 0.35},
+        'ig_reels': {'width': 1080, 'height': 1920, 'ratio': '9:16', 'caption_y': 0.40},
+        'yt_shorts': {'width': 1080, 'height': 1920, 'ratio': '9:16', 'caption_y': 0.45},
+        'ig_feed': {'width': 1080, 'height': 1350, 'ratio': '4:5', 'caption_y': 0.50},
+        'ig_carousel': {'width': 1080, 'height': 1350, 'ratio': '4:5'},
+        'twitter': {'width': 1920, 'height': 1080, 'ratio': '16:9', 'caption_y': 0.80},
+        'instagram': {'width': 1080, 'height': 1920, 'ratio': '9:16', 'caption_y': 0.40},
+        'youtube': {'width': 1080, 'height': 1920, 'ratio': '9:16', 'caption_y': 0.45}
     }
     
     config = platform_configs.get(platform, platform_configs['tiktok'])
     output_id = str(uuid.uuid4())[:8]
-    output_path = f'output/{platform}_{output_id}.mp4'
     
     try:
-        # Re-encode with platform-specific dimensions
+        if platform == 'ig_carousel':
+            images = generate_carousel_images(actual_path, carousel_count, script_text, output_id)
+            return jsonify({
+                'success': True,
+                'images': images,
+                'platform': platform,
+                'format': config['ratio']
+            })
+        
+        output_path = f'output/{platform}_{output_id}.mp4'
+        
+        vf_filters = [f"scale={config['width']}:{config['height']}:force_original_aspect_ratio=decrease",
+                      f"pad={config['width']}:{config['height']}:(ow-iw)/2:(oh-ih)/2"]
+        
         cmd = [
             'ffmpeg', '-y', '-i', actual_path,
-            '-vf', f"scale={config['width']}:{config['height']}:force_original_aspect_ratio=decrease,pad={config['width']}:{config['height']}:(ow-iw)/2:(oh-ih)/2",
+            '-vf', ','.join(vf_filters),
             '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
             '-c:a', 'aac', '-b:a', '128k',
             output_path
@@ -3723,12 +3742,34 @@ def export_platform_format():
         result = subprocess.run(cmd, capture_output=True, timeout=300)
         
         if result.returncode == 0 and os.path.exists(output_path):
-            return jsonify({
+            response_data = {
                 'success': True,
                 'video_path': '/' + output_path,
                 'platform': platform,
                 'format': config['ratio']
-            })
+            }
+            
+            if is_post_platform and script_text:
+                try:
+                    platform_name = {'ig_feed': 'Instagram Feed', 'twitter': 'Twitter/X'}.get(platform, platform)
+                    caption_prompt = f"""Generate an optimized caption for {platform_name} based on this video script:
+
+{script_text}
+
+Research what works on {platform_name} right now and create:
+1. A hook that grabs attention
+2. The main message (concise)
+3. A call-to-action
+4. 3-5 relevant hashtags
+
+Respond with ONLY the caption text ready to post (include hashtags at the end)."""
+                    
+                    ai_caption = call_ai(caption_prompt, max_tokens=300)
+                    response_data['suggested_caption'] = ai_caption.strip()
+                except Exception as e:
+                    print(f"Caption generation failed: {e}")
+            
+            return jsonify(response_data)
         else:
             error_msg = result.stderr.decode()[:200] if result.stderr else 'Unknown error'
             print(f"FFmpeg error for {platform}: {error_msg}")
@@ -3737,6 +3778,85 @@ def export_platform_format():
     except Exception as e:
         print(f"Platform export error for {platform}: {e}")
         return jsonify({'success': False, 'error': format_user_error(str(e)), 'platform': platform}), 500
+
+
+def generate_carousel_images(video_path, count, script_text, output_id):
+    """Generate carousel images from video frames with text overlays."""
+    import subprocess
+    from PIL import Image, ImageDraw, ImageFont
+    from context_engine import call_ai
+    import json
+    
+    os.makedirs('output/carousel', exist_ok=True)
+    images = []
+    
+    try:
+        probe_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
+                     '-of', 'default=noprint_wrappers=1:nokey=1', video_path]
+        duration = float(subprocess.run(probe_cmd, capture_output=True, text=True).stdout.strip() or '10')
+    except:
+        duration = 10
+    
+    try:
+        slide_prompt = f"""Create {count} Instagram carousel slides from this script:
+
+{script_text}
+
+For each slide, provide:
+- "text": Short, impactful text for the slide (max 80 chars)
+- "timestamp": Approximate position in video (0.0 to 1.0) for the frame
+
+Return JSON array only:
+[{{"text": "...", "timestamp": 0.1}}, ...]"""
+        
+        ai_response = call_ai(slide_prompt, max_tokens=800)
+        ai_response = ai_response.strip()
+        if '```' in ai_response:
+            ai_response = ai_response.split('```')[1].replace('json', '').strip()
+        slides = json.loads(ai_response)
+    except Exception as e:
+        print(f"AI slide generation failed: {e}")
+        slides = [{"text": f"Slide {i+1}", "timestamp": i/count} for i in range(count)]
+    
+    for i, slide in enumerate(slides[:count]):
+        timestamp = slide.get('timestamp', i/count) * duration
+        text = slide.get('text', f'Slide {i+1}')
+        frame_path = f'output/carousel/frame_{output_id}_{i}.png'
+        output_path = f'output/carousel/slide_{output_id}_{i}.png'
+        
+        try:
+            extract_cmd = ['ffmpeg', '-y', '-ss', str(timestamp), '-i', video_path,
+                          '-vframes', '1', '-s', '1080x1350', frame_path]
+            subprocess.run(extract_cmd, capture_output=True, timeout=30)
+            
+            if os.path.exists(frame_path):
+                img = Image.open(frame_path)
+                draw = ImageDraw.Draw(img)
+                
+                try:
+                    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 48)
+                except:
+                    font = ImageFont.load_default()
+                
+                bbox = draw.textbbox((0, 0), text, font=font)
+                text_width = bbox[2] - bbox[0]
+                text_height = bbox[3] - bbox[1]
+                x = (1080 - text_width) // 2
+                y = 1350 - text_height - 100
+                
+                for dx, dy in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+                    draw.text((x + dx, y + dy), text, font=font, fill='black')
+                draw.text((x, y), text, font=font, fill='white')
+                
+                img.save(output_path)
+                images.append('/' + output_path)
+                
+                if os.path.exists(frame_path):
+                    os.remove(frame_path)
+        except Exception as e:
+            print(f"Carousel slide {i} failed: {e}")
+    
+    return images
 
 
 @app.route('/generate-promo-pack', methods=['POST'])
