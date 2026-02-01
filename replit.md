@@ -106,7 +106,14 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
 - **Video Feedback System**: Like/Dislike buttons on generated videos. If disliked, users can add comments and send back to AI for refinement. Free users get 3 revisions, Pro gets unlimited.
 - **AI Self-Improvement**: Tracks feedback patterns, success rates, and injects learned patterns into future prompts. Stores feedback in VideoFeedback table and tracks global patterns in GlobalPattern table.
-- **Auto-Generator System**: Fully configurable content auto-generation with user-controlled settings (tone, format, length, voice style, topics). Locked until 5 liked projects (faded button shows "X/5 liked to unlock"), then unlocked for AI-powered content creation using learned patterns.
+- **Auto-Generator System**: AI-powered content draft generation with trend research integration. Requires Pro subscription + 5 liked videos to unlock. Features:
+  - Dashboard tabs: "Build New" (manual creation) and "Generator" (AI drafts)
+  - 3-draft queue limit per project with unique angle/vibe/hook combinations
+  - Originality system tracks used angles (contrarian, evidence-first, story-driven, etc.), vibes (serious, playful, urgent), and hook types (question, bold-claim, statistic) to prevent repetition
+  - Clip-aware generation uses project's uploaded clips as source material
+  - Trend-driven: scripts, visuals, music, FX, and pacing all informed by real-time trend research
+  - GeneratedDraft table stores angle_used, vibe_used, hook_type, clips_used, trend_data, sound_plan
+  - Auto-generate toggle on project cards (per-project enable/disable)
 - **Subscription Model (3-Tier)**:
   - **Free** ($0/mo): 50 tokens, script generation only, no video export
   - **Creator** ($10/mo): 300 tokens, video export, premium voices
