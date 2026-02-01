@@ -114,6 +114,9 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
   - Trend-driven: scripts, visuals, music, FX, and pacing all informed by real-time trend research
   - GeneratedDraft table stores angle_used, vibe_used, hook_type, clips_used, trend_data, sound_plan
   - Auto-generate toggle on project cards (per-project enable/disable)
+  - **Configurable Daily Limits**: Slider (1-10) to set daily draft generation cap, resets at midnight
+  - **Create a Video button**: Bypass daily queue limits for unlimited manual video creation with like/dislike feedback
+  - **Enhanced Feedback Learning**: Liked drafts store successful patterns (hooks, angles, vibes); Disliked drafts trigger internal AI self-analysis (not shown to user) that learns from guideline violations
 - **Subscription Model (3-Tier)**:
   - **Free** ($0/mo): 50 tokens, script generation only, no video export
   - **Creator** ($10/mo): 300 tokens, video export, premium voices

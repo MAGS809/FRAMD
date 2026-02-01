@@ -3096,6 +3096,29 @@ def generate_drafts(project_id):
     if not sub or sub.tier != 'pro':
         return jsonify({'error': 'Pro subscription required'}), 403
     
+    from datetime import date
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        ai_learning = AILearning(user_id=user_id)
+        db.session.add(ai_learning)
+    
+    if ai_learning.last_draft_reset != date.today():
+        ai_learning.drafts_generated_today = 0
+        ai_learning.last_draft_reset = date.today()
+    
+    db.session.commit()
+    
+    daily_limit = ai_learning.daily_draft_limit or 3
+    generated_today = ai_learning.drafts_generated_today or 0
+    
+    if generated_today >= daily_limit:
+        return jsonify({
+            'error': 'Daily draft limit reached',
+            'daily_limit': daily_limit,
+            'generated_today': generated_today,
+            'remaining': 0
+        }), 429
+    
     pending_count = GeneratedDraft.query.filter_by(project_id=project_id, status='pending').count()
     if pending_count >= 3:
         return jsonify({'error': 'Maximum 3 pending drafts. Approve or skip existing drafts first.'}), 400
@@ -3107,7 +3130,6 @@ def generate_drafts(project_id):
     used_vibes = [d.vibe_used for d in existing_drafts if d.vibe_used]
     used_hooks = [d.hook_type for d in existing_drafts if d.hook_type]
     
-    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     learned_patterns = {
         'hooks': ai_learning.learned_hooks if ai_learning else [],
         'voices': ai_learning.learned_voices if ai_learning else [],
@@ -3213,11 +3235,17 @@ Output as JSON:
             logging.error(f"Draft generation failed: {e}")
             continue
     
+    if generated_drafts:
+        ai_learning.drafts_generated_today = (ai_learning.drafts_generated_today or 0) + len(generated_drafts)
+    
     db.session.commit()
     
     return jsonify({
         'success': True,
         'drafts_generated': len(generated_drafts),
+        'daily_limit': daily_limit,
+        'generated_today': ai_learning.drafts_generated_today,
+        'remaining': max(0, daily_limit - ai_learning.drafts_generated_today),
         'drafts': [{
             'id': d.id,
             'script': d.script,
@@ -3232,8 +3260,9 @@ Output as JSON:
 
 @app.route('/generated-drafts/<int:draft_id>/action', methods=['POST'])
 def draft_action(draft_id):
-    """Approve or skip a generated draft."""
-    from models import GeneratedDraft, Project
+    """Handle draft feedback - like (approve) or dislike (skip with AI self-analysis)."""
+    from models import GeneratedDraft, Project, AILearning
+    import json
     
     user_id = get_user_id()
     if not user_id:
@@ -3249,14 +3278,76 @@ def draft_action(draft_id):
     if action not in ['approve', 'skip']:
         return jsonify({'error': 'Invalid action. Use "approve" or "skip"'}), 400
     
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    
     if action == 'approve':
         project = Project.query.get(draft.project_id)
         if project:
             project.script = draft.script
             project.visual_plan = draft.visual_plan
         draft.status = 'approved'
+        
+        if ai_learning:
+            learned_hooks = ai_learning.learned_hooks or []
+            first_line = draft.script.split('\n')[0][:100] if draft.script else ''
+            if first_line and first_line not in learned_hooks:
+                learned_hooks.append(first_line)
+                ai_learning.learned_hooks = learned_hooks[:30]
+            
+            learned_styles = ai_learning.learned_styles or []
+            style_pattern = {
+                'angle': draft.angle_used,
+                'vibe': draft.vibe_used,
+                'hook_type': draft.hook_type,
+                'success': True
+            }
+            learned_styles.append(style_pattern)
+            ai_learning.learned_styles = learned_styles[-50:]
     else:
         draft.status = 'skipped'
+        
+        if ai_learning:
+            try:
+                from context_engine import call_ai
+                analysis_prompt = f"""You generated a draft that was rejected. Analyze internally why it failed based on these guidelines:
+
+CORE RULES:
+- Hooks must be direct, not clickbait
+- No filler, no buzzwords, no trend-chasing language
+- Every line logically leads to the next
+- Ending must close the loop
+- Calm, clear, grounded tone - never sarcastic, smug, or preachy
+
+THE REJECTED DRAFT:
+Angle: {draft.angle_used}
+Vibe: {draft.vibe_used}
+Hook Type: {draft.hook_type}
+Script (first 500 chars): {(draft.script or '')[:500]}
+
+Analyze in 2-3 sentences what likely went wrong. Be specific about which guideline was violated. Output JSON:
+{{"likely_issue": "...", "guideline_violated": "...", "avoid_in_future": "..."}}"""
+                
+                analysis = call_ai(analysis_prompt)
+                try:
+                    if '```json' in analysis:
+                        analysis = analysis.split('```json')[1].split('```')[0]
+                    elif '```' in analysis:
+                        analysis = analysis.split('```')[1].split('```')[0]
+                    analysis_data = json.loads(analysis.strip())
+                except:
+                    analysis_data = {'likely_issue': 'Could not parse analysis', 'raw': analysis[:200]}
+                
+                dislike_learnings = ai_learning.dislike_learnings or []
+                dislike_learnings.append({
+                    'draft_id': draft_id,
+                    'angle': draft.angle_used,
+                    'vibe': draft.vibe_used,
+                    'hook_type': draft.hook_type,
+                    'analysis': analysis_data
+                })
+                ai_learning.dislike_learnings = dislike_learnings[-20:]
+            except Exception as e:
+                logging.warning(f"AI self-analysis failed: {e}")
     
     db.session.commit()
     
@@ -3264,6 +3355,65 @@ def draft_action(draft_id):
         'success': True,
         'action': action,
         'project_id': draft.project_id
+    })
+
+
+@app.route('/draft-settings', methods=['GET'])
+def get_draft_settings():
+    """Get user's draft generation settings."""
+    from models import AILearning
+    from datetime import date
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'daily_limit': 3, 'generated_today': 0, 'remaining': 3})
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        return jsonify({'daily_limit': 3, 'generated_today': 0, 'remaining': 3})
+    
+    if ai_learning.last_draft_reset != date.today():
+        ai_learning.drafts_generated_today = 0
+        ai_learning.last_draft_reset = date.today()
+        db.session.commit()
+    
+    daily_limit = ai_learning.daily_draft_limit or 3
+    generated = ai_learning.drafts_generated_today or 0
+    
+    return jsonify({
+        'daily_limit': daily_limit,
+        'generated_today': generated,
+        'remaining': max(0, daily_limit - generated)
+    })
+
+
+@app.route('/draft-settings', methods=['POST'])
+def update_draft_settings():
+    """Update user's daily draft limit (1-10)."""
+    from models import AILearning
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json() or {}
+    new_limit = data.get('daily_limit')
+    
+    if not isinstance(new_limit, int) or new_limit < 1 or new_limit > 10:
+        return jsonify({'error': 'Daily limit must be between 1 and 10'}), 400
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        ai_learning = AILearning(user_id=user_id, daily_draft_limit=new_limit)
+        db.session.add(ai_learning)
+    else:
+        ai_learning.daily_draft_limit = new_limit
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'daily_limit': new_limit
     })
 
 

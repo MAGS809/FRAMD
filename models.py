@@ -103,6 +103,10 @@ class AILearning(db.Model):
     learned_styles = db.Column(db.JSON, default=list)
     learned_topics = db.Column(db.JSON, default=list)
     can_auto_generate = db.Column(db.Boolean, default=False)
+    daily_draft_limit = db.Column(db.Integer, default=3)  # 1-10 configurable limit
+    drafts_generated_today = db.Column(db.Integer, default=0)
+    last_draft_reset = db.Column(db.Date, default=datetime.now().date)
+    dislike_learnings = db.Column(db.JSON, default=list)  # AI's internal analysis of why drafts failed
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
