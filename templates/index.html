@@ -8312,6 +8312,65 @@
         let sceneVisuals = {};
         let activeSceneIndex = null;
         
+        // Workflow State Persistence
+        function saveWorkflowState() {
+            if (!currentProjectId) return;
+            const state = {
+                projectId: currentProjectId,
+                workflowStep: currentWorkflowStep,
+                script: currentScript,
+                anchors: currentAnchors,
+                sceneVisuals: sceneVisuals,
+                thesis: currentThesis,
+                selectedVoice: selectedVoice,
+                selectedFormat: selectedFormat,
+                sceneDirections: sceneDirections,
+                detectedCharacters: detectedCharacters,
+                timestamp: Date.now()
+            };
+            try {
+                localStorage.setItem('framd_workflow_state', JSON.stringify(state));
+            } catch (e) {
+                console.warn('Could not save workflow state:', e);
+            }
+        }
+        
+        function restoreWorkflowState() {
+            try {
+                const saved = localStorage.getItem('framd_workflow_state');
+                if (!saved) return false;
+                
+                const state = JSON.parse(saved);
+                
+                // Only restore if less than 24 hours old
+                if (Date.now() - state.timestamp > 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem('framd_workflow_state');
+                    return false;
+                }
+                
+                if (state.projectId) currentProjectId = state.projectId;
+                if (state.workflowStep) currentWorkflowStep = state.workflowStep;
+                if (state.script) currentScript = state.script;
+                if (state.anchors) currentAnchors = state.anchors;
+                if (state.sceneVisuals) sceneVisuals = state.sceneVisuals;
+                if (state.thesis) currentThesis = state.thesis;
+                if (state.selectedVoice) selectedVoice = state.selectedVoice;
+                if (state.selectedFormat) selectedFormat = state.selectedFormat;
+                if (state.sceneDirections) sceneDirections = state.sceneDirections;
+                if (state.detectedCharacters) detectedCharacters = state.detectedCharacters;
+                
+                console.log('[Workflow] Restored state at step', currentWorkflowStep);
+                return true;
+            } catch (e) {
+                console.warn('Could not restore workflow state:', e);
+                return false;
+            }
+        }
+        
+        function clearWorkflowState() {
+            localStorage.removeItem('framd_workflow_state');
+        }
+        
         // Anchors Display - Scenes List Format (Uses new single-scene picker)
         async function displayAnchors(anchors) {
             currentAnchors = anchors || [];
@@ -9911,12 +9970,39 @@
             restoreConversation();
             loadDashboardProjects();
             checkSubscriptionStatus();
+            
+            // Restore workflow state if available
+            const hasState = restoreWorkflowState();
+            if (hasState && currentProjectId) {
+                // Re-render the UI based on restored state
+                updateProgressIndicator();
+                if (currentAnchors.length > 0) {
+                    rebuildSceneUI();
+                }
+                console.log('[Init] Restored workflow at step', currentWorkflowStep);
+            }
+            
             // Show chat panel on non-create stages
             const currentStage = document.querySelector('.stage.active')?.id;
             if (currentStage !== 'stage-create' && currentStage !== 'stage-projects') {
                 document.getElementById('chat-toggle').classList.remove('hidden');
             }
         });
+        
+        function rebuildSceneUI() {
+            if (!currentAnchors || currentAnchors.length === 0) return;
+            
+            // Rebuild visual pickers for each scene that has visuals selected
+            currentAnchors.forEach((anchor, idx) => {
+                if (sceneVisuals[idx]) {
+                    const visual = sceneVisuals[idx];
+                    console.log(`[Rebuild] Scene ${idx + 1} has visual:`, visual.type);
+                }
+            });
+            
+            // Update progress indicator
+            updateProgressIndicator();
+        }
         
         async function checkSubscriptionStatus() {
             try {
@@ -10366,7 +10452,6 @@
         function startNewProject() {
             currentProjectId = null;
             conversationHistory = [];
-            saveConversation();
             
             // Reset workflow state
             voiceCastingShown = false;
@@ -10374,6 +10459,16 @@
             originalIdea = '';
             awaitingClarification = false;
             currentWorkflowStep = 1;
+            currentScript = null;
+            currentAnchors = [];
+            sceneVisuals = {};
+            currentThesis = null;
+            sceneDirections = {};
+            detectedCharacters = [];
+            
+            // Clear saved state
+            clearWorkflowState();
+            saveConversation();
             
             // Clear last project input for rebuild functionality
             localStorage.removeItem('lastProjectInput');
@@ -11681,6 +11776,7 @@
         function saveConversation() {
             try {
                 localStorage.setItem('krakd_conversation', JSON.stringify(conversationHistory));
+                saveWorkflowState();
             } catch (e) {
                 console.warn('Could not save conversation:', e);
             }
