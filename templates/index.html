@@ -25,6 +25,139 @@
             --accent: #ffd60a;
             --dark-green: #0d0d0d;
             --muted: rgba(255, 214, 10, 0.6);
+            /* Snappy transition timings */
+            --transition-fast: 150ms ease-out;
+            --transition-normal: 200ms ease-out;
+            --transition-slow: 250ms ease-out;
+        }
+        
+        /* Micro-animations for buttons */
+        button, .btn, [onclick] {
+            transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+        }
+        
+        button:active:not(:disabled), .btn:active:not(:disabled) {
+            transform: scale(0.97);
+        }
+        
+        /* Card hover lift effect */
+        .project-card-item {
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+        }
+        
+        .project-card-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        
+        /* Skeleton loader animation */
+        @keyframes skeletonPulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 0.7; }
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,214,10,0.08) 0%, rgba(255,214,10,0.15) 50%, rgba(255,214,10,0.08) 100%);
+            background-size: 200% 100%;
+            animation: skeletonPulse 1.5s ease-in-out infinite;
+            border-radius: 8px;
+        }
+        
+        .skeleton-card {
+            height: 180px;
+            background: rgba(255,214,10,0.05);
+            border: 1px solid rgba(255,214,10,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            animation: skeletonPulse 1.5s ease-in-out infinite;
+        }
+        
+        .skeleton-line {
+            height: 14px;
+            background: rgba(255,214,10,0.1);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            animation: skeletonPulse 1.5s ease-in-out infinite;
+        }
+        
+        .skeleton-line.short { width: 40%; }
+        .skeleton-line.medium { width: 70%; }
+        .skeleton-line.long { width: 90%; }
+        
+        /* Progress ring for video render */
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 200ms ease-out;
+            stroke-linecap: round;
+        }
+        
+        /* Golden shimmer on completion */
+        @keyframes goldenShimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        
+        .completion-shimmer {
+            background: linear-gradient(90deg, transparent 0%, rgba(255,214,10,0.4) 50%, transparent 100%);
+            background-size: 200% 100%;
+            animation: goldenShimmer 1s ease-out forwards;
+        }
+        
+        /* Pulsing download button */
+        @keyframes gentlePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(255,214,10,0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(255,214,10,0); }
+        }
+        
+        .pulse-attention {
+            animation: gentlePulse 2s ease-in-out infinite;
+        }
+        
+        /* Progressive reveal for script sections */
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .reveal-section {
+            opacity: 0;
+            animation: slideInUp 200ms ease-out forwards;
+        }
+        
+        .reveal-section:nth-child(1) { animation-delay: 0ms; }
+        .reveal-section:nth-child(2) { animation-delay: 50ms; }
+        .reveal-section:nth-child(3) { animation-delay: 100ms; }
+        .reveal-section:nth-child(4) { animation-delay: 150ms; }
+        .reveal-section:nth-child(5) { animation-delay: 200ms; }
+        .reveal-section:nth-child(6) { animation-delay: 250ms; }
+        
+        /* Confetti burst effect */
+        .confetti-particle {
+            position: fixed;
+            width: 8px;
+            height: 8px;
+            background: var(--gold);
+            border-radius: 2px;
+            pointer-events: none;
+            z-index: 10000;
+        }
+        
+        /* Streaming text cursor */
+        .streaming-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: var(--gold);
+            margin-left: 2px;
+            animation: blink 0.8s step-end infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
         }
         
         html, body {
@@ -85,16 +218,6 @@
         @keyframes skeletonShimmer {
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
-        }
-        
-        .skeleton-card {
-            background: linear-gradient(90deg, 
-                rgba(255,255,255,0.03) 0%, 
-                rgba(255,214,10,0.08) 50%, 
-                rgba(255,255,255,0.03) 100%);
-            background-size: 200% 100%;
-            animation: skeletonShimmer 1.5s ease-in-out infinite;
-            min-height: 60px;
         }
         
         .visual-grid-container {
@@ -10266,6 +10389,22 @@
         }
         
         async function loadProjects() {
+            const container = document.getElementById('projects-list');
+            
+            // Show skeleton loaders immediately
+            container.innerHTML = `
+                <div class="skeleton-card">
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line medium"></div>
+                    <div class="skeleton-line long"></div>
+                </div>
+                <div class="skeleton-card" style="animation-delay: 0.1s;">
+                    <div class="skeleton-line short"></div>
+                    <div class="skeleton-line medium"></div>
+                    <div class="skeleton-line long"></div>
+                </div>
+            `;
+            
             try {
                 // Fetch auto-generate confidence in parallel with projects
                 await fetchAutoGenerateConfidence();
@@ -10274,7 +10413,7 @@
                 const response = await fetch('/projects');
                 if (!response.ok) {
                     if (response.status === 401) {
-                        document.getElementById('projects-list').innerHTML = '<div class="empty-projects">Sign in to save projects</div>';
+                        container.innerHTML = '<div class="empty-projects">Sign in to save projects</div>';
                         return;
                     }
                     throw new Error('Failed to load projects');
@@ -10285,7 +10424,7 @@
                 updateAILearningUI(data.ai_learning);
             } catch (err) {
                 console.error('Error loading projects:', err);
-                document.getElementById('projects-list').innerHTML = '<div class="empty-projects">Could not load projects</div>';
+                container.innerHTML = '<div class="empty-projects">Could not load projects</div>';
             }
         }
         
@@ -12586,6 +12725,88 @@
             setTimeout(() => toast.classList.remove('show'), duration);
         }
         
+        // Confetti burst effect for completion
+        function triggerConfetti(element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            const colors = ['#ffd60a', '#ffb700', '#4ade80', '#60a5fa'];
+            
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'confetti-particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.background = colors[i % colors.length];
+                particle.style.opacity = '1';
+                particle.style.transform = 'scale(0)';
+                
+                const angle = (i / 12) * 360;
+                const distance = 40 + Math.random() * 30;
+                const tx = Math.cos(angle * Math.PI / 180) * distance;
+                const ty = Math.sin(angle * Math.PI / 180) * distance;
+                const rotation = Math.random() * 360;
+                
+                document.body.appendChild(particle);
+                
+                // Animate using requestAnimationFrame for smooth travel
+                requestAnimationFrame(() => {
+                    particle.style.transition = 'transform 500ms ease-out, opacity 500ms ease-out';
+                    particle.style.transform = `translate(${tx}px, ${ty}px) scale(1) rotate(${rotation}deg)`;
+                    
+                    setTimeout(() => {
+                        particle.style.opacity = '0';
+                        particle.style.transform = `translate(${tx * 1.5}px, ${ty * 1.5}px) scale(0.5) rotate(${rotation + 180}deg)`;
+                    }, 300);
+                });
+                
+                setTimeout(() => particle.remove(), 600);
+            }
+        }
+        
+        // Golden shimmer effect
+        function triggerShimmer(element) {
+            element.classList.add('completion-shimmer');
+            setTimeout(() => element.classList.remove('completion-shimmer'), 1000);
+        }
+        
+        // Pulse attention on element
+        function pulseAttention(element) {
+            element.classList.add('pulse-attention');
+        }
+        
+        function stopPulseAttention(element) {
+            element.classList.remove('pulse-attention');
+        }
+        
+        // Streaming text effect for AI responses
+        function streamText(element, text, speed = 15) {
+            return new Promise(resolve => {
+                element.textContent = '';
+                const cursor = document.createElement('span');
+                cursor.className = 'streaming-cursor';
+                element.appendChild(cursor);
+                
+                let i = 0;
+                const interval = setInterval(() => {
+                    if (i < text.length) {
+                        const char = document.createTextNode(text[i]);
+                        element.insertBefore(char, cursor);
+                        i++;
+                        
+                        // Auto-scroll if in scrollable container
+                        const container = element.closest('.chat-messages, #messages');
+                        if (container) container.scrollTop = container.scrollHeight;
+                    } else {
+                        clearInterval(interval);
+                        cursor.remove();
+                        resolve();
+                    }
+                }, speed);
+            });
+        }
+        
         function formatUserError(errorMsg) {
             if (!errorMsg) return 'Something went wrong. Please try again.';
             const msg = errorMsg.toLowerCase();
@@ -12750,14 +12971,30 @@
         }
         
         // Add message to chat (allowHtml for workflow buttons)
-        function addMessage(content, isUser = false, allowHtml = false) {
+        function addMessage(content, isUser = false, allowHtml = false, useStreaming = false) {
             const messages = document.getElementById('messages');
             if (!messages) return; // No chat panel in simplified UI
             const msg = document.createElement('div');
             msg.className = 'message ' + (isUser ? 'user' : 'ai');
-            msg.innerHTML = `<div class="message-content">${allowHtml ? content : escapeHtml(content)}</div>`;
-            messages.appendChild(msg);
-            messages.scrollTop = messages.scrollHeight;
+            
+            if (!isUser && useStreaming && !allowHtml) {
+                // Stream AI messages for perceived speed
+                msg.innerHTML = `<div class="message-content"></div>`;
+                messages.appendChild(msg);
+                messages.scrollTop = messages.scrollHeight;
+                
+                const contentEl = msg.querySelector('.message-content');
+                streamText(contentEl, content, 10); // 10ms per character
+            } else {
+                msg.innerHTML = `<div class="message-content">${allowHtml ? content : escapeHtml(content)}</div>`;
+                messages.appendChild(msg);
+                messages.scrollTop = messages.scrollHeight;
+            }
+        }
+        
+        // Add AI message with streaming effect
+        function addStreamingMessage(content) {
+            addMessage(content, false, false, true);
         }
         
         function addTypingIndicator() {
@@ -12944,7 +13181,7 @@
                 removeTypingIndicator();
                 
                 if (data.mode === 'greeting') {
-                    addMessage(data.reply || "What's on your mind the world should get to know?");
+                    addMessage(data.reply || "What's on your mind the world should get to know?", false, false, true);
                 } else if (data.success && data.result) {
                     handleUnifiedResponse(data.result);
                     
@@ -12955,12 +13192,12 @@
                         awaitingClarification = false;
                     }
                 } else {
-                    addMessage('Could not process. Try rephrasing your idea.');
+                    addMessage('Could not process. Try rephrasing your idea.', false, false, true);
                 }
             } catch (error) {
                 console.error('Error:', error);
                 removeTypingIndicator();
-                addMessage('Connection error. Please try again.');
+                addMessage('Connection error. Please try again.', false, false, true);
             } finally {
                 stopLoading();
                 sendBtn.disabled = false;
@@ -13892,8 +14129,8 @@
             const hasSources = trendSources.length > 0;
             
             cardDiv.innerHTML = `
-                <div class="inline-video-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
-                    <div style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Your Video is Ready!</div>
+                <div class="inline-video-card" id="video-completion-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
+                    <div class="video-ready-header" style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Your Video is Ready!</div>
                     <video controls style="width: 100%; max-height: 400px; border-radius: 8px; background: #000;">
                         <source src="${videoUrl}" type="video/mp4">
                         Your browser does not support video playback.
@@ -13920,7 +14157,7 @@
                     </div>
                     
                     <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                        <a href="${videoUrl}" download class="btn btn-primary" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
+                        <a href="${videoUrl}" download class="btn btn-primary download-video-btn" id="download-video-btn" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
                         <button class="btn btn-secondary" onclick="openVideoEditor('${videoUrl}')" style="font-size: 12px; padding: 8px 16px;">Edit Captions</button>
                         <button class="btn btn-secondary" onclick="likeVideo()" style="font-size: 12px; padding: 8px 16px;">Like</button>
                         <button class="btn btn-secondary" onclick="showDislikeOptions()" style="font-size: 12px; padding: 8px 16px;">Needs Work</button>
@@ -13945,6 +14182,23 @@
             
             messagesDiv.appendChild(cardDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Trigger completion effects after a brief delay
+            setTimeout(() => {
+                const completionCard = document.getElementById('video-completion-card');
+                const downloadBtn = document.getElementById('download-video-btn');
+                
+                if (completionCard) {
+                    triggerConfetti(completionCard);
+                    triggerShimmer(completionCard);
+                }
+                
+                if (downloadBtn) {
+                    pulseAttention(downloadBtn);
+                    // Stop pulsing when clicked
+                    downloadBtn.addEventListener('click', () => stopPulseAttention(downloadBtn), { once: true });
+                }
+            }, 100);
         }
         
         // Store workflow preference for AI learning
