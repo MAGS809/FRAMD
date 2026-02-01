@@ -3005,6 +3005,295 @@ def get_ai_learning():
     })
 
 
+@app.route('/projects/<int:project_id>/toggle-auto-generate', methods=['POST'])
+def toggle_auto_generate(project_id):
+    """Toggle auto-generate for a project. Requires Pro subscription and 5+ liked videos."""
+    from models import Project, Subscription
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if not sub or sub.tier != 'pro':
+        return jsonify({'error': 'Pro subscription required for auto-generation'}), 403
+    
+    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+    if liked_count < 5:
+        return jsonify({'error': f'Need 5 liked videos to unlock auto-generation ({liked_count}/5)'}), 403
+    
+    project.auto_generate_enabled = not project.auto_generate_enabled
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'auto_generate_enabled': project.auto_generate_enabled
+    })
+
+
+@app.route('/projects/<int:project_id>/generated-drafts', methods=['GET'])
+def get_generated_drafts(project_id):
+    """Get all generated drafts for a project."""
+    from models import Project, GeneratedDraft
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    drafts = GeneratedDraft.query.filter_by(project_id=project_id, status='pending').order_by(GeneratedDraft.created_at.desc()).limit(3).all()
+    
+    return jsonify({
+        'drafts': [{
+            'id': d.id,
+            'script': d.script,
+            'visual_plan': d.visual_plan,
+            'sound_plan': d.sound_plan,
+            'angle_used': d.angle_used,
+            'vibe_used': d.vibe_used,
+            'hook_type': d.hook_type,
+            'clips_used': d.clips_used,
+            'trend_data': d.trend_data,
+            'created_at': d.created_at.isoformat() if d.created_at else None
+        } for d in drafts],
+        'can_generate_more': len(drafts) < 3
+    })
+
+
+@app.route('/projects/<int:project_id>/generate-drafts', methods=['POST'])
+def generate_drafts(project_id):
+    """Generate new AI drafts for a project using trend research and learned patterns."""
+    from models import Project, GeneratedDraft, AILearning, Subscription
+    import json
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if not sub or sub.tier != 'pro':
+        return jsonify({'error': 'Pro subscription required'}), 403
+    
+    pending_count = GeneratedDraft.query.filter_by(project_id=project_id, status='pending').count()
+    if pending_count >= 3:
+        return jsonify({'error': 'Maximum 3 pending drafts. Approve or skip existing drafts first.'}), 400
+    
+    drafts_to_generate = 3 - pending_count
+    
+    existing_drafts = GeneratedDraft.query.filter_by(project_id=project_id).all()
+    used_angles = [d.angle_used for d in existing_drafts if d.angle_used]
+    used_vibes = [d.vibe_used for d in existing_drafts if d.vibe_used]
+    used_hooks = [d.hook_type for d in existing_drafts if d.hook_type]
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    learned_patterns = {
+        'hooks': ai_learning.learned_hooks if ai_learning else [],
+        'voices': ai_learning.learned_voices if ai_learning else [],
+        'styles': ai_learning.learned_styles if ai_learning else [],
+        'topics': ai_learning.learned_topics if ai_learning else []
+    }
+    
+    topic = project.description or project.name or "general content"
+    trend_data = None
+    try:
+        from context_engine import research_trends
+        trend_data = research_trends(topic)
+    except Exception as e:
+        logging.warning(f"Trend research failed: {e}")
+        trend_data = {'hooks': [], 'formats': [], 'visuals': [], 'sounds': []}
+    
+    all_angles = ['contrarian', 'evidence-first', 'story-driven', 'philosophical', 'urgent', 'reflective', 'satirical', 'educational']
+    all_vibes = ['serious', 'playful', 'urgent', 'reflective', 'provocative', 'calm', 'intense', 'witty']
+    all_hook_types = ['question', 'bold-claim', 'statistic', 'story-opener', 'controversy', 'revelation', 'challenge', 'prediction']
+    
+    available_angles = [a for a in all_angles if a not in used_angles]
+    available_vibes = [v for v in all_vibes if v not in used_vibes]
+    available_hooks = [h for h in all_hook_types if h not in used_hooks]
+    
+    if not available_angles:
+        available_angles = all_angles
+    if not available_vibes:
+        available_vibes = all_vibes
+    if not available_hooks:
+        available_hooks = all_hook_types
+    
+    import random
+    generated_drafts = []
+    
+    for i in range(drafts_to_generate):
+        angle = available_angles[i % len(available_angles)]
+        vibe = available_vibes[i % len(available_vibes)]
+        hook_type = available_hooks[i % len(available_hooks)]
+        
+        prompt = f"""Generate a 35-75 second video script for the topic: "{topic}"
+
+TREND RESEARCH (use these patterns):
+{json.dumps(trend_data, indent=2) if trend_data else 'No trend data available'}
+
+USER'S LEARNED PATTERNS (incorporate their style):
+{json.dumps(learned_patterns, indent=2)}
+
+CONSTRAINTS FOR THIS DRAFT:
+- Angle: {angle} (the perspective/approach)
+- Vibe: {vibe} (the emotional tone)
+- Hook Type: {hook_type} (how to start)
+
+UPLOADED CLIPS TO REFERENCE:
+{json.dumps(project.uploaded_clips or [], indent=2)}
+
+Generate a complete script with:
+1. A strong hook using the {hook_type} format
+2. Clear anchor points: HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER
+3. Natural, human-sounding dialogue
+4. Visual suggestions that match trending formats
+5. Sound/music suggestions based on what's working (only if it genuinely helps)
+
+Output as JSON:
+{{
+  "script": "The full script text with speaker labels if multi-character",
+  "visual_plan": [{{"scene": 1, "description": "...", "source_suggestion": "..."}}],
+  "sound_plan": {{"music_vibe": "...", "sfx_suggestions": ["..."], "reasoning": "why these sounds work for this content"}}
+}}"""
+
+        try:
+            from context_engine import call_ai
+            response = call_ai(prompt)
+            
+            try:
+                if '```json' in response:
+                    response = response.split('```json')[1].split('```')[0]
+                elif '```' in response:
+                    response = response.split('```')[1].split('```')[0]
+                draft_data = json.loads(response.strip())
+            except json.JSONDecodeError:
+                draft_data = {
+                    'script': response,
+                    'visual_plan': [],
+                    'sound_plan': {}
+                }
+            
+            draft = GeneratedDraft(
+                project_id=project_id,
+                user_id=user_id,
+                script=draft_data.get('script', ''),
+                visual_plan=draft_data.get('visual_plan'),
+                sound_plan=draft_data.get('sound_plan'),
+                angle_used=angle,
+                vibe_used=vibe,
+                hook_type=hook_type,
+                clips_used=project.uploaded_clips,
+                trend_data=trend_data
+            )
+            db.session.add(draft)
+            generated_drafts.append(draft)
+            
+        except Exception as e:
+            logging.error(f"Draft generation failed: {e}")
+            continue
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'drafts_generated': len(generated_drafts),
+        'drafts': [{
+            'id': d.id,
+            'script': d.script,
+            'visual_plan': d.visual_plan,
+            'sound_plan': d.sound_plan,
+            'angle_used': d.angle_used,
+            'vibe_used': d.vibe_used,
+            'hook_type': d.hook_type
+        } for d in generated_drafts]
+    })
+
+
+@app.route('/generated-drafts/<int:draft_id>/action', methods=['POST'])
+def draft_action(draft_id):
+    """Approve or skip a generated draft."""
+    from models import GeneratedDraft, Project
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    draft = GeneratedDraft.query.filter_by(id=draft_id, user_id=user_id).first()
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+    
+    data = request.get_json() or {}
+    action = data.get('action')
+    
+    if action not in ['approve', 'skip']:
+        return jsonify({'error': 'Invalid action. Use "approve" or "skip"'}), 400
+    
+    if action == 'approve':
+        project = Project.query.get(draft.project_id)
+        if project:
+            project.script = draft.script
+            project.visual_plan = draft.visual_plan
+        draft.status = 'approved'
+    else:
+        draft.status = 'skipped'
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'action': action,
+        'project_id': draft.project_id
+    })
+
+
+@app.route('/auto-generate-status', methods=['GET'])
+def get_auto_generate_status():
+    """Get user's auto-generate eligibility status."""
+    from models import Project, Subscription
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({
+            'eligible': False,
+            'reason': 'not_authenticated',
+            'liked_count': 0,
+            'required_likes': 5,
+            'has_pro': False
+        })
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    has_pro = sub and sub.tier == 'pro'
+    
+    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+    
+    eligible = has_pro and liked_count >= 5
+    
+    if not has_pro:
+        reason = 'needs_pro'
+    elif liked_count < 5:
+        reason = 'needs_likes'
+    else:
+        reason = 'eligible'
+    
+    return jsonify({
+        'eligible': eligible,
+        'reason': reason,
+        'liked_count': liked_count,
+        'required_likes': 5,
+        'has_pro': has_pro
+    })
+
+
 @app.route('/save-caption-preferences', methods=['POST'])
 def save_caption_preferences():
     """Save user's caption style preferences for AI learning."""

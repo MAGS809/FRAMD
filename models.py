@@ -66,11 +66,14 @@ class Project(db.Model):
     success_score = db.Column(db.Integer, default=0)
     revision_count = db.Column(db.Integer, default=0)  # Track revision attempts
     liked = db.Column(db.Boolean, nullable=True)  # True=liked, False=disliked, None=no feedback
+    auto_generate_enabled = db.Column(db.Boolean, default=False)  # AI auto-generation toggle
+    uploaded_clips = db.Column(db.JSON, nullable=True)  # List of clip paths for AI to use
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     user = db.relationship('User', backref=db.backref('projects', lazy='dynamic'))
     feedbacks = db.relationship('VideoFeedback', backref='project', lazy='dynamic')
+    generated_drafts = db.relationship('GeneratedDraft', backref='project', lazy='dynamic')
 
 
 class VideoFeedback(db.Model):
@@ -104,6 +107,25 @@ class AILearning(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     user = db.relationship('User', backref=db.backref('ai_learning', uselist=False))
+
+
+class GeneratedDraft(db.Model):
+    __tablename__ = 'generated_drafts'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    script = db.Column(db.Text, nullable=False)
+    visual_plan = db.Column(db.JSON, nullable=True)
+    sound_plan = db.Column(db.JSON, nullable=True)  # Music/FX suggestions from trend research
+    status = db.Column(db.String(20), default='pending')  # pending, approved, skipped
+    angle_used = db.Column(db.String(100), nullable=True)  # contrarian, evidence-first, story, etc.
+    vibe_used = db.Column(db.String(100), nullable=True)  # serious, playful, urgent, reflective
+    hook_type = db.Column(db.String(100), nullable=True)  # question, statistic, bold claim
+    clips_used = db.Column(db.JSON, nullable=True)  # Which uploaded clips were used
+    trend_data = db.Column(db.JSON, nullable=True)  # Trend research that informed this draft
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('generated_drafts', lazy='dynamic'))
 
 
 class GlobalPattern(db.Model):
