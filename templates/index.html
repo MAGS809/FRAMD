@@ -9821,8 +9821,17 @@
                         }
                     }
                     
-                    // Load conversation history for this project
-                    loadConversation();
+                    // Load conversation from localStorage (keyed by project if needed)
+                    try {
+                        const saved = localStorage.getItem('krakd_conversation_' + projectId);
+                        if (saved) {
+                            conversationHistory = JSON.parse(saved);
+                        } else {
+                            conversationHistory = [];
+                        }
+                    } catch (e) {
+                        conversationHistory = [];
+                    }
                     
                     // Switch to create stage
                     document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
@@ -11163,8 +11172,17 @@
                         }
                     }
                     
-                    // Load conversation history
-                    loadConversation();
+                    // Load conversation from localStorage
+                    try {
+                        const saved = localStorage.getItem('krakd_conversation_' + projectId);
+                        if (saved) {
+                            conversationHistory = JSON.parse(saved);
+                        } else {
+                            conversationHistory = [];
+                        }
+                    } catch (e) {
+                        conversationHistory = [];
+                    }
                     
                     document.getElementById('dashboard-overlay').classList.remove('open');
                     
@@ -11243,6 +11261,9 @@
         // Save conversation to localStorage (syncs across tabs)
         function saveConversation() {
             try {
+                if (currentProjectId) {
+                    localStorage.setItem('krakd_conversation_' + currentProjectId, JSON.stringify(conversationHistory));
+                }
                 localStorage.setItem('krakd_conversation', JSON.stringify(conversationHistory));
             } catch (e) {
                 console.warn('Could not save conversation:', e);
