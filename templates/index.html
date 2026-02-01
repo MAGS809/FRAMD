@@ -349,6 +349,47 @@
             color: #ef4444;
         }
         
+        .save-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .save-indicator.saving {
+            color: var(--gold);
+        }
+        
+        .save-indicator.saving .save-icon.saving {
+            display: block;
+            animation: spin 1s linear infinite;
+        }
+        
+        .save-indicator.saving .save-icon.saved {
+            display: none;
+        }
+        
+        .save-indicator:not(.saving) .save-icon.saving {
+            display: none;
+        }
+        
+        .save-indicator:not(.saving) .save-icon.saved {
+            display: block;
+            color: #4ade80;
+        }
+        
+        .save-indicator .save-text {
+            font-weight: 500;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
         .quick-action-btn {
             display: flex;
             align-items: center;
@@ -6227,6 +6268,15 @@
                 </div>
             </div>
             <div class="header-right">
+                <div class="save-indicator" id="save-indicator" style="display: none;">
+                    <svg class="save-icon saved" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <svg class="save-icon saving" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span class="save-text">Saved</span>
+                </div>
                 <div class="token-balance-pill" id="header-token-pill" onclick="openSettings('billing')" title="Click to manage tokens">
                     <span class="token-icon">✦</span>
                     <span class="token-count" id="header-token-count">--</span>
@@ -9050,6 +9100,72 @@
         let aiLearningData = { learning_progress: 0, can_auto_generate: false };
         let autoGenerateConfidence = { is_unlocked: false, liked_count: 0, unlock_threshold: 5, progress_message: '0/5 videos liked to unlock' };
         
+        // Auto-save state
+        let saveTimeout = null;
+        let isSaving = false;
+        let lastSavedContent = null;
+        
+        // Save indicator functions
+        function showSaveIndicator(state) {
+            const indicator = document.getElementById('save-indicator');
+            const saveText = indicator?.querySelector('.save-text');
+            if (!indicator) return;
+            
+            indicator.style.display = 'flex';
+            
+            if (state === 'saving') {
+                indicator.classList.add('saving');
+                if (saveText) saveText.textContent = 'Saving...';
+            } else if (state === 'saved') {
+                indicator.classList.remove('saving');
+                if (saveText) saveText.textContent = 'Saved';
+                // Hide after 3 seconds
+                setTimeout(() => {
+                    if (!isSaving) {
+                        indicator.style.display = 'none';
+                    }
+                }, 3000);
+            }
+        }
+        
+        function hideSaveIndicator() {
+            const indicator = document.getElementById('save-indicator');
+            if (indicator) indicator.style.display = 'none';
+        }
+        
+        // Debounced auto-save function
+        function triggerAutoSave(data) {
+            if (saveTimeout) {
+                clearTimeout(saveTimeout);
+            }
+            
+            saveTimeout = setTimeout(async () => {
+                if (!currentProjectId || isSaving) return;
+                
+                isSaving = true;
+                showSaveIndicator('saving');
+                
+                try {
+                    const response = await fetch(`/projects/${currentProjectId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    if (response.ok) {
+                        showSaveIndicator('saved');
+                        lastSavedContent = JSON.stringify(data);
+                    } else {
+                        console.error('Auto-save failed');
+                    }
+                } catch (error) {
+                    console.error('Auto-save error:', error);
+                } finally {
+                    isSaving = false;
+                }
+            }, 1500); // 1.5 second debounce
+        }
+        
         // Fetch auto-generate confidence status
         async function fetchAutoGenerateConfidence() {
             try {
@@ -10993,14 +11109,21 @@
         async function saveCurrentProject(updates = {}) {
             if (!currentProjectId) return;
             
+            showSaveIndicator('saving');
             try {
-                await fetch('/projects/' + currentProjectId, {
+                const response = await fetch('/projects/' + currentProjectId, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updates)
                 });
+                if (response.ok) {
+                    showSaveIndicator('saved');
+                } else {
+                    hideSaveIndicator();
+                }
             } catch (err) {
                 console.warn('Could not save project:', err);
+                hideSaveIndicator();
             }
         }
         
@@ -12862,6 +12985,7 @@
                     const projectDesc = metaData.success ? metaData.description : message.substring(0, 100);
                     
                     console.log('[Project] Creating project with name:', projectName);
+                    showSaveIndicator('saving');
                     
                     // Create project with AI metadata
                     const createRes = await fetch('/projects', {
@@ -12877,6 +13001,7 @@
                         updateProjectNameDisplay(projectName);
                         document.getElementById('back-to-projects').style.display = 'block';
                         console.log('[Project] Successfully created:', projectName);
+                        showSaveIndicator('saved');
                     }
                 } catch (err) {
                     console.error('[Project] Error creating project:', err);
@@ -15115,6 +15240,7 @@
                 
                 // Save to backend if changed
                 if (newName !== currentName && currentProjectId) {
+                    showSaveIndicator('saving');
                     try {
                         const response = await fetch(`/projects/${currentProjectId}`, {
                             method: 'PUT',
@@ -15122,13 +15248,17 @@
                             body: JSON.stringify({ name: newName })
                         });
                         
-                        if (!response.ok) {
+                        if (response.ok) {
+                            showSaveIndicator('saved');
+                        } else {
                             console.error('Failed to update project name');
                             textSpan.textContent = currentName; // Revert on error
+                            hideSaveIndicator();
                         }
                     } catch (error) {
                         console.error('Error updating project name:', error);
                         textSpan.textContent = currentName; // Revert on error
+                        hideSaveIndicator();
                     }
                 }
             };
