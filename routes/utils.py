@@ -69,3 +69,14 @@ def get_base_url():
     domain = domains.split(',')[0] if domains else 'localhost:5000'
     protocol = 'https' if 'replit' in domain else 'http'
     return f"{protocol}://{domain}"
+
+
+def get_user_id():
+    """Get user ID - supports both authenticated users and dev mode."""
+    from flask import session
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        return current_user.id
+    if session.get('dev_mode'):
+        return 'dev_user'
+    return None
