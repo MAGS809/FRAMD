@@ -23,7 +23,7 @@ from context_engine import (
     call_ai, SYSTEM_GUARDRAILS,
     analyze_editing_patterns_global, store_global_patterns, get_global_learned_patterns
 )
-from extensions import db
+from extensions import db, login_manager
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -109,6 +109,10 @@ with app.app_context():
         logging.warning(f"Schema migration check: {e}")
     
     logging.info("Database tables created")
+
+from routes import auth_bp, payments_bp
+app.register_blueprint(auth_bp, url_prefix='/v2')
+app.register_blueprint(payments_bp, url_prefix='/v2')
 
 def extract_dialogue_only(script_text):
     """

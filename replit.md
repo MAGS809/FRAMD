@@ -147,3 +147,27 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Fallback AI**: xAI (grok-3) when Claude is rate-limited or unavailable
 - **Helper Function**: `call_ai()` in context_engine.py handles AI calls with automatic fallback
 - **Audio**: OpenAI Whisper for transcription, ElevenLabs for TTS
+
+## Codebase Architecture (Updated Feb 2026)
+
+### File Structure
+- **app.py** (~8,800 lines): Main Flask application with routes
+- **context_engine.py** (~2,500 lines): AI processing, script generation, video creation
+- **models.py**: SQLAlchemy models with proper indexes on foreign keys
+- **extensions.py**: Centralized Flask extensions (db) to prevent circular imports
+- **replit_auth.py**: Replit OAuth integration and login_manager
+- **templates/index.html** (~15,300 lines): Main SPA frontend
+
+### Blueprint Refactoring (In Progress)
+The codebase is being refactored to use Flask Blueprints for better organization:
+- **routes/__init__.py**: Blueprint exports
+- **routes/utils.py**: Shared utilities (Stripe credentials, token packages)
+- **routes/auth.py**: Authentication routes (/, /pricing, /dev, /logout, /health)
+- **routes/payments.py**: Stripe payment and subscription routes
+
+Current status: Blueprints registered at `/v2` prefix for parallel testing. Original routes in app.py still active. Future work will migrate remaining routes and remove duplicates.
+
+### Database
+- PostgreSQL with 20+ tables
+- Indexes on user_id and project_id foreign keys for query performance
+- Key models: User, Project, Subscription, VideoFeedback, GeneratedDraft, GlobalPattern
