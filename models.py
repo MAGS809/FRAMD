@@ -1,8 +1,8 @@
 from datetime import datetime
-from app import db
+from extensions import db
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, Index
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -399,3 +399,65 @@ class EmailNotification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     user = db.relationship('User', backref=db.backref('email_notifications', lazy='dynamic'))
+
+
+class UserTokens(db.Model):
+    __tablename__ = 'user_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    balance = db.Column(db.Integer, default=120)
+    last_updated = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
+
+
+class MediaAsset(db.Model):
+    """Legal media assets with licensing metadata - stores LINKS only, not files."""
+    __tablename__ = 'media_asset'
+    id = db.Column(db.String(255), primary_key=True)
+    source_page = db.Column(db.Text)
+    download_url = db.Column(db.Text, nullable=False)
+    thumbnail_url = db.Column(db.Text)
+    source = db.Column(db.String(50), nullable=False, index=True)
+    license = db.Column(db.String(100), nullable=False)
+    license_url = db.Column(db.Text)
+    commercial_use_allowed = db.Column(db.Boolean, default=True)
+    derivatives_allowed = db.Column(db.Boolean, default=True)
+    attribution_required = db.Column(db.Boolean, default=False)
+    attribution_text = db.Column(db.Text)
+    content_type = db.Column(db.String(20), nullable=False, index=True)
+    duration_sec = db.Column(db.Float)
+    resolution = db.Column(db.String(20))
+    description = db.Column(db.Text)
+    tags = db.Column(db.JSON)
+    safe_flags = db.Column(db.JSON)
+    status = db.Column(db.String(20), default='safe', index=True)
+    use_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class KeywordAssetCache(db.Model):
+    """Cache keyword → asset associations for faster visual curation."""
+    __tablename__ = 'keyword_asset_cache'
+    id = db.Column(db.Integer, primary_key=True)
+    keyword = db.Column(db.String(255), nullable=False, index=True)
+    context = db.Column(db.String(100))
+    asset_id = db.Column(db.String(255), db.ForeignKey('media_asset.id'), nullable=False, index=True)
+    relevance_score = db.Column(db.Float, default=1.0)
+    use_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class SourceDocument(db.Model):
+    """Source documents/citations for education reels."""
+    __tablename__ = 'source_document'
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.Text, nullable=False, unique=True)
+    doc_type = db.Column(db.String(20), index=True)
+    title = db.Column(db.Text)
+    author = db.Column(db.Text)
+    publisher = db.Column(db.String(255))
+    publish_date = db.Column(db.String(100))
+    preview_method = db.Column(db.String(30))
+    preview_image_path = db.Column(db.Text)
+    excerpts = db.Column(db.JSON)
+    og_image = db.Column(db.Text)
+    verified = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
