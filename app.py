@@ -4379,6 +4379,123 @@ def upload_file():
     })
 
 
+@app.route('/analyze-video', methods=['POST'])
+def analyze_video():
+    """Analyze an uploaded video by extracting frames and transcribing audio."""
+    import base64
+    import subprocess
+    from openai import OpenAI
+    
+    data = request.get_json()
+    file_path = data.get('file_path')
+    
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'Video file not found'}), 404
+    
+    if not file_path.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm', '.m4v')):
+        return jsonify({'error': 'Not a video file'}), 400
+    
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Get video duration
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file_path]
+        result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        duration = float(result.stdout.strip()) if result.stdout.strip() else 0
+        
+        # Extract a frame from the middle of the video
+        frames_dir = os.path.join('uploads', 'video_frames')
+        os.makedirs(frames_dir, exist_ok=True)
+        frame_path = os.path.join(frames_dir, f'frame_{int(time.time())}.jpg')
+        
+        mid_point = duration / 2 if duration > 0 else 1
+        extract_cmd = ['ffmpeg', '-y', '-ss', str(mid_point), '-i', file_path, '-vframes', '1', '-q:v', '2', frame_path]
+        subprocess.run(extract_cmd, capture_output=True, timeout=30)
+        
+        # Extract and transcribe audio
+        transcript = ""
+        audio_path = file_path.rsplit('.', 1)[0] + '_audio.mp3'
+        audio_cmd = ['ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', '-q:a', '4', audio_path]
+        subprocess.run(audio_cmd, capture_output=True, timeout=120)
+        
+        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 1000:
+            try:
+                with open(audio_path, 'rb') as audio_file:
+                    transcription = client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="text"
+                    )
+                    transcript = transcription if isinstance(transcription, str) else str(transcription)
+            except Exception as e:
+                logging.warning(f"Transcription failed: {e}")
+            finally:
+                try:
+                    os.remove(audio_path)
+                except:
+                    pass
+        
+        # Analyze frame with vision
+        frame_analysis = None
+        if os.path.exists(frame_path):
+            with open(frame_path, 'rb') as f:
+                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Describe this video frame briefly. What is shown? What's the visual style and mood?"},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}}
+                    ]
+                }],
+                max_tokens=300
+            )
+            frame_analysis = response.choices[0].message.content
+            
+            try:
+                os.remove(frame_path)
+            except:
+                pass
+        
+        # Build description
+        description = ""
+        if frame_analysis:
+            description += f"Visual: {frame_analysis}"
+        if transcript:
+            description += f"\n\nAudio transcript: {transcript[:1000]}"
+        
+        return jsonify({
+            'success': True,
+            'analysis': {
+                'description': description or "Video uploaded successfully",
+                'duration': duration,
+                'transcript': transcript[:1500] if transcript else None,
+                'frame_analysis': frame_analysis,
+                'mood': 'video content',
+                'suggested_use': 'background',
+                'content_type': 'video'
+            },
+            'file_path': file_path
+        })
+        
+    except Exception as e:
+        logging.error(f"Video analysis error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': True,
+            'analysis': {
+                'description': 'Video uploaded (analysis unavailable)',
+                'mood': 'video',
+                'suggested_use': 'background',
+                'content_type': 'video'
+            },
+            'file_path': file_path
+        })
+
+
 @app.route('/analyze-image', methods=['POST'])
 def analyze_image():
     """Analyze an uploaded image using OpenAI GPT-4o vision."""

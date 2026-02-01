@@ -12045,9 +12045,14 @@
             document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
             document.querySelector('.placement-option[data-placement="background"]').classList.add('selected');
             
-            // Call AI analysis
+            // Call appropriate analysis endpoint based on file type
+            const isVideo = isVideoFile(file.name);
+            const analyzeEndpoint = isVideo ? '/analyze-video' : '/analyze-image';
+            
             try {
-                const response = await fetch('/analyze-image', {
+                analysis.innerHTML = isVideo ? '<em>Analyzing video (extracting frames & audio)...</em>' : '<em>Analyzing image with AI...</em>';
+                
+                const response = await fetch(analyzeEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ file_path: filePath })
@@ -12056,22 +12061,36 @@
                 const data = await response.json();
                 if (data.success && data.analysis) {
                     pendingImageAnalysis = data.analysis;
-                    analysis.innerHTML = `
-                        <strong>${data.analysis.description}</strong><br>
-                        <span style="color: var(--gold)">Mood:</span> ${data.analysis.mood}<br>
-                        <span style="color: var(--gold)">AI suggests:</span> ${data.analysis.suggested_use === 'background' ? 'Full Background' : 'Pop-up Visual'}
-                    `;
+                    
+                    if (isVideo && data.analysis.transcript) {
+                        analysis.innerHTML = `
+                            <strong>Video analyzed (${data.analysis.duration?.toFixed(1) || '?'}s)</strong><br>
+                            <span style="color: var(--gold)">Content:</span> ${data.analysis.frame_analysis?.substring(0, 100) || 'Video content'}...<br>
+                            <span style="color: var(--gold)">Audio:</span> ${data.analysis.transcript ? 'Transcribed' : 'No speech detected'}
+                        `;
+                    } else if (isVideo) {
+                        analysis.innerHTML = `
+                            <strong>Video ready (${data.analysis.duration?.toFixed(1) || '?'}s)</strong><br>
+                            <span style="color: var(--gold)">Visual:</span> ${data.analysis.frame_analysis?.substring(0, 100) || 'Video content'}
+                        `;
+                    } else {
+                        analysis.innerHTML = `
+                            <strong>${data.analysis.description}</strong><br>
+                            <span style="color: var(--gold)">Mood:</span> ${data.analysis.mood}<br>
+                            <span style="color: var(--gold)">AI suggests:</span> ${data.analysis.suggested_use === 'background' ? 'Full Background' : 'Pop-up Visual'}
+                        `;
+                    }
                     
                     // Auto-select AI suggestion
                     selectedPlacement = data.analysis.suggested_use || 'background';
                     document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
                     document.querySelector(`.placement-option[data-placement="${selectedPlacement}"]`).classList.add('selected');
                 } else {
-                    analysis.innerHTML = '<em>Image ready for use</em>';
+                    analysis.innerHTML = isVideo ? '<em>Video ready for use</em>' : '<em>Image ready for use</em>';
                 }
             } catch (err) {
-                console.error('Image analysis error:', err);
-                analysis.innerHTML = '<em>Image ready for use</em>';
+                console.error('Media analysis error:', err);
+                analysis.innerHTML = isVideo ? '<em>Video ready for use</em>' : '<em>Image ready for use</em>';
             }
         }
         
