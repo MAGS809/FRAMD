@@ -3038,6 +3038,116 @@
             color: var(--bg);
         }
         
+        .image-placement-confirm:disabled {
+            background: var(--border);
+            color: var(--text-dim);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        /* Upload mode selector */
+        .upload-mode-selector {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        
+        .mode-option {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .mode-option:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.05);
+        }
+        
+        .mode-option.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        
+        .mode-option-icon {
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .mode-option-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+        
+        .mode-option-desc {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+        
+        /* Content rights checkbox */
+        .content-rights-checkbox {
+            margin-top: 1rem;
+            text-align: left;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+        
+        .checkbox-container input[type="checkbox"] {
+            display: none;
+        }
+        
+        .checkmark {
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            background: transparent;
+            position: relative;
+            transition: all 0.2s;
+            margin-top: 2px;
+        }
+        
+        .checkbox-container:hover .checkmark {
+            border-color: var(--gold);
+        }
+        
+        .checkbox-container input[type="checkbox"]:checked + .checkmark {
+            background: var(--gold);
+            border-color: var(--gold);
+        }
+        
+        .checkbox-container input[type="checkbox"]:checked + .checkmark::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 5px;
+            height: 10px;
+            border: solid var(--bg);
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        
+        .checkbox-text {
+            flex: 1;
+        }
+        
         /* Token display */
         .tokens {
             text-align: center;
@@ -7311,15 +7421,28 @@
             <input type="file" id="file-input" accept="video/*,audio/*,image/*,.pdf,.txt" onchange="handleFile(event)" style="display:none;">
         </div>
         
-        <!-- Image Placement Popup -->
+        <!-- Image/Video Placement Popup -->
         <div class="image-placement-popup" id="image-placement-popup">
             <div class="image-placement-content">
                 <img id="image-placement-preview" class="image-placement-preview" src="" alt="Preview">
+                <video id="video-placement-preview" class="image-placement-preview" style="display:none;" muted loop></video>
                 <div class="image-placement-analysis" id="image-placement-analysis">
-                    Analyzing image...
+                    Analyzing...
                 </div>
-                <div class="image-placement-options">
-                    <div class="placement-option" data-placement="background" onclick="selectPlacement('background')">
+                <div class="upload-mode-selector">
+                    <div class="mode-option selected" data-mode="curate" onclick="selectUploadMode('curate')">
+                        <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6M8 11h6"/></svg></div>
+                        <div class="mode-option-label">Use AI Curation</div>
+                        <div class="mode-option-desc">AI finds the best visuals for your content</div>
+                    </div>
+                    <div class="mode-option" data-mode="personalize" onclick="selectUploadMode('personalize')">
+                        <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                        <div class="mode-option-label">Personalize This File</div>
+                        <div class="mode-option-desc">Use as template, adapt for your content (<a href="/terms#personalization" target="_blank" style="color: var(--gold);">Terms of Service</a>)</div>
+                    </div>
+                </div>
+                <div class="image-placement-options" id="placement-options-section">
+                    <div class="placement-option selected" data-placement="background" onclick="selectPlacement('background')">
                         <div class="placement-option-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
                         <div class="placement-option-label">Full Background</div>
                         <div class="placement-option-desc">Behind text overlay</div>
@@ -7330,9 +7453,16 @@
                         <div class="placement-option-desc">Overlay element</div>
                     </div>
                 </div>
+                <div class="content-rights-checkbox">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="content-rights-check" onchange="updateConfirmButton()">
+                        <span class="checkmark"></span>
+                        <span class="checkbox-text">I have rights to this content and take responsibility if my accounts are taken down</span>
+                    </label>
+                </div>
                 <div class="image-placement-actions">
                     <button class="image-placement-cancel" onclick="cancelImagePlacement()">Cancel</button>
-                    <button class="image-placement-confirm" onclick="confirmImagePlacement()">Use Image</button>
+                    <button class="image-placement-confirm" id="confirm-upload-btn" onclick="confirmImagePlacement()" disabled>Use File</button>
                 </div>
             </div>
         </div>
@@ -11751,27 +11881,72 @@
             document.getElementById('file-preview').classList.remove('show');
         }
         
-        // Image placement functions
+        // Image/Video placement functions
+        let selectedUploadMode = 'curate';
+        
         function isImageFile(filename) {
             return filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+        }
+        
+        function isVideoFile(filename) {
+            return filename.match(/\.(mp4|mov|avi|mkv|webm)$/i);
+        }
+        
+        function selectUploadMode(mode) {
+            selectedUploadMode = mode;
+            document.querySelectorAll('.mode-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector(`.mode-option[data-mode="${mode}"]`).classList.add('selected');
+            
+            const placementSection = document.getElementById('placement-options-section');
+            if (mode === 'personalize') {
+                placementSection.style.display = 'none';
+            } else {
+                placementSection.style.display = 'flex';
+            }
+        }
+        
+        function updateConfirmButton() {
+            const checkbox = document.getElementById('content-rights-check');
+            const confirmBtn = document.getElementById('confirm-upload-btn');
+            confirmBtn.disabled = !checkbox.checked;
         }
         
         async function analyzeAndShowImagePlacement(file, filePath) {
             pendingImageFile = file;
             pendingImagePath = filePath;
             selectedPlacement = 'background';
+            selectedUploadMode = 'curate';
             
-            // Show popup with preview
             const popup = document.getElementById('image-placement-popup');
-            const preview = document.getElementById('image-placement-preview');
+            const imgPreview = document.getElementById('image-placement-preview');
+            const vidPreview = document.getElementById('video-placement-preview');
             const analysis = document.getElementById('image-placement-analysis');
+            const placementSection = document.getElementById('placement-options-section');
             
-            // Create object URL for preview
-            preview.src = URL.createObjectURL(file);
-            analysis.innerHTML = '<em>Analyzing image with AI...</em>';
+            const isVideo = isVideoFile(file.name);
+            
+            if (isVideo) {
+                imgPreview.style.display = 'none';
+                vidPreview.style.display = 'block';
+                vidPreview.src = URL.createObjectURL(file);
+                vidPreview.play();
+                analysis.innerHTML = '<em>Analyzing video...</em>';
+            } else {
+                imgPreview.style.display = 'block';
+                vidPreview.style.display = 'none';
+                imgPreview.src = URL.createObjectURL(file);
+                analysis.innerHTML = '<em>Analyzing image with AI...</em>';
+            }
+            
             popup.classList.add('show');
             
-            // Reset selection
+            document.getElementById('content-rights-check').checked = false;
+            document.getElementById('confirm-upload-btn').disabled = true;
+            
+            document.querySelectorAll('.mode-option').forEach(opt => opt.classList.remove('selected'));
+            document.querySelector('.mode-option[data-mode="curate"]').classList.add('selected');
+            placementSection.style.display = 'flex';
+            
             document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
             document.querySelector('.placement-option[data-placement="background"]').classList.add('selected');
             
@@ -11819,17 +11994,29 @@
         }
         
         function confirmImagePlacement() {
-            // Store the image with placement choice
             uploadedFile = pendingImageFile;
             uploadedFile.placement = selectedPlacement;
             uploadedFile.analysis = pendingImageAnalysis;
             uploadedFile.filePath = pendingImagePath;
+            uploadedFile.uploadMode = selectedUploadMode;
             
-            document.getElementById('file-name').textContent = `${pendingImageFile.name} (${selectedPlacement === 'background' ? 'Background' : 'Pop-up'})`;
+            let modeLabel = '';
+            if (selectedUploadMode === 'personalize') {
+                modeLabel = 'Template';
+            } else {
+                modeLabel = selectedPlacement === 'background' ? 'Background' : 'Pop-up';
+            }
+            
+            document.getElementById('file-name').textContent = `${pendingImageFile.name} (${modeLabel})`;
             document.getElementById('file-preview').classList.add('show');
             document.getElementById('image-placement-popup').classList.remove('show');
             
-            // Focus input so user can type
+            const vidPreview = document.getElementById('video-placement-preview');
+            if (vidPreview) {
+                vidPreview.pause();
+                vidPreview.src = '';
+            }
+            
             document.getElementById('composer-input').focus();
         }
         
@@ -15567,9 +15754,7 @@
                     if (e.dataTransfer.files.length > 0) {
                         const file = e.dataTransfer.files[0];
                         
-                        // Check if it's an image - show placement popup
-                        if (isImageFile(file.name)) {
-                            // First upload the file
+                        if (isImageFile(file.name) || isVideoFile(file.name)) {
                             const formData = new FormData();
                             formData.append('file', file);
                             
@@ -15578,24 +15763,20 @@
                                 const uploadData = await uploadRes.json();
                                 
                                 if (uploadData.success) {
-                                    // Show placement popup with AI analysis
                                     analyzeAndShowImagePlacement(file, uploadData.file_path);
                                 }
                             } catch (err) {
                                 console.error('Upload error:', err);
-                                // Fallback to regular file handling
                                 uploadedFile = file;
                                 document.getElementById('file-name').textContent = file.name;
                                 document.getElementById('file-preview').classList.add('show');
                             }
                         } else {
-                            // Non-image file - regular handling
                             uploadedFile = file;
                             document.getElementById('file-name').textContent = file.name;
                             document.getElementById('file-preview').classList.add('show');
                         }
                         
-                        // Focus the input so user can still type
                         const input = document.getElementById('composer-input');
                         if (input) input.focus();
                     }
