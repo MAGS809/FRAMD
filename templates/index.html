@@ -9751,6 +9751,9 @@
                     const project = await response.json();
                     currentProjectId = projectId;
                     
+                    // Set template type from project
+                    currentTemplateType = project.template_type || 'start_from_scratch';
+                    
                     // Update header project name
                     updateProjectNameDisplay(project.name || 'Untitled Project');
                     
@@ -9758,11 +9761,13 @@
                     if (project.script) currentScript = project.script;
                     if (project.visual_plan) {
                         currentVisualPlan = project.visual_plan;
-                        // Populate scenes from visual plan if it has sections
                         if (project.visual_plan.sections && project.visual_plan.sections.length > 0) {
                             populateScenesFromVisualBoard(project.visual_plan);
                         }
                     }
+                    
+                    // Load conversation history for this project
+                    loadConversation();
                     
                     // Switch to create stage
                     document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
@@ -9775,8 +9780,8 @@
                     // Show back link
                     document.getElementById('back-to-projects').style.display = 'block';
                     
-                    // Show welcome back message with project context
-                    addMessage(`Welcome back to "${project.name}". Pick up where you left off, or tell me what's next.`, false);
+                    // Render messages - shows welcome hero if empty, otherwise existing conversation
+                    renderMainMessages();
                 }
             } catch (err) {
                 console.error('Error opening project:', err);
@@ -9789,6 +9794,8 @@
             const chatBar = document.getElementById('bottom-chat-bar');
             if (chatBar) chatBar.style.display = 'none';
             currentProjectId = null;
+            currentTemplateType = 'start_from_scratch';
+            conversationHistory = [];
             updateProjectNameDisplay(null);
             document.getElementById('back-to-projects').style.display = 'none';
             loadDashboardProjects();
@@ -10256,6 +10263,131 @@
                 console.error('Error creating project:', err);
             }
         }
+        
+        const templateConfigs = {
+            hot_take: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M50 10 L60 35 L85 35 L65 55 L75 85 L50 65 L25 85 L35 55 L15 35 L40 35 Z" stroke="currentColor" stroke-width="4" fill="none"/>
+                </svg>`,
+                title: "What's your hot take?",
+                subtitle: "Share a bold opinion or controversial perspective. I'll help you craft it into a punchy 30-45 second video that challenges conventional thinking.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`, text: "Something everyone gets wrong about..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>`, text: "The unpopular truth about..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`, text: "I'll say what no one else will..." }
+                ]
+            },
+            explainer: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="35" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path d="M50 30 L50 55 M50 65 L50 70" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                </svg>`,
+                title: "What should we explain?",
+                subtitle: "Break down a complex topic into a clear, educational 45-60 second video. I'll help you simplify without dumbing it down.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`, text: "How does [concept] actually work?" },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`, text: "The simple guide to understanding..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`, text: "Why does [thing] happen?" }
+                ]
+            },
+            story: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M20 80 Q30 20 50 50 Q70 80 80 20" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round"/>
+                </svg>`,
+                title: "What's your story?",
+                subtitle: "Share a personal narrative or compelling anecdote. I'll help you craft it into an engaging 60-75 second story with a satisfying arc.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>`, text: "The time I learned the hard way..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`, text: "A moment that changed everything..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`, text: "The story behind [my journey]..." }
+                ]
+            },
+            commentary: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="15" y="20" width="70" height="50" rx="4" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path d="M30 80 L35 70 L65 70 L70 80" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path d="M35 40 L45 40 M55 40 L65 40 M35 50 L65 50" stroke="currentColor" stroke-width="4"/>
+                </svg>`,
+                title: "What's happening in the news?",
+                subtitle: "React to a current event or trending topic with your unique perspective. I'll help you create a 35-50 second commentary piece.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/></svg>`, text: "My take on [recent headline]..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`, text: "Why everyone's talking about..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`, text: "The real story behind [event]..." }
+                ]
+            },
+            letter: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="15" y="25" width="70" height="50" rx="4" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path d="M15 25 L50 55 L85 25" stroke="currentColor" stroke-width="4" fill="none"/>
+                </svg>`,
+                title: "Who needs to hear this?",
+                subtitle: "Write a direct, personal address to a specific group or individual. I'll help you craft a powerful 45-60 second open letter.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`, text: "Dear [generation/group], you need to know..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`, text: "An open letter to anyone who..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>`, text: "To those who don't understand..." }
+                ]
+            },
+            meme: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="35" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <circle cx="35" cy="40" r="5" fill="currentColor"/>
+                    <circle cx="65" cy="40" r="5" fill="currentColor"/>
+                    <path d="M30 60 Q50 80 70 60" stroke="currentColor" stroke-width="4" fill="none"/>
+                </svg>`,
+                title: "Let's make something funny",
+                subtitle: "I'll research what's trending in meme formats and comedy styles, then help you create viral-worthy content that actually lands.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>`, text: "Roast [person/thing/situation]..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`, text: "The absurdity of [modern thing]..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`, text: "Make a meme about [topic]..." }
+                ]
+            },
+            ad: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="20" y="15" width="60" height="70" rx="4" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <circle cx="50" cy="40" r="15" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <path d="M35 70 L65 70" stroke="currentColor" stroke-width="4"/>
+                    <path d="M40 78 L60 78" stroke="currentColor" stroke-width="4"/>
+                </svg>`,
+                title: "What are you promoting?",
+                subtitle: "Create a professional ad for your product or service. I can work with your brand assets or generate visuals for you.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>`, text: "Promote my [product/service]..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`, text: "I have product photos to use..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`, text: "Generate a logo for my brand..." }
+                ]
+            },
+            tiktok_edit: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M25 80 L25 20 L35 20 L35 80 M45 80 L45 40 L55 40 L55 80 M65 80 L65 30 L75 30 L75 80" stroke="currentColor" stroke-width="4" fill="none"/>
+                </svg>`,
+                title: "What song are we syncing to?",
+                subtitle: "Create a beat-synced TikTok edit with exact timestamps. I'll analyze the music and generate an audioless video you can overlay.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`, text: "Sync to [song name]..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>`, text: "I'll paste the song link..." },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`, text: "Use this trending audio..." }
+                ]
+            },
+            start_from_scratch: {
+                icon: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="10" y="20" width="80" height="60" rx="8" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <circle cx="50" cy="50" r="15" stroke="currentColor" stroke-width="4" fill="none"/>
+                    <polygon points="45,42 60,50 45,58" fill="currentColor"/>
+                </svg>`,
+                title: "What do you want to create?",
+                subtitle: "Drop a link, paste text, or describe your idea. I'll turn it into a polished clip.",
+                prompts: [
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>`, text: "Turn this article into a 60 second clip" },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`, text: "I have a hot take I want to turn into a viral video" },
+                    { icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`, text: "Build a script around my thesis" }
+                ]
+            }
+        };
+        
+        let currentTemplateType = 'start_from_scratch';
         
         const templatePrompts = {
             hot_take: "I want to create a hot take video (30-45 seconds). Help me craft a bold, opinion-driven piece that challenges conventional thinking. What controversial or thought-provoking topic should we explore?",
@@ -10925,6 +11057,7 @@
                 if (response.ok) {
                     const data = await response.json();
                     currentProjectId = data.project.id;
+                    currentTemplateType = templateType;
                     document.getElementById('dashboard-overlay').classList.remove('open');
                     
                     // Reset conversation and switch to create stage
@@ -10937,12 +11070,14 @@
                     const chatBar = document.getElementById('bottom-chat-bar');
                     if (chatBar) chatBar.style.display = 'block';
                     
-                    const messagesEl = document.getElementById('messages');
-                    if (messagesEl) messagesEl.innerHTML = '';
+                    // Show back link
+                    document.getElementById('back-to-projects').style.display = 'block';
                     
-                    // Add template-specific prompt
-                    const prompt = templatePrompts[templateType] || "What message should the world know?";
-                    addMessage(prompt, false);
+                    // Update project name display
+                    updateProjectNameDisplay(data.project.name || 'New Project');
+                    
+                    // Render the template-specific welcome hero (no message needed)
+                    renderMainMessages();
                 }
             } catch (err) {
                 console.error('Error creating project from template:', err);
@@ -10956,6 +11091,9 @@
                     const project = await response.json();
                     currentProjectId = projectId;
                     
+                    // Set template type from project
+                    currentTemplateType = project.template_type || 'start_from_scratch';
+                    
                     // Update header project name
                     updateProjectNameDisplay(project.name || 'Untitled Project');
                     
@@ -10965,14 +11103,18 @@
                     }
                     if (project.visual_plan) {
                         currentVisualPlan = project.visual_plan;
-                        // Populate scenes from visual plan if it has sections
                         if (project.visual_plan.sections && project.visual_plan.sections.length > 0) {
                             populateScenesFromVisualBoard(project.visual_plan);
                         }
                     }
                     
+                    // Load conversation history
+                    loadConversation();
+                    
                     document.getElementById('dashboard-overlay').classList.remove('open');
-                    addMessage(`Loaded project: ${project.name}. Ready to continue!`, false);
+                    
+                    // Render messages - shows welcome hero if empty, otherwise existing conversation
+                    renderMainMessages();
                 }
             } catch (err) {
                 console.error('Error loading project:', err);
@@ -11088,31 +11230,20 @@
             if (!container) return;
             
             if (conversationHistory.length === 0) {
+                const config = templateConfigs[currentTemplateType] || templateConfigs.start_from_scratch;
+                const promptButtons = config.prompts.map(p => `
+                    <button class="suggested-prompt" onclick="useSuggestedPrompt('${p.text.replace(/'/g, "\\'")}')">
+                        <span class="suggested-prompt-icon">${p.icon}</span>
+                        ${p.text}
+                    </button>
+                `).join('');
+                
                 container.innerHTML = `
                     <div class="welcome-hero">
-                        <div class="welcome-logo">
-                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="10" y="20" width="80" height="60" rx="8" stroke="currentColor" stroke-width="4" fill="none"/>
-                                <circle cx="50" cy="50" r="15" stroke="currentColor" stroke-width="4" fill="none"/>
-                                <polygon points="45,42 60,50 45,58" fill="currentColor"/>
-                            </svg>
-                        </div>
-                        <h1 class="welcome-title">What do you want to create?</h1>
-                        <p class="welcome-subtitle">Drop a link, paste text, or describe your idea. We'll turn it into a polished clip.</p>
-                        <div class="suggested-prompts">
-                            <button class="suggested-prompt" onclick="useSuggestedPrompt('Turn this article into a 60 second clip')">
-                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                Turn this article into a 60 second clip
-                            </button>
-                            <button class="suggested-prompt" onclick="useSuggestedPrompt('I have a hot take I want to turn into a viral video')">
-                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-                                I have a hot take I want to turn into a viral video
-                            </button>
-                            <button class="suggested-prompt" onclick="useSuggestedPrompt('Build a script around my thesis')">
-                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                                Build a script around my thesis
-                            </button>
-                        </div>
+                        <div class="welcome-logo">${config.icon}</div>
+                        <h1 class="welcome-title">${config.title}</h1>
+                        <p class="welcome-subtitle">${config.subtitle}</p>
+                        <div class="suggested-prompts">${promptButtons}</div>
                     </div>
                 `;
             } else {
