@@ -6423,6 +6423,182 @@
             font-size: 0.85rem;
             color: var(--text-dim);
         }
+        
+        /* Toast Notification System */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            pointer-events: none;
+        }
+        
+        .toast {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            max-width: 380px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: auto;
+        }
+        
+        .toast.toast-hide {
+            animation: toastSlideOut 0.2s ease-in forwards;
+        }
+        
+        @keyframes toastSlideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes toastSlideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        .toast-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .toast-message {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        
+        .toast-close:hover {
+            opacity: 1;
+        }
+        
+        .toast.toast-success {
+            border-left: 3px solid #4ade80;
+        }
+        
+        .toast.toast-success .toast-icon {
+            color: #4ade80;
+        }
+        
+        .toast.toast-error {
+            border-left: 3px solid #ef4444;
+        }
+        
+        .toast.toast-error .toast-icon {
+            color: #ef4444;
+        }
+        
+        .toast.toast-warning {
+            border-left: 3px solid #f59e0b;
+        }
+        
+        .toast.toast-warning .toast-icon {
+            color: #f59e0b;
+        }
+        
+        .toast.toast-info {
+            border-left: 3px solid var(--text);
+        }
+        
+        .toast.toast-info .toast-icon {
+            color: var(--text);
+        }
+        
+        /* App Footer */
+        .app-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, var(--bg) 60%, transparent);
+            padding: 2rem 1rem 1rem;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        .app-footer-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            pointer-events: auto;
+        }
+        
+        .app-footer a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.75rem;
+            transition: color 0.2s;
+        }
+        
+        .app-footer a:hover {
+            color: var(--text);
+        }
+        
+        .app-footer .separator {
+            color: var(--text-faint);
+            font-size: 0.6rem;
+        }
+        
+        .app-footer .social-links {
+            display: flex;
+            gap: 0.75rem;
+        }
+        
+        .app-footer .social-links a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            transition: background 0.2s, color 0.2s;
+        }
+        
+        .app-footer .social-links a:hover {
+            background: rgba(255, 214, 10, 0.15);
+            color: var(--text);
+        }
+        
+        .app-footer .social-links svg {
+            width: 14px;
+            height: 14px;
+        }
     </style>
 </head>
 <body>
@@ -7927,7 +8103,7 @@
                 hideStatus();
             } catch (error) {
                 console.error('Error generating script:', error);
-                showToast('Failed to generate script');
+                showError('Script Generation Failed', 'Something went wrong. Please try again.');
                 hideStatus();
             }
         }
@@ -8704,6 +8880,7 @@
                 }
             } catch (err) {
                 console.error('[loadSceneVisualsAuto] Error:', err);
+                showError('Visual Loading Failed', 'Could not load visuals for this scene. Try refreshing.');
                 const errorGrid = document.getElementById(`scene-visual-grid-${sceneIndex}`);
                 if (errorGrid) {
                     errorGrid.innerHTML = '<div style="grid-column: span 3; text-align: center; padding: 20px; color: red;">Error loading visuals. Try refreshing.</div>';
@@ -9345,6 +9522,49 @@
         let isSaving = false;
         let lastSavedContent = null;
         
+        // Centralized token balance update function
+        function updateAllTokenDisplays(balance, monthlyTokens = null) {
+            const balanceNum = parseInt(balance) || 0;
+            const formattedBalance = balanceNum.toLocaleString();
+            
+            // Header token count
+            const headerTokenCount = document.getElementById('header-token-count');
+            if (headerTokenCount) headerTokenCount.textContent = formattedBalance;
+            
+            // Header token pill low state
+            const headerTokenPill = document.getElementById('header-token-pill');
+            if (headerTokenPill) headerTokenPill.classList.toggle('low', balanceNum < 20);
+            
+            // Dashboard token balance
+            const dashboardTokenEl = document.getElementById('dashboard-token-balance');
+            if (dashboardTokenEl) dashboardTokenEl.textContent = formattedBalance;
+            
+            // Billing token balance
+            const billingTokenEl = document.getElementById('billing-token-balance');
+            if (billingTokenEl) billingTokenEl.textContent = formattedBalance;
+            
+            // Billing progress bar
+            if (monthlyTokens) {
+                const monthlyEl = document.getElementById('billing-monthly-tokens');
+                const barEl = document.getElementById('billing-token-bar');
+                if (monthlyEl) monthlyEl.textContent = monthlyTokens + ' tokens';
+                if (barEl) barEl.style.width = Math.min(100, (balanceNum / monthlyTokens) * 100) + '%';
+            }
+        }
+        
+        // Fetch and update token balance from server
+        async function refreshTokenBalance() {
+            try {
+                const response = await fetch('/get-tokens');
+                const data = await response.json();
+                if (data.balance !== undefined) {
+                    updateAllTokenDisplays(data.balance, data.monthly_tokens || null);
+                }
+            } catch (err) {
+                console.error('Failed to refresh token balance:', err);
+            }
+        }
+        
         // Save indicator functions
         function showSaveIndicator(state) {
             const indicator = document.getElementById('save-indicator');
@@ -9856,10 +10076,10 @@
                 if (data.url) {
                     window.location.href = data.url;
                 } else {
-                    showToast(data.error || 'Payment failed');
+                    showError('Payment Failed', data.error || 'Unable to process payment. Please try again.');
                 }
             } catch (err) {
-                showToast('Payment error: ' + err.message);
+                showError('Payment Error', err.message || 'Connection error. Please try again.');
             }
         }
         
@@ -12834,12 +13054,15 @@
             renderExtractedModels();
         }
         
-        // Toast
-        function showToast(message, duration = 3000) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), duration);
+        // Legacy showToast - redirects to new toast system
+        // This is a compatibility wrapper for old calls that use (message, duration) format
+        function showToastLegacy(message, duration = 3000) {
+            // Use the new toast system with info type
+            if (typeof showInfo === 'function') {
+                showInfo('Notice', message, duration);
+            } else {
+                console.log('[Toast]', message);
+            }
         }
         
         // Confetti burst effect for completion
@@ -14376,6 +14599,7 @@
                 const text = document.getElementById('render-status-text');
                 if (text) text.textContent = 'Error occurred';
                 
+                showError('Render Failed', 'Error rendering video. Please try again.');
                 addMessage('Error rendering video. Please try again.');
             }
         }
@@ -15037,7 +15261,10 @@
                     
                     // Stay in chat - show video result inline
                     renderVideoResultInChat(renderData);
-                    showToast('Video ready!');
+                    showSuccess('Video Ready', 'Your video has been rendered successfully!');
+                    
+                    // Refresh token balance after render
+                    refreshTokenBalance();
                     
                     // Clear progress after a short delay
                     setTimeout(() => {
@@ -15048,7 +15275,7 @@
                     showUpgradePrompt();
                 } else {
                     if (generatingProjectId) clearProjectCardProgress(generatingProjectId);
-                    showToast(formatUserError(renderData.error || 'Something went wrong with your video'));
+                    showError('Video Generation Failed', formatUserError(renderData.error || 'Something went wrong with your video'));
                 }
             } catch (error) {
                 console.error('Generate error:', error);
@@ -15505,22 +15732,8 @@
                 }
             });
             
-            // Load token balance
-            fetch('/get-tokens')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.balance !== undefined) {
-                        // Update header token count
-                        const headerTokenEl = document.getElementById('header-token-count');
-                        if (headerTokenEl) headerTokenEl.textContent = data.balance.toLocaleString();
-                        // Update dashboard token balance
-                        const dashboardTokenEl = document.getElementById('dashboard-token-balance');
-                        if (dashboardTokenEl) dashboardTokenEl.textContent = data.balance.toLocaleString();
-                        // Update billing token balance
-                        const billingTokenEl = document.getElementById('billing-token-balance');
-                        if (billingTokenEl) billingTokenEl.textContent = data.balance.toLocaleString();
-                    }
-                });
+            // Load token balance using centralized function
+            refreshTokenBalance();
         });
         
         // ===== DISCOVER FEED FUNCTIONALITY =====
@@ -15887,21 +16100,8 @@
                     const tokenBalance = data.token_balance || 50;
                     const monthlyTokens = data.monthly_tokens || 50;
                     
-                    // Update token display
-                    const balanceEl = document.getElementById('billing-token-balance');
-                    const monthlyEl = document.getElementById('billing-monthly-tokens');
-                    const barEl = document.getElementById('billing-token-bar');
-                    if (balanceEl) balanceEl.textContent = tokenBalance;
-                    if (monthlyEl) monthlyEl.textContent = monthlyTokens + ' tokens';
-                    if (barEl) barEl.style.width = Math.min(100, (tokenBalance / monthlyTokens) * 100) + '%';
-                    
-                    // Update header token pill
-                    const headerTokenPill = document.getElementById('header-token-pill');
-                    const headerTokenCount = document.getElementById('header-token-count');
-                    if (headerTokenCount) headerTokenCount.textContent = tokenBalance;
-                    if (headerTokenPill) {
-                        headerTokenPill.classList.toggle('low', tokenBalance < 20);
-                    }
+                    // Update all token displays using centralized function
+                    updateAllTokenDisplays(tokenBalance, monthlyTokens);
                     
                     const checkSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
                     const xSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
@@ -16215,6 +16415,106 @@
             // The actual curated images are shown in the scene-composer after curate-visuals is called
             return;
         }
+    </script>
+    
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+    
+    <!-- App Footer -->
+    <div class="app-footer">
+        <div class="app-footer-content">
+            <a href="/terms">Terms</a>
+            <span class="separator">|</span>
+            <a href="/privacy">Privacy</a>
+            <span class="separator">|</span>
+            <a href="/faq">FAQ</a>
+            <span class="separator">|</span>
+            <a href="mailto:support@framd.com">Contact</a>
+            <span class="separator">|</span>
+            <div class="social-links">
+                <a href="https://twitter.com/framdapp" target="_blank" rel="noopener" title="Twitter">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+                <a href="https://instagram.com/framdapp" target="_blank" rel="noopener" title="Instagram">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="18" cy="6" r="1.5" fill="currentColor" stroke="none"/></svg>
+                </a>
+                <a href="https://tiktok.com/@framdapp" target="_blank" rel="noopener" title="TikTok">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification System -->
+    <script>
+        const toastIcons = {
+            success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 10"/></svg>',
+            error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+            warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        };
+        
+        function showToast(typeOrMessage, titleOrType, message, duration = 5000) {
+            const container = document.getElementById('toast-container');
+            
+            // Detect legacy signature: showToast('message') or showToast('message', 'type')
+            const validTypes = ['success', 'error', 'warning', 'info'];
+            const typeDefaults = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Notice' };
+            let type, title, msg, dur;
+            
+            if (validTypes.includes(typeOrMessage)) {
+                // New signature: showToast(type, title, message?, duration?)
+                type = typeOrMessage;
+                title = titleOrType;
+                msg = message || '';
+                dur = typeof duration === 'number' ? duration : 5000;
+            } else if (titleOrType && validTypes.includes(titleOrType)) {
+                // Legacy signature: showToast('message', 'success'|'error')
+                // Map: type from second arg, title as default, message from first arg
+                type = titleOrType;
+                title = typeDefaults[titleOrType] || 'Notice';
+                msg = typeOrMessage;
+                dur = 3000;
+            } else {
+                // Legacy signature: showToast('message') or showToast('message', duration)
+                type = 'info';
+                title = 'Notice';
+                msg = typeOrMessage;
+                dur = typeof titleOrType === 'number' ? titleOrType : 3000;
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon">${toastIcons[type] || toastIcons.info}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    ${msg ? `<div class="toast-message">${msg}</div>` : ''}
+                </div>
+                <button class="toast-close" onclick="closeToast(this.parentElement)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            `;
+            container.appendChild(toast);
+            
+            if (dur > 0) {
+                setTimeout(() => closeToast(toast), dur);
+            }
+            
+            return toast;
+        }
+        
+        function closeToast(toast) {
+            if (!toast || toast.classList.contains('toast-hide')) return;
+            toast.classList.add('toast-hide');
+            setTimeout(() => toast.remove(), 200);
+        }
+        
+        // Convenience functions
+        function showSuccess(title, message, duration) { return showToast('success', title, message, duration); }
+        function showError(title, message, duration) { return showToast('error', title, message, duration); }
+        function showWarning(title, message, duration) { return showToast('warning', title, message, duration); }
+        function showInfo(title, message, duration) { return showToast('info', title, message, duration); }
     </script>
 </body>
 </html>

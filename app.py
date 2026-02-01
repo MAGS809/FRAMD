@@ -24,8 +24,38 @@ from context_engine import (
     analyze_editing_patterns_global, store_global_patterns, get_global_learned_patterns
 )
 from extensions import db, login_manager
+from functools import wraps
+from collections import defaultdict
+import time
 
 logging.basicConfig(level=logging.DEBUG)
+
+# Simple in-memory rate limiting
+rate_limit_store = defaultdict(list)
+
+def rate_limit(limit=30, window=60):
+    """Rate limiting decorator. Default: 30 requests per 60 seconds."""
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            # Get client identifier (user_id or IP)
+            from flask_login import current_user
+            if current_user.is_authenticated:
+                key = f"user:{current_user.id}"
+            else:
+                key = f"ip:{request.remote_addr}"
+            
+            now = time.time()
+            # Clean old entries
+            rate_limit_store[key] = [t for t in rate_limit_store[key] if now - t < window]
+            
+            if len(rate_limit_store[key]) >= limit:
+                return jsonify({'error': 'Rate limit exceeded. Please slow down.'}), 429
+            
+            rate_limit_store[key].append(now)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET')
@@ -1163,19 +1193,28 @@ def add_tokens():
 
 @app.route('/get-tokens', methods=['GET'])
 def get_tokens():
+    TIER_TOKENS = {'free': 50, 'creator': 300, 'pro': 1000}
     user_id = get_user_id()
     if user_id:
         user = User.query.get(user_id)
         if user:
+            # Check for subscription to get monthly tokens
+            sub = Subscription.query.filter_by(user_id=user_id).first()
+            tier = sub.tier if sub and sub.status == 'active' else 'free'
+            monthly_tokens = TIER_TOKENS.get(tier, 50)
             return jsonify({
                 'success': True,
-                'balance': user.tokens or 0
+                'balance': user.tokens or 0,
+                'monthly_tokens': monthly_tokens,
+                'tier': tier
             })
     # Fallback for unauthenticated or legacy
     token_entry = UserTokens.query.first()
     return jsonify({
         'success': True,
-        'balance': token_entry.balance if token_entry else 0
+        'balance': token_entry.balance if token_entry else 0,
+        'monthly_tokens': 50,
+        'tier': 'free'
     })
 
 @app.route('/deduct-tokens', methods=['POST'])
@@ -4171,6 +4210,18 @@ def index():
 def pricing():
     return render_template('pricing.html')
 
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/faq')
+def faq():
+    return render_template('faq.html')
+
 @app.route('/dev')
 def dev_mode():
     session['dev_mode'] = True
@@ -5090,6 +5141,7 @@ TOKEN_COSTS = {
 }
 
 @app.route('/generate-video', methods=['POST'])
+@rate_limit(limit=10, window=60)
 def generate_video():
     """Generate a video mockup combining stock footage with voiceover."""
     import os
@@ -6395,6 +6447,7 @@ def build_post():
 
 
 @app.route('/chat', methods=['POST'])
+@rate_limit(limit=60, window=60)
 def chat():
     """Direct chat with Krakd AI with conversation memory and unified content engine."""
     from openai import OpenAI
@@ -6972,6 +7025,7 @@ def auto_assign_voices():
 
 
 @app.route('/render-video', methods=['POST'])
+@rate_limit(limit=10, window=60)
 def render_video():
     """Render final video from selected scenes and voiceover."""
     import subprocess

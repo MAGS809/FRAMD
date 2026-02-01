@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ — Framd</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --text: #ffd60a;
+            --text-dim: rgba(255, 214, 10, 0.6);
+            --text-faint: rgba(255, 214, 10, 0.2);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+        
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-decoration: none;
+            color: var(--text);
+        }
+        
+        .logo span {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-dim);
+            display: block;
+        }
+        
+        .back-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: color 0.2s;
+        }
+        
+        .back-link:hover {
+            color: var(--text);
+        }
+        
+        .back-link svg {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .page-header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+        }
+        
+        .page-header h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 5vw, 2.5rem);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-header p {
+            color: var(--text-dim);
+            font-size: 1rem;
+        }
+        
+        .faq-section {
+            margin-bottom: 2rem;
+        }
+        
+        .faq-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--text-faint);
+        }
+        
+        .faq-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--text-faint);
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .faq-question {
+            padding: 1.25rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        
+        .faq-question:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        
+        .faq-question svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-dim);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .faq-item.open .faq-question svg {
+            transform: rotate(180deg);
+        }
+        
+        .faq-answer {
+            padding: 0 1.25rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .faq-item.open .faq-answer {
+            padding: 0 1.25rem 1.25rem;
+            max-height: 500px;
+        }
+        
+        .faq-answer p {
+            color: var(--text-dim);
+            line-height: 1.7;
+            margin-bottom: 0.75rem;
+        }
+        
+        .faq-answer p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .faq-answer ul {
+            color: var(--text-dim);
+            margin-left: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .faq-answer li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .highlight {
+            color: var(--text);
+            font-weight: 500;
+        }
+        
+        .contact-box {
+            background: rgba(255, 214, 10, 0.1);
+            border: 1px solid var(--text-faint);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 3rem 0;
+        }
+        
+        .contact-box h3 {
+            font-family: 'Space Grotesk', sans-serif;
+            margin-bottom: 0.75rem;
+        }
+        
+        .contact-box p {
+            color: var(--text-dim);
+            margin-bottom: 1rem;
+        }
+        
+        .contact-box a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .contact-box a:hover {
+            text-decoration: underline;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--text-faint);
+        }
+        
+        footer a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        
+        footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/" class="logo">
+                Framd
+                <span>powered by Echo Engine</span>
+            </a>
+            <a href="/" class="back-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="19" y1="12" x2="5" y2="12"/>
+                    <polyline points="12 19 5 12 12 5"/>
+                </svg>
+                Back to Home
+            </a>
+        </header>
+        
+        <section class="page-header">
+            <h1>Frequently Asked Questions</h1>
+            <p>Everything you need to know about using Framd</p>
+        </section>
+        
+        <section class="faq-section">
+            <h2>Tokens & Pricing</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    How do tokens work?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>Tokens are our simple currency for video creation. Every video you render costs tokens based on its complexity:</p>
+                    <ul>
+                        <li><span class="highlight">Base cost:</span> 25 tokens per video (covers script, voice, captions, and render)</li>
+                        <li><span class="highlight">Extra characters:</span> +3 tokens per additional voice/character</li>
+                        <li><span class="highlight">Sound effects:</span> +1 token per [SOUND: effect] tag</li>
+                    </ul>
+                    <p>Script generation is always free — tokens are only used when you render the final video.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    Do tokens expire?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p><span class="highlight">No, tokens never expire.</span> Purchased tokens stay in your account until you use them. Subscription tokens reset monthly, but any purchased tokens remain.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    What's included in each subscription tier?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p><span class="highlight">Free ($0/month):</span> 50 tokens, script generation only, no video export. Great for trying the platform.</p>
+                    <p><span class="highlight">Creator ($10/month):</span> 300 tokens, video export, premium voices, video hosting. Perfect for active creators.</p>
+                    <p><span class="highlight">Pro ($25/month):</span> 1000 tokens, unlimited revisions, auto-generator, AI character generation, priority rendering. For serious creators.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="faq-section">
+            <h2>Refunds & Billing</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    What is your refund policy?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p><span class="highlight">Unused tokens:</span> If you haven't used any tokens from a token pack purchase, we'll refund it within 7 days of purchase.</p>
+                    <p><span class="highlight">Subscriptions:</span> You can cancel anytime. Your subscription remains active until the end of your billing period. We don't offer partial refunds for unused subscription time, but you keep any remaining tokens.</p>
+                    <p><span class="highlight">Technical issues:</span> If a video render fails due to a technical error on our end, we'll refund the tokens automatically.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    How do I cancel my subscription?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>You can cancel anytime from your account settings. After cancellation:</p>
+                    <ul>
+                        <li>Your subscription remains active until the end of the billing period</li>
+                        <li>You keep any unused purchased tokens (they never expire)</li>
+                        <li>Subscription tokens reset to zero at the end of the period</li>
+                        <li>Your projects and videos remain accessible</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <section class="faq-section">
+            <h2>How It Works</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    How does the video creation process work?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>Creating a video with Framd is a guided 4-step process:</p>
+                    <ul>
+                        <li><span class="highlight">Script:</span> Share your idea, link, or transcript. Our AI generates a structured script with hooks, claims, and closers.</li>
+                        <li><span class="highlight">Voice:</span> Choose from 8 distinct character voices. Preview how your script sounds before committing.</li>
+                        <li><span class="highlight">Visuals:</span> For each scene, we suggest relevant visuals from legal media sources. Pick what fits your story.</li>
+                        <li><span class="highlight">Export:</span> Render your video with animated captions, sound effects, and your chosen format (9:16, 16:9, 1:1, or 4:5).</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    What are templates?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>Templates are pre-configured content styles that guide how the AI generates your script. Each has a distinct tone and purpose:</p>
+                    <ul>
+                        <li><span class="highlight">Hot Take:</span> Bold, assertive hooks for controversial topics</li>
+                        <li><span class="highlight">Explainer:</span> Clear, educational breakdowns</li>
+                        <li><span class="highlight">Story Time:</span> Narrative-driven personal stories</li>
+                        <li><span class="highlight">Meme/Funny:</span> Humor-focused with comedic timing</li>
+                        <li><span class="highlight">Make an Ad:</span> Persuasive with CTAs</li>
+                        <li>...and more</li>
+                    </ul>
+                    <p>You can always start from scratch if none fit your vision.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    Where do the visuals come from?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>We source visuals from legal, royalty-free libraries:</p>
+                    <ul>
+                        <li><span class="highlight">Wikimedia Commons:</span> Primary source for authentic, non-stock footage</li>
+                        <li><span class="highlight">Pexels:</span> Fallback for high-quality stock imagery</li>
+                    </ul>
+                    <p>All visuals are safe for commercial use in your content.</p>
+                </div>
+            </div>
+        </section>
+        
+        <section class="faq-section">
+            <h2>Content & Privacy</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    Who owns the content I create?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p><span class="highlight">You do.</span> You retain full ownership of all scripts, videos, and content you create using Framd. We don't claim any rights to your work.</p>
+                </div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">
+                    Does Framd learn from my content?
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </div>
+                <div class="faq-answer">
+                    <p>We learn <span class="highlight">craft patterns</span> (what makes hooks work, optimal pacing, structure) — not your specific ideas or content.</p>
+                    <p>Your scripts, concepts, and unique creative work are never stored in or used to train our AI models. We only analyze anonymized patterns like hook types and success rates to improve the platform for everyone.</p>
+                </div>
+            </div>
+        </section>
+        
+        <div class="contact-box">
+            <h3>Still have questions?</h3>
+            <p>We're here to help. Reach out and we'll get back to you within 24 hours.</p>
+            <a href="mailto:support@framd.com">support@framd.com</a>
+        </div>
+        
+        <footer>
+            <div class="footer-links">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
+                <a href="/faq">FAQ</a>
+                <a href="/pricing">Pricing</a>
+            </div>
+            <p>&copy; 2026 Framd. Quality content for those who care.</p>
+        </footer>
+    </div>
+    
+    <script>
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.querySelector('.faq-question').addEventListener('click', () => {
+                item.classList.toggle('open');
+            });
+        });
+    </script>
+</body>
+</html>
