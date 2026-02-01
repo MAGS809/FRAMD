@@ -4475,10 +4475,29 @@ Respond in JSON format:
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
     data = request.get_json()
-    file_path = data.get('file_path')
+    file_path = data.get('file_path') or data.get('filename')
     
-    if not file_path or not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
+    if not file_path:
+        return jsonify({'error': 'No file specified'}), 400
+    
+    # Try multiple path resolutions
+    possible_paths = [
+        file_path,
+        f'uploads/{file_path}',
+        f'uploads/{os.path.basename(file_path)}',
+        os.path.basename(file_path)
+    ]
+    
+    resolved_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            resolved_path = path
+            break
+    
+    if not resolved_path:
+        return jsonify({'error': f'File not found: {file_path}'}), 404
+    
+    file_path = resolved_path
     
     audio_path = file_path.rsplit('.', 1)[0] + '_audio.wav'
     
