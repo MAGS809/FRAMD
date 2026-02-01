@@ -11,6 +11,87 @@ from duckduckgo_search import DDGS
 # Topic trend research cache to avoid redundant searches
 _trend_cache = {}
 
+# Template-Tone DNA: Each template has a fixed tone and the AI applies trends WITHIN that tone
+TEMPLATE_TONE_DNA = {
+    'hot_take': {
+        'tone': 'assertive',
+        'voice': 'Provocative, punchy, confident. Takes a clear stance.',
+        'hook_style': 'Bold claim or controversy opener. Grabs attention through honest provocation.',
+        'pacing': 'Fast opener, measured middle, sharp close',
+        'trend_application': 'Use trend hooks and controversy patterns. Lean into what sparks debate.',
+        'allowed_overrides': ['provocative hooks', 'strong opinions', 'direct confrontation of ideas']
+    },
+    'explainer': {
+        'tone': 'clear',
+        'voice': 'Patient, educational, authoritative without being condescending.',
+        'hook_style': 'Question or surprising fact that reveals a knowledge gap.',
+        'pacing': 'Steady build, each point lands before the next',
+        'trend_application': 'Use trending formats for explanation (visual metaphors, step patterns).',
+        'allowed_overrides': ['extended metaphors if clarifying', 'slower pacing']
+    },
+    'story_time': {
+        'tone': 'narrative',
+        'voice': 'Immersive, personal, draws listener into the story.',
+        'hook_style': 'Story opener that creates immediate intrigue or tension.',
+        'pacing': 'Tension build, emotional beats, satisfying resolution',
+        'trend_application': 'Use trending story structures and emotional arc patterns.',
+        'allowed_overrides': ['longer sentences for flow', 'emotional language', 'personal tone']
+    },
+    'commentary': {
+        'tone': 'analytical',
+        'voice': 'Sharp, observational, sees what others miss.',
+        'hook_style': 'Observation that reframes how we see something familiar.',
+        'pacing': 'Setup, insight, implication',
+        'trend_application': 'Use trending commentary formats, evidence presentation styles.',
+        'allowed_overrides': ['rebuttals', 'critique of popular opinions']
+    },
+    'open_letter': {
+        'tone': 'direct',
+        'voice': 'Personal, sincere, speaks to someone specific (even if abstract).',
+        'hook_style': 'Direct address that establishes the relationship and stakes.',
+        'pacing': 'Build emotional weight, land with conviction',
+        'trend_application': 'Use emotional pacing patterns that trend. Structure for impact.',
+        'allowed_overrides': ['emotional directness', 'personal address', 'vulnerability']
+    },
+    'meme_funny': {
+        'tone': 'comedic',
+        'voice': 'Witty, timing-focused, meme-literate. Humor IS the point.',
+        'hook_style': 'Subverted expectation, absurd setup, or relatable frustration.',
+        'pacing': 'Setup, pause, punchline. Timing is everything.',
+        'trend_application': 'Use trending meme formats, comedic structures, viral patterns.',
+        'allowed_overrides': ['meme logic', 'absurdist humor', 'self-aware meta', 'rapid cuts']
+    },
+    'make_an_ad': {
+        'tone': 'persuasive',
+        'voice': 'Urgent, benefit-focused, creates desire without manipulation.',
+        'hook_style': 'Problem statement or aspiration that the viewer feels.',
+        'pacing': 'Problem, solution, proof, CTA',
+        'trend_application': 'Use trending ad formats, social proof patterns, CTA styles.',
+        'allowed_overrides': ['urgency language', 'CTAs', 'social proof', 'benefit stacking']
+    },
+    'tiktok_edit': {
+        'tone': 'energetic',
+        'voice': 'Fast, visual-first, trend-forward. Native to the platform.',
+        'hook_style': 'Immediate visual or audio hook. No slow intros.',
+        'pacing': 'Rapid, sync to audio, constant movement',
+        'trend_application': 'Mirror current TikTok trends directly. Sound sync, transitions, effects.',
+        'allowed_overrides': ['trend-chasing', 'fast cuts', 'audio-driven structure', 'platform-native language']
+    },
+    'start_from_scratch': {
+        'tone': 'adaptive',
+        'voice': 'Neutral baseline. Adapts to content needs.',
+        'hook_style': 'Context-appropriate. Let the content dictate.',
+        'pacing': 'Balanced, content-driven',
+        'trend_application': 'Apply relevant trends based on what the content becomes.',
+        'allowed_overrides': ['flexible based on content direction']
+    }
+}
+
+def get_template_guidelines(template_type: str) -> dict:
+    """Get the tone DNA and guidelines for a specific template."""
+    template_key = template_type.lower().replace(' ', '_').replace('-', '_')
+    return TEMPLATE_TONE_DNA.get(template_key, TEMPLATE_TONE_DNA['start_from_scratch'])
+
 # API Keys
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
 UNSPLASH_ACCESS_KEY = os.environ.get("UNSPLASH_ACCESS_KEY")
@@ -563,25 +644,50 @@ Focus on substance, not viral moments. Identify ideas worth exploring, not sound
     return result if result else []
 
 
-def generate_script(idea: dict, transcript: str, duration: int = 30, use_trends: bool = True) -> dict:
-    """Generate a script for a specific idea. Script-first approach with optional trend research."""
+def generate_script(idea: dict, transcript: str, duration: int = 30, use_trends: bool = True, template_type: str = 'start_from_scratch') -> dict:
+    """Generate a script for a specific idea. Template-driven with trend research applied within template tone."""
+    
+    template = get_template_guidelines(template_type)
     
     trend_context = ""
     trend_data = None
+    trend_quality = "full"
     
     if use_trends:
         topic = idea.get('idea', '')[:100]
         trend_data = research_topic_trends(topic)
         if trend_data and trend_data.get('patterns'):
             patterns = trend_data['patterns']
+            hooks_found = len(patterns.get('hooks', []))
+            formats_found = len(patterns.get('formats', []))
+            
+            if hooks_found < 2 or formats_found < 2:
+                trend_quality = "partial"
+            
             trend_context = f"""
-TREND INTELLIGENCE (what's working for this topic):
-- Successful hooks: {', '.join(patterns.get('hooks', [])[:3])}
-- Popular formats: {', '.join(patterns.get('formats', [])[:3])}
-- Visual styles: {', '.join(patterns.get('visuals', [])[:3])}
-- Effective framings: {', '.join(patterns.get('framings', [])[:3])}
+TREND INTELLIGENCE (apply WITHIN the template tone):
+- Successful hooks: {', '.join(patterns.get('hooks', [])[:3]) or 'Limited data - use template defaults'}
+- Popular formats: {', '.join(patterns.get('formats', [])[:3]) or 'Limited data - use template defaults'}
+- Visual styles: {', '.join(patterns.get('visuals', [])[:3]) or 'Limited data - use template defaults'}
+- Effective framings: {', '.join(patterns.get('framings', [])[:3]) or 'Limited data - use template defaults'}
 
-Use these patterns to inform your script - mimic what works but make it original.
+{"NOTE: Limited trend data for this niche topic. Lean more heavily on template tone and structure." if trend_quality == "partial" else "Apply these patterns while staying true to the template voice."}
+"""
+        else:
+            trend_quality = "none"
+            trend_context = """
+TREND INTELLIGENCE: No specific trend data found for this topic.
+Focus entirely on the template tone and structure. The template knows what works.
+"""
+    
+    template_guidance = f"""
+TEMPLATE: {template_type.upper().replace('_', ' ')}
+TONE: {template['tone']}
+VOICE: {template['voice']}
+HOOK STYLE: {template['hook_style']}
+PACING: {template['pacing']}
+HOW TO USE TRENDS: {template['trend_application']}
+ALLOWED FOR THIS TEMPLATE: {', '.join(template['allowed_overrides'])}
 """
     
     prompt = f"""Write a {duration}-second video script based on this idea:
@@ -589,29 +695,36 @@ Use these patterns to inform your script - mimic what works but make it original
 IDEA: {idea['idea']}
 TYPE: {idea['type']}
 CONTEXT: {idea.get('context', 'N/A')}
+{template_guidance}
 {trend_context}
 FULL TRANSCRIPT FOR REFERENCE:
 {transcript[:8000]}
 
 The script must contain:
-1. HOOK: An opening that creates clarity, not shock (1-2 sentences) - USE PATTERNS THAT WORK
+1. HOOK: Follow the template's hook style. Apply trend patterns within that style.
 2. CORE_CLAIM: The central argument or observation (2-3 sentences)
 3. GROUNDING: Explanation that provides context and nuance (2-3 sentences)
-4. CLOSING: A line that reinforces meaning without being preachy (1 sentence)
+4. CLOSING: A line that reinforces meaning, matching the template's pacing
+
+IMPORTANT: Stay in the template's voice. Trends inform HOW you execute, not WHAT tone you use.
 
 Also specify:
-- TONE: One of [calm, dry, ironic, reflective, urgent, analytical]
+- TONE: Use "{template['tone']}" (from template)
 - VISUAL_INTENT: One of [supportive, neutral, contextual, contrasting]
 
-Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_intent, full_script"""
+Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_intent, full_script, template_used"""
 
     result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=2048)
     
-    if result and trend_data:
-        result['trend_intel'] = {
-            'patterns_used': trend_data.get('patterns', {}),
-            'sources': trend_data.get('sources', [])[:3]
-        }
+    if result:
+        result['template_used'] = template_type
+        result['trend_quality'] = trend_quality
+        if trend_data:
+            result['trend_intel'] = {
+                'patterns_used': trend_data.get('patterns', {}),
+                'sources': trend_data.get('sources', [])[:3],
+                'quality': trend_quality
+            }
     
     return result
 

@@ -68,6 +68,7 @@ class Project(db.Model):
     liked = db.Column(db.Boolean, nullable=True)  # True=liked, False=disliked, None=no feedback
     auto_generate_enabled = db.Column(db.Boolean, default=False)  # AI auto-generation toggle
     uploaded_clips = db.Column(db.JSON, nullable=True)  # List of clip paths for AI to use
+    template_type = db.Column(db.String(50), default='start_from_scratch')  # Template used for this project
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     

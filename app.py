@@ -2690,11 +2690,13 @@ def create_project():
     data = request.get_json() or {}
     name = data.get('name', 'Untitled Project')
     description = data.get('description', '')
+    template_type = data.get('template_type', 'start_from_scratch')
     
     project = Project(
         user_id=user_id,
         name=name,
         description=description,
+        template_type=template_type,
         status='draft'
     )
     db.session.add(project)
@@ -3164,6 +3166,10 @@ def generate_drafts(project_id):
     import random
     generated_drafts = []
     
+    from context_engine import get_template_guidelines
+    template_type = project.template_type or 'start_from_scratch'
+    template_dna = get_template_guidelines(template_type)
+    
     for i in range(drafts_to_generate):
         angle = available_angles[i % len(available_angles)]
         vibe = available_vibes[i % len(available_vibes)]
@@ -3171,8 +3177,16 @@ def generate_drafts(project_id):
         
         prompt = f"""Generate a 35-75 second video script for the topic: "{topic}"
 
-TREND RESEARCH (use these patterns):
-{json.dumps(trend_data, indent=2) if trend_data else 'No trend data available'}
+TEMPLATE: {template_type.upper().replace('_', ' ')}
+TEMPLATE TONE: {template_dna['tone']}
+TEMPLATE VOICE: {template_dna['voice']}
+TEMPLATE HOOK STYLE: {template_dna['hook_style']}
+TEMPLATE PACING: {template_dna['pacing']}
+HOW TO APPLY TRENDS: {template_dna['trend_application']}
+ALLOWED FOR THIS TEMPLATE: {', '.join(template_dna['allowed_overrides'])}
+
+TREND RESEARCH (apply WITHIN the template tone):
+{json.dumps(trend_data, indent=2) if trend_data else 'No trend data available - lean on template defaults'}
 
 USER'S LEARNED PATTERNS (incorporate their style):
 {json.dumps(learned_patterns, indent=2)}
@@ -3181,6 +3195,8 @@ CONSTRAINTS FOR THIS DRAFT:
 - Angle: {angle} (the perspective/approach)
 - Vibe: {vibe} (the emotional tone)
 - Hook Type: {hook_type} (how to start)
+
+IMPORTANT: Stay in the template's voice. Trends inform HOW you execute, not WHAT tone you use.
 
 UPLOADED CLIPS TO REFERENCE:
 {json.dumps(project.uploaded_clips or [], indent=2)}
@@ -4286,12 +4302,13 @@ def generate_script_endpoint():
     idea = data.get('idea')
     transcript = data.get('transcript')
     duration = data.get('duration', 30)
+    template_type = data.get('template_type', 'start_from_scratch')
     
     if not idea or not transcript:
         return jsonify({'error': 'Missing idea or transcript'}), 400
     
     try:
-        script = generate_script(idea, transcript, duration)
+        script = generate_script(idea, transcript, duration, use_trends=True, template_type=template_type)
         
         # Store trend sources in session for later use in render
         if script and script.get('trend_intel', {}).get('sources'):

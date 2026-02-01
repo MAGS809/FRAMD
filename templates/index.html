@@ -10715,7 +10715,7 @@
                 const response = await fetch('/projects', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: 'New Project', description: templateType })
+                    body: JSON.stringify({ name: 'New Project', description: '', template_type: templateType })
                 });
                 
                 if (response.ok) {
