@@ -6269,6 +6269,62 @@
             }
         }
         
+        /* Device-specific styles using JS-added classes */
+        /* iPhone-specific adjustments */
+        body.is-iphone .composer-inner {
+            padding-bottom: env(safe-area-inset-bottom, 0.5rem);
+        }
+        
+        body.is-iphone .bottom-chat-bar {
+            padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+        }
+        
+        body.is-iphone .image-placement-popup {
+            padding-bottom: env(safe-area-inset-bottom, 0);
+        }
+        
+        /* iOS smooth scrolling */
+        body.is-ios .messages {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        body.is-ios .stage {
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Mobile-specific: larger touch targets */
+        body.is-mobile .btn {
+            min-height: 44px;
+        }
+        
+        body.is-mobile .placement-option,
+        body.is-mobile .mode-option {
+            min-height: 80px;
+        }
+        
+        body.is-mobile .voice-option {
+            min-height: 48px;
+        }
+        
+        /* Touch devices: remove hover effects that don't work well */
+        body.is-touch .btn:hover {
+            transform: none;
+        }
+        
+        body.is-touch .voice-option:hover,
+        body.is-touch .format-option:hover {
+            transform: none;
+        }
+        
+        /* Desktop-specific: hover enhancements */
+        body.is-desktop .btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        body.is-desktop .scene-card:hover {
+            border-color: var(--accent);
+        }
+        
         /* Hidden file input */
         #file-input {
             display: none;
@@ -9884,6 +9940,40 @@
                 console.error('Error updating workflow step:', err);
             }
         }
+        
+        // Device detection - adds classes to body for device-specific styling
+        (function detectDevice() {
+            const ua = navigator.userAgent;
+            const body = document.body;
+            
+            // Device type detection
+            const isIPhone = /iPhone/i.test(ua);
+            const isIPad = /iPad/i.test(ua);
+            const isAndroid = /Android/i.test(ua);
+            const isIOS = isIPhone || isIPad || /Mac/i.test(ua) && 'ontouchend' in document;
+            const isMobile = isIPhone || isAndroid || /Mobile/i.test(ua);
+            const isTablet = isIPad || (isAndroid && !/Mobile/i.test(ua));
+            const isDesktop = !isMobile && !isTablet;
+            
+            // Add classes to body
+            if (isIPhone) body.classList.add('is-iphone');
+            if (isIPad) body.classList.add('is-ipad');
+            if (isIOS) body.classList.add('is-ios');
+            if (isAndroid) body.classList.add('is-android');
+            if (isMobile) body.classList.add('is-mobile');
+            if (isTablet) body.classList.add('is-tablet');
+            if (isDesktop) body.classList.add('is-desktop');
+            
+            // Touch device detection
+            if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+                body.classList.add('is-touch');
+            } else {
+                body.classList.add('is-pointer');
+            }
+            
+            // Expose for JavaScript use
+            window.deviceInfo = { isIPhone, isIPad, isIOS, isAndroid, isMobile, isTablet, isDesktop };
+        })();
         
         // Restore conversation from localStorage on page load
         document.addEventListener('DOMContentLoaded', () => {
