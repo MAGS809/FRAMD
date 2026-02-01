@@ -3028,7 +3028,11 @@ def toggle_auto_generate(project_id):
     if liked_count < 5:
         return jsonify({'error': f'Need 5 liked videos to unlock auto-generation ({liked_count}/5)'}), 403
     
-    project.auto_generate_enabled = not project.auto_generate_enabled
+    data = request.get_json() or {}
+    if 'enable' in data:
+        project.auto_generate_enabled = bool(data['enable'])
+    else:
+        project.auto_generate_enabled = not project.auto_generate_enabled
     db.session.commit()
     
     return jsonify({
