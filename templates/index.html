@@ -1064,15 +1064,30 @@
         }
         
         .project-card-item {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+            border: 1px solid rgba(255, 214, 10, 0.08);
+            border-radius: 16px;
             padding: 1.25rem;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             min-height: 120px;
             display: flex;
             flex-direction: column;
+            backdrop-filter: blur(8px);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .project-card-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 214, 10, 0.2), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
         
         .project-card-autogen {
@@ -1107,9 +1122,14 @@
         }
         
         .project-card-item:hover {
-            background: rgba(255,255,255,0.06);
-            border-color: rgba(255,255,255,0.15);
-            transform: translateY(-2px);
+            background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, rgba(255,255,255,0.02) 100%);
+            border-color: rgba(255, 214, 10, 0.25);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 214, 10, 0.1);
+        }
+        
+        .project-card-item:hover::before {
+            opacity: 1;
         }
         
         .project-card-item.successful {
@@ -1981,30 +2001,105 @@
             animation: typingPulse 1.5s ease-in-out infinite;
         }
         
+        /* Welcome Hero */
+        .welcome-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 3rem 1.5rem 2rem;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .welcome-logo {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1.5rem;
+            opacity: 0.9;
+        }
+        
+        .welcome-logo svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .welcome-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .welcome-subtitle {
+            font-size: 1rem;
+            color: var(--text-dim);
+            max-width: 400px;
+            line-height: 1.5;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         /* Suggested prompts */
         .suggested-prompts {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding: 0 0.5rem;
+            gap: 0.75rem;
+            margin-top: 2rem;
+            padding: 0 1rem;
+            width: 100%;
+            max-width: 500px;
         }
         
         .suggested-prompt {
-            background: rgba(255, 214, 10, 0.08);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.06) 0%, rgba(255, 214, 10, 0.02) 100%);
+            border: 1px solid rgba(255, 214, 10, 0.15);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
             color: var(--text);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             text-align: left;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .suggested-prompt::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--gold);
+            opacity: 0;
+            transition: opacity 0.2s;
         }
         
         .suggested-prompt:hover {
-            background: rgba(255, 214, 10, 0.15);
-            border-color: var(--text-dim);
+            background: linear-gradient(135deg, rgba(255, 214, 10, 0.12) 0%, rgba(255, 214, 10, 0.05) 100%);
+            border-color: rgba(255, 214, 10, 0.35);
+            transform: translateX(4px);
+        }
+        
+        .suggested-prompt:hover::before {
+            opacity: 1;
+        }
+        
+        .suggested-prompt-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--gold);
+            opacity: 0.7;
+            flex-shrink: 0;
         }
         
         /* Typing indicator */
@@ -9675,8 +9770,8 @@
                     // Show back link
                     document.getElementById('back-to-projects').style.display = 'block';
                     
-                    // Show welcome back message
-                    addMessage(`Continuing project: ${project.name}`, false);
+                    // Show welcome back message with project context
+                    addMessage(`Welcome back to "${project.name}". Pick up where you left off, or tell me what's next.`, false);
                 }
             } catch (err) {
                 console.error('Error opening project:', err);
@@ -10972,7 +11067,7 @@
             if (!container) return;
             
             container.innerHTML = conversationHistory.length === 0 
-                ? '<div class="message ai"><div class="message-content">Prompt, paste, or drop. We\'ll make the clip.</div></div>'
+                ? '<div class="message ai"><div class="message-content" style="font-size: 1rem; color: var(--text-dim);">What would you like to create?</div></div>'
                 : conversationHistory.map(msg => `
                     <div class="message ${msg.role === 'user' ? 'user' : 'ai'}">
                         <div class="message-content">${escapeHtml(msg.content)}</div>
@@ -10989,13 +11084,30 @@
             
             if (conversationHistory.length === 0) {
                 container.innerHTML = `
-                    <div class="message ai">
-                        <div class="message-content">Prompt, paste, or drop. We'll make the clip.</div>
-                    </div>
-                    <div class="suggested-prompts">
-                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Turn this article into a 60 second clip')">Turn this article into a 60 second clip</button>
-                        <button class="suggested-prompt" onclick="useSuggestedPrompt('The perfect clipper')">The perfect clipper</button>
-                        <button class="suggested-prompt" onclick="useSuggestedPrompt('Build a script around your thesis for a post')">Build a script around your thesis for a post</button>
+                    <div class="welcome-hero">
+                        <div class="welcome-logo">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="10" y="20" width="80" height="60" rx="8" stroke="currentColor" stroke-width="4" fill="none"/>
+                                <circle cx="50" cy="50" r="15" stroke="currentColor" stroke-width="4" fill="none"/>
+                                <polygon points="45,42 60,50 45,58" fill="currentColor"/>
+                            </svg>
+                        </div>
+                        <h1 class="welcome-title">What do you want to create?</h1>
+                        <p class="welcome-subtitle">Drop a link, paste text, or describe your idea. We'll turn it into a polished clip.</p>
+                        <div class="suggested-prompts">
+                            <button class="suggested-prompt" onclick="useSuggestedPrompt('Turn this article into a 60 second clip')">
+                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                                Turn this article into a 60 second clip
+                            </button>
+                            <button class="suggested-prompt" onclick="useSuggestedPrompt('I have a hot take I want to turn into a viral video')">
+                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                                I have a hot take I want to turn into a viral video
+                            </button>
+                            <button class="suggested-prompt" onclick="useSuggestedPrompt('Build a script around my thesis')">
+                                <svg class="suggested-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                Build a script around my thesis
+                            </button>
+                        </div>
                     </div>
                 `;
             } else {
