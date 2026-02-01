@@ -14076,8 +14076,49 @@
         // Proceed to render
         async function proceedToRender() {
             currentWorkflowStep = 6;
-            addTypingIndicator();
-            addMessage('Rendering your video...');
+            
+            // Add rendering progress card
+            const renderingHtml = `
+                <div class="rendering-progress-card" id="rendering-progress" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 8px 0;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                        <div class="render-spinner" style="width: 24px; height: 24px; border: 3px solid rgba(255,214,10,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="font-size: 14px; font-weight: 600; color: var(--gold);">Rendering your video...</span>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; height: 8px; overflow: hidden; margin-bottom: 8px;">
+                        <div id="render-progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), #ffed4a); border-radius: 8px; transition: width 0.3s ease;"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim);">
+                        <span id="render-status-text">Preparing clips...</span>
+                        <span id="render-progress-pct">0%</span>
+                    </div>
+                </div>
+            `;
+            addMessage(renderingHtml, false, true);
+            
+            // Start progress animation
+            let progress = 0;
+            const progressSteps = [
+                { pct: 10, text: 'Downloading visuals...' },
+                { pct: 25, text: 'Processing clips...' },
+                { pct: 45, text: 'Adding transitions...' },
+                { pct: 60, text: 'Mixing audio...' },
+                { pct: 75, text: 'Generating captions...' },
+                { pct: 90, text: 'Finalizing video...' }
+            ];
+            let stepIndex = 0;
+            
+            const progressInterval = setInterval(() => {
+                if (stepIndex < progressSteps.length) {
+                    const step = progressSteps[stepIndex];
+                    const bar = document.getElementById('render-progress-bar');
+                    const text = document.getElementById('render-status-text');
+                    const pct = document.getElementById('render-progress-pct');
+                    if (bar) bar.style.width = step.pct + '%';
+                    if (text) text.textContent = step.text;
+                    if (pct) pct.textContent = step.pct + '%';
+                    stepIndex++;
+                }
+            }, 2500);
             
             // Build scenes from visuals and anchors
             const scenes = buildScenesForRender();
@@ -14105,8 +14146,22 @@
                     })
                 });
                 
-                removeTypingIndicator();
+                clearInterval(progressInterval);
                 const data = await response.json();
+                
+                // Update progress to 100%
+                const bar = document.getElementById('render-progress-bar');
+                const text = document.getElementById('render-status-text');
+                const pct = document.getElementById('render-progress-pct');
+                if (bar) bar.style.width = '100%';
+                if (text) text.textContent = data.success ? 'Complete!' : 'Failed';
+                if (pct) pct.textContent = '100%';
+                
+                // Remove progress card after brief delay
+                setTimeout(() => {
+                    const progressCard = document.getElementById('rendering-progress');
+                    if (progressCard) progressCard.parentElement?.remove();
+                }, 500);
                 
                 if (data.success) {
                     renderVideoResultInChat(data);
@@ -14114,8 +14169,13 @@
                     addMessage(data.error || 'Failed to render video. Please try again.');
                 }
             } catch (err) {
-                removeTypingIndicator();
+                clearInterval(progressInterval);
                 console.error('Render error:', err);
+                
+                // Update progress to show error
+                const text = document.getElementById('render-status-text');
+                if (text) text.textContent = 'Error occurred';
+                
                 addMessage('Error rendering video. Please try again.');
             }
         }
