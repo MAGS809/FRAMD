@@ -98,6 +98,11 @@ class SourceDocument(db.Model):
     verified = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+from models import (
+    User, OAuth, Conversation, UserPreference, Project, VideoFeedback,
+    AILearning, GeneratedDraft, GlobalPattern, Subscription, VideoHistory
+)
+
 with app.app_context():
     db.create_all()
     if not UserTokens.query.first():
