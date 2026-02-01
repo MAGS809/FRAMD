@@ -1,6 +1,4 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, url_for, Response
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
@@ -25,13 +23,9 @@ from context_engine import (
     call_ai, SYSTEM_GUARDRAILS,
     analyze_editing_patterns_global, store_global_patterns, get_global_learned_patterns
 )
+from extensions import db
 
 logging.basicConfig(level=logging.DEBUG)
-
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET')
@@ -44,63 +38,10 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 db.init_app(app)
 
-class UserTokens(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    balance = db.Column(db.Integer, default=120)
-    last_updated = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
-
-class MediaAsset(db.Model):
-    """Legal media assets with licensing metadata - stores LINKS only, not files."""
-    id = db.Column(db.String(255), primary_key=True)  # e.g., pexels_12345, wikimedia_67890
-    source_page = db.Column(db.Text)  # Made nullable to handle missing source pages
-    download_url = db.Column(db.Text, nullable=False)
-    thumbnail_url = db.Column(db.Text)  # Preview image
-    source = db.Column(db.String(50), nullable=False)  # wikimedia_commons, pexels
-    license = db.Column(db.String(100), nullable=False)  # CC BY 4.0, CC0, Pexels License
-    license_url = db.Column(db.Text)
-    commercial_use_allowed = db.Column(db.Boolean, default=True)
-    derivatives_allowed = db.Column(db.Boolean, default=True)
-    attribution_required = db.Column(db.Boolean, default=False)
-    attribution_text = db.Column(db.Text)
-    content_type = db.Column(db.String(20), nullable=False)  # video, image
-    duration_sec = db.Column(db.Float)  # For videos
-    resolution = db.Column(db.String(20))  # e.g., 1920x1080
-    description = db.Column(db.Text)
-    tags = db.Column(db.JSON)  # List of descriptive tags
-    safe_flags = db.Column(db.JSON)  # {no_sexual: true, no_brands: true, no_celeb: true}
-    status = db.Column(db.String(20), default='safe')  # safe, pending, rejected
-    use_count = db.Column(db.Integer, default=0)  # Track popularity
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-
-class KeywordAssetCache(db.Model):
-    """Cache keyword → asset associations for faster visual curation."""
-    id = db.Column(db.Integer, primary_key=True)
-    keyword = db.Column(db.String(255), nullable=False, index=True)
-    context = db.Column(db.String(100))  # mood, setting, tone
-    asset_id = db.Column(db.String(255), db.ForeignKey('media_asset.id'), nullable=False)
-    relevance_score = db.Column(db.Float, default=1.0)  # How well this asset fits the keyword
-    use_count = db.Column(db.Integer, default=0)  # How many times selected
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-
-class SourceDocument(db.Model):
-    """Source documents/citations for education reels."""
-    id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.Text, nullable=False, unique=True)
-    doc_type = db.Column(db.String(20))  # pdf, article, webpage
-    title = db.Column(db.Text)
-    author = db.Column(db.Text)
-    publisher = db.Column(db.String(255))
-    publish_date = db.Column(db.String(100))
-    preview_method = db.Column(db.String(30))  # official_preview, rendered_snapshot, title_card
-    preview_image_path = db.Column(db.Text)  # Path to generated preview image
-    excerpts = db.Column(db.JSON)  # List of short excerpts (<=25 words each)
-    og_image = db.Column(db.Text)  # OpenGraph image if available
-    verified = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-
 from models import (
     User, OAuth, Conversation, UserPreference, Project, VideoFeedback,
-    AILearning, GeneratedDraft, GlobalPattern, Subscription, VideoHistory
+    AILearning, GeneratedDraft, GlobalPattern, Subscription, VideoHistory,
+    UserTokens, MediaAsset, KeywordAssetCache, SourceDocument
 )
 
 with app.app_context():
