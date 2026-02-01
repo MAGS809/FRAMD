@@ -6451,9 +6451,10 @@ def build_post():
 def chat():
     """Direct chat with Krakd AI with conversation memory and unified content engine."""
     from openai import OpenAI
-    from context_engine import save_conversation, build_personalized_prompt, get_source_learning_context
+    from context_engine import save_conversation, build_personalized_prompt, get_source_learning_context, extract_audio, transcribe_audio
     from flask_login import current_user
     import os
+    import re
     
     data = request.get_json()
     message = data.get('message')
@@ -6465,6 +6466,47 @@ def chat():
     
     if not message:
         return jsonify({'error': 'No message provided'}), 400
+    
+    video_context = ""
+    video_patterns = [
+        r'📎\s*([^\s]+\.mp4)',
+        r'([^\s]+\.mp4)',
+        r'uploads/[^\s]+\.mp4',
+        r'output/[^\s]+\.mp4'
+    ]
+    
+    video_file = None
+    for pattern in video_patterns:
+        match = re.search(pattern, message, re.IGNORECASE)
+        if match:
+            potential_file = match.group(1) if '(' in pattern else match.group(0)
+            potential_file = potential_file.strip()
+            if os.path.exists(potential_file):
+                video_file = potential_file
+                break
+            clean_path = potential_file.lstrip('📎').strip()
+            if os.path.exists(clean_path):
+                video_file = clean_path
+                break
+            for prefix in ['uploads/', 'output/', '']:
+                test_path = prefix + os.path.basename(clean_path)
+                if os.path.exists(test_path):
+                    video_file = test_path
+                    break
+    
+    if video_file and os.path.exists(video_file):
+        try:
+            audio_path = video_file.rsplit('.', 1)[0] + '_audio.mp3'
+            if extract_audio(video_file, audio_path):
+                transcript_data = transcribe_audio(audio_path)
+                if transcript_data and transcript_data.get('text'):
+                    video_context = f"\n\n[VIDEO TRANSCRIPTION from {os.path.basename(video_file)}]:\n{transcript_data['text']}\n\n[Use this transcription to understand the video's content, style, and message.]"
+                try:
+                    os.remove(audio_path)
+                except:
+                    pass
+        except Exception as e:
+            logging.warning(f"Could not transcribe video {video_file}: {e}")
     
     if use_unified_engine:
         try:
@@ -6543,7 +6585,9 @@ Never explain what you're doing. Just write."""
     
     messages = [{"role": "system", "content": personalized_prompt}]
     messages.extend(conversation)
-    messages.append({"role": "user", "content": message})
+    
+    user_message_with_context = message + video_context if video_context else message
+    messages.append({"role": "user", "content": user_message_with_context})
     
     save_conversation(user_id, 'user', message)
     
