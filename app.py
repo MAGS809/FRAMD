@@ -931,6 +931,105 @@ def create_subscription():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/subscribe')
+def subscribe_redirect():
+    """Redirect to subscription checkout based on tier query param."""
+    tier = request.args.get('tier', 'pro')
+    
+    if tier not in SUBSCRIPTION_TIERS:
+        tier = 'pro'
+    
+    tier_info = SUBSCRIPTION_TIERS[tier]
+    
+    _, secret_key = get_stripe_credentials()
+    if not secret_key:
+        return redirect('/?error=payment_not_configured')
+    
+    stripe.api_key = secret_key
+    
+    domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+    domain = domains.split(',')[0] if domains else 'localhost:5000'
+    protocol = 'https' if 'replit' in domain else 'http'
+    base_url = f"{protocol}://{domain}"
+    
+    from flask_login import current_user
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id', 'dev_user')
+    
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': tier_info['name'],
+                        'description': tier_info['description'],
+                    },
+                    'unit_amount': tier_info['price_cents'],
+                    'recurring': {
+                        'interval': 'month',
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=f'{base_url}/?subscription=success&tier={tier}',
+            cancel_url=f'{base_url}/?subscription=canceled',
+            metadata={
+                'user_id': user_id,
+                'plan': tier
+            }
+        )
+        return redirect(checkout_session.url)
+    except Exception as e:
+        print(f"Stripe error: {e}")
+        return redirect(f'/?error=checkout_failed')
+
+
+@app.route('/create-customer-portal', methods=['POST'])
+def customer_portal():
+    """Create a Stripe Customer Portal session for managing subscriptions."""
+    from models import Subscription
+    from flask_login import current_user
+    
+    _, secret_key = get_stripe_credentials()
+    if not secret_key:
+        return jsonify({'error': 'Payment not configured'}), 500
+    
+    stripe.api_key = secret_key
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'Not logged in'}), 401
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if not sub or not sub.stripe_customer_id:
+        return jsonify({'error': 'No active subscription found'}), 404
+    
+    domains = os.environ.get('REPLIT_DOMAINS', 'localhost:5000')
+    domain = domains.split(',')[0] if domains else 'localhost:5000'
+    protocol = 'https' if 'replit' in domain else 'http'
+    base_url = f"{protocol}://{domain}"
+    
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=sub.stripe_customer_id,
+            return_url=f'{base_url}/?settings=billing'
+        )
+        return jsonify({'url': portal_session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/subscription-status', methods=['GET'])
 def subscription_status():
     """Check current user's subscription status and token balance."""
