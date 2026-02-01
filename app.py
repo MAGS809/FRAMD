@@ -1163,6 +1163,15 @@ def add_tokens():
 
 @app.route('/get-tokens', methods=['GET'])
 def get_tokens():
+    user_id = get_user_id()
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            return jsonify({
+                'success': True,
+                'balance': user.tokens or 0
+            })
+    # Fallback for unauthenticated or legacy
     token_entry = UserTokens.query.first()
     return jsonify({
         'success': True,
@@ -1173,11 +1182,20 @@ def get_tokens():
 def deduct_tokens():
     data = request.get_json()
     amount = data.get('amount', 35)
+    user_id = get_user_id()
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            user.tokens = max(0, (user.tokens or 0) - amount)
+            db.session.commit()
+            return jsonify({'success': True, 'balance': user.tokens})
+    # Fallback for legacy
     token_entry = UserTokens.query.first()
-    # Deduct tokens (simplified for dev)
-    token_entry.balance -= amount
-    db.session.commit()
-    return jsonify({'success': True, 'balance': token_entry.balance})
+    if token_entry:
+        token_entry.balance -= amount
+        db.session.commit()
+        return jsonify({'success': True, 'balance': token_entry.balance})
+    return jsonify({'success': False, 'error': 'No token record'}), 400
 
 # Asset Library - Legal Media with Licensing
 ALLOWED_LICENSES = ['CC0', 'Public Domain', 'CC BY', 'CC BY-SA', 'CC BY 4.0', 'CC BY-SA 4.0', 'Unsplash License', 'Pixabay License', 'Pexels License']

@@ -15230,14 +15230,16 @@
             fetch('/get-tokens')
                 .then(r => r.json())
                 .then(data => {
-                    const tokenEl = document.getElementById('token-count');
-                    if (data.balance !== undefined && tokenEl) {
-                        tokenEl.textContent = data.balance;
-                    }
-                    // Also update dashboard token balance
-                    const dashboardTokenEl = document.getElementById('dashboard-token-balance');
-                    if (data.balance !== undefined && dashboardTokenEl) {
-                        dashboardTokenEl.textContent = data.balance;
+                    if (data.balance !== undefined) {
+                        // Update header token count
+                        const headerTokenEl = document.getElementById('header-token-count');
+                        if (headerTokenEl) headerTokenEl.textContent = data.balance.toLocaleString();
+                        // Update dashboard token balance
+                        const dashboardTokenEl = document.getElementById('dashboard-token-balance');
+                        if (dashboardTokenEl) dashboardTokenEl.textContent = data.balance.toLocaleString();
+                        // Update billing token balance
+                        const billingTokenEl = document.getElementById('billing-token-balance');
+                        if (billingTokenEl) billingTokenEl.textContent = data.balance.toLocaleString();
                     }
                 });
         });
