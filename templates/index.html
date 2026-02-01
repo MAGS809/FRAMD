@@ -3162,6 +3162,62 @@
             flex-shrink: 0;
         }
         
+        /* Collapsed section styles */
+        .collapsed-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .collapsed-section:hover {
+            border-color: rgba(255,214,10,0.3);
+            background: rgba(255,214,10,0.03);
+        }
+        
+        .collapsed-section .check-icon {
+            color: var(--gold);
+            font-size: 14px;
+        }
+        
+        .collapsed-section .summary-text {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text);
+        }
+        
+        .collapsed-section .expand-arrow {
+            color: var(--text-dim);
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+        
+        .collapsed-section.expanded .expand-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .collapsed-section .scene-thumb {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            object-fit: cover;
+        }
+        
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .collapsible-content.expanded {
+            max-height: 2000px;
+        }
+        
         .script-card-hook {
             background: rgba(255, 214, 10, 0.05);
             border-left: 2px solid var(--text);
@@ -8451,7 +8507,17 @@
         // Navigate between scenes
         function navigateVisualScene(newIndex) {
             if (newIndex < 0) return;
+            
+            // Collapse the previous scene visual picker (not the current one being navigated to)
+            const previousIndex = newIndex - 1;
+            if (previousIndex >= 0) {
+                collapsePreviousVisualPicker(previousIndex);
+            }
+            
             if (newIndex >= currentAnchors.length) {
+                // Collapse the last scene before finishing
+                collapsePreviousVisualPicker(currentAnchors.length - 1);
+                
                 // Finished all scenes - auto-advance to voice casting
                 currentWorkflowStep = 4;
                 addMessage(`Visuals set for all ${currentAnchors.length} scenes. Moving to voice casting...`, false);
@@ -8466,6 +8532,57 @@
             currentVisualSceneIndex = newIndex;
             if (visualPickerContainer) {
                 renderSingleSceneVisualPicker(visualPickerContainer, currentAnchors, newIndex);
+            }
+        }
+        
+        // Collapse previous visual picker when advancing to next scene
+        function collapsePreviousVisualPicker(previousSceneIndex) {
+            // Find all visual pickers that haven't been collapsed yet
+            const pickers = document.querySelectorAll('.chat-visual-picker:not(.picker-collapsed)');
+            
+            pickers.forEach((picker) => {
+                // Check if this picker is for the previous scene
+                const titleEl = picker.querySelector('.chat-visual-picker-title');
+                const titleText = titleEl ? titleEl.textContent : '';
+                const sceneMatch = titleText.match(/Scene (\d+)/i);
+                const pickerSceneIndex = sceneMatch ? parseInt(sceneMatch[1]) - 1 : -1;
+                
+                // Only collapse if it's the previous scene (not current or future)
+                if (pickerSceneIndex !== previousSceneIndex) return;
+                
+                // Mark as collapsed
+                picker.classList.add('picker-collapsed');
+                
+                // Get selected visual thumbnail
+                const selectedVisual = sceneVisuals[pickerSceneIndex];
+                const thumbUrl = selectedVisual?.thumbnail || selectedVisual?.url || '';
+                const thumbHtml = thumbUrl ? `<img class="scene-thumb" src="${thumbUrl}" alt="">` : '';
+                
+                // Create and insert collapsed header before the picker
+                const collapsedHeader = document.createElement('div');
+                collapsedHeader.className = 'collapsed-section';
+                collapsedHeader.dataset.sceneIndex = pickerSceneIndex;
+                collapsedHeader.onclick = function() { toggleVisualExpand(this); };
+                collapsedHeader.innerHTML = `
+                    <span class="check-icon">✓</span>
+                    ${thumbHtml}
+                    <span class="summary-text">${titleText}${selectedVisual ? '' : ' (no visual)'}</span>
+                    <span class="expand-arrow">▼</span>
+                `;
+                
+                picker.parentNode.insertBefore(collapsedHeader, picker);
+                
+                // Hide the picker content
+                picker.style.display = 'none';
+            });
+        }
+        
+        // Toggle visual picker expand/collapse
+        function toggleVisualExpand(header) {
+            header.classList.toggle('expanded');
+            const picker = header.nextElementSibling;
+            if (picker && picker.classList.contains('chat-visual-picker')) {
+                picker.style.display = header.classList.contains('expanded') ? 'block' : 'none';
             }
         }
         
@@ -13625,17 +13742,65 @@
         
         // Confirm script and proceed to visuals
         function confirmScriptAndProceed() {
-            addMessage('Script confirmed! Now let\'s find visuals for each scene.', false);
             currentWorkflowStep = 3;
             
-            // Remove the buttons from the script card
-            const buttons = document.querySelector('.script-card-buttons');
-            if (buttons) {
-                buttons.innerHTML = '<span style="color: var(--gold); font-size: 12px;">✓ Script confirmed</span>';
-            }
+            // Collapse the entire script card to a summary line
+            collapseScriptSection();
             
             // Proceed to visuals
-            setTimeout(() => proceedToVisuals(), 300);
+            setTimeout(() => {
+                addMessage('Script confirmed! Now let\'s find visuals for each scene.', false);
+                setTimeout(() => proceedToVisuals(), 300);
+            }, 200);
+        }
+        
+        // Collapse script card to single summary line
+        function collapseScriptSection() {
+            const scriptCard = document.querySelector('.inline-script-card');
+            if (!scriptCard) return;
+            
+            const parentMsg = scriptCard.closest('.message');
+            if (!parentMsg) return;
+            
+            // Get script metadata
+            const preview = scriptCard.querySelector('.script-preview, .script-edit-textarea');
+            const scriptText = preview ? preview.textContent || preview.value : '';
+            const wordCount = scriptText.split(/\s+/).length;
+            const duration = Math.round(wordCount / 2.5);
+            const sceneMatches = scriptText.match(/\[SCENE|\[HOOK|\[CLAIM|\[EVIDENCE|\[PIVOT|\[COUNTER|\[CLOSER/gi);
+            const sceneCount = sceneMatches ? sceneMatches.length : 1;
+            
+            // Store original content for expansion
+            const originalContent = scriptCard.outerHTML;
+            parentMsg.dataset.originalContent = originalContent;
+            parentMsg.dataset.scriptText = scriptText;
+            
+            // Replace with collapsed summary
+            parentMsg.innerHTML = `
+                <div class="collapsed-section" onclick="toggleScriptExpand(this)">
+                    <span class="check-icon">✓</span>
+                    <span class="summary-text">Script confirmed (${duration}s, ${sceneCount} scenes)</span>
+                    <span class="expand-arrow">▼</span>
+                </div>
+                <div class="collapsible-content">
+                    ${originalContent}
+                </div>
+            `;
+            
+            // Remove buttons from collapsed content
+            const collapsedButtons = parentMsg.querySelector('.collapsible-content .script-card-buttons');
+            if (collapsedButtons) {
+                collapsedButtons.innerHTML = '<span style="color: var(--gold); font-size: 12px;">✓ Confirmed</span>';
+            }
+        }
+        
+        // Toggle script section expand/collapse
+        function toggleScriptExpand(header) {
+            header.classList.toggle('expanded');
+            const content = header.nextElementSibling;
+            if (content) {
+                content.classList.toggle('expanded');
+            }
         }
         
         // Edit script inline
