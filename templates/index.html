@@ -2131,12 +2131,18 @@
             padding: 1rem 1.5rem;
             padding-bottom: 140px;
             overflow-y: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-faint) transparent;
         }
         
         .chat-messages-container::-webkit-scrollbar {
-            display: none;
+            display: block;
+            width: 6px;
+        }
+        
+        .chat-messages-container::-webkit-scrollbar-thumb {
+            background: var(--text-faint);
+            border-radius: 3px;
         }
         
         .chat-messages-container:hover {
@@ -4753,7 +4759,7 @@
             border: 1px solid var(--border);
             border-radius: 12px;
             margin: 0.5rem 0;
-            overflow: hidden;
+            overflow: visible;
         }
         
         .chat-visual-picker-header {
