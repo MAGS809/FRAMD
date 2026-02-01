@@ -1,7 +1,7 @@
 # Framd
 
 ## Overview
-Framd (powered by Echo Engine) is a high-end post-assembler designed to transform raw links, ideas, and transcripts into cinematic clips and structured posts. The project aims to create clear, honest, human-feeling content that respects complexity. It optimizes for clarity, integrity, and resonance, prioritizing quality over virality or spectacle. The business vision is to provide a platform for generating impactful, thought-provoking short-form content.
+Framd, powered by Echo Engine, is a sophisticated post-assembler designed to convert diverse inputs like links, ideas, and transcripts into cinematic clips and structured posts. Its core purpose is to generate clear, honest, and impactful short-form content that resonates deeply with human feeling and respects complexity. The project prioritizes clarity, integrity, and resonance over mere virality or spectacle, aiming to establish a platform for creating thought-provoking content with significant market potential.
 
 ## User Preferences
 ### Core Philosophy
@@ -82,106 +82,49 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 ## System Architecture
 
 **UI/UX Design:**
-- **Brand**: Framd (powered by Echo Engine) with Space Grotesk and Inter typography.
-- **Script Card UI**: Card-based script display with hook preview (first meaningful line, max 120 chars), duration estimate (2.5 words/second), scene count, quality score badge, and inline Edit/Confirm Changes workflow.
-- **Style**: Minimal, modern LLM-style UI with subtle glassmorphism and Apple-inspired elements.
+- **Brand**: Framd (powered by Echo Engine) using Space Grotesk and Inter typography.
+- **Script Card UI**: Features hook preview, duration estimate, scene count, quality score, and inline editing.
+- **Style**: Minimal, modern LLM-style UI with glassmorphism and Apple-inspired elements.
 - **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents.
-- **Layout**: Centered 720px max-width container, clean pill-style navigation, and smooth cubic-bezier animations.
-- **Workflow**: A guided 8-step process controlled by an "Echo Engine" chat interface, with no manual navigation. All stage transitions are chat-driven via inline action buttons.
-- **Template System**: 9 templates for quick-start content creation (Hot Take, Explainer, Story Time, Commentary, Open Letter, Meme/Funny, Make an Ad, TikTok Edit, Start from Scratch). Templates inject pre-configured prompts to guide AI behavior through the existing chat flow.
-- **Discover Feed**: Tinder-style swipeable cards for browsing AI-generated content, allowing users to like, skip, and provide feedback for AI personalization.
+- **Layout**: Centered 720px max-width container, pill-style navigation, and smooth animations.
+- **Workflow**: Guided 8-step process via an "Echo Engine" chat interface; chat-driven stage transitions.
+- **Template System**: 9 templates (e.g., Hot Take, Explainer, Meme/Funny) to guide AI content creation.
+- **Discover Feed**: Tinder-style swipeable cards for AI-generated content, enabling user feedback and personalization.
 
 **Technical Implementations:**
-- **Flask Web Application**: `app.py` serves as the backend for REST API endpoints.
-- **Context Engine**: `context_engine.py` manages the core processing pipeline and conversation memory.
-- **Unified Content Engine**: A single AI brain handles content creation. Written content (essays, letters, ideas) always goes to script creation. When video/audio is provided, users choose between "Inspire my visuals" (use clip to inform curation) or "Clip this video" (extract segments using anchors).
-- **Thesis-Driven Architecture**: Content is structured around a single core thesis, with scripts built on anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
-- **AI Reasoning**: A 4-question framework guides content generation.
-- **Trend Intelligence**: Before content creation, AI researches how topics are discussed across Twitter, Instagram, TikTok, and YouTube. Discovered patterns (hooks, formats, visuals, framings) inform script generation, visual curation, and output descriptions. Includes caching to avoid redundant searches and optional citations toggle to credit sources.
-- **Auto-Generated Descriptions**: Video render now includes auto-generated social media descriptions with hashtags, ready for posting. Citations can be toggled to credit trend research sources.
-- **Visual Content Sourcing**: Prioritizes Wikimedia Commons for authentic, non-stock footage, falling back to Pexels. Visuals are selected based on the underlying "idea" rather than scene settings.
-- **Legal Media Asset Library**: Stores links with full licensing metadata.
-- **Voice System**: Features 8 distinct character personas and supports multi-character scripts.
-- **Caption System**: Word-synced captions rendered via FFmpeg drawtext filters with dynamic phone-frame preview.
+- **Backend**: Flask web application (`app.py`) for REST API endpoints.
+- **Core Processing**: `context_engine.py` manages AI processing pipeline and conversation memory.
+- **Unified Content Engine**: A single AI for content creation, handling text to script conversion and video/audio processing.
+- **Thesis-Driven Architecture**: Content is structured around a single core thesis with specific anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
+- **AI Reasoning**: Utilizes a 4-question framework for content generation.
+- **Trend Intelligence**: AI researches social media platforms for current trends to inform script generation, visual curation, and output descriptions, with caching and optional citations.
+- **Auto-Generated Descriptions**: Videos include auto-generated social media descriptions with hashtags.
+- **Visual Content Sourcing**: Prioritizes Wikimedia Commons and Pexels, selecting visuals based on underlying ideas.
+- **Voice System**: 8 distinct character personas with multi-character script support.
+- **Caption System**: Word-synced captions rendered with FFmpeg, displayed with dynamic phone-frame preview.
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
 - **Scene Composer**: Enables background picking and character layering with Pillow-based background removal.
-- **Stage Directions**: AI-generated audio direction layer with effects like [PAUSE], [BEAT], [SILENCE], [TRANSITION].
-- **Sound FX System**: 10 synthesized effects (e.g., whoosh, impact) are auto-mixed into videos using [SOUND: type] tags.
-- **Multi-Platform Export**: After video render, users can export to TikTok (9:16), Instagram Reels (9:16), YouTube Shorts (9:16), and Twitter (16:9) with platform-optimized formats. Per-platform progress tracking with success/failure feedback.
-- **Promo Pack Generator**: AI analyzes completed scripts to extract powerful quotes, detect humor potential, and generate shareable content. Creates quote cards with gradient backgrounds, meme-style text overlays with black outlines, and infographics with key statistics. Tap-to-approve UI lets users select which assets to download as a zip pack.
-- **Token Cost System**: Token-based pricing with per-video costs (25 base + 3/character + 1/SFX). Token value: $0.04 each.
+- **Stage Directions**: AI-generated audio direction layer with effects.
+- **Sound FX System**: 10 synthesized effects auto-mixed into videos using tags.
+- **Multi-Platform Export**: Export to TikTok, Instagram Reels, YouTube Shorts, and Twitter with platform-optimized formats and progress tracking.
+- **Promo Pack Generator**: AI analyzes scripts to extract quotes, detect humor, and generate shareable content like quote cards and infographics.
+- **Token Cost System**: Token-based pricing with a per-video cost structure.
 - **Character Generation**: DALL-E integration for AI-generated characters.
-- **AI Learning System**: Tracks successful projects to learn user style, unlocking auto-generation after sufficient progress.
-- **Video Feedback System**: Like/Dislike buttons on generated videos. If disliked, users can add comments and send back to AI for refinement. Free users get 3 revisions, Pro gets unlimited.
-- **AI Self-Improvement**: Tracks feedback patterns, success rates, and injects learned patterns into future prompts. Stores feedback in VideoFeedback table and tracks global patterns in GlobalPattern table.
-- **Auto-Generator System**: AI-powered content draft generation with trend research integration. Requires Pro subscription + 5 liked videos to unlock. Features:
-  - Dashboard tabs: "Build New" (manual creation) and "Generator" (AI drafts)
-  - 3-draft queue limit per project with unique angle/vibe/hook combinations
-  - Originality system tracks used angles (contrarian, evidence-first, story-driven, etc.), vibes (serious, playful, urgent), and hook types (question, bold-claim, statistic) to prevent repetition
-  - Clip-aware generation uses project's uploaded clips as source material
-  - Trend-driven: scripts, visuals, music, FX, and pacing all informed by real-time trend research
-  - GeneratedDraft table stores angle_used, vibe_used, hook_type, clips_used, trend_data, sound_plan
-  - Auto-generate toggle on project cards (per-project enable/disable)
-  - **Configurable Daily Limits**: Slider (1-10) to set daily draft generation cap, resets at midnight
-  - **Create a Video button**: Bypass daily queue limits for unlimited manual video creation with like/dislike feedback
-  - **Enhanced Feedback Learning**: Liked drafts store successful patterns (hooks, angles, vibes); Disliked drafts trigger internal AI self-analysis (not shown to user) that learns from guideline violations
-- **Subscription Model (3-Tier)**:
-  - **Free** ($0/mo): 50 tokens, script generation only, no video export
-  - **Creator** ($10/mo): 300 tokens, video export, premium voices
-  - **Pro** ($25/mo): 1000 tokens, unlimited revisions, auto-generator, priority rendering
+- **AI Learning System**: Tracks successful projects and user style to enable auto-generation.
+- **Video Feedback System**: Like/Dislike functionality with comments for AI refinement, supporting revisions.
+- **AI Self-Improvement**: Tracks feedback patterns and success rates to inform future prompt generation.
+- **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
+- **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
+- **Database**: PostgreSQL with 20+ tables and indexed foreign keys for performance.
 
 ## External Dependencies
 - **Python 3.11**
-- **Claude (Anthropic)**: Primary AI via Replit AI Integrations (claude-sonnet-4-5) for script generation, visual curation, and chat. No API key needed, billed to Replit credits.
-- **xAI (grok-3)**: Fallback AI when Claude is unavailable or rate-limited.
-- **ElevenLabs**: Primary Text-to-Speech (TTS) engine for voiceovers.
-- **OpenAI**: For audio transcription, voiceover generation, and DALL-E character images.
+- **Claude (Anthropic)**: Primary AI for script generation, visual curation, and chat via Replit AI Integrations.
+- **xAI (grok-3)**: Fallback AI.
+- **ElevenLabs**: Primary Text-to-Speech (TTS) engine.
+- **OpenAI**: For audio transcription (Whisper), voiceover generation, and DALL-E character images.
 - **FFmpeg**: For video/audio processing and caption rendering.
 - **Stripe**: For subscription management and payment processing.
 - **Wikimedia Commons**: Primary source for visual content.
 - **Pexels**: Fallback source for visual content.
-
-## AI Architecture (Updated Jan 2026)
-- **Primary AI**: Claude (claude-sonnet-4-5) via Replit AI Integrations
-- **Fallback AI**: xAI (grok-3) when Claude is rate-limited or unavailable
-- **Helper Function**: `call_ai()` in context_engine.py handles AI calls with automatic fallback
-- **Audio**: OpenAI Whisper for transcription, ElevenLabs for TTS
-
-## Codebase Architecture (Updated Feb 2026)
-
-### File Structure
-- **app.py** (~8,800 lines): Main Flask application with routes
-- **context_engine.py** (~2,500 lines): AI processing, script generation, video creation
-- **models.py**: SQLAlchemy models with proper indexes on foreign keys
-- **extensions.py**: Centralized Flask extensions (db) to prevent circular imports
-- **replit_auth.py**: Replit OAuth integration and login_manager
-- **templates/index.html** (~15,300 lines): Main SPA frontend
-
-### Blueprint Refactoring (In Progress)
-The codebase is being refactored to use Flask Blueprints for better organization:
-- **routes/__init__.py**: Blueprint exports
-- **routes/utils.py**: Shared utilities (Stripe credentials, token packages, get_user_id helper)
-- **routes/auth.py**: Authentication routes (/, /pricing, /dev, /logout, /health)
-- **routes/payments.py**: Stripe payment and subscription routes
-- **routes/projects.py**: Project CRUD, workflow steps, AI learning, drafts (14 routes)
-- **routes/video.py**: Caption preferences, video history, feedback, hosting (8 routes)
-
-Current status: Blueprints registered at `/v2` prefix for parallel testing. Original routes in app.py still active. Future work will migrate remaining routes and remove duplicates.
-
-### UI/UX Enhancements (Feb 2026)
-- **Project Cards**: Template icons (emoji), hook preview (first script line), labeled workflow progress dots
-- **Progress Dots**: Now show labels (Script, Voice, Visuals, Export) with visual states (complete/active)
-- **Empty State**: "How it Works" step guide (1-4) for onboarding
-- **Header**: Token balance pill with quick "New Project" action button
-- **Inline Collapse System**: Completed workflow sections auto-collapse to single-line summaries:
-  - Script section collapses to "✓ Script confirmed (48s, 6 scenes)" after confirmation
-  - Visual pickers collapse to "✓ Scene N: TYPE [thumbnail]" when advancing to next scene
-  - Click to expand any collapsed section
-- **Token Cost Estimate**: Shows cost breakdown before rendering (base + characters + SFX)
-- **Tighter Message Spacing**: Reduced chat message margins for cleaner flow
-
-### Database
-- PostgreSQL with 20+ tables
-- Indexes on user_id and project_id foreign keys for query performance
-- Key models: User, Project, Subscription, VideoFeedback, GeneratedDraft, GlobalPattern
