@@ -2516,10 +2516,13 @@
             color: var(--text);
             font-family: inherit;
             font-size: 1rem;
+            line-height: 1.5;
             resize: none;
             outline: none;
             min-height: 24px;
-            max-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            transition: height 0.1s ease-out;
         }
         
         .bottom-chat-input::placeholder {
@@ -11356,7 +11359,7 @@
         // Auto-resize textarea
         function autoResize(el) {
             el.style.height = 'auto';
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+            el.style.height = Math.min(el.scrollHeight, 200) + 'px';
         }
         
         // Handle keyboard
