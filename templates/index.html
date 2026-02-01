@@ -320,6 +320,30 @@
             position: relative;
         }
         
+        .token-display {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255,214,10,0.1);
+            border: 1px solid rgba(255,214,10,0.3);
+            border-radius: 20px;
+            color: var(--gold);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .token-display:hover {
+            background: rgba(255,214,10,0.2);
+            border-color: var(--gold);
+        }
+        
+        .token-display svg {
+            opacity: 0.8;
+        }
+        
         .avatar-btn {
             width: 36px;
             height: 36px;
@@ -5649,7 +5673,9 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -6184,6 +6210,13 @@
                 </div>
             </div>
             <div class="header-right">
+                <button class="token-display" id="token-display" onclick="showUpgradePrompt()" title="View tokens & upgrade">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v12M6 12h12"/>
+                    </svg>
+                    <span id="token-count">--</span>
+                </button>
                 <button class="avatar-btn" id="avatar-btn" onclick="toggleAvatarMenu()">
                     {{ current_user.username[0].upper() if current_user and current_user.username else 'U' }}
                 </button>
@@ -9340,11 +9373,16 @@
             }
         });
         
+        let userTokenBalance = 0;
+        let userSubscriptionTier = 'free';
+        
         async function checkSubscriptionStatus() {
             try {
                 const resp = await fetch('/subscription-status');
                 const data = await resp.json();
                 isPro = data.is_pro === true;
+                userTokenBalance = data.token_balance || 0;
+                userSubscriptionTier = data.tier || 'free';
                 updateSubscriptionUI();
             } catch (err) {
                 console.log('Could not check subscription status');
@@ -9355,6 +9393,12 @@
             const badge = document.getElementById('pro-badge');
             if (badge) {
                 badge.style.display = isPro ? 'inline-flex' : 'none';
+            }
+            
+            // Update token display
+            const tokenCount = document.getElementById('token-count');
+            if (tokenCount) {
+                tokenCount.textContent = userTokenBalance;
             }
         }
         
@@ -9380,14 +9424,27 @@
         function showUpgradePrompt() {
             const modal = document.createElement('div');
             modal.className = 'modal-overlay';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            
+            const currentTier = userSubscriptionTier || 'free';
+            const isFree = currentTier === 'free';
+            const isCreator = currentTier === 'creator';
+            const isProUser = currentTier === 'pro';
+            
             modal.innerHTML = `
                 <div class="modal-content upgrade-modal" style="max-width: 800px;">
-                    <h2 style="margin-bottom: 8px;">Choose Your Plan</h2>
-                    <p style="color: var(--text-muted); margin-bottom: 24px;">Unlock video generation and more features</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div>
+                            <h2 style="margin-bottom: 4px;">Your Tokens & Plans</h2>
+                            <p style="color: var(--text-muted); font-size: 13px;">Current balance: <span style="color: var(--gold); font-weight: 600;">${userTokenBalance} tokens</span></p>
+                        </div>
+                        <button onclick="this.closest('.modal-overlay').remove();" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 24px; padding: 0; line-height: 1;">&times;</button>
+                    </div>
                     
                     <div class="pricing-tiers" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
                         <!-- Free Tier -->
-                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid ${isFree ? 'var(--gold)' : 'rgba(255,255,255,0.1)'}; position: relative;">
+                            ${isFree ? '<div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 11px; font-weight: 600; padding: 2px 12px; border-radius: 10px;">CURRENT</div>' : ''}
                             <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Free</h3>
                             <div style="font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 4px;">$0<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
                             <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">50 tokens/month</div>
@@ -9396,43 +9453,38 @@
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Video export</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Premium voices</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Unlimited revisions</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Auto-generator</li>
                             </ul>
-                            <button class="btn btn-secondary" style="width: 100%; margin-top: 16px;" disabled>Current Plan</button>
+                            ${isFree ? '<div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 12px;">Your current plan</div>' : ''}
                         </div>
                         
                         <!-- Creator Tier -->
-                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid var(--gold);">
+                        <div class="pricing-tier" style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 20px; border: 1px solid ${isCreator ? 'var(--gold)' : 'rgba(255,255,255,0.2)'}; position: relative;">
+                            ${isCreator ? '<div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 11px; font-weight: 600; padding: 2px 12px; border-radius: 10px;">CURRENT</div>' : ''}
                             <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Creator</h3>
                             <div style="font-size: 28px; font-weight: 700; color: var(--text); margin-bottom: 4px;">$10<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
                             <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">300 tokens/month</div>
                             <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted);">
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Script generation</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Everything in Free</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Video export</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Premium voices</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Unlimited revisions</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #ef4444;">✗</span> Auto-generator</li>
                             </ul>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="startSubscription('creator'); this.closest('.modal-overlay').remove();">Get Creator</button>
+                            ${isCreator ? '<div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 12px;">Your current plan</div>' : `<button class="btn btn-primary" style="width: 100%; margin-top: 16px;" onclick="startSubscription('creator'); this.closest('.modal-overlay').remove();">Get Creator</button>`}
                         </div>
                         
                         <!-- Pro Tier -->
                         <div class="pricing-tier" style="background: linear-gradient(135deg, rgba(255,214,10,0.1) 0%, rgba(0,0,0,0.3) 100%); border-radius: 12px; padding: 20px; border: 2px solid var(--gold); position: relative;">
-                            <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 11px; font-weight: 600; padding: 2px 12px; border-radius: 10px;">BEST VALUE</div>
+                            <div style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: var(--gold); color: #000; font-size: 11px; font-weight: 600; padding: 2px 12px; border-radius: 10px;">${isProUser ? 'CURRENT' : 'BEST VALUE'}</div>
                             <h3 style="font-size: 18px; margin-bottom: 4px; color: var(--text);">Pro</h3>
                             <div style="font-size: 28px; font-weight: 700; color: var(--gold); margin-bottom: 4px;">$25<span style="font-size: 14px; font-weight: 400; color: var(--text-muted);">/month</span></div>
                             <div style="font-size: 13px; color: var(--gold); margin-bottom: 16px;">1000 tokens/month</div>
                             <ul style="list-style: none; padding: 0; margin: 0; font-size: 13px; color: var(--text-muted);">
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Script generation</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> AI voices</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Video export</li>
-                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Premium voices</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Everything in Creator</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Unlimited revisions</li>
                                 <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Auto-generator</li>
+                                <li style="margin-bottom: 8px; display: flex; align-items: center; gap: 8px;"><span style="color: #4ade80;">✓</span> Priority rendering</li>
                             </ul>
-                            <button class="btn btn-primary" style="width: 100%; margin-top: 16px; background: var(--gold); color: #000;" onclick="startSubscription('pro'); this.closest('.modal-overlay').remove();">Get Pro</button>
+                            ${isProUser ? '<div style="text-align: center; margin-top: 16px; color: var(--text-muted); font-size: 12px;">Your current plan</div>' : `<button class="btn btn-primary" style="width: 100%; margin-top: 16px; background: var(--gold); color: #000;" onclick="startSubscription('pro'); this.closest('.modal-overlay').remove();">Get Pro</button>`}
                         </div>
                     </div>
                     
