@@ -12046,7 +12046,6 @@
             document.querySelector('.placement-option[data-placement="background"]').classList.add('selected');
             
             // Call appropriate analysis endpoint based on file type
-            const isVideo = isVideoFile(file.name);
             const analyzeEndpoint = isVideo ? '/analyze-video' : '/analyze-image';
             
             try {
