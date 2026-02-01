@@ -9497,8 +9497,9 @@
                                 <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                             </svg>
                         </button>
-                        <div class="project-card-header" style="margin-bottom: 8px;">
+                        <div class="project-card-header" style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                             <span class="project-card-status" style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px;">${statusText}</span>
+                            ${p.template_type && p.template_type !== 'start_from_scratch' ? `<span class="template-badge" style="font-size: 10px; background: rgba(255,214,10,0.15); color: var(--gold); padding: 2px 8px; border-radius: 10px; text-transform: capitalize;">${(p.template_type || '').replace(/_/g, ' ')}</span>` : ''}
                         </div>
                         <div class="project-card-title">
                             ${escapeHtml(projectName)}
