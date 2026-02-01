@@ -80,6 +80,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents.
 - **Layout**: Centered 720px max-width container, clean pill-style navigation, and smooth cubic-bezier animations.
 - **Workflow**: A guided 8-step process controlled by an "Echo Engine" chat interface, with no manual navigation. All stage transitions are chat-driven via inline action buttons.
+- **Template System**: 9 templates for quick-start content creation (Hot Take, Explainer, Story Time, Commentary, Open Letter, Meme/Funny, Make an Ad, TikTok Edit, Start from Scratch). Templates inject pre-configured prompts to guide AI behavior through the existing chat flow.
 - **Discover Feed**: Tinder-style swipeable cards for browsing AI-generated content, allowing users to like, skip, and provide feedback for AI personalization.
 
 **Technical Implementations:**
