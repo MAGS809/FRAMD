@@ -1348,14 +1348,14 @@
             border: 1px solid rgba(255,255,255,0.05);
         }
         
-        .settings-header {
+        .settings-panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
         
-        .settings-header h3 {
+        .settings-panel-header h3 {
             font-size: 0.9rem;
             color: rgba(255,255,255,0.9);
             margin: 0;
@@ -6318,7 +6318,7 @@
                 
                 <!-- Generator Settings -->
                 <div class="generator-settings-section">
-                    <div class="settings-header">
+                    <div class="settings-panel-header">
                         <h3>Generator Settings</h3>
                         <button class="settings-toggle-btn" onclick="toggleGeneratorSettings()">
                             <span id="settings-toggle-icon">▶</span> Configure
@@ -15286,6 +15286,7 @@
         
         async function manageSubscription() {
             try {
+                showToast('Opening subscription portal...');
                 const response = await fetch('/create-customer-portal', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
@@ -15293,9 +15294,14 @@
                 const data = await response.json();
                 if (data.url) {
                     window.location.href = data.url;
+                } else if (data.error) {
+                    showToast(data.error);
+                } else {
+                    showToast('Unable to open portal. Please try again.');
                 }
             } catch (err) {
                 console.error('Error opening customer portal:', err);
+                showToast('Connection error. Please try again.');
             }
         }
         
