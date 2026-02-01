@@ -174,6 +174,12 @@ Current status: Blueprints registered at `/v2` prefix for parallel testing. Orig
 - **Progress Dots**: Now show labels (Script, Voice, Visuals, Export) with visual states (complete/active)
 - **Empty State**: "How it Works" step guide (1-4) for onboarding
 - **Header**: Token balance pill with quick "New Project" action button
+- **Inline Collapse System**: Completed workflow sections auto-collapse to single-line summaries:
+  - Script section collapses to "✓ Script confirmed (48s, 6 scenes)" after confirmation
+  - Visual pickers collapse to "✓ Scene N: TYPE [thumbnail]" when advancing to next scene
+  - Click to expand any collapsed section
+- **Token Cost Estimate**: Shows cost breakdown before rendering (base + characters + SFX)
+- **Tighter Message Spacing**: Reduced chat message margins for cleaner flow
 
 ### Database
 - PostgreSQL with 20+ tables
