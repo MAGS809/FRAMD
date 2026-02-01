@@ -153,6 +153,30 @@
             scrollbar-color: var(--text-faint) var(--bg);
         }
         
+        /* Auto-hide scrollbar for empty state */
+        .empty-state-container {
+            scrollbar-width: none;
+        }
+        .empty-state-container::-webkit-scrollbar {
+            width: 6px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .empty-state-container:hover {
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-faint) transparent;
+        }
+        .empty-state-container:hover::-webkit-scrollbar {
+            opacity: 1;
+        }
+        .empty-state-container:hover::-webkit-scrollbar-thumb {
+            background: var(--text-faint);
+            border-radius: 3px;
+        }
+        .empty-state-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
         /* Layout */
         .app {
             display: flex;
