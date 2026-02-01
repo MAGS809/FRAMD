@@ -7644,7 +7644,8 @@ def render_video():
         if os.path.exists(output_path):
             response_data = {
                 'success': True,
-                'video_path': '/' + output_path,
+                'video_url': '/' + output_path,
+                'video_path': '/' + output_path,  # Keep for backwards compatibility
                 'format': video_format
             }
             
