@@ -110,10 +110,11 @@ with app.app_context():
     
     logging.info("Database tables created")
 
-from routes import auth_bp, payments_bp, projects_bp
+from routes import auth_bp, payments_bp, projects_bp, video_bp
 app.register_blueprint(auth_bp, url_prefix='/v2')
 app.register_blueprint(payments_bp, url_prefix='/v2')
 app.register_blueprint(projects_bp, url_prefix='/v2')
+app.register_blueprint(video_bp, url_prefix='/v2')
 
 def extract_dialogue_only(script_text):
     """
