@@ -71,7 +71,7 @@ db.init_app(app)
 from models import (
     User, OAuth, Conversation, UserPreference, Project, VideoFeedback,
     AILearning, GeneratedDraft, GlobalPattern, Subscription, VideoHistory,
-    UserTokens, MediaAsset, KeywordAssetCache, SourceDocument
+    UserTokens, MediaAsset, KeywordAssetCache, SourceDocument, VideoTemplate
 )
 
 with app.app_context():
@@ -4470,6 +4470,331 @@ Respond in JSON format:
     except Exception as e:
         logging.error(f"Image analysis error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/extract-video-template', methods=['POST'])
+def extract_video_template():
+    """Extract template structure from an uploaded video for personalization."""
+    import base64
+    import subprocess
+    import json
+    from openai import OpenAI
+    
+    data = request.get_json()
+    file_path = data.get('file_path')
+    user_id = session.get('replit_user_id') or data.get('user_id')
+    
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'Video file not found'}), 404
+    
+    if not file_path.lower().endswith(('.mp4', '.mov', '.avi', '.mkv', '.webm')):
+        return jsonify({'error': 'Not a video file'}), 400
+    
+    try:
+        # Get video duration
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file_path]
+        result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        duration = float(result.stdout.strip()) if result.stdout.strip() else 0
+        
+        # Extract frames at key points for analysis
+        frames_dir = os.path.join('uploads', 'template_frames')
+        os.makedirs(frames_dir, exist_ok=True)
+        
+        frame_timestamps = []
+        num_frames = min(8, max(4, int(duration / 5)))
+        for i in range(num_frames):
+            ts = (duration / num_frames) * i + 0.5
+            frame_timestamps.append(ts)
+        
+        frame_paths = []
+        for i, ts in enumerate(frame_timestamps):
+            frame_path = os.path.join(frames_dir, f'frame_{int(ts*1000)}.jpg')
+            extract_cmd = [
+                'ffmpeg', '-y', '-ss', str(ts), '-i', file_path,
+                '-vframes', '1', '-q:v', '2', frame_path
+            ]
+            subprocess.run(extract_cmd, capture_output=True, timeout=30)
+            if os.path.exists(frame_path):
+                frame_paths.append({'path': frame_path, 'timestamp': ts})
+        
+        # Extract audio and transcribe
+        audio_path = file_path.replace('.mp4', '_audio.mp3').replace('.mov', '_audio.mp3')
+        audio_cmd = ['ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', '-q:a', '4', audio_path]
+        subprocess.run(audio_cmd, capture_output=True, timeout=120)
+        
+        transcript = ""
+        if os.path.exists(audio_path):
+            try:
+                client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                with open(audio_path, 'rb') as audio_file:
+                    transcription = client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="verbose_json"
+                    )
+                    transcript = transcription.text if hasattr(transcription, 'text') else str(transcription)
+            except Exception as e:
+                logging.warning(f"Transcription failed: {e}")
+        
+        # Encode first frame for AI analysis
+        frame_b64 = ""
+        if frame_paths:
+            with open(frame_paths[0]['path'], 'rb') as f:
+                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
+        
+        # AI analysis of video structure
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        analysis_prompt = f"""Analyze this video frame (first of {len(frame_paths)} frames) from a {duration:.1f} second video.
+
+Transcript: {transcript[:1500] if transcript else 'No audio/speech detected'}
+
+Extract the VIDEO TEMPLATE structure:
+1. Visual style/aesthetic (colors, mood, energy level)
+2. Estimated scene count and pacing
+3. Text overlay patterns (position, style, timing)
+4. Content structure (hook, body, call-to-action)
+5. Transition style (cuts, fades, zooms)
+
+Respond in JSON:
+{{
+  "aesthetic": {{
+    "color_palette": ["primary", "secondary", "accent"],
+    "mood": "energetic/calm/dramatic/playful/serious",
+    "style": "minimal/bold/cinematic/social-native/professional"
+  }},
+  "structure": {{
+    "hook_duration": 2.5,
+    "total_scenes": 5,
+    "pacing": "fast/medium/slow",
+    "has_text_overlays": true,
+    "has_call_to_action": true
+  }},
+  "text_patterns": {{
+    "position": "center/top/bottom",
+    "style": "bold/subtle/animated",
+    "frequency": "every_scene/sparse/constant"
+  }},
+  "transitions": {{
+    "type": "cut/fade/zoom/slide",
+    "speed": "snappy/smooth/dramatic"
+  }},
+  "content_type": "ad/explainer/testimonial/meme/vlog/tutorial",
+  "recommended_length": 30
+}}"""
+        
+        messages = [{"role": "user", "content": [{"type": "text", "text": analysis_prompt}]}]
+        if frame_b64:
+            messages[0]["content"].append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}
+            })
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            max_tokens=1000
+        )
+        
+        reply = response.choices[0].message.content or ""
+        
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', reply)
+        if json_match:
+            template_data = json.loads(json_match.group())
+        else:
+            template_data = {
+                "aesthetic": {"mood": "neutral", "style": "social-native"},
+                "structure": {"total_scenes": num_frames, "pacing": "medium"},
+                "text_patterns": {"position": "center", "style": "bold"},
+                "transitions": {"type": "cut", "speed": "snappy"},
+                "content_type": "general"
+            }
+        
+        # Generate thumbnail
+        thumb_path = os.path.join('uploads', 'template_thumbs', f'template_{int(time.time())}.jpg')
+        os.makedirs(os.path.dirname(thumb_path), exist_ok=True)
+        if frame_paths:
+            import shutil
+            shutil.copy(frame_paths[0]['path'], thumb_path)
+        
+        # Build scene breakdown
+        scenes = []
+        scene_duration = duration / max(template_data.get('structure', {}).get('total_scenes', num_frames), 1)
+        for i, fp in enumerate(frame_paths):
+            scenes.append({
+                "index": i,
+                "start_time": fp['timestamp'],
+                "duration": scene_duration,
+                "frame_path": fp['path'],
+                "placeholder": f"[Scene {i+1} content]"
+            })
+        
+        # Save template to database
+        if user_id:
+            template = VideoTemplate(
+                user_id=user_id,
+                name=f"Template {datetime.now().strftime('%m/%d %H:%M')}",
+                source_video_path=file_path,
+                duration=duration,
+                scene_count=len(scenes),
+                scenes=scenes,
+                aesthetic=template_data.get('aesthetic'),
+                transitions=template_data.get('transitions'),
+                text_patterns=template_data.get('text_patterns'),
+                audio_profile={"transcript": transcript[:2000], "has_speech": bool(transcript)},
+                thumbnail_path=thumb_path
+            )
+            db.session.add(template)
+            db.session.commit()
+            template_id = template.id
+        else:
+            template_id = None
+        
+        # Cleanup temp frames
+        for fp in frame_paths:
+            try:
+                os.remove(fp['path'])
+            except:
+                pass
+        if os.path.exists(audio_path):
+            try:
+                os.remove(audio_path)
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'template_id': template_id,
+            'duration': duration,
+            'scene_count': len(scenes),
+            'scenes': scenes,
+            'aesthetic': template_data.get('aesthetic'),
+            'structure': template_data.get('structure'),
+            'text_patterns': template_data.get('text_patterns'),
+            'transitions': template_data.get('transitions'),
+            'content_type': template_data.get('content_type'),
+            'transcript': transcript[:500] if transcript else None,
+            'thumbnail': thumb_path,
+            'suggested_visuals': []
+        })
+        
+    except Exception as e:
+        logging.error(f"Video template extraction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/apply-template', methods=['POST'])
+def apply_template():
+    """Apply a video template to user's content and suggest curated visuals."""
+    data = request.get_json()
+    template_id = data.get('template_id')
+    user_content = data.get('content', '')
+    user_topic = data.get('topic', '')
+    
+    if not template_id:
+        return jsonify({'error': 'Template ID required'}), 400
+    
+    template = VideoTemplate.query.get(template_id)
+    if not template:
+        return jsonify({'error': 'Template not found'}), 404
+    
+    try:
+        from context_engine import get_ai_client
+        
+        client = get_ai_client()
+        
+        prompt = f"""You are adapting a video template to new content.
+
+TEMPLATE INFO:
+- Duration: {template.duration:.1f} seconds
+- Scenes: {template.scene_count}
+- Style: {template.aesthetic}
+- Text patterns: {template.text_patterns}
+- Original structure: {template.scenes}
+
+USER'S NEW CONTENT:
+Topic: {user_topic}
+Content: {user_content[:2000]}
+
+Create a personalized script that follows the SAME STRUCTURE and PACING as the template, but with the user's content.
+
+For each scene, provide:
+1. The adapted text/narration
+2. A suggested visual concept (for AI to find a matching image)
+3. Any text overlay content
+
+Respond in JSON:
+{{
+  "title": "Video title",
+  "scenes": [
+    {{
+      "index": 0,
+      "narration": "Adapted narration for this scene",
+      "visual_concept": "Description for image search",
+      "text_overlay": "Text to show on screen",
+      "duration": 3.0
+    }}
+  ],
+  "estimated_duration": 30,
+  "style_notes": "How to maintain the template's aesthetic"
+}}"""
+        
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        reply = response.content[0].text if response.content else ""
+        
+        import json
+        import re
+        json_match = re.search(r'\{[\s\S]*\}', reply)
+        if json_match:
+            adapted = json.loads(json_match.group())
+        else:
+            adapted = {"scenes": [], "error": "Could not parse response"}
+        
+        # Update template usage count
+        template.usage_count += 1
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'adapted_content': adapted,
+            'template_aesthetic': template.aesthetic,
+            'template_transitions': template.transitions
+        })
+        
+    except Exception as e:
+        logging.error(f"Template application error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/my-templates', methods=['GET'])
+def get_my_templates():
+    """Get user's saved video templates."""
+    user_id = session.get('replit_user_id')
+    if not user_id:
+        return jsonify({'templates': []})
+    
+    templates = VideoTemplate.query.filter_by(user_id=user_id).order_by(VideoTemplate.created_at.desc()).limit(20).all()
+    
+    return jsonify({
+        'templates': [{
+            'id': t.id,
+            'name': t.name,
+            'duration': t.duration,
+            'scene_count': t.scene_count,
+            'aesthetic': t.aesthetic,
+            'thumbnail': t.thumbnail_path,
+            'usage_count': t.usage_count,
+            'created_at': t.created_at.isoformat() if t.created_at else None
+        } for t in templates]
+    })
 
 
 @app.route('/transcribe', methods=['POST'])

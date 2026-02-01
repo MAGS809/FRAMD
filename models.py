@@ -462,3 +462,25 @@ class SourceDocument(db.Model):
     og_image = db.Column(db.Text)
     verified = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+
+class VideoTemplate(db.Model):
+    __tablename__ = 'video_templates'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    source_video_path = db.Column(db.String(500), nullable=True)
+    duration = db.Column(db.Float, nullable=True)
+    scene_count = db.Column(db.Integer, default=1)
+    scenes = db.Column(db.JSON, nullable=True)
+    aesthetic = db.Column(db.JSON, nullable=True)
+    transitions = db.Column(db.JSON, nullable=True)
+    text_patterns = db.Column(db.JSON, nullable=True)
+    audio_profile = db.Column(db.JSON, nullable=True)
+    thumbnail_path = db.Column(db.String(500), nullable=True)
+    usage_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('video_templates', lazy='dynamic'))

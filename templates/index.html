@@ -11993,7 +11993,7 @@
             document.getElementById('image-placement-popup').classList.remove('show');
         }
         
-        function confirmImagePlacement() {
+        async function confirmImagePlacement() {
             uploadedFile = pendingImageFile;
             uploadedFile.placement = selectedPlacement;
             uploadedFile.analysis = pendingImageAnalysis;
@@ -12003,6 +12003,26 @@
             let modeLabel = '';
             if (selectedUploadMode === 'personalize') {
                 modeLabel = 'Template';
+                
+                if (isVideoFile(pendingImageFile.name)) {
+                    showToast('Extracting video template...');
+                    try {
+                        const response = await fetch('/extract-video-template', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ file_path: pendingImagePath })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            uploadedFile.templateData = data;
+                            uploadedFile.templateId = data.template_id;
+                            showToast(`Template extracted: ${data.scene_count} scenes, ${data.duration?.toFixed(1)}s`);
+                        }
+                    } catch (err) {
+                        console.error('Template extraction error:', err);
+                        showToast('Template extraction failed');
+                    }
+                }
             } else {
                 modeLabel = selectedPlacement === 'background' ? 'Background' : 'Pop-up';
             }
