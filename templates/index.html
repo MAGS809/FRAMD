@@ -12852,6 +12852,16 @@
             }
         }
         
+        // Copy video URL to clipboard
+        function copyVideoUrl(videoPath) {
+            const fullUrl = window.location.origin + videoPath;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                showToast('Video link copied!');
+            }).catch(() => {
+                showToast('Failed to copy link');
+            });
+        }
+        
         // Toggle citations visibility
         function toggleCitations() {
             const citationsDiv = document.getElementById('citations-text');
@@ -14154,6 +14164,15 @@
                             </div>
                         </div>
                         ` : ''}
+                    </div>
+                    
+                    <!-- Video URL Section -->
+                    <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--gold);">Video Link</span>
+                            <button onclick="copyVideoUrl('${videoUrl}')" class="btn btn-secondary" style="font-size: 10px; padding: 4px 10px;">Copy Link</button>
+                        </div>
+                        <input type="text" id="video-url-display" value="${window.location.origin}${videoUrl}" readonly style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); font-size: 11px; padding: 6px 8px; font-family: monospace;">
                     </div>
                     
                     <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
