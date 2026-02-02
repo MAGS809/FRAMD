@@ -9417,10 +9417,12 @@ def generator_confidence():
 
 @app.route('/auto-generate', methods=['POST'])
 def auto_generate():
-    """Auto-generate content using learned patterns and user settings."""
+    """Auto-generate content using learned patterns, user settings, and template-specific styling."""
     from models import Project, GeneratorSettings, GlobalPattern, AILearning, VideoFeedback
     from flask_login import current_user
+    from context_engine import get_template_guidelines, research_trends
     import os
+    import json
     
     UNLOCK_THRESHOLD = 5
     
@@ -9462,12 +9464,31 @@ def auto_generate():
     learned_hooks = ai_learning.learned_hooks if ai_learning else []
     learned_styles = ai_learning.learned_styles if ai_learning else []
     
-    # Get topic for generation
+    # Get topic and template for generation
     data = request.get_json() or {}
     topic = data.get('topic', '')
+    template_type = data.get('template', 'start_from_scratch')
     
-    # Build auto-generation prompt
-    prompt = f"""Generate a complete short-form video script based on user preferences and learned patterns.
+    # Get template-specific guidelines
+    template_dna = get_template_guidelines(template_type)
+    
+    # Fetch trend research for the topic
+    trend_data = None
+    try:
+        trend_data = research_trends(topic or 'general content creation')
+    except Exception as e:
+        logging.warning(f"Trend research failed in auto-generate: {e}")
+        trend_data = {'hooks': [], 'formats': [], 'visuals': [], 'sounds': []}
+    
+    # Build auto-generation prompt with template awareness
+    prompt = f"""Generate a complete short-form video script based on user preferences, learned patterns, and current trends.
+
+TEMPLATE: {template_type.upper().replace('_', ' ')}
+TEMPLATE TONE: {template_dna['tone']}
+TEMPLATE VOICE: {template_dna['voice']}
+TEMPLATE HOOK STYLE: {template_dna['hook_style']}
+TEMPLATE PACING: {template_dna['pacing']}
+HOW TO APPLY TRENDS: {template_dna['trend_application']}
 
 USER SETTINGS:
 - Tone: {settings.tone}
@@ -9475,6 +9496,9 @@ USER SETTINGS:
 - Target Length: {settings.target_length} seconds
 - Voice Style: {settings.voice_style}
 - Preferred Topics: {', '.join(settings.enabled_topics) if settings.enabled_topics else 'General'}
+
+CURRENT TRENDS (apply within template tone):
+{json.dumps(trend_data, indent=2) if trend_data else 'No trend data available'}
 
 LEARNED PATTERNS (from previous successful content):
 {chr(10).join(f'- {hint}' for hint in pattern_hints[:3]) if pattern_hints else '- No specific patterns learned yet'}
@@ -9485,19 +9509,25 @@ LEARNED STYLES: {', '.join(learned_styles[:3]) if learned_styles else 'None'}
 TOPIC/IDEA: {topic if topic else 'Generate based on user preferences and trending topics'}
 
 Generate a complete {settings.target_length}-second video script following the thesis-driven anchor structure:
-1. HOOK - Direct, attention-grabbing opener
+1. HOOK - {template_dna['hook_style']} opener that grabs attention
 2. CLAIM - Core thesis statement
 3. EVIDENCE - Supporting points (2-3 max)
 4. PIVOT - Unexpected angle or reframe
 5. CLOSER - Return to thesis with impact
 
-The tone should be {settings.tone}. Format as {settings.format_type}.
-Write for voice style: {settings.voice_style}.
+CRITICAL: Stay in the {template_type.replace('_', ' ')} template voice. Trends inform HOW you execute, not WHAT tone you use.
 
 Output the script with clear character lines formatted as:
 [CHARACTER]: dialogue
 
 Include [PAUSE] and [BEAT] markers for pacing.
+
+Also output a visual plan and sound plan as JSON:
+{{
+  "script": "The full script with speaker labels",
+  "visual_plan": [{{"scene": 1, "description": "...", "timing": "0-5s"}}],
+  "sound_plan": {{"music_vibe": "...", "sfx_suggestions": ["..."]}}
+}}
 """
 
     try:
@@ -9521,14 +9551,38 @@ Include [PAUSE] and [BEAT] markers for pacing.
             max_tokens=2000
         )
         
-        generated_script = response.choices[0].message.content
+        generated_response = response.choices[0].message.content
+        
+        # Parse the JSON response
+        script_text = generated_response
+        visual_plan = []
+        sound_plan = {}
+        
+        try:
+            if '```json' in generated_response:
+                json_str = generated_response.split('```json')[1].split('```')[0]
+            elif '```' in generated_response:
+                json_str = generated_response.split('```')[1].split('```')[0]
+            else:
+                json_str = generated_response
+            
+            parsed = json.loads(json_str.strip())
+            script_text = parsed.get('script', generated_response)
+            visual_plan = parsed.get('visual_plan', [])
+            sound_plan = parsed.get('sound_plan', {})
+        except (json.JSONDecodeError, IndexError):
+            script_text = generated_response
+        
+        # Get template visual FX info
+        template_fx = TEMPLATE_VISUAL_FX.get(template_type, TEMPLATE_VISUAL_FX['start_from_scratch'])
         
         # Create a new project with the generated content
         project = Project(
             user_id=user_id,
             name=f"Auto-Generated: {topic[:50]}" if topic else "Auto-Generated Content",
-            description="Generated using AI learning and user preferences",
-            script=generated_script,
+            description="Generated using AI learning, trends, and user preferences",
+            script=script_text,
+            template_type=template_type,
             status='draft',
             workflow_step=3  # Start at script stage
         )
@@ -9538,13 +9592,21 @@ Include [PAUSE] and [BEAT] markers for pacing.
         return jsonify({
             'success': True,
             'project_id': project.id,
-            'script': generated_script,
+            'script': script_text,
+            'visual_plan': visual_plan,
+            'sound_plan': sound_plan,
+            'template': {
+                'type': template_type,
+                'dna': template_dna,
+                'visual_fx': template_fx
+            },
             'settings_used': {
                 'tone': settings.tone,
                 'format_type': settings.format_type,
                 'target_length': settings.target_length,
                 'voice_style': settings.voice_style
             },
+            'trends_applied': bool(trend_data and (trend_data.get('hooks') or trend_data.get('formats'))),
             'patterns_applied': len(pattern_hints)
         })
         
