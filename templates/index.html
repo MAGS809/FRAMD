@@ -2411,6 +2411,149 @@
             border-color: var(--gold);
         }
         
+        /* Caption Style Picker */
+        .caption-style-picker {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+        }
+        .caption-style-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        .caption-style-title {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .caption-style-nav {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .style-nav-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .style-nav-btn:hover:not(:disabled) {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+        }
+        .style-nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .caption-style-cards {
+            display: flex;
+            gap: 0.75rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        .caption-style-card {
+            flex: 0 0 auto;
+            width: 120px;
+            padding: 0.75rem;
+            background: rgba(255,255,255,0.03);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .caption-style-card:hover {
+            background: rgba(255,255,255,0.06);
+            border-color: rgba(255,255,255,0.1);
+        }
+        .caption-style-card.selected {
+            border-color: var(--accent);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        .style-preview {
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            margin-bottom: 0.5rem;
+            font-size: 12px;
+            flex-wrap: wrap;
+        }
+        .style-name {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            text-align: center;
+        }
+        /* Bold Pop Preview */
+        .bold-pop-preview .preview-word {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+        }
+        .bold-pop-preview .preview-word.highlight {
+            color: #FFD60A;
+            transform: scale(1.15);
+        }
+        /* Clean Minimal Preview */
+        .clean-minimal-preview .preview-word {
+            font-family: 'Inter', sans-serif;
+            font-weight: normal;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+        }
+        .clean-minimal-preview .preview-word.highlight {
+            color: #4ECDC4;
+        }
+        /* Boxed Preview */
+        .boxed-preview .preview-word {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            color: #fff;
+        }
+        .boxed-preview .boxed-word {
+            background: rgba(255,255,255,0.9);
+            color: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .boxed-preview .boxed-word.highlight {
+            background: #FFD60A;
+        }
+        /* Gradient Glow Preview */
+        .gradient-glow-preview .preview-word {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: bold;
+            font-size: 13px;
+            color: #fff;
+        }
+        .gradient-glow-preview .preview-word.glow.highlight {
+            text-shadow: 0 0 10px #FF6B6B, 0 0 20px #FF6B6B;
+            color: #FF6B6B;
+        }
+        /* Street Style Preview */
+        .street-style-preview .preview-word.street {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+            text-transform: uppercase;
+            -webkit-text-stroke: 1px #000;
+        }
+        .street-style-preview .preview-word.street.highlight {
+            color: #FF3366;
+        }
+        
         /* Caption Position Selector */
         .caption-position-selector {
             display: flex;
@@ -8494,6 +8637,64 @@
                 <div class="workflow-card" id="workflow-card-captions" style="display:none;">
                 <div class="caption-section">
                     <div class="section-title" style="margin-top: 1.5rem;">Captions</div>
+                    
+                    <!-- Caption Style Templates with Refresh/History -->
+                    <div class="caption-style-picker" id="caption-style-picker">
+                        <div class="caption-style-header">
+                            <span class="caption-style-title">AI Recommended Style</span>
+                            <div class="caption-style-nav">
+                                <button class="style-nav-btn" id="style-back-btn" onclick="navigateCaptionHistory(-1)" disabled title="Previous style">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                                </button>
+                                <button class="style-nav-btn" id="style-refresh-btn" onclick="refreshCaptionStyle()" title="Try different style">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                                </button>
+                                <button class="style-nav-btn" id="style-forward-btn" onclick="navigateCaptionHistory(1)" disabled title="Next style">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="caption-style-cards" id="caption-style-cards">
+                            <div class="caption-style-card selected" data-style="bold_pop" onclick="selectCaptionStyle('bold_pop', this)">
+                                <div class="style-preview bold-pop-preview">
+                                    <span class="preview-word">This</span>
+                                    <span class="preview-word highlight">is</span>
+                                    <span class="preview-word">bold</span>
+                                </div>
+                                <div class="style-name">Bold Pop</div>
+                            </div>
+                            <div class="caption-style-card" data-style="clean_minimal" onclick="selectCaptionStyle('clean_minimal', this)">
+                                <div class="style-preview clean-minimal-preview">
+                                    <span class="preview-word">Clean</span>
+                                    <span class="preview-word highlight">and</span>
+                                    <span class="preview-word">minimal</span>
+                                </div>
+                                <div class="style-name">Clean Minimal</div>
+                            </div>
+                            <div class="caption-style-card" data-style="boxed" onclick="selectCaptionStyle('boxed', this)">
+                                <div class="style-preview boxed-preview">
+                                    <span class="preview-word boxed-word">Text with</span>
+                                    <span class="preview-word boxed-word highlight">box</span>
+                                </div>
+                                <div class="style-name">Boxed</div>
+                            </div>
+                            <div class="caption-style-card" data-style="gradient_glow" onclick="selectCaptionStyle('gradient_glow', this)">
+                                <div class="style-preview gradient-glow-preview">
+                                    <span class="preview-word glow">Gradient</span>
+                                    <span class="preview-word glow highlight">glow</span>
+                                </div>
+                                <div class="style-name">Gradient Glow</div>
+                            </div>
+                            <div class="caption-style-card" data-style="street_style" onclick="selectCaptionStyle('street_style', this)">
+                                <div class="style-preview street-style-preview">
+                                    <span class="preview-word street">STREET</span>
+                                    <span class="preview-word street highlight">STYLE</span>
+                                </div>
+                                <div class="style-name">Street Style</div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="caption-container">
                         <div class="caption-controls">
                             <div class="caption-control-group">
@@ -13494,6 +13695,125 @@
             if (preview) {
                 preview.classList.remove('position-top', 'position-center', 'position-bottom');
                 preview.classList.add(`position-${selectedCaptionPosition}`);
+            }
+        }
+        
+        // Caption Style Template System
+        let selectedCaptionTemplate = 'bold_pop';
+        let captionStyleHistory = [];
+        let captionHistoryIndex = -1;
+        
+        // Load caption history on init
+        async function loadCaptionHistory() {
+            try {
+                const response = await fetch('/get-caption-history');
+                const data = await response.json();
+                
+                if (data.success && data.history && data.history.length > 0) {
+                    captionStyleHistory = data.history.map(h => h.template_key);
+                    captionHistoryIndex = captionStyleHistory.length - 1;
+                    
+                    // Select the most recent style
+                    const latestStyle = captionStyleHistory[captionHistoryIndex];
+                    if (latestStyle) {
+                        selectCaptionStyle(latestStyle, null);
+                    }
+                    
+                    updateCaptionHistoryButtons();
+                    console.log('[Caption] Loaded history:', captionStyleHistory);
+                }
+            } catch (error) {
+                console.error('[Caption] Failed to load history:', error);
+            }
+        }
+        
+        // Initialize caption history when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCaptionHistory();
+        });
+        
+        function selectCaptionStyle(styleKey, el) {
+            selectedCaptionTemplate = styleKey;
+            
+            // Update UI selection
+            document.querySelectorAll('.caption-style-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            if (el) el.classList.add('selected');
+            
+            // Find card by data-style if el not provided
+            if (!el) {
+                const card = document.querySelector(`.caption-style-card[data-style="${styleKey}"]`);
+                if (card) card.classList.add('selected');
+            }
+            
+            console.log('[Caption] Selected style:', styleKey);
+        }
+        
+        async function refreshCaptionStyle() {
+            const refreshBtn = document.getElementById('style-refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.style.opacity = '0.5';
+                refreshBtn.disabled = true;
+            }
+            
+            try {
+                const response = await fetch('/refresh-caption-style', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        current_style: selectedCaptionTemplate,
+                        content_type: currentContentType || 'general'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.new_style) {
+                    // Add current to history before changing
+                    if (captionHistoryIndex === captionStyleHistory.length - 1 || captionStyleHistory.length === 0) {
+                        captionStyleHistory.push(selectedCaptionTemplate);
+                    }
+                    
+                    // Select new style
+                    selectCaptionStyle(data.new_style.key, null);
+                    
+                    // Add new to history
+                    captionStyleHistory.push(data.new_style.key);
+                    captionHistoryIndex = captionStyleHistory.length - 1;
+                    
+                    updateCaptionHistoryButtons();
+                }
+            } catch (error) {
+                console.error('[Caption] Refresh error:', error);
+            } finally {
+                if (refreshBtn) {
+                    refreshBtn.style.opacity = '1';
+                    refreshBtn.disabled = false;
+                }
+            }
+        }
+        
+        function navigateCaptionHistory(direction) {
+            const newIndex = captionHistoryIndex + direction;
+            
+            if (newIndex >= 0 && newIndex < captionStyleHistory.length) {
+                captionHistoryIndex = newIndex;
+                const styleKey = captionStyleHistory[captionHistoryIndex];
+                selectCaptionStyle(styleKey, null);
+                updateCaptionHistoryButtons();
+            }
+        }
+        
+        function updateCaptionHistoryButtons() {
+            const backBtn = document.getElementById('style-back-btn');
+            const forwardBtn = document.getElementById('style-forward-btn');
+            
+            if (backBtn) {
+                backBtn.disabled = captionHistoryIndex <= 0;
+            }
+            if (forwardBtn) {
+                forwardBtn.disabled = captionHistoryIndex >= captionStyleHistory.length - 1;
             }
         }
         

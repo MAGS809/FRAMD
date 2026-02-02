@@ -144,7 +144,20 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
   - Stock photos for real people/places (authenticity)
   - DALL-E for abstract concepts, custom scenes
   - User content prioritized when available
-- **Database**: PostgreSQL with 25+ tables including VisualPlan, VisualLearning, PreviewVideo for AI learning.
+- **Source Merging Engine**: Unified post-processing that blends all sources seamlessly:
+  - Color grading profiles (Warm Cinematic, Cool Professional, Punchy Vibrant, Muted Film, Clean Neutral)
+  - AI recommends best style per project with 2-3 alternatives
+  - Film grain overlay toggle (default on) to mask source differences
+  - Transition effects library (zoom, whip cut, dissolve, light leak, slide)
+  - FFmpeg filter chain applies all processing in one render pass
+- **Caption Template System** (GetCaptions-style):
+  - 5 templates: Bold Pop, Clean Minimal, Boxed, Gradient Glow, Street Style
+  - Word-by-word highlighting with pop/scale animation synced to audio
+  - AI auto-selects best template based on content type
+  - Refresh button cycles to new AI-generated style
+  - Back/forward navigation through style history
+  - Learning tracks which styles users keep vs refresh
+- **Database**: PostgreSQL with 25+ tables including VisualPlan, VisualLearning, PreviewVideo, CaptionStyleHistory, UserMergingPreferences for AI learning.
 
 ## External Dependencies
 - **Python 3.11**

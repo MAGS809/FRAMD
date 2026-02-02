@@ -185,13 +185,33 @@ def background_render_task(job_id, render_params, user_id, app_context):
                 if result.returncode != 0:
                     video_with_audio = concat_output
             
-            # Step 4: Apply template visual FX (80%)
+            # Step 4: Apply template visual FX + Source Merging Engine (80%)
             background_render_jobs[job_id]['progress'] = 80
             background_render_jobs[job_id]['status'] = 'applying_fx'
             
             try:
                 from context_engine import build_visual_fx_filter
-                vf_filter = build_visual_fx_filter(template)
+                from visual_director import apply_merging_to_ffmpeg_command
+                
+                base_filter = build_visual_fx_filter(template)
+                
+                # Detect content type from template
+                content_type_map = {
+                    'hot_take': 'hot_take',
+                    'explainer': 'explainer',
+                    'meme_funny': 'meme',
+                    'make_an_ad': 'ad',
+                    'story': 'story'
+                }
+                content_type = content_type_map.get(template, 'general')
+                
+                # Apply Source Merging Engine filters (color grading, grain, transitions)
+                vf_filter = apply_merging_to_ffmpeg_command(
+                    base_filter,
+                    content_type=content_type,
+                    color_style=None,
+                    film_grain=True
+                )
                 
                 if vf_filter and vf_filter != '':
                     fx_cmd = [
@@ -7191,7 +7211,11 @@ def generate_video():
         if captions.get('enabled') and script:
             caption_video = os.path.join(output_dir, f'captioned_{output_id}.mp4')
             
-            # Get caption settings with defaults
+            # Apply caption template if specified (centralized helper)
+            from visual_director import apply_caption_template
+            captions = apply_caption_template(captions)
+            
+            # Get caption settings with template overrides applied
             caption_font = captions.get('font', 'inter')
             caption_position = captions.get('position', 'center')
             caption_color = captions.get('textColor', captions.get('color', '#FFFFFF')).replace('#', '')
@@ -9476,7 +9500,11 @@ def render_video():
                 print(f"Whisper returned {len(words)} word timestamps")
                 
                 if words:
-                    # Get caption settings
+                    # Apply caption template if specified (centralized helper)
+                    from visual_director import apply_caption_template
+                    caption_settings = apply_caption_template(caption_settings)
+                    
+                    # Get caption settings with template overrides applied
                     caption_color = caption_settings.get('textColor', caption_settings.get('color', '#FFFFFF')).lstrip('#')
                     caption_position = caption_settings.get('position', 'bottom')
                     caption_uppercase = caption_settings.get('uppercase', False)
@@ -11152,8 +11180,8 @@ def execute_visual_plan_endpoint():
 
 @app.route('/render-with-plan', methods=['POST'])
 def render_with_visual_plan():
-    """Render a video using a visual plan - unified pipeline."""
-    from visual_director import execute_visual_plan
+    """Render a video using a visual plan - unified pipeline with Source Merging Engine."""
+    from visual_director import execute_visual_plan, get_merging_config
     from models import VisualPlan
     from flask_login import current_user
     import subprocess
@@ -11171,11 +11199,21 @@ def render_with_visual_plan():
     audio_path = data.get('audio_path', '')
     video_format = data.get('format', '9:16')
     caption_position = data.get('caption_position', 'bottom')
+    color_style = data.get('color_style')
+    film_grain = data.get('film_grain', True)
+    caption_template = data.get('caption_template', 'bold_pop')
     
     plan = VisualPlan.query.filter_by(plan_id=plan_id).first() if plan_id else None
     
     try:
         scenes_to_render = []
+        content_type = plan.content_type if plan else 'general'
+        
+        # Get merging config (color grading + transitions)
+        merging_config = get_merging_config(
+            content_type,
+            {'color_style': color_style, 'film_grain': film_grain}
+        )
         
         if plan:
             visual_plan = {
@@ -11215,13 +11253,148 @@ def render_with_visual_plan():
             'video_url': f'/{output_path}',
             'video_path': output_path,
             'scenes_count': len(scenes_to_render),
-            'content_type': plan.content_type if plan else 'general',
+            'content_type': content_type,
+            'merging_config': merging_config,
+            'caption_template': caption_template,
             'is_preview': True
         })
         
     except Exception as e:
         print(f"[render-with-plan] Error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-merging-options', methods=['POST'])
+def get_merging_options():
+    """Get AI-recommended color styles and caption templates for a project."""
+    from visual_director import recommend_color_style, recommend_caption_style, CAPTION_TEMPLATES
+    
+    data = request.get_json()
+    content_type = data.get('content_type', 'general')
+    
+    try:
+        color_rec = recommend_color_style(content_type)
+        caption_rec = recommend_caption_style(content_type)
+        
+        return jsonify({
+            'success': True,
+            'color_recommendation': color_rec,
+            'caption_recommendation': caption_rec,
+            'caption_templates': {k: v for k, v in CAPTION_TEMPLATES.items()}
+        })
+    except Exception as e:
+        print(f"[get-merging-options] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/save-merging-preferences', methods=['POST'])
+def save_merging_preferences():
+    """Save user's Source Merging preferences."""
+    from models import UserMergingPreferences
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    
+    try:
+        prefs = UserMergingPreferences.query.filter_by(user_id=user_id).first()
+        
+        if not prefs:
+            prefs = UserMergingPreferences(user_id=user_id)
+            db.session.add(prefs)
+        
+        if 'color_style' in data:
+            prefs.preferred_color_style = data['color_style']
+        if 'film_grain' in data:
+            prefs.film_grain_enabled = data['film_grain']
+        if 'caption_template' in data:
+            prefs.preferred_caption_template = data['caption_template']
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[save-merging-preferences] Error: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/refresh-caption-style', methods=['POST'])
+def refresh_caption_style():
+    """Refresh to get a new AI-curated caption style, save current to history."""
+    from visual_director import recommend_caption_style, save_caption_style_choice, CAPTION_TEMPLATES
+    from models import CaptionStyleHistory
+    from flask_login import current_user
+    import random
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json()
+    current_style = data.get('current_style')
+    content_type = data.get('content_type', 'general')
+    
+    try:
+        # Save current style to history
+        if user_id and current_style:
+            save_caption_style_choice(user_id, current_style, was_refresh=True)
+        
+        # Get new style (different from current)
+        available = list(CAPTION_TEMPLATES.keys())
+        if current_style in available:
+            available.remove(current_style)
+        
+        new_key = random.choice(available)
+        new_template = CAPTION_TEMPLATES[new_key].copy()
+        new_template['key'] = new_key
+        
+        return jsonify({
+            'success': True,
+            'new_style': new_template
+        })
+    except Exception as e:
+        print(f"[refresh-caption-style] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-caption-history', methods=['GET'])
+def get_caption_history():
+    """Get user's caption style history for back/forward navigation."""
+    from visual_director import get_caption_style_history, CAPTION_TEMPLATES
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'history': []})
+    
+    try:
+        history = get_caption_style_history(user_id)
+        
+        # Enrich with full template data
+        for item in history:
+            if item['template_key'] in CAPTION_TEMPLATES:
+                item['template'] = CAPTION_TEMPLATES[item['template_key']]
+        
+        return jsonify({'success': True, 'history': history})
+    except Exception as e:
+        print(f"[get-caption-history] Error: {e}")
+        return jsonify({'history': []})
 
 
 if __name__ == '__main__':

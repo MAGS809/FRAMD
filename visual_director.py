@@ -89,6 +89,149 @@ COLOR_PALETTES = {
     'vibrant_saturated': ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7']
 }
 
+# Color grading profiles for Source Merging Engine
+COLOR_GRADING_PROFILES = {
+    'warm_cinematic': {
+        'name': 'Warm Cinematic',
+        'description': 'Rich warm tones with subtle orange shadows',
+        'ffmpeg_filter': 'colorbalance=rs=0.1:gs=-0.05:bs=-0.1:rm=0.05:gm=0:bm=-0.05,eq=saturation=1.1:contrast=1.05',
+        'mood': 'intimate, personal, storytelling'
+    },
+    'cool_professional': {
+        'name': 'Cool Professional',
+        'description': 'Clean blue-tinted look for business content',
+        'ffmpeg_filter': 'colorbalance=rs=-0.05:gs=0:bs=0.1:rm=-0.02:gm=0:bm=0.05,eq=saturation=0.95:contrast=1.1',
+        'mood': 'corporate, trustworthy, modern'
+    },
+    'punchy_vibrant': {
+        'name': 'Punchy Vibrant',
+        'description': 'High contrast, saturated colors for impact',
+        'ffmpeg_filter': 'eq=saturation=1.3:contrast=1.2:brightness=0.02,unsharp=5:5:1.0:5:5:0.0',
+        'mood': 'energetic, bold, attention-grabbing'
+    },
+    'muted_film': {
+        'name': 'Muted Film',
+        'description': 'Desaturated vintage film aesthetic',
+        'ffmpeg_filter': 'colorbalance=rs=0.05:gs=0.02:bs=-0.05,eq=saturation=0.8:contrast=1.05,curves=vintage',
+        'mood': 'nostalgic, artistic, thoughtful'
+    },
+    'clean_neutral': {
+        'name': 'Clean Neutral',
+        'description': 'Balanced, natural look with slight polish',
+        'ffmpeg_filter': 'eq=saturation=1.0:contrast=1.05:brightness=0.01',
+        'mood': 'clear, honest, straightforward'
+    }
+}
+
+# Transition effects for Source Merging Engine
+TRANSITION_EFFECTS = {
+    'cross_dissolve': {
+        'name': 'Cross Dissolve',
+        'duration': 0.5,
+        'ffmpeg_filter': 'xfade=transition=fade:duration=0.5',
+        'energy': 'calm'
+    },
+    'zoom_in': {
+        'name': 'Zoom In',
+        'duration': 0.3,
+        'ffmpeg_filter': 'xfade=transition=zoomin:duration=0.3',
+        'energy': 'moderate'
+    },
+    'wipe_right': {
+        'name': 'Wipe Right',
+        'duration': 0.4,
+        'ffmpeg_filter': 'xfade=transition=wiperight:duration=0.4',
+        'energy': 'moderate'
+    },
+    'quick_cut': {
+        'name': 'Quick Cut',
+        'duration': 0.1,
+        'ffmpeg_filter': 'xfade=transition=fade:duration=0.1',
+        'energy': 'high'
+    },
+    'slide_left': {
+        'name': 'Slide Left',
+        'duration': 0.35,
+        'ffmpeg_filter': 'xfade=transition=slideleft:duration=0.35',
+        'energy': 'moderate'
+    },
+    'radial_wipe': {
+        'name': 'Radial Wipe',
+        'duration': 0.5,
+        'ffmpeg_filter': 'xfade=transition=radial:duration=0.5',
+        'energy': 'dramatic'
+    }
+}
+
+# Caption templates with GetCaptions-style features
+CAPTION_TEMPLATES = {
+    'bold_pop': {
+        'name': 'Bold Pop',
+        'description': 'Large bold text with strong pop animation',
+        'font_family': 'Space Grotesk',
+        'font_weight': 'bold',
+        'font_size': 64,
+        'text_color': '#FFFFFF',
+        'highlight_color': '#FFD60A',
+        'background': 'none',
+        'animation': 'pop_scale',
+        'animation_intensity': 1.15
+    },
+    'clean_minimal': {
+        'name': 'Clean Minimal',
+        'description': 'Thin elegant font with subtle highlight',
+        'font_family': 'Inter',
+        'font_weight': 'normal',
+        'font_size': 48,
+        'text_color': '#FFFFFF',
+        'highlight_color': '#4ECDC4',
+        'background': 'none',
+        'animation': 'fade_highlight',
+        'animation_intensity': 1.0
+    },
+    'boxed': {
+        'name': 'Boxed',
+        'description': 'Text with rounded background pill',
+        'font_family': 'Inter',
+        'font_weight': 'semibold',
+        'font_size': 52,
+        'text_color': '#000000',
+        'highlight_color': '#FFD60A',
+        'background': 'pill',
+        'background_color': '#FFFFFF',
+        'animation': 'pop_scale',
+        'animation_intensity': 1.1
+    },
+    'gradient_glow': {
+        'name': 'Gradient Glow',
+        'description': 'Gradient text with glow on active word',
+        'font_family': 'Space Grotesk',
+        'font_weight': 'bold',
+        'font_size': 56,
+        'text_color': '#FFFFFF',
+        'highlight_color': '#FF6B6B',
+        'gradient': ['#FF6B6B', '#FFD60A'],
+        'background': 'glow',
+        'animation': 'glow_pulse',
+        'animation_intensity': 1.2
+    },
+    'street_style': {
+        'name': 'Street Style',
+        'description': 'All caps heavy weight with punchy animation',
+        'font_family': 'Space Grotesk',
+        'font_weight': 'bold',
+        'font_size': 60,
+        'text_color': '#FFFFFF',
+        'highlight_color': '#FF3366',
+        'text_transform': 'uppercase',
+        'background': 'none',
+        'stroke': '#000000',
+        'stroke_width': 3,
+        'animation': 'bounce',
+        'animation_intensity': 1.25
+    }
+}
+
 
 def detect_content_type(script: str, user_intent: str = '') -> str:
     """
@@ -456,6 +599,274 @@ def tag_successful_visual(scene_result: Dict, content_type: str, feedback: str =
         print(f"[Visual Director] Failed to tag visual: {e}")
 
 
+# ============================================================
+# SOURCE MERGING ENGINE
+# Unified system to blend stock/DALL-E/user content seamlessly
+# ============================================================
+
+def recommend_color_style(content_type: str, script: str = '', user_history: List[Dict] = None) -> Dict:
+    """
+    AI recommends best color grading style for this project.
+    Returns recommendation + 2-3 alternatives with visual preview info.
+    """
+    # Map content types to recommended styles
+    content_style_map = {
+        'podcast': 'warm_cinematic',
+        'explainer': 'clean_neutral',
+        'hot_take': 'punchy_vibrant',
+        'ad': 'punchy_vibrant',
+        'story': 'muted_film',
+        'news': 'cool_professional',
+        'meme': 'punchy_vibrant'
+    }
+    
+    # Get recommended style based on content
+    recommended_key = content_style_map.get(content_type, 'clean_neutral')
+    recommended = COLOR_GRADING_PROFILES[recommended_key].copy()
+    recommended['key'] = recommended_key
+    
+    # Generate alternatives (exclude recommended)
+    all_keys = list(COLOR_GRADING_PROFILES.keys())
+    all_keys.remove(recommended_key)
+    alternatives = []
+    for key in all_keys[:3]:
+        alt = COLOR_GRADING_PROFILES[key].copy()
+        alt['key'] = key
+        alternatives.append(alt)
+    
+    return {
+        'recommended': recommended,
+        'alternatives': alternatives,
+        'reasoning': f"Based on your {content_type} content, {recommended['name']} will create {recommended['mood']} feel."
+    }
+
+
+def select_transition_for_scenes(content_type: str, scene_energy: str = 'moderate') -> str:
+    """
+    Select appropriate transition based on content type and scene energy.
+    """
+    # Map content types to transition preferences
+    content_transition_map = {
+        'podcast': 'cross_dissolve',
+        'explainer': 'slide_left',
+        'hot_take': 'quick_cut',
+        'ad': 'zoom_in',
+        'story': 'cross_dissolve',
+        'news': 'wipe_right',
+        'meme': 'quick_cut'
+    }
+    
+    # Energy overrides
+    if scene_energy == 'high':
+        return 'quick_cut'
+    elif scene_energy == 'dramatic':
+        return 'radial_wipe'
+    
+    return content_transition_map.get(content_type, 'cross_dissolve')
+
+
+def build_merge_filter_chain(
+    color_style: str,
+    apply_grain: bool = True,
+    transition_type: str = 'cross_dissolve'
+) -> str:
+    """
+    Build FFmpeg filter chain that applies color grading, grain, and prepares for transitions.
+    All in one pass for efficiency.
+    """
+    filters = []
+    
+    # Color grading
+    if color_style in COLOR_GRADING_PROFILES:
+        filters.append(COLOR_GRADING_PROFILES[color_style]['ffmpeg_filter'])
+    
+    # Film grain overlay (subtle noise to unify sources)
+    if apply_grain:
+        filters.append('noise=alls=8:allf=t')
+    
+    # Slight vignette for cohesion
+    filters.append('vignette=PI/5')
+    
+    return ','.join(filters)
+
+
+def get_merging_config(content_type: str, user_preferences: Dict = None) -> Dict:
+    """
+    Get full merging configuration for a project.
+    Combines color style, transitions, and grain settings.
+    """
+    prefs = user_preferences or {}
+    
+    # Get color recommendation
+    color_rec = recommend_color_style(content_type)
+    selected_style = prefs.get('color_style', color_rec['recommended']['key'])
+    
+    # Get transition type
+    transition = select_transition_for_scenes(content_type)
+    
+    # Grain preference (default on)
+    apply_grain = prefs.get('film_grain', True)
+    
+    # Build filter chain
+    filter_chain = build_merge_filter_chain(selected_style, apply_grain, transition)
+    
+    return {
+        'color_style': selected_style,
+        'color_profile': COLOR_GRADING_PROFILES.get(selected_style, {}),
+        'transition': TRANSITION_EFFECTS.get(transition, {}),
+        'apply_grain': apply_grain,
+        'filter_chain': filter_chain,
+        'color_recommendation': color_rec
+    }
+
+
+def apply_merging_to_ffmpeg_command(
+    base_filter: str,
+    content_type: str = 'general',
+    color_style: str = None,
+    film_grain: bool = True
+) -> str:
+    """
+    Combine existing FFmpeg filter with Source Merging Engine filters.
+    Returns the complete filter chain string for -vf parameter.
+    """
+    filters = []
+    
+    # Add base filter if provided
+    if base_filter and base_filter.strip():
+        filters.append(base_filter)
+    
+    # Get merging config
+    config = get_merging_config(content_type, {
+        'color_style': color_style,
+        'film_grain': film_grain
+    })
+    
+    # Add merging filter chain
+    if config.get('filter_chain'):
+        filters.append(config['filter_chain'])
+    
+    return ','.join(filters) if filters else ''
+
+
+def get_caption_ffmpeg_params(template_key: str, text: str, position: str = 'bottom') -> Dict:
+    """
+    Get FFmpeg drawtext parameters for a caption template.
+    Returns parameters for word-by-word rendering with animations.
+    """
+    template = CAPTION_TEMPLATES.get(template_key, CAPTION_TEMPLATES['bold_pop'])
+    
+    # Map position to y coordinate
+    y_positions = {
+        'top': 'h*0.1',
+        'middle': '(h-text_h)/2',
+        'center': '(h-text_h)/2',
+        'bottom': 'h*0.85'
+    }
+    y_pos = y_positions.get(position, 'h*0.85')
+    
+    # Build font style
+    font_file = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+    font_size = template.get('font_size', 48)
+    text_color = template.get('text_color', '#FFFFFF').replace('#', '0x')
+    highlight_color = template.get('highlight_color', '#FFD60A').replace('#', '0x')
+    
+    # Handle stroke/border
+    border_w = template.get('stroke_width', 2)
+    
+    drawtext_params = {
+        'fontfile': font_file,
+        'fontsize': font_size,
+        'fontcolor': text_color,
+        'borderw': border_w,
+        'bordercolor': '0x000000',
+        'x': '(w-text_w)/2',
+        'y': y_pos,
+        'text': text
+    }
+    
+    return {
+        'template': template,
+        'drawtext': drawtext_params,
+        'highlight_color': highlight_color
+    }
+
+
+# ============================================================
+# CAPTION STYLE SYSTEM
+# AI-curated caption styles with refresh/history
+# ============================================================
+
+def recommend_caption_style(content_type: str, user_history: List[Dict] = None) -> Dict:
+    """
+    AI recommends best caption template for this project.
+    Returns recommendation with preview info.
+    """
+    # Map content types to caption style preferences
+    content_caption_map = {
+        'podcast': 'clean_minimal',
+        'explainer': 'boxed',
+        'hot_take': 'street_style',
+        'ad': 'bold_pop',
+        'story': 'gradient_glow',
+        'news': 'boxed',
+        'meme': 'street_style'
+    }
+    
+    recommended_key = content_caption_map.get(content_type, 'bold_pop')
+    recommended = CAPTION_TEMPLATES[recommended_key].copy()
+    recommended['key'] = recommended_key
+    
+    return {
+        'recommended': recommended,
+        'all_templates': {k: v.copy() for k, v in CAPTION_TEMPLATES.items()},
+        'reasoning': f"{recommended['name']} works best for {content_type} content."
+    }
+
+
+def get_caption_style_history(user_id: str, limit: int = 10) -> List[Dict]:
+    """
+    Get user's caption style history for back/forward navigation.
+    """
+    try:
+        from models import CaptionStyleHistory
+        
+        history = CaptionStyleHistory.query.filter_by(user_id=user_id)\
+            .order_by(CaptionStyleHistory.created_at.desc())\
+            .limit(limit).all()
+        
+        return [
+            {
+                'id': h.id,
+                'template_key': h.template_key,
+                'template_name': CAPTION_TEMPLATES.get(h.template_key, {}).get('name', ''),
+                'created_at': h.created_at.isoformat()
+            }
+            for h in history
+        ]
+    except Exception as e:
+        print(f"[Caption] Failed to get history: {e}")
+        return []
+
+
+def save_caption_style_choice(user_id: str, template_key: str, was_refresh: bool = False):
+    """
+    Save user's caption style choice to history.
+    """
+    try:
+        from models import CaptionStyleHistory, db
+        
+        record = CaptionStyleHistory(
+            user_id=user_id,
+            template_key=template_key,
+            was_refresh=was_refresh
+        )
+        db.session.add(record)
+        db.session.commit()
+    except Exception as e:
+        print(f"[Caption] Failed to save choice: {e}")
+
+
 # Learning system - track which visuals worked well
 class VisualLearningTracker:
     """Track successful visual decisions for future improvement."""
@@ -510,3 +921,63 @@ class VisualLearningTracker:
         except Exception as e:
             print(f"[VisualLearning] Failed to get recommendations: {e}")
             return {}
+
+
+def apply_caption_template(caption_settings: Dict, template_key: str = None) -> Dict:
+    """
+    Centralized helper to apply caption template overrides to caption settings.
+    Use this in all render paths to ensure consistent template application.
+    
+    Args:
+        caption_settings: Current caption settings dict
+        template_key: Optional template key to apply (overrides settings['template'])
+    
+    Returns:
+        Updated caption settings dict with template values applied
+    """
+    settings = caption_settings.copy()
+    
+    # Check for template key in settings if not provided
+    key = template_key or settings.get('template')
+    if not key:
+        return settings
+    
+    template = CAPTION_TEMPLATES.get(key)
+    if not template:
+        return settings
+    
+    # Apply template values to settings
+    settings['textColor'] = template.get('text_color', settings.get('textColor', '#FFFFFF'))
+    settings['color'] = template.get('text_color', settings.get('color', '#FFFFFF'))
+    settings['highlightColor'] = template.get('highlight_color', settings.get('highlightColor', '#FFD60A'))
+    
+    # Font size mapping
+    font_size = template.get('font_size', 48)
+    if font_size >= 64:
+        settings['size'] = 'large'
+    elif font_size >= 48:
+        settings['size'] = 'medium'
+    else:
+        settings['size'] = 'small'
+    
+    settings['weight'] = template.get('font_weight', settings.get('weight', 'bold'))
+    
+    # Background handling
+    bg = template.get('background', 'none')
+    settings['background'] = bg in ['pill', 'box']
+    
+    # Text transform
+    settings['uppercase'] = template.get('text_transform', '') == 'uppercase'
+    
+    # Outline/stroke
+    settings['outline'] = template.get('stroke_width', 0) > 0
+    
+    # Animation (word-by-word with highlight)
+    settings['animation'] = 'highlight'
+    
+    # Store template reference
+    settings['template'] = key
+    settings['template_name'] = template.get('name', key)
+    
+    print(f"[Captions] Applied template: {key}")
+    return settings

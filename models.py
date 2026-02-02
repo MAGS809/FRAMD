@@ -589,3 +589,31 @@ class PreviewVideo(db.Model):
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     finalized_at = db.Column(db.DateTime, nullable=True)
+
+
+class CaptionStyleHistory(db.Model):
+    """Track caption style choices for refresh/history navigation"""
+    __tablename__ = 'caption_style_history'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    template_key = db.Column(db.String(50), nullable=False)
+    was_refresh = db.Column(db.Boolean, default=False)
+    was_kept = db.Column(db.Boolean, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class UserMergingPreferences(db.Model):
+    """Store user preferences for Source Merging Engine"""
+    __tablename__ = 'user_merging_preferences'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    preferred_color_style = db.Column(db.String(50), default='clean_neutral')
+    film_grain_enabled = db.Column(db.Boolean, default=True)
+    preferred_caption_template = db.Column(db.String(50), default='bold_pop')
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
