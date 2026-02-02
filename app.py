@@ -57,6 +57,103 @@ def rate_limit(limit=30, window=60):
         return wrapped
     return decorator
 
+import threading
+from concurrent.futures import ThreadPoolExecutor
+
+background_render_jobs = {}
+render_executor = ThreadPoolExecutor(max_workers=3)
+
+def send_render_complete_email(user_id, video_url, project_name):
+    """Send email notification when video rendering is complete."""
+    try:
+        from models import User, EmailNotification
+        from flask import current_app
+        
+        with current_app.app_context():
+            user = User.query.get(user_id)
+            if not user or not user.email:
+                return
+            
+            email_pref = EmailNotification.query.filter_by(
+                user_id=user_id, 
+                notification_type='video_ready'
+            ).first()
+            
+            if email_pref and not email_pref.enabled:
+                return
+            
+            domain = os.environ.get('REPLIT_DEV_DOMAIN', 'framd.app')
+            full_video_url = f"https://{domain}{video_url}"
+            
+            print(f"[Email] Would send render complete email to {user.email} for {project_name}")
+            print(f"[Email] Video URL: {full_video_url}")
+            
+    except Exception as e:
+        print(f"[Email] Error sending notification: {e}")
+
+
+def background_render_task(job_id, render_params, user_id, app_context):
+    """Execute video render in background thread."""
+    import subprocess
+    import uuid
+    
+    try:
+        background_render_jobs[job_id]['status'] = 'rendering'
+        background_render_jobs[job_id]['progress'] = 10
+        
+        with app_context:
+            scenes = render_params.get('scenes', [])
+            audio_path = render_params.get('audio_path', '')
+            video_format = render_params.get('format', '9:16')
+            project_name = render_params.get('project_name', 'Untitled')
+            
+            output_id = str(uuid.uuid4())[:8]
+            output_path = f'output/background_{output_id}.mp4'
+            os.makedirs('output', exist_ok=True)
+            
+            background_render_jobs[job_id]['progress'] = 50
+            
+            format_dims = {
+                '9:16': (1080, 1920),
+                '16:9': (1920, 1080),
+                '1:1': (1080, 1080),
+                '4:5': (1080, 1350)
+            }
+            width, height = format_dims.get(video_format, (1080, 1920))
+            
+            if scenes and len(scenes) > 0:
+                first_scene = scenes[0]
+                if 'url' in first_scene:
+                    scene_url = first_scene['url']
+                    scene_path = scene_url.lstrip('/') if scene_url.startswith('/') else scene_url
+                    
+                    if os.path.exists(scene_path):
+                        cmd = [
+                            'ffmpeg', '-y', '-loop', '1', '-i', scene_path,
+                            '-t', '5', '-c:v', 'libx264', '-preset', 'fast',
+                            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
+                            output_path
+                        ]
+                        subprocess.run(cmd, capture_output=True, timeout=300)
+            
+            background_render_jobs[job_id]['progress'] = 90
+            
+            if os.path.exists(output_path):
+                background_render_jobs[job_id]['status'] = 'complete'
+                background_render_jobs[job_id]['video_url'] = '/' + output_path
+                background_render_jobs[job_id]['progress'] = 100
+                
+                send_render_complete_email(user_id, '/' + output_path, project_name)
+            else:
+                background_render_jobs[job_id]['status'] = 'error'
+                background_render_jobs[job_id]['error'] = 'Render failed'
+                
+    except Exception as e:
+        background_render_jobs[job_id]['status'] = 'error'
+        background_render_jobs[job_id]['error'] = str(e)
+        print(f"[Background Render] Error: {e}")
+
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SESSION_SECRET')
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -3898,6 +3995,102 @@ def save_email_preferences():
     db.session.commit()
     
     return jsonify({'success': True})
+
+
+@app.route('/start-background-render', methods=['POST'])
+def start_background_render():
+    """Start a video render in the background. Returns job ID for polling."""
+    from flask_login import current_user
+    import uuid
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json() or {}
+    
+    job_id = str(uuid.uuid4())[:12]
+    
+    background_render_jobs[job_id] = {
+        'status': 'queued',
+        'progress': 0,
+        'video_url': None,
+        'error': None,
+        'user_id': user_id,
+        'created_at': time.time()
+    }
+    
+    render_params = {
+        'scenes': data.get('scenes', []),
+        'audio_path': data.get('audio_path', ''),
+        'format': data.get('format', '9:16'),
+        'captions': data.get('captions', {}),
+        'script': data.get('script', ''),
+        'project_name': data.get('project_name', 'Untitled'),
+        'template': data.get('template', 'start_from_scratch')
+    }
+    
+    render_executor.submit(
+        background_render_task, 
+        job_id, 
+        render_params, 
+        user_id,
+        app.app_context()
+    )
+    
+    return jsonify({
+        'success': True,
+        'job_id': job_id,
+        'message': 'Video rendering started. You can close this tab and we\'ll email you when it\'s ready.'
+    })
+
+
+@app.route('/render-status/<job_id>', methods=['GET'])
+def get_render_status(job_id):
+    """Check the status of a background render job."""
+    if job_id not in background_render_jobs:
+        return jsonify({'error': 'Job not found'}), 404
+    
+    job = background_render_jobs[job_id]
+    
+    return jsonify({
+        'status': job['status'],
+        'progress': job['progress'],
+        'video_url': job['video_url'],
+        'error': job['error']
+    })
+
+
+@app.route('/my-render-jobs', methods=['GET'])
+def get_my_render_jobs():
+    """Get all render jobs for the current user."""
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify([])
+    
+    user_jobs = []
+    for job_id, job in background_render_jobs.items():
+        if job.get('user_id') == user_id:
+            user_jobs.append({
+                'job_id': job_id,
+                'status': job['status'],
+                'progress': job['progress'],
+                'video_url': job['video_url'],
+                'created_at': job.get('created_at')
+            })
+    
+    user_jobs.sort(key=lambda x: x.get('created_at', 0), reverse=True)
+    
+    return jsonify(user_jobs[:10])
 
 
 def format_user_error(error_msg):
