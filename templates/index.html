@@ -3095,9 +3095,51 @@
             line-height: 1.4;
         }
         
+        /* Content rights section */
+        .content-rights-section {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(255, 214, 10, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        
+        .rights-info-box {
+            margin-bottom: 0.75rem;
+        }
+        
+        .rights-info-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--gold);
+            margin-bottom: 0.35rem;
+        }
+        
+        .rights-info-text {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin: 0 0 0.25rem 0;
+            line-height: 1.4;
+        }
+        
+        .rights-learn-more {
+            font-size: 0.7rem;
+            color: var(--gold);
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .rights-learn-more:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
+        
         /* Content rights checkbox */
         .content-rights-checkbox {
-            margin-top: 1rem;
             text-align: left;
         }
         
@@ -7665,12 +7707,22 @@
                         <div class="placement-option-desc">Overlay element</div>
                     </div>
                 </div>
-                <div class="content-rights-checkbox">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="content-rights-check" onchange="updateConfirmButton()">
-                        <span class="checkmark"></span>
-                        <span class="checkbox-text">I have rights to this content and take responsibility if my accounts are taken down</span>
-                    </label>
+                <div class="content-rights-section" id="content-rights-section">
+                    <div class="rights-info-box">
+                        <div class="rights-info-header">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Your Content, Your Rights</span>
+                        </div>
+                        <p class="rights-info-text">AI learns from your preferences to improve suggestions — we never take ownership of your content.</p>
+                        <a href="/terms#ai-learning" target="_blank" class="rights-learn-more">Learn exactly how AI learning works</a>
+                    </div>
+                    <div class="content-rights-checkbox">
+                        <label class="checkbox-container">
+                            <input type="checkbox" id="content-rights-check" onchange="updateConfirmButton()">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-text">I have rights to use this content and accept responsibility for any consequences</span>
+                        </label>
+                    </div>
                 </div>
                 <div class="image-placement-actions">
                     <button class="image-placement-cancel" onclick="cancelImagePlacement()">Cancel</button>
@@ -8559,6 +8611,24 @@
         
         function clearWorkflowState() {
             localStorage.removeItem('framd_workflow_state');
+        }
+        
+        function updateProgressIndicator() {
+            const stepLabels = ['Input', 'Script', 'Visuals', 'Voice', 'Render'];
+            const maxStep = stepLabels.length;
+            const progress = Math.min(currentWorkflowStep, maxStep) / maxStep * 100;
+            
+            const indicator = document.querySelector('.workflow-progress');
+            if (indicator) {
+                indicator.style.width = `${progress}%`;
+            }
+            
+            const stepDisplay = document.querySelector('.workflow-step-label');
+            if (stepDisplay && currentWorkflowStep <= maxStep) {
+                stepDisplay.textContent = stepLabels[currentWorkflowStep - 1] || 'Ready';
+            }
+            
+            console.log('[Progress] Step', currentWorkflowStep, '/', maxStep, '(' + progress.toFixed(0) + '%)');
         }
         
         // Anchors Display - Scenes List Format (Uses new single-scene picker)
