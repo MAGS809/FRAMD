@@ -58,6 +58,7 @@ class Project(db.Model):
     status = db.Column(db.String(50), default='draft')
     script = db.Column(db.Text, nullable=True)
     visual_plan = db.Column(db.JSON, nullable=True)
+    sound_plan = db.Column(db.JSON, nullable=True)  # Music/FX suggestions from AI generation
     voice_assignments = db.Column(db.JSON, nullable=True)
     caption_settings = db.Column(db.JSON, nullable=True)
     video_path = db.Column(db.String(500), nullable=True)

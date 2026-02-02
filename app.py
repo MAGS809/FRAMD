@@ -93,25 +93,30 @@ def send_render_complete_email(user_id, video_url, project_name):
 
 
 def background_render_task(job_id, render_params, user_id, app_context):
-    """Execute video render in background thread."""
+    """
+    Execute video render in background thread.
+    
+    Scope: Processes scenes, concatenates clips, adds audio, and applies template visual FX.
+    Note: Captions overlay is handled by the main render pipeline for real-time preview.
+    Background renders focus on quick assembly with FX for users who close their tab.
+    """
     import subprocess
     import uuid
     
     try:
         background_render_jobs[job_id]['status'] = 'rendering'
-        background_render_jobs[job_id]['progress'] = 10
+        background_render_jobs[job_id]['progress'] = 5
         
         with app_context:
             scenes = render_params.get('scenes', [])
             audio_path = render_params.get('audio_path', '')
             video_format = render_params.get('format', '9:16')
             project_name = render_params.get('project_name', 'Untitled')
+            template = render_params.get('template', 'start_from_scratch')
             
             output_id = str(uuid.uuid4())[:8]
             output_path = f'output/background_{output_id}.mp4'
             os.makedirs('output', exist_ok=True)
-            
-            background_render_jobs[job_id]['progress'] = 50
             
             format_dims = {
                 '9:16': (1080, 1920),
@@ -121,37 +126,120 @@ def background_render_task(job_id, render_params, user_id, app_context):
             }
             width, height = format_dims.get(video_format, (1080, 1920))
             
-            if scenes and len(scenes) > 0:
-                first_scene = scenes[0]
-                if 'url' in first_scene:
-                    scene_url = first_scene['url']
-                    scene_path = scene_url.lstrip('/') if scene_url.startswith('/') else scene_url
-                    
-                    if os.path.exists(scene_path):
-                        cmd = [
-                            'ffmpeg', '-y', '-loop', '1', '-i', scene_path,
-                            '-t', '5', '-c:v', 'libx264', '-preset', 'fast',
-                            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
-                            output_path
-                        ]
-                        subprocess.run(cmd, capture_output=True, timeout=300)
+            # Step 1: Prepare scene clips (20%)
+            background_render_jobs[job_id]['progress'] = 20
+            background_render_jobs[job_id]['status'] = 'processing_scenes'
             
-            background_render_jobs[job_id]['progress'] = 90
+            clip_paths = []
+            for i, scene in enumerate(scenes):
+                scene_url = scene.get('url', '')
+                scene_duration = scene.get('duration', 4)
+                scene_path = scene_url.lstrip('/') if scene_url.startswith('/') else scene_url
+                
+                if scene_path and os.path.exists(scene_path):
+                    # Create a clip from the scene
+                    clip_path = f'output/bg_clip_{output_id}_{i}.mp4'
+                    cmd = [
+                        'ffmpeg', '-y', '-loop', '1', '-i', scene_path,
+                        '-t', str(scene_duration), '-c:v', 'libx264', '-preset', 'fast',
+                        '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}',
+                        clip_path
+                    ]
+                    result = subprocess.run(cmd, capture_output=True, timeout=120)
+                    if result.returncode == 0 and os.path.exists(clip_path):
+                        clip_paths.append(clip_path)
+            
+            if not clip_paths:
+                background_render_jobs[job_id]['status'] = 'error'
+                background_render_jobs[job_id]['error'] = 'No valid scenes to render'
+                return
+            
+            # Step 2: Concatenate clips (40%)
+            background_render_jobs[job_id]['progress'] = 40
+            background_render_jobs[job_id]['status'] = 'concatenating'
+            
+            concat_file = f'output/bg_concat_{output_id}.txt'
+            with open(concat_file, 'w') as f:
+                for clip in clip_paths:
+                    f.write(f"file '{os.path.abspath(clip)}'\n")
+            
+            concat_output = f'output/bg_concat_{output_id}.mp4'
+            concat_cmd = [
+                'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+                '-i', concat_file, '-c', 'copy', concat_output
+            ]
+            subprocess.run(concat_cmd, capture_output=True, timeout=120)
+            
+            # Step 3: Add audio if available (60%)
+            background_render_jobs[job_id]['progress'] = 60
+            background_render_jobs[job_id]['status'] = 'adding_audio'
+            
+            video_with_audio = concat_output
+            if audio_path and os.path.exists(audio_path):
+                video_with_audio = f'output/bg_audio_{output_id}.mp4'
+                audio_cmd = [
+                    'ffmpeg', '-y', '-i', concat_output, '-i', audio_path,
+                    '-c:v', 'copy', '-c:a', 'aac', '-shortest', video_with_audio
+                ]
+                result = subprocess.run(audio_cmd, capture_output=True, timeout=120)
+                if result.returncode != 0:
+                    video_with_audio = concat_output
+            
+            # Step 4: Apply template visual FX (80%)
+            background_render_jobs[job_id]['progress'] = 80
+            background_render_jobs[job_id]['status'] = 'applying_fx'
+            
+            try:
+                from context_engine import build_visual_fx_filter
+                vf_filter = build_visual_fx_filter(template)
+                
+                if vf_filter and vf_filter != '':
+                    fx_cmd = [
+                        'ffmpeg', '-y', '-i', video_with_audio,
+                        '-vf', vf_filter, '-c:a', 'copy', output_path
+                    ]
+                    result = subprocess.run(fx_cmd, capture_output=True, timeout=300)
+                    if result.returncode != 0:
+                        # Fallback: copy without FX
+                        import shutil
+                        shutil.copy(video_with_audio, output_path)
+                else:
+                    import shutil
+                    shutil.copy(video_with_audio, output_path)
+            except Exception as fx_error:
+                print(f"[Background Render] FX error: {fx_error}")
+                import shutil
+                shutil.copy(video_with_audio, output_path)
+            
+            # Cleanup temp files
+            for clip in clip_paths:
+                if os.path.exists(clip):
+                    os.remove(clip)
+            if os.path.exists(concat_file):
+                os.remove(concat_file)
+            if os.path.exists(concat_output) and concat_output != output_path:
+                os.remove(concat_output)
+            if video_with_audio != concat_output and video_with_audio != output_path:
+                if os.path.exists(video_with_audio):
+                    os.remove(video_with_audio)
+            
+            background_render_jobs[job_id]['progress'] = 100
             
             if os.path.exists(output_path):
                 background_render_jobs[job_id]['status'] = 'complete'
                 background_render_jobs[job_id]['video_url'] = '/' + output_path
-                background_render_jobs[job_id]['progress'] = 100
                 
                 send_render_complete_email(user_id, '/' + output_path, project_name)
             else:
                 background_render_jobs[job_id]['status'] = 'error'
-                background_render_jobs[job_id]['error'] = 'Render failed'
+                background_render_jobs[job_id]['error'] = 'Final render failed'
                 
     except Exception as e:
         background_render_jobs[job_id]['status'] = 'error'
         background_render_jobs[job_id]['error'] = str(e)
         print(f"[Background Render] Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 app = Flask(__name__)
@@ -194,6 +282,12 @@ with app.app_context():
                 result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='projects' AND column_name='liked'"))
                 if not result.fetchone():
                     conn.execute(text("ALTER TABLE projects ADD COLUMN liked BOOLEAN DEFAULT NULL"))
+                    conn.commit()
+                
+                # Check and add sound_plan column to projects
+                result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='projects' AND column_name='sound_plan'"))
+                if not result.fetchone():
+                    conn.execute(text("ALTER TABLE projects ADD COLUMN sound_plan JSONB"))
                     conn.commit()
                 
                 # Check if video_feedbacks table exists
@@ -9574,6 +9668,7 @@ Also output a visual plan and sound plan as JSON:
             script_text = generated_response
         
         # Get template visual FX info
+        from context_engine import TEMPLATE_VISUAL_FX
         template_fx = TEMPLATE_VISUAL_FX.get(template_type, TEMPLATE_VISUAL_FX['start_from_scratch'])
         
         # Create a new project with the generated content
@@ -9583,6 +9678,8 @@ Also output a visual plan and sound plan as JSON:
             description="Generated using AI learning, trends, and user preferences",
             script=script_text,
             template_type=template_type,
+            visual_plan=visual_plan,
+            sound_plan=sound_plan,
             status='draft',
             workflow_step=3  # Start at script stage
         )
