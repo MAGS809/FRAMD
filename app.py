@@ -221,9 +221,43 @@ def extract_dialogue_only(script_text):
     return ' '.join(dialogue_lines)
 
 
+def generate_sound_effect_elevenlabs(effect_description, output_path, duration=2.0):
+    """
+    Generate a sound effect using ElevenLabs Sound Effects API.
+    Falls back to FFmpeg synthesis if ElevenLabs is unavailable.
+    """
+    elevenlabs_key = os.environ.get("ELEVENLABS_API_KEY")
+    
+    if elevenlabs_key:
+        try:
+            from elevenlabs.client import ElevenLabs
+            
+            client = ElevenLabs(api_key=elevenlabs_key)
+            
+            result = client.text_to_sound_effects.convert(
+                text=effect_description,
+                duration_seconds=min(duration, 22.0),
+                prompt_influence=0.3
+            )
+            
+            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else 'output', exist_ok=True)
+            
+            with open(output_path, 'wb') as f:
+                for chunk in result:
+                    f.write(chunk)
+            
+            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+                print(f"Generated ElevenLabs SFX: {effect_description[:30]}...")
+                return output_path
+        except Exception as e:
+            print(f"ElevenLabs SFX error: {e}, falling back to FFmpeg")
+    
+    return None
+
+
 def generate_sound_effect(effect_type, output_path, duration=1.0):
     """
-    Generate a sound effect using FFmpeg synthesis.
+    Generate a sound effect using ElevenLabs (preferred) or FFmpeg synthesis (fallback).
     Returns the path to the generated audio file.
     
     Supported effect types:
@@ -241,6 +275,24 @@ def generate_sound_effect(effect_type, output_path, duration=1.0):
     import subprocess
     
     os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else 'output', exist_ok=True)
+    
+    effect_descriptions = {
+        'whoosh': 'quick cinematic swoosh transition sound effect',
+        'impact': 'deep bass impact hit sound effect for emphasis',
+        'tension': 'rising tension drone suspenseful atmosphere',
+        'reveal': 'bright reveal sting chime sound effect',
+        'alarm': 'alert warning notification tone',
+        'heartbeat': 'rhythmic heartbeat pulse sound',
+        'static': 'radio TV static interference noise',
+        'beep': 'simple digital beep notification',
+        'rumble': 'low deep rumble earthquake bass',
+        'wind': 'ambient wind atmospheric whoosh'
+    }
+    
+    description = effect_descriptions.get(effect_type.lower(), effect_type)
+    elevenlabs_result = generate_sound_effect_elevenlabs(description, output_path, duration)
+    if elevenlabs_result:
+        return elevenlabs_result
     
     # FFmpeg anoisesrc uses 'color' and 'amplitude' (not 'c' and 'a')
     # Use -filter_complex for complex filter graphs
