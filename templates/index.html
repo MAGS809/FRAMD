@@ -14910,7 +14910,7 @@
             const messagesDiv = document.getElementById('messages');
             if (!messagesDiv) return;
             
-            // Create inline script card
+            // Create inline script card container
             const cardDiv = document.createElement('div');
             cardDiv.className = 'message ai script-card-message';
             cardDiv.id = 'inline-script-card-' + Date.now();
@@ -14926,25 +14926,89 @@
             const hook = lines[0]?.substring(0, 120) || 'Your script';
             
             cardDiv.innerHTML = `
-                <div class="inline-script-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Your Script</div>
-                        <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-dim);">
-                            <span>${duration}s</span>
-                            <span>${sceneCount} scenes</span>
+                <div class="script-loop-container" style="display: flex; flex-direction: column; gap: 2px;">
+                    <!-- Script Card -->
+                    <div class="inline-script-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px 12px 4px 4px; padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Your Script</div>
+                            <div style="display: flex; gap: 12px; font-size: 12px; color: var(--text-dim);">
+                                <span>${duration}s</span>
+                                <span>${sceneCount} scenes</span>
+                            </div>
                         </div>
+                        <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; font-style: italic;">"${escapeHtml(hook)}${hook.length >= 120 ? '...' : ''}"</div>
+                        <div class="script-preview" id="script-preview-text" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">${escapeHtml(scriptText)}</div>
                     </div>
-                    <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; font-style: italic;">"${escapeHtml(hook)}${hook.length >= 120 ? '...' : ''}"</div>
-                    <div class="script-preview" id="script-preview-text" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 12px;">${escapeHtml(scriptText)}</div>
-                    <div class="script-card-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" onclick="editScriptInline(this)" style="font-size: 12px; padding: 8px 16px;">Edit Script</button>
-                        <button class="btn btn-primary" onclick="confirmScriptAndProceed()" style="font-size: 12px; padding: 8px 16px;">Confirm & Continue</button>
+                    
+                    <!-- Loop Score Card (separate but connected) -->
+                    <div class="inline-loop-score-card" id="inline-loop-score" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-top: none; border-radius: 0 0 4px 4px; padding: 12px 16px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="font-size: 13px; color: var(--text-dim);">Loop Score</span>
+                            <span id="loop-score-value" style="font-size: 14px; font-weight: 600; color: var(--gold);">Analyzing...</span>
+                        </div>
+                        <div id="loop-score-analysis" style="font-size: 12px; color: var(--text-dim); margin-top: 6px; display: none;"></div>
+                    </div>
+                    
+                    <!-- Action Buttons Card (separate but connected) -->
+                    <div class="inline-action-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-top: none; border-radius: 0 0 12px 12px; padding: 12px 16px;">
+                        <div class="script-card-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn btn-secondary" onclick="editScriptInline(this)" style="font-size: 12px; padding: 8px 16px;">Edit Script</button>
+                            <button class="btn btn-primary" onclick="confirmScriptAndProceed()" style="font-size: 12px; padding: 8px 16px;">Confirm & Continue</button>
+                        </div>
                     </div>
                 </div>
             `;
             
             messagesDiv.appendChild(cardDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            // Fetch and display Loop Score asynchronously
+            fetchInlineLoopScore(scriptText);
+        }
+        
+        // Fetch Loop Score and update inline card
+        async function fetchInlineLoopScore(scriptText) {
+            try {
+                const thesis = currentProjectThesis || scriptText.split('\n')[0];
+                const response = await fetch('/validate-loop', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ thesis, script: scriptText })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    updateInlineLoopScore(data);
+                } else {
+                    document.getElementById('loop-score-value').textContent = 'N/A';
+                }
+            } catch (err) {
+                console.error('Loop score error:', err);
+                document.getElementById('loop-score-value').textContent = 'N/A';
+            }
+        }
+        
+        // Update the inline Loop Score display
+        function updateInlineLoopScore(loopData) {
+            const scoreEl = document.getElementById('loop-score-value');
+            const analysisEl = document.getElementById('loop-score-analysis');
+            if (!scoreEl) return;
+            
+            const score = loopData.loop_score || 0;
+            const strength = loopData.loop_strength || '';
+            const analysis = loopData.analysis || '';
+            
+            let scoreColor = '#4ade80'; // green
+            if (score < 0.4) scoreColor = '#f87171'; // red
+            else if (score < 0.7) scoreColor = '#fbbf24'; // yellow
+            
+            scoreEl.style.color = scoreColor;
+            scoreEl.textContent = `${Math.round(score * 100)}% ${strength}`;
+            
+            if (analysis && analysisEl) {
+                analysisEl.textContent = analysis;
+                analysisEl.style.display = 'block';
+            }
         }
         
         // Confirm script and proceed to visuals or render (for personalized content)
