@@ -14773,19 +14773,19 @@
                         currentProjectThesis = scriptData.result.script.thesis || message;
                         
                         // Show script card inline for confirmation
-                        showInlineScriptCard(currentScript);
+                        renderScriptCardInChat(currentScript);
                         addMessage('Here\'s your script. Review it and click "Confirm & Continue" to proceed to rendering.', false);
                     } else {
                         addMessage('Script generated. Click "Confirm & Continue" when ready.', false);
                         // Fallback - create a simple script from the topic
                         currentScript = message;
-                        showInlineScriptCard(message);
+                        renderScriptCardInChat(message);
                     }
                 } catch (err) {
                     console.error('Script generation error:', err);
                     addMessage('Ready to proceed. Click "Confirm & Continue" to start rendering.', false);
                     currentScript = message;
-                    showInlineScriptCard(message);
+                    renderScriptCardInChat(message);
                 }
                 
                 stopLoading();
