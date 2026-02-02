@@ -8348,6 +8348,115 @@
         let docHasScript = false;
         let docEditAbortController = null;
         
+        // Global abort controller for render operations
+        let renderAbortController = null;
+        let currentRenderSessionId = null;
+        
+        // Robust fetch with timeout and external abort signal support
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 30000, externalSignal = null) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            
+            // If external signal provided, listen for its abort and chain it
+            let externalAbortHandler = null;
+            if (externalSignal) {
+                externalAbortHandler = () => controller.abort();
+                externalSignal.addEventListener('abort', externalAbortHandler);
+            }
+            
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response;
+            } catch (err) {
+                clearTimeout(timeoutId);
+                if (err.name === 'AbortError') {
+                    // Check if it was a user-initiated cancel vs timeout
+                    if (externalSignal && externalSignal.aborted) {
+                        throw new Error('Request cancelled');
+                    }
+                    throw new Error(`Request timed out after ${timeoutMs/1000}s`);
+                }
+                throw err;
+            } finally {
+                if (externalSignal && externalAbortHandler) {
+                    externalSignal.removeEventListener('abort', externalAbortHandler);
+                }
+            }
+        }
+        
+        // Fetch with retry for transient failures (not user cancels)
+        async function fetchWithRetry(url, options = {}, { timeoutMs = 30000, maxRetries = 2, retryDelay = 1000, signal = null } = {}) {
+            let lastError;
+            
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                // Check if cancelled before each attempt
+                if (signal && signal.aborted) {
+                    throw new Error('Request cancelled');
+                }
+                
+                try {
+                    const response = await fetchWithTimeout(url, options, timeoutMs, signal);
+                    
+                    // Retry on 5xx server errors
+                    if (response.status >= 500 && attempt < maxRetries) {
+                        console.warn(`Server error ${response.status}, retrying (${attempt + 1}/${maxRetries})...`);
+                        await new Promise(r => setTimeout(r, retryDelay * (attempt + 1)));
+                        continue;
+                    }
+                    
+                    return response;
+                } catch (err) {
+                    lastError = err;
+                    
+                    // Don't retry if user cancelled
+                    if (err.message === 'Request cancelled') {
+                        throw err;
+                    }
+                    
+                    // Retry on timeout or network errors (TypeError = network down)
+                    const isRetryable = err.message.includes('timed out') || 
+                                        err.name === 'TypeError' || 
+                                        err.message.includes('Failed to fetch');
+                    
+                    if (isRetryable && attempt < maxRetries) {
+                        console.warn(`Request failed (${err.message}), retrying (${attempt + 1}/${maxRetries})...`);
+                        await new Promise(r => setTimeout(r, retryDelay * (attempt + 1)));
+                        continue;
+                    }
+                    
+                    throw err;
+                }
+            }
+            
+            throw lastError || new Error('Request failed after retries');
+        }
+        
+        // Cancel any in-flight render operations
+        function cancelRenderOperations() {
+            if (renderAbortController) {
+                renderAbortController.abort();
+                renderAbortController = null;
+            }
+            currentRenderSessionId = null;
+        }
+        
+        // Generate unique render session ID
+        function startRenderSession() {
+            cancelRenderOperations();
+            renderAbortController = new AbortController();
+            currentRenderSessionId = 'render-' + Date.now();
+            return currentRenderSessionId;
+        }
+        
+        // Check if this render session is still active
+        function isRenderSessionActive(sessionId) {
+            return currentRenderSessionId === sessionId;
+        }
+        
         // Document Editor Functions - simplified, no auto AI calls
         function updateDocEditor() {
             const editor = document.getElementById('doc-script-editor');
@@ -14641,9 +14750,9 @@
                 personalizeVideoData.topic = message;
                 removeTypingIndicator();
                 
-                // Generate script with the topic, then show inline script card
+                // Generate script with the topic, then show inline script card (60s timeout)
                 try {
-                    const scriptResponse = await fetch('/unified-engine', {
+                    const scriptResponse = await fetchWithRetry('/unified-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -14655,7 +14764,7 @@
                                 original_transcript: personalizeVideoData.creativeDna?.transcript || ''
                             }
                         })
-                    });
+                    }, { timeoutMs: 60000, maxRetries: 1 });
                     
                     const scriptData = await scriptResponse.json();
                     
@@ -15146,25 +15255,39 @@
             // Show unified loader
             const loader = document.getElementById('unified-loader');
             const statusEl = document.getElementById('unified-loader-status');
+            
+            // Start a new render session (cancels any previous)
+            const sessionId = startRenderSession();
+            const signal = renderAbortController?.signal;
+            
+            // Helper for progress updates (only if session still active)
+            const updateProgress = (step, total, message) => {
+                if (!isRenderSessionActive(sessionId)) return;
+                if (statusEl) {
+                    const percent = Math.round((step / total) * 100);
+                    statusEl.textContent = `${message} (${percent}%)`;
+                }
+            };
+            
             if (loader) loader.style.display = 'flex';
-            if (statusEl) statusEl.textContent = 'Starting render...';
+            updateProgress(0, 5, 'Starting render...');
             
             try {
                 // Use already-extracted creative DNA if available
                 let creativeDna = personalizeVideoData.creativeDna || null;
                 let audioPath = null;
                 
+                // Step 1: Extract DNA if needed (60s timeout)
                 if (useReskin && !creativeDna && personalizeVideoData.filePath) {
-                    // Only extract DNA if not already available
-                    if (statusEl) statusEl.textContent = 'Extracting creative DNA...';
+                    updateProgress(1, 5, 'Extracting creative DNA...');
                     
-                    const dnaResponse = await fetch('/extract-creative-dna', {
+                    const dnaResponse = await fetchWithRetry('/extract-creative-dna', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             file_path: personalizeVideoData.filePath
                         })
-                    });
+                    }, { timeoutMs: 60000, maxRetries: 1, signal });
                     
                     const dnaData = await dnaResponse.json();
                     if (!dnaData.success) {
@@ -15172,15 +15295,17 @@
                     } else {
                         creativeDna = dnaData.creative_dna;
                     }
+                } else {
+                    updateProgress(1, 5, 'Using cached creative DNA...');
                 }
                 
-                // Step 2: Generate voiceover (unless custom provided)
-                if (statusEl) statusEl.textContent = 'Generating voiceover...';
+                // Step 2: Generate voiceover (60s timeout - can be slow)
+                updateProgress(2, 5, 'Generating voiceover...');
                 
                 if (personalizeVideoData.customVoiceover) {
                     audioPath = personalizeVideoData.customVoiceover;
                 } else {
-                    const voiceResponse = await fetch('/generate-voiceover-multi', {
+                    const voiceResponse = await fetchWithRetry('/generate-voiceover-multi', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -15188,7 +15313,7 @@
                             character_voices: characterVoices || {},
                             custom_prompts: customVoicePrompts || {}
                         })
-                    });
+                    }, { timeoutMs: 90000, maxRetries: 1, signal });
                     
                     const voiceData = await voiceResponse.json();
                     if (!voiceData.success) {
@@ -15200,14 +15325,14 @@
                 let renderData;
                 
                 if (useReskin && creativeDna) {
-                    // Step 3: Re-skin with new visuals
-                    if (statusEl) statusEl.textContent = 'Generating AI visuals...';
+                    // Step 3: Re-skin with new visuals (180s timeout - DALL-E generation is slow)
+                    updateProgress(3, 5, 'Generating AI visuals...');
                     
                     // Get caption settings with position
                     const captionSettings = getCaptionSettings();
                     const captionPosition = personalizeVideoData.captionPosition || 'bottom';
                     
-                    const reskinResponse = await fetch('/reskin-video', {
+                    const reskinResponse = await fetchWithRetry('/reskin-video', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -15222,40 +15347,45 @@
                             captions_enabled: captionSettings.enabled !== false,
                             format: selectedFormat || '9:16'
                         })
-                    });
+                    }, { timeoutMs: 180000, maxRetries: 1, signal });
                     
                     renderData = await reskinResponse.json();
                     
                     if (renderData.success) {
-                        // Step 4: AI Quality Review
-                        if (statusEl) statusEl.textContent = 'AI reviewing quality...';
+                        // Step 4: AI Quality Review (30s timeout - optional, don't fail if it times out)
+                        updateProgress(4, 5, 'AI reviewing quality...');
                         
-                        const reviewResponse = await fetch('/ai-quality-review', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                video_path: renderData.video_path,
-                                topic: personalizeVideoData.topic || '',
-                                script: currentScript,
-                                creative_dna: creativeDna
-                            })
-                        });
-                        
-                        const reviewData = await reviewResponse.json();
-                        renderData.quality_review = reviewData;
-                        renderData.quality_score = reviewData.quality_score;
+                        try {
+                            const reviewResponse = await fetchWithRetry('/ai-quality-review', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    video_path: renderData.video_path,
+                                    topic: personalizeVideoData.topic || '',
+                                    script: currentScript,
+                                    creative_dna: creativeDna
+                                })
+                            }, { timeoutMs: 30000, maxRetries: 0, signal });
+                            
+                            const reviewData = await reviewResponse.json();
+                            renderData.quality_review = reviewData;
+                            renderData.quality_score = reviewData.quality_score;
+                        } catch (reviewErr) {
+                            console.warn('Quality review failed, skipping:', reviewErr);
+                            renderData.quality_score = null;
+                        }
                         
                         // Store for feedback
                         renderData.creative_dna = creativeDna;
                         renderData.sources_used = renderData.sources_used || [];
                     }
                 } else {
-                    // Fallback: Simple overlay render
-                    if (statusEl) statusEl.textContent = 'Assembling video...';
+                    // Fallback: Simple overlay render (120s timeout)
+                    updateProgress(3, 5, 'Assembling video...');
                     
                     const captionSettings = getCaptionSettings();
                     
-                    const renderResponse = await fetch('/render-personalized-video', {
+                    const renderResponse = await fetchWithRetry('/render-personalized-video', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -15266,13 +15396,19 @@
                             captions: captionSettings,
                             format: selectedFormat || '9:16'
                         })
-                    });
+                    }, { timeoutMs: 120000, maxRetries: 1, signal });
                     
                     renderData = await renderResponse.json();
                 }
                 
-                // Hide loader
-                if (loader) loader.style.display = 'none';
+                // Step 5: Complete
+                updateProgress(5, 5, 'Finalizing...');
+                
+                // Verify this session is still active before updating UI
+                if (!isRenderSessionActive(sessionId)) {
+                    console.log('Render session was superseded, ignoring results');
+                    return;
+                }
                 
                 if (renderData.success) {
                     // Show video with quality info if available
@@ -15299,9 +15435,21 @@
                 
             } catch (err) {
                 console.error('Personalized render error:', err);
-                if (loader) loader.style.display = 'none';
-                addMessage(`Render failed: ${err.message}`);
-                showError('Render Failed', err.message);
+                // Only show error if this session is still active (not superseded)
+                if (isRenderSessionActive(sessionId)) {
+                    // Don't show error for user cancellations
+                    if (err.message !== 'Request cancelled') {
+                        addMessage(`Render failed: ${err.message}`);
+                        showError('Render Failed', err.message);
+                    }
+                }
+            } finally {
+                // Only clean up if this is still the active session
+                if (isRenderSessionActive(sessionId)) {
+                    if (loader) loader.style.display = 'none';
+                    renderAbortController = null;
+                    currentRenderSessionId = null;
+                }
             }
         }
         
