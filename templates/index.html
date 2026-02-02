@@ -6798,6 +6798,85 @@
             color: var(--text-dim);
         }
         
+        /* Full Page Render Overlay */
+        .render-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        
+        .render-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .render-overlay-content {
+            text-align: center;
+            max-width: 400px;
+            padding: 2rem;
+        }
+        
+        .render-spinner {
+            width: 80px;
+            height: 80px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: renderSpin 1s linear infinite;
+            margin: 0 auto 2rem;
+        }
+        
+        @keyframes renderSpin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .render-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 0.75rem;
+        }
+        
+        .render-stage {
+            font-size: 1rem;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .render-substage {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+        
+        .render-cancel-btn {
+            padding: 12px 32px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .render-cancel-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        
         /* Toast Notification System */
         .toast-container {
             position: fixed;
@@ -7909,7 +7988,7 @@
                     </div>
                     <div class="mode-option" data-mode="reskin" onclick="selectUploadMode('reskin')">
                         <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-                        <div class="mode-option-label">Re-skin Mode</div>
+                        <div class="mode-option-label">AI Remix</div>
                         <div class="mode-option-desc">Clip guides visuals, AI regenerates with your topic</div>
                     </div>
                     <div class="mode-option" data-mode="clipper" onclick="selectUploadMode('clipper')">
@@ -7919,9 +7998,9 @@
                     </div>
                 </div>
                 
-                <!-- Re-skin Options (shown when personalize mode selected) -->
+                <!-- AI Remix Options (shown when personalize mode selected) -->
                 <div class="reskin-options-section" id="reskin-options-section" style="display: none;">
-                    <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Re-skin Options</div>
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">AI Remix Options</div>
                     
                     <!-- Topic Input -->
                     <div style="margin-bottom: 16px;">
@@ -12881,7 +12960,7 @@
                         
                         <div class="mode-buttons" id="inline-mode-buttons">
                             <div class="mode-btn selected" data-mode="reskin" onclick="selectInlineMode('reskin')">
-                                <div class="mode-btn-label">Re-skin Mode</div>
+                                <div class="mode-btn-label">AI Remix</div>
                                 <div class="mode-btn-desc">AI regenerates visuals for your topic</div>
                             </div>
                             <div class="mode-btn" data-mode="clipper" onclick="selectInlineMode('clipper')">
@@ -12976,7 +13055,7 @@
             
             let modeLabel = '';
             if (selectedUploadMode === 'reskin') {
-                modeLabel = 'Re-skin';
+                modeLabel = 'AI Remix';
                 
                 if (isVideoFile(pendingImageFile.name)) {
                     showToast('Extracting creative DNA...');
@@ -15066,7 +15145,7 @@
                                 original_transcript: personalizeVideoData.creativeDna?.transcript || ''
                             }
                         })
-                    }, { timeoutMs: 60000, maxRetries: 1 });
+                    }, { timeoutMs: 120000, maxRetries: 1 });
                     
                     const scriptData = await scriptResponse.json();
                     
@@ -15550,24 +15629,31 @@
             // Check for reskin mode vs simple overlay mode
             const useReskin = personalizeVideoData.useReskin !== false;
             
-            // Show unified loader
-            const loader = document.getElementById('unified-loader');
-            const statusEl = document.getElementById('unified-loader-status');
+            // Show full-page render overlay
+            const overlayTitle = useReskin ? 'AI Remix in Progress' : 'Video Rendering';
+            showRenderOverlay(overlayTitle);
             
             // Start a new render session (cancels any previous)
             const sessionId = startRenderSession();
             const signal = renderAbortController?.signal;
             
+            // Progress stages for the overlay
+            const stages = [
+                { stage: 'Extracting creative DNA...', substage: 'Analyzing video structure and rhythm' },
+                { stage: 'Generating voiceover...', substage: 'Converting script to speech' },
+                { stage: 'Creating visuals...', substage: 'AI is generating custom images' },
+                { stage: 'Assembling video...', substage: 'Compositing frames and audio' },
+                { stage: 'Finalizing...', substage: 'Adding finishing touches' }
+            ];
+            
             // Helper for progress updates (only if session still active)
             const updateProgress = (step, total, message) => {
                 if (!isRenderSessionActive(sessionId)) return;
-                if (statusEl) {
-                    const percent = Math.round((step / total) * 100);
-                    statusEl.textContent = `${message} (${percent}%)`;
-                }
+                if (isRenderCancelled()) return;
+                const stageInfo = stages[step - 1] || { stage: message, substage: '' };
+                updateRenderStage(stageInfo.stage, stageInfo.substage);
             };
             
-            if (loader) loader.style.display = 'flex';
             updateProgress(0, 5, 'Starting render...');
             
             try {
@@ -15715,7 +15801,7 @@
                     const qualityMsg = renderData.quality_score 
                         ? ` (Quality: ${Math.round(renderData.quality_score * 100)}%)`
                         : '';
-                    showSuccess('Video Ready', `Your re-skinned video is ready!${qualityMsg}`);
+                    showSuccess('Video Ready', `Your AI Remix is ready!${qualityMsg}`);
                     
                     // Show feedback buttons for learning
                     if (useReskin) {
@@ -15736,15 +15822,16 @@
                 // Only show error if this session is still active (not superseded)
                 if (isRenderSessionActive(sessionId)) {
                     // Don't show error for user cancellations
-                    if (err.message !== 'Request cancelled') {
+                    if (err.message !== 'Request cancelled' && !isRenderCancelled()) {
                         addMessage(`Render failed: ${err.message}`);
                         showError('Render Failed', err.message);
                     }
                 }
             } finally {
+                // Always hide overlay
+                hideRenderOverlay();
                 // Only clean up if this is still the active session
                 if (isRenderSessionActive(sessionId)) {
-                    if (loader) loader.style.display = 'none';
                     renderAbortController = null;
                     currentRenderSessionId = null;
                 }
@@ -18119,6 +18206,17 @@
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
     
+    <!-- Full Page Render Overlay -->
+    <div id="render-overlay" class="render-overlay">
+        <div class="render-overlay-content">
+            <div class="render-spinner"></div>
+            <div class="render-title">AI Remix in Progress</div>
+            <div class="render-stage" id="render-stage">Initializing...</div>
+            <div class="render-substage" id="render-substage">Please wait while we create your video</div>
+            <button class="render-cancel-btn" onclick="cancelRender()">Cancel</button>
+        </div>
+    </div>
+    
     <!-- App Footer -->
     <div class="app-footer">
         <div class="app-footer-content">
@@ -18214,6 +18312,42 @@
         function showError(title, message, duration) { return showToast('error', title, message, duration); }
         function showWarning(title, message, duration) { return showToast('warning', title, message, duration); }
         function showInfo(title, message, duration) { return showToast('info', title, message, duration); }
+    </script>
+    
+    <!-- Render Overlay Control Script -->
+    <script>
+        let renderCancelled = false;
+        
+        function showRenderOverlay(title = 'AI Remix in Progress') {
+            renderCancelled = false;
+            const overlay = document.getElementById('render-overlay');
+            const titleEl = overlay.querySelector('.render-title');
+            titleEl.textContent = title;
+            updateRenderStage('Initializing...', 'Please wait while we create your video');
+            overlay.classList.add('active');
+        }
+        
+        function hideRenderOverlay() {
+            const overlay = document.getElementById('render-overlay');
+            overlay.classList.remove('active');
+        }
+        
+        function updateRenderStage(stage, substage = '') {
+            const stageEl = document.getElementById('render-stage');
+            const substageEl = document.getElementById('render-substage');
+            if (stageEl) stageEl.textContent = stage;
+            if (substageEl) substageEl.textContent = substage;
+        }
+        
+        function cancelRender() {
+            renderCancelled = true;
+            hideRenderOverlay();
+            showWarning('Cancelled', 'Video rendering was cancelled');
+        }
+        
+        function isRenderCancelled() {
+            return renderCancelled;
+        }
     </script>
 </body>
 </html>
