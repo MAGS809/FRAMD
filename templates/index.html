@@ -7224,10 +7224,10 @@
                         <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">TikTok Edit</div>
                         <div style="font-size: 11px; color: var(--text-dim);">Beat-synced visual edit</div>
                     </div>
-                    <div onclick="startNewProject(); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; transition: all 0.2s; grid-column: span 2;">
-                        <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Start from Scratch</div>
-                        <div style="font-size: 11px; color: var(--text-dim);">Open canvas, your idea</div>
+                    <div onclick="openCustomTemplateCreator(); closeTemplatePickerModal();" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; transition: all 0.2s; grid-column: span 2;">
+                        <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Custom Template</div>
+                        <div style="font-size: 11px; color: var(--text-dim);">Upload a video to learn its style</div>
                     </div>
                 </div>
             </div>
@@ -7736,10 +7736,15 @@
                         <div class="mode-option-label">Use AI Curation</div>
                         <div class="mode-option-desc">AI finds the best visuals for your content</div>
                     </div>
-                    <div class="mode-option" data-mode="personalize" onclick="selectUploadMode('personalize')">
+                    <div class="mode-option" data-mode="reskin" onclick="selectUploadMode('reskin')">
                         <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-                        <div class="mode-option-label">Re-skin This Video</div>
-                        <div class="mode-option-desc">Clone the style, make it yours (<a href="/terms#personalization" target="_blank" style="color: var(--gold);">Terms</a>)</div>
+                        <div class="mode-option-label">Re-skin Mode</div>
+                        <div class="mode-option-desc">Clip guides visuals, AI regenerates with your topic</div>
+                    </div>
+                    <div class="mode-option" data-mode="clipper" onclick="selectUploadMode('clipper')">
+                        <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></div>
+                        <div class="mode-option-label">Next Gen Clipper</div>
+                        <div class="mode-option-desc">Script leads, AI clips according to template</div>
                     </div>
                 </div>
                 
@@ -10680,10 +10685,10 @@
                                 <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">TikTok Edit</div>
                                 <div style="font-size: 11px; color: var(--text-dim);">Beat-synced visual edit</div>
                             </div>
-                            <div class="template-card" onclick="startNewProject()" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s; grid-column: span 2;">
-                                <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
-                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Start from Scratch</div>
-                                <div style="font-size: 11px; color: var(--text-dim);">Open canvas, your idea</div>
+                            <div class="template-card" onclick="openCustomTemplateCreator()" style="cursor: pointer; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 16px; text-align: left; transition: all 0.2s; grid-column: span 2;">
+                                <div style="margin-bottom: 8px; color: var(--text-dim);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                                <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Custom Template</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">Upload a video to learn its style</div>
                             </div>
                         </div>
                         
@@ -12379,18 +12384,25 @@
         function selectUploadMode(mode) {
             selectedUploadMode = mode;
             document.querySelectorAll('.mode-option').forEach(opt => opt.classList.remove('selected'));
-            document.querySelector(`.mode-option[data-mode="${mode}"]`).classList.add('selected');
+            const selectedOpt = document.querySelector(`.mode-option[data-mode="${mode}"]`);
+            if (selectedOpt) selectedOpt.classList.add('selected');
             
             const placementSection = document.getElementById('placement-options-section');
             const reskinSection = document.getElementById('reskin-options-section');
             
-            if (mode === 'personalize') {
+            if (mode === 'reskin' || mode === 'clipper') {
                 placementSection.style.display = 'none';
                 reskinSection.style.display = 'block';
             } else {
                 placementSection.style.display = 'flex';
                 reskinSection.style.display = 'none';
             }
+        }
+        
+        function openCustomTemplateCreator() {
+            addMessage("Upload a video to create your custom template. AI will learn its editing style, pacing, and structure for future use.", false);
+            document.getElementById('file-input').click();
+            window.customTemplateMode = true;
         }
         
         function selectCaptionPosition(pos) {
@@ -12611,11 +12623,33 @@
             uploadedFile.uploadMode = selectedUploadMode;
             
             let modeLabel = '';
-            if (selectedUploadMode === 'personalize') {
-                modeLabel = 'Template';
+            if (selectedUploadMode === 'reskin') {
+                modeLabel = 'Re-skin';
                 
                 if (isVideoFile(pendingImageFile.name)) {
-                    showToast('Extracting video template...');
+                    showToast('Extracting creative DNA...');
+                    try {
+                        const response = await fetch('/extract-creative-dna', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ file_path: pendingImagePath })
+                        });
+                        const data = await response.json();
+                        if (data.creative_dna) {
+                            uploadedFile.creativeDna = data.creative_dna;
+                            uploadedFile.creativeDecisions = data.creative_dna.adjustable_elements || {};
+                            showToast(`Learned style: ${data.creative_dna.scenes?.length || 0} scenes, ${data.creative_dna.total_duration?.toFixed(1)}s`);
+                        }
+                    } catch (err) {
+                        console.error('Creative DNA extraction error:', err);
+                        showToast('Style extraction failed');
+                    }
+                }
+            } else if (selectedUploadMode === 'clipper') {
+                modeLabel = 'Clipper';
+                
+                if (isVideoFile(pendingImageFile.name)) {
+                    showToast('Analyzing clip structure...');
                     try {
                         const response = await fetch('/extract-video-template', {
                             method: 'POST',
@@ -12626,11 +12660,11 @@
                         if (data.success) {
                             uploadedFile.templateData = data;
                             uploadedFile.templateId = data.template_id;
-                            showToast(`Template extracted: ${data.scene_count} scenes, ${data.duration?.toFixed(1)}s`);
+                            showToast(`Clip analyzed: ${data.scene_count} scenes`);
                         }
                     } catch (err) {
-                        console.error('Template extraction error:', err);
-                        showToast('Template extraction failed');
+                        console.error('Clip analysis error:', err);
+                        showToast('Clip analysis failed');
                     }
                 }
             } else {
@@ -14473,25 +14507,26 @@
                     if (uploadData.success) {
                         fileContext = `[Uploaded: ${uploadedFile.name}, path: ${uploadData.filename}]`;
                         
-                        // Include upload mode for personalization flow
-                        if (uploadedFile.uploadMode === 'personalize') {
-                            fileContext += `\n[MODE: PERSONALIZE TEMPLATE]`;
-                            if (uploadedFile.templateId) {
-                                fileContext += `\n[Template ID: ${uploadedFile.templateId}]`;
+                        // Include upload mode for reskin or clipper flow
+                        if (uploadedFile.uploadMode === 'reskin') {
+                            fileContext += `\n[MODE: RE-SKIN - Clip guides visuals, AI regenerates]`;
+                            if (uploadedFile.creativeDna) {
+                                const dna = uploadedFile.creativeDna;
+                                fileContext += `\n[Creative DNA: ${dna.scenes?.length || 0} scenes, ${dna.total_duration?.toFixed(1) || '?'}s]`;
+                                if (dna.adjustable_elements) {
+                                    fileContext += `\n[Adjustable: colors, angles, composition]`;
+                                    fileContext += `\n[Fixed: rhythm, structure, pacing]`;
+                                }
                             }
-                            if (uploadedFile.templateData) {
-                                fileContext += `\n[Template: ${uploadedFile.templateData.scene_count || 0} scenes, ${uploadedFile.templateData.duration?.toFixed(1) || '?'}s]`;
-                            }
-                            // Store for render flow
                             // Get reskin options from UI
                             const topicInput = document.getElementById('reskin-topic-input');
                             
                             personalizeVideoData = {
-                                templateId: uploadedFile.templateId,
-                                templateData: uploadedFile.templateData,
+                                creativeDna: uploadedFile.creativeDna,
+                                creativeDecisions: uploadedFile.creativeDecisions,
                                 filePath: uploadedFile.filePath || uploadData.filename,
                                 analysis: uploadedFile.analysis,
-                                // Reskin options
+                                mode: 'reskin',
                                 useReskin: true,
                                 topic: topicInput ? topicInput.value : '',
                                 captionPosition: reskinCaptionPosition || 'bottom',
@@ -14501,7 +14536,38 @@
                             };
                             pendingPersonalizeRender = true;
                             
-                            // Reset reskin state for next upload
+                            // Reset state for next upload
+                            reskinCaptionPosition = 'bottom';
+                            reskinVoiceMode = 'ai';
+                            reskinCustomVoiceover = null;
+                            reskinCustomImages = [];
+                        } else if (uploadedFile.uploadMode === 'clipper') {
+                            fileContext += `\n[MODE: NEXT GEN CLIPPER - Script leads, template influences]`;
+                            if (uploadedFile.templateId) {
+                                fileContext += `\n[Template ID: ${uploadedFile.templateId}]`;
+                            }
+                            if (uploadedFile.templateData) {
+                                fileContext += `\n[Template: ${uploadedFile.templateData.scene_count || 0} scenes, ${uploadedFile.templateData.duration?.toFixed(1) || '?'}s]`;
+                            }
+                            // Get clipper options from UI
+                            const topicInput = document.getElementById('reskin-topic-input');
+                            
+                            personalizeVideoData = {
+                                templateId: uploadedFile.templateId,
+                                templateData: uploadedFile.templateData,
+                                filePath: uploadedFile.filePath || uploadData.filename,
+                                analysis: uploadedFile.analysis,
+                                mode: 'clipper',
+                                useReskin: false,
+                                topic: topicInput ? topicInput.value : '',
+                                captionPosition: reskinCaptionPosition || 'bottom',
+                                customVoiceover: reskinVoiceMode === 'custom' ? reskinCustomVoiceover : null,
+                                customImages: reskinCustomImages || [],
+                                brandColors: {}
+                            };
+                            pendingPersonalizeRender = true;
+                            
+                            // Reset state for next upload
                             reskinCaptionPosition = 'bottom';
                             reskinVoiceMode = 'ai';
                             reskinCustomVoiceover = null;

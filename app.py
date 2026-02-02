@@ -5417,7 +5417,7 @@ def extract_creative_dna():
         
         # Build overall creative DNA
         creative_dna = {
-            "duration": duration,
+            "total_duration": duration,
             "scene_count": len(scenes_dna),
             "scenes": scenes_dna,
             "overall_style": {
@@ -5426,7 +5426,20 @@ def extract_creative_dna():
                 "dominant_motion": max(set([s.get('motion', 'static') for s in scenes_dna]), key=[s.get('motion', 'static') for s in scenes_dna].count)
             },
             "transcript": transcript[:2000] if transcript else None,
-            "source_path": file_path
+            "source_path": file_path,
+            # Define what AI can adjust vs what must stay fixed
+            "adjustable_elements": {
+                "colors": True,  # AI can change colors to match topic
+                "angles": True,  # AI can adjust composition angles
+                "visual_content": True,  # AI generates new visuals for the topic
+                "text_overlays": True  # AI can modify text content
+            },
+            "fixed_elements": {
+                "rhythm": True,  # Scene timing/pacing must match original
+                "structure": True,  # Scene order and purpose stays same
+                "transitions": True,  # Cut types and timing preserved
+                "motion_patterns": True  # Zoom/pan/static follows original
+            }
         }
         
         return jsonify({
@@ -5498,74 +5511,46 @@ def reskin_video():
                     scene_visuals.append(scene_visual)
                     continue
             
-            # Generate search query adapted to new topic
+            # Generate visual adapted to new topic
             intent = scene.get('intent', 'visual content')
             scene_type = scene.get('scene_type', 'b_roll')
-            base_query = scene.get('replacement_query', 'professional video background')
+            original_colors = scene.get('colors', {})
+            original_composition = scene.get('composition', {})
             
-            # Adapt query to new topic
-            adapted_query = f"{new_topic} {base_query}" if new_topic else base_query
+            # AI makes creative decisions about what to change
+            creative_decision = {
+                'scene_index': scene.get('index', 0),
+                'original_intent': intent,
+                'original_colors': original_colors,
+                'original_composition': original_composition,
+                'changes_made': []
+            }
             
-            # Try Pexels video search first
-            pexels_key = os.environ.get("PEXELS_API_KEY")
-            if pexels_key:
-                try:
-                    import requests
-                    headers = {"Authorization": pexels_key}
-                    search_url = f"https://api.pexels.com/videos/search?query={adapted_query}&per_page=3&orientation=portrait"
-                    response = requests.get(search_url, headers=headers, timeout=10)
-                    
-                    if response.status_code == 200:
-                        videos = response.json().get('videos', [])
-                        if videos:
-                            # Get the best quality video file
-                            video_files = videos[0].get('video_files', [])
-                            hd_files = [f for f in video_files if f.get('quality') in ['hd', 'sd'] and f.get('width', 0) >= 720]
-                            if hd_files:
-                                video_url = hd_files[0].get('link')
-                                
-                                # Download video clip
-                                clip_path = f'uploads/reskin_clip_{output_id}_{scene["index"]}.mp4'
-                                clip_response = requests.get(video_url, timeout=30)
-                                with open(clip_path, 'wb') as f:
-                                    f.write(clip_response.content)
-                                
-                                scene_visual['visual_path'] = clip_path
-                                scene_visual['source'] = 'pexels_video'
-                                scene_visuals.append(scene_visual)
-                                continue
-                except Exception as e:
-                    logging.warning(f"Pexels video search failed: {e}")
-            
-            # Fallback: Try Pexels image search
-            if pexels_key:
-                try:
-                    import requests
-                    headers = {"Authorization": pexels_key}
-                    search_url = f"https://api.pexels.com/v1/search?query={adapted_query}&per_page=3&orientation=portrait"
-                    response = requests.get(search_url, headers=headers, timeout=10)
-                    
-                    if response.status_code == 200:
-                        photos = response.json().get('photos', [])
-                        if photos:
-                            image_url = photos[0].get('src', {}).get('large2x') or photos[0].get('src', {}).get('large')
-                            
-                            # Download image
-                            img_path = f'uploads/reskin_img_{output_id}_{scene["index"]}.jpg'
-                            img_response = requests.get(image_url, timeout=10)
-                            with open(img_path, 'wb') as f:
-                                f.write(img_response.content)
-                            
-                            scene_visual['visual_path'] = img_path
-                            scene_visual['source'] = 'pexels_image'
-                            scene_visuals.append(scene_visual)
-                            continue
-                except Exception as e:
-                    logging.warning(f"Pexels image search failed: {e}")
-            
-            # Final fallback: Generate image with DALL-E
+            # PRIMARY: Generate AI visual tailored to topic (not stock)
+            # AI has creative leeway on colors/angles but respects rhythm/structure
             try:
-                generation_prompt = f"Professional {scene_type} shot for {new_topic}. {intent}. High quality, clean composition."
+                # Build generation prompt respecting original structure with creative leeway
+                framing = original_composition.get('framing', 'medium')
+                layout = original_composition.get('layout', 'centered')
+                mood = original_colors.get('mood', 'neutral')
+                
+                # Determine color adjustment
+                if brand_colors and brand_colors.get('primary'):
+                    color_instruction = f"Use brand colors: {brand_colors.get('primary')}"
+                    creative_decision['changes_made'].append(f"Adjusted colors to brand: {brand_colors.get('primary')}")
+                else:
+                    color_instruction = f"Use a {mood} color palette that fits the topic"
+                    creative_decision['changes_made'].append(f"Adapted {mood} mood to fit topic")
+                
+                generation_prompt = f"""Professional {framing} shot for "{new_topic}". 
+Scene intent: {intent}.
+Composition: {layout} layout.
+{color_instruction}.
+High quality, cinematic, suitable for social media video.
+No text, no watermarks, no logos."""
+                
+                creative_decision['generation_prompt'] = generation_prompt
+                creative_decision['changes_made'].append(f"Generated new visual for: {new_topic}")
                 
                 dalle_response = client.images.generate(
                     model="dall-e-3",
@@ -5585,15 +5570,53 @@ def reskin_video():
                     f.write(img_response.content)
                 
                 scene_visual['visual_path'] = img_path
-                scene_visual['source'] = 'generated'
+                scene_visual['source'] = 'ai_generated'
+                scene_visual['creative_decision'] = creative_decision
                 scene_visuals.append(scene_visual)
+                continue
                 
             except Exception as e:
-                logging.warning(f"DALL-E generation failed: {e}")
-                # Use solid color fallback
-                scene_visual['visual_path'] = None
-                scene_visual['source'] = 'fallback'
-                scene_visuals.append(scene_visual)
+                logging.warning(f"AI generation failed for scene {scene.get('index')}: {e}")
+                creative_decision['changes_made'].append(f"AI generation failed, using fallback")
+            
+            # FALLBACK ONLY: Use stock as last resort (with warning)
+            pexels_key = os.environ.get("PEXELS_API_KEY")
+            base_query = scene.get('replacement_query', 'professional background')
+            adapted_query = f"{new_topic} {base_query}" if new_topic else base_query
+            
+            if pexels_key:
+                try:
+                    import requests
+                    headers = {"Authorization": pexels_key}
+                    search_url = f"https://api.pexels.com/v1/search?query={adapted_query}&per_page=3&orientation=portrait"
+                    response = requests.get(search_url, headers=headers, timeout=10)
+                    
+                    if response.status_code == 200:
+                        photos = response.json().get('photos', [])
+                        if photos:
+                            image_url = photos[0].get('src', {}).get('large2x') or photos[0].get('src', {}).get('large')
+                            
+                            img_path = f'uploads/reskin_img_{output_id}_{scene["index"]}.jpg'
+                            img_response = requests.get(image_url, timeout=10)
+                            with open(img_path, 'wb') as f:
+                                f.write(img_response.content)
+                            
+                            scene_visual['visual_path'] = img_path
+                            scene_visual['source'] = 'stock_fallback'
+                            scene_visual['stock_warning'] = True
+                            creative_decision['changes_made'].append('Used stock fallback (not ideal)')
+                            scene_visual['creative_decision'] = creative_decision
+                            scene_visuals.append(scene_visual)
+                            continue
+                except Exception as e:
+                    logging.warning(f"Stock fallback failed: {e}")
+            
+            # Final fallback: solid color placeholder
+            scene_visual['visual_path'] = None
+            scene_visual['source'] = 'fallback'
+            creative_decision['changes_made'].append('All visual sources failed - using fallback')
+            scene_visual['creative_decision'] = creative_decision
+            scene_visuals.append(scene_visual)
         
         # Step 2: Assemble video from scene visuals
         clips_list_path = f'output/clips_{output_id}.txt'
