@@ -364,6 +364,41 @@ def generate_sound_effect(effect_type, output_path, duration=1.0):
         return None
 
 
+def build_visual_fx_filter(visual_fx, width, height):
+    """
+    Build FFmpeg filter string based on template visual FX settings.
+    Returns a filter string to apply color grading, vignette, etc.
+    """
+    filters = []
+    
+    color_grade = visual_fx.get('color_grade', 'natural')
+    vignette = visual_fx.get('vignette', 0)
+    
+    color_grade_filters = {
+        'high_contrast': 'eq=contrast=1.3:brightness=0.05:saturation=1.2',
+        'clean_bright': 'eq=contrast=1.1:brightness=0.08:saturation=1.1',
+        'warm_cinematic': 'colorbalance=rs=0.1:gs=0.05:bs=-0.1,eq=contrast=1.15:saturation=1.1',
+        'neutral_sharp': 'eq=contrast=1.2:saturation=0.95,unsharp=5:5:1',
+        'warm_intimate': 'colorbalance=rs=0.15:gs=0.08:bs=-0.05,eq=contrast=1.05:brightness=0.03',
+        'saturated_pop': 'eq=saturation=1.4:contrast=1.2:brightness=0.05',
+        'polished_commercial': 'eq=contrast=1.1:brightness=0.05:saturation=1.15',
+        'vibrant_social': 'eq=saturation=1.35:contrast=1.15',
+        'natural': 'eq=contrast=1.05:saturation=1.0'
+    }
+    
+    if color_grade in color_grade_filters:
+        filters.append(color_grade_filters[color_grade])
+    
+    if vignette > 0:
+        vignette_angle = 3.14159 / (2 + vignette * 3)
+        filters.append(f'vignette=PI/{2 + int(vignette * 3)}')
+    
+    if not filters:
+        return ''
+    
+    return ','.join(filters)
+
+
 def create_word_synced_subtitles(script_text, audio_duration, output_path):
     """
     Create SRT subtitle file with word-level timing based on audio duration.
@@ -7889,6 +7924,10 @@ def render_video():
     script_text = data.get('script', '')  # Script text for subtitles
     stage_directions = data.get('stage_directions', '')  # Stage directions with SFX
     preview_mode = data.get('preview', False)  # Quick preview at lower resolution
+    template_type = data.get('template', 'start_from_scratch')  # Template for visual FX styling
+    
+    from context_engine import get_template_visual_fx
+    visual_fx = get_template_visual_fx(template_type)
     
     if not scenes:
         return jsonify({'error': 'No scenes provided'}), 400

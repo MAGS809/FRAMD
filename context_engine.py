@@ -87,6 +87,86 @@ TEMPLATE_TONE_DNA = {
     }
 }
 
+TEMPLATE_VISUAL_FX = {
+    'hot_take': {
+        'color_grade': 'high_contrast',
+        'vignette': 0.3,
+        'shake_intensity': 0.15,
+        'text_style': 'bold_impact',
+        'transitions': ['zoom_in', 'flash', 'glitch'],
+        'fx_tags': ['impact', 'whoosh', 'tension']
+    },
+    'explainer': {
+        'color_grade': 'clean_bright',
+        'vignette': 0.1,
+        'shake_intensity': 0,
+        'text_style': 'clean_modern',
+        'transitions': ['fade', 'slide', 'reveal'],
+        'fx_tags': ['beep', 'reveal']
+    },
+    'story_time': {
+        'color_grade': 'warm_cinematic',
+        'vignette': 0.25,
+        'shake_intensity': 0.05,
+        'text_style': 'elegant_serif',
+        'transitions': ['fade', 'dissolve'],
+        'fx_tags': ['tension', 'heartbeat', 'reveal']
+    },
+    'commentary': {
+        'color_grade': 'neutral_sharp',
+        'vignette': 0.15,
+        'shake_intensity': 0.1,
+        'text_style': 'clean_bold',
+        'transitions': ['cut', 'zoom_in'],
+        'fx_tags': ['whoosh', 'impact']
+    },
+    'open_letter': {
+        'color_grade': 'warm_intimate',
+        'vignette': 0.35,
+        'shake_intensity': 0,
+        'text_style': 'handwritten_feel',
+        'transitions': ['fade', 'soft_blur'],
+        'fx_tags': ['heartbeat', 'wind']
+    },
+    'meme_funny': {
+        'color_grade': 'saturated_pop',
+        'vignette': 0,
+        'shake_intensity': 0.25,
+        'text_style': 'meme_impact',
+        'transitions': ['zoom_punch', 'shake', 'glitch', 'flash'],
+        'fx_tags': ['whoosh', 'beep', 'static']
+    },
+    'make_an_ad': {
+        'color_grade': 'polished_commercial',
+        'vignette': 0.1,
+        'shake_intensity': 0,
+        'text_style': 'premium_clean',
+        'transitions': ['slide', 'reveal', 'zoom_out'],
+        'fx_tags': ['reveal', 'whoosh']
+    },
+    'tiktok_edit': {
+        'color_grade': 'vibrant_social',
+        'vignette': 0,
+        'shake_intensity': 0.2,
+        'text_style': 'tiktok_native',
+        'transitions': ['beat_sync', 'flash', 'zoom_punch', 'shake'],
+        'fx_tags': ['whoosh', 'impact', 'rumble']
+    },
+    'start_from_scratch': {
+        'color_grade': 'natural',
+        'vignette': 0.1,
+        'shake_intensity': 0,
+        'text_style': 'clean_modern',
+        'transitions': ['fade', 'cut'],
+        'fx_tags': ['whoosh']
+    }
+}
+
+def get_template_visual_fx(template_type: str) -> dict:
+    """Get the visual FX settings for a specific template."""
+    template_key = template_type.lower().replace(' ', '_').replace('-', '_')
+    return TEMPLATE_VISUAL_FX.get(template_key, TEMPLATE_VISUAL_FX['start_from_scratch'])
+
 def get_template_guidelines(template_type: str) -> dict:
     """Get the tone DNA and guidelines for a specific template."""
     template_key = template_type.lower().replace(' ', '_').replace('-', '_')
