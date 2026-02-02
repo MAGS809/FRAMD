@@ -5249,6 +5249,773 @@ Respond in JSON:
         return jsonify({'error': str(e)}), 500
 
 
+def validate_safe_path(file_path):
+    """Validate file path is safe and within allowed directories."""
+    if not file_path:
+        return None
+    # Normalize and resolve path
+    normalized = os.path.normpath(file_path)
+    # Reject absolute paths and path traversal
+    if normalized.startswith('/') and not normalized.startswith('/home/runner'):
+        if not normalized.startswith('uploads/') and not normalized.startswith('output/'):
+            return None
+    if '..' in normalized:
+        return None
+    # Only allow files in uploads/ or output/ directories
+    allowed_dirs = ['uploads', 'output', 'tmp']
+    path_parts = normalized.replace('\\', '/').split('/')
+    if path_parts[0] not in allowed_dirs and not normalized.startswith('/home/runner'):
+        # Check if it's a relative path within allowed dirs
+        for allowed in allowed_dirs:
+            if allowed in path_parts:
+                return normalized
+        return None
+    return normalized
+
+
+@app.route('/extract-creative-dna', methods=['POST'])
+@rate_limit(limit=10, window=60)
+def extract_creative_dna():
+    """Extract creative DNA from a video for re-skinning: scene intents, composition, colors, motion."""
+    import base64
+    import subprocess
+    from openai import OpenAI
+    
+    data = request.get_json()
+    file_path = data.get('file_path')
+    
+    # Validate path is safe
+    file_path = validate_safe_path(file_path)
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'Video file not found or invalid path'}), 404
+    
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Get video duration
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file_path]
+        result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        duration = float(result.stdout.strip()) if result.stdout.strip() else 30
+        
+        # Extract keyframes at regular intervals (1 per 2-3 seconds for detailed analysis)
+        frames_dir = os.path.join('uploads', 'dna_frames')
+        os.makedirs(frames_dir, exist_ok=True)
+        
+        # Calculate frame extraction interval
+        num_scenes = max(3, min(12, int(duration / 3)))
+        interval = duration / num_scenes
+        
+        frame_paths = []
+        for i in range(num_scenes):
+            timestamp = i * interval + (interval / 2)
+            frame_path = os.path.join(frames_dir, f'dna_{int(time.time())}_{i}.jpg')
+            extract_cmd = ['ffmpeg', '-y', '-ss', str(timestamp), '-i', file_path, '-vframes', '1', '-q:v', '2', frame_path]
+            subprocess.run(extract_cmd, capture_output=True, timeout=30)
+            if os.path.exists(frame_path):
+                frame_paths.append({'path': frame_path, 'timestamp': timestamp, 'index': i})
+        
+        # Analyze each frame for creative DNA
+        scenes_dna = []
+        
+        for frame_info in frame_paths:
+            with open(frame_info['path'], 'rb') as f:
+                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            # Deep scene analysis with GPT-4 Vision
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": """Analyze this video frame for creative DNA extraction. Output ONLY valid JSON:
+
+{
+    "scene_type": "talking_head/product_shot/b_roll/text_overlay/action/transition/establishing",
+    "intent": "What is this scene trying to communicate? (1 sentence)",
+    "composition": {
+        "layout": "centered/rule_of_thirds/split_screen/fullscreen",
+        "subject_position": "center/left/right/top/bottom",
+        "depth": "shallow/medium/deep",
+        "framing": "close_up/medium/wide/extreme_wide"
+    },
+    "colors": {
+        "dominant": "#hex",
+        "accent": "#hex",
+        "mood": "warm/cool/neutral/vibrant/muted"
+    },
+    "motion": "static/slow_zoom/fast_cut/pan/tracking/handheld",
+    "text_overlay": {
+        "present": true/false,
+        "position": "top/center/bottom/left/right",
+        "style": "bold/subtle/animated",
+        "content_type": "headline/subtitle/callout/none"
+    },
+    "visual_elements": ["list of key visual elements"],
+    "replacement_query": "Search query to find similar visual for different topic"
+}"""},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}}
+                    ]
+                }],
+                max_tokens=500
+            )
+            
+            scene_analysis = response.choices[0].message.content
+            
+            # Parse JSON response
+            try:
+                import json
+                # Clean up response
+                cleaned = scene_analysis.strip()
+                if cleaned.startswith('```'):
+                    cleaned = cleaned.split('```')[1]
+                    if cleaned.startswith('json'):
+                        cleaned = cleaned[4:]
+                scene_data = json.loads(cleaned)
+            except:
+                scene_data = {
+                    "scene_type": "b_roll",
+                    "intent": "Visual content",
+                    "composition": {"layout": "centered"},
+                    "colors": {"dominant": "#333333", "mood": "neutral"},
+                    "motion": "static",
+                    "replacement_query": "professional background footage"
+                }
+            
+            scene_data['timestamp'] = frame_info['timestamp']
+            scene_data['duration'] = interval
+            scene_data['index'] = frame_info['index']
+            scenes_dna.append(scene_data)
+            
+            # Cleanup frame
+            try:
+                os.remove(frame_info['path'])
+            except:
+                pass
+        
+        # Extract audio transcript
+        transcript = ""
+        audio_path = file_path.rsplit('.', 1)[0] + '_dna_audio.mp3'
+        audio_cmd = ['ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', '-q:a', '4', audio_path]
+        subprocess.run(audio_cmd, capture_output=True, timeout=120)
+        
+        if os.path.exists(audio_path) and os.path.getsize(audio_path) > 1000:
+            try:
+                with open(audio_path, 'rb') as audio_file:
+                    transcription = client.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=audio_file,
+                        response_format="text"
+                    )
+                    transcript = transcription if isinstance(transcription, str) else str(transcription)
+            except Exception as e:
+                logging.warning(f"Transcription failed: {e}")
+            finally:
+                try:
+                    os.remove(audio_path)
+                except:
+                    pass
+        
+        # Build overall creative DNA
+        creative_dna = {
+            "duration": duration,
+            "scene_count": len(scenes_dna),
+            "scenes": scenes_dna,
+            "overall_style": {
+                "pacing": "fast" if duration / len(scenes_dna) < 3 else "medium" if duration / len(scenes_dna) < 5 else "slow",
+                "color_palette": list(set([s.get('colors', {}).get('dominant', '#333') for s in scenes_dna])),
+                "dominant_motion": max(set([s.get('motion', 'static') for s in scenes_dna]), key=[s.get('motion', 'static') for s in scenes_dna].count)
+            },
+            "transcript": transcript[:2000] if transcript else None,
+            "source_path": file_path
+        }
+        
+        return jsonify({
+            'success': True,
+            'creative_dna': creative_dna
+        })
+        
+    except Exception as e:
+        logging.error(f"Creative DNA extraction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/reskin-video', methods=['POST'])
+@rate_limit(limit=3, window=60)
+def reskin_video():
+    """Re-skin a video using creative DNA: replace visuals while maintaining structure."""
+    import subprocess
+    import uuid
+    from openai import OpenAI
+    
+    data = request.get_json()
+    creative_dna = data.get('creative_dna', {})
+    new_topic = data.get('topic', '')
+    new_script = data.get('script', '')
+    brand_colors = data.get('brand_colors', {})
+    custom_images_raw = data.get('custom_images', [])
+    voiceover_path = data.get('voiceover_path')
+    caption_position = data.get('caption_position', 'bottom')
+    caption_style = data.get('caption_style', 'modern')
+    
+    # Validate all file paths
+    custom_images = [validate_safe_path(p) for p in custom_images_raw if validate_safe_path(p)]
+    if voiceover_path:
+        voiceover_path = validate_safe_path(voiceover_path)
+    
+    if not creative_dna or not creative_dna.get('scenes'):
+        return jsonify({'error': 'Creative DNA required'}), 400
+    
+    if not new_topic and not new_script:
+        return jsonify({'error': 'Topic or script required'}), 400
+    
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        output_id = str(uuid.uuid4())[:8]
+        
+        # Step 1: For each scene in DNA, find or generate replacement visual
+        scene_visuals = []
+        custom_image_index = 0
+        
+        for scene in creative_dna.get('scenes', []):
+            scene_visual = {
+                'index': scene.get('index', 0),
+                'timestamp': scene.get('timestamp', 0),
+                'duration': scene.get('duration', 3),
+                'visual_path': None,
+                'motion': scene.get('motion', 'static'),
+                'composition': scene.get('composition', {})
+            }
+            
+            # Check if user provided custom image for this scene
+            if custom_image_index < len(custom_images):
+                custom_path = custom_images[custom_image_index]
+                if os.path.exists(custom_path):
+                    scene_visual['visual_path'] = custom_path
+                    scene_visual['source'] = 'custom'
+                    custom_image_index += 1
+                    scene_visuals.append(scene_visual)
+                    continue
+            
+            # Generate search query adapted to new topic
+            intent = scene.get('intent', 'visual content')
+            scene_type = scene.get('scene_type', 'b_roll')
+            base_query = scene.get('replacement_query', 'professional video background')
+            
+            # Adapt query to new topic
+            adapted_query = f"{new_topic} {base_query}" if new_topic else base_query
+            
+            # Try Pexels video search first
+            pexels_key = os.environ.get("PEXELS_API_KEY")
+            if pexels_key:
+                try:
+                    import requests
+                    headers = {"Authorization": pexels_key}
+                    search_url = f"https://api.pexels.com/videos/search?query={adapted_query}&per_page=3&orientation=portrait"
+                    response = requests.get(search_url, headers=headers, timeout=10)
+                    
+                    if response.status_code == 200:
+                        videos = response.json().get('videos', [])
+                        if videos:
+                            # Get the best quality video file
+                            video_files = videos[0].get('video_files', [])
+                            hd_files = [f for f in video_files if f.get('quality') in ['hd', 'sd'] and f.get('width', 0) >= 720]
+                            if hd_files:
+                                video_url = hd_files[0].get('link')
+                                
+                                # Download video clip
+                                clip_path = f'uploads/reskin_clip_{output_id}_{scene["index"]}.mp4'
+                                clip_response = requests.get(video_url, timeout=30)
+                                with open(clip_path, 'wb') as f:
+                                    f.write(clip_response.content)
+                                
+                                scene_visual['visual_path'] = clip_path
+                                scene_visual['source'] = 'pexels_video'
+                                scene_visuals.append(scene_visual)
+                                continue
+                except Exception as e:
+                    logging.warning(f"Pexels video search failed: {e}")
+            
+            # Fallback: Try Pexels image search
+            if pexels_key:
+                try:
+                    import requests
+                    headers = {"Authorization": pexels_key}
+                    search_url = f"https://api.pexels.com/v1/search?query={adapted_query}&per_page=3&orientation=portrait"
+                    response = requests.get(search_url, headers=headers, timeout=10)
+                    
+                    if response.status_code == 200:
+                        photos = response.json().get('photos', [])
+                        if photos:
+                            image_url = photos[0].get('src', {}).get('large2x') or photos[0].get('src', {}).get('large')
+                            
+                            # Download image
+                            img_path = f'uploads/reskin_img_{output_id}_{scene["index"]}.jpg'
+                            img_response = requests.get(image_url, timeout=10)
+                            with open(img_path, 'wb') as f:
+                                f.write(img_response.content)
+                            
+                            scene_visual['visual_path'] = img_path
+                            scene_visual['source'] = 'pexels_image'
+                            scene_visuals.append(scene_visual)
+                            continue
+                except Exception as e:
+                    logging.warning(f"Pexels image search failed: {e}")
+            
+            # Final fallback: Generate image with DALL-E
+            try:
+                generation_prompt = f"Professional {scene_type} shot for {new_topic}. {intent}. High quality, clean composition."
+                
+                dalle_response = client.images.generate(
+                    model="dall-e-3",
+                    prompt=generation_prompt,
+                    size="1024x1792",
+                    quality="standard",
+                    n=1
+                )
+                
+                image_url = dalle_response.data[0].url
+                
+                # Download generated image
+                import requests
+                img_path = f'uploads/reskin_gen_{output_id}_{scene["index"]}.jpg'
+                img_response = requests.get(image_url, timeout=30)
+                with open(img_path, 'wb') as f:
+                    f.write(img_response.content)
+                
+                scene_visual['visual_path'] = img_path
+                scene_visual['source'] = 'generated'
+                scene_visuals.append(scene_visual)
+                
+            except Exception as e:
+                logging.warning(f"DALL-E generation failed: {e}")
+                # Use solid color fallback
+                scene_visual['visual_path'] = None
+                scene_visual['source'] = 'fallback'
+                scene_visuals.append(scene_visual)
+        
+        # Step 2: Assemble video from scene visuals
+        clips_list_path = f'output/clips_{output_id}.txt'
+        os.makedirs('output', exist_ok=True)
+        
+        processed_clips = []
+        format_dims = {'9:16': (1080, 1920), '16:9': (1920, 1080), '1:1': (1080, 1080)}
+        width, height = format_dims.get(data.get('format', '9:16'), (1080, 1920))
+        
+        for sv in scene_visuals:
+            if not sv.get('visual_path') or not os.path.exists(sv['visual_path']):
+                continue
+            
+            clip_output = f'output/processed_clip_{output_id}_{sv["index"]}.mp4'
+            duration = sv.get('duration', 3)
+            motion = sv.get('motion', 'static')
+            
+            # Build motion filter based on DNA
+            motion_filter = ""
+            if motion == 'slow_zoom':
+                motion_filter = f",zoompan=z='min(zoom+0.001,1.2)':d={int(duration*25)}:s={width}x{height}"
+            elif motion == 'pan':
+                motion_filter = f",zoompan=z=1.1:x='iw/2-(iw/zoom/2)+sin(on/100)*50':d={int(duration*25)}:s={width}x{height}"
+            
+            # Check if source is video or image
+            if sv['visual_path'].lower().endswith(('.mp4', '.mov', '.webm')):
+                # Process video clip
+                clip_cmd = [
+                    'ffmpeg', '-y', '-i', sv['visual_path'],
+                    '-t', str(duration),
+                    '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1{motion_filter}',
+                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                    '-an',
+                    clip_output
+                ]
+            else:
+                # Process image with motion
+                clip_cmd = [
+                    'ffmpeg', '-y', '-loop', '1', '-i', sv['visual_path'],
+                    '-t', str(duration),
+                    '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,zoompan=z=\'min(zoom+0.0015,1.2)\':d={int(duration*25)}:s={width}x{height}:fps=25',
+                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                    '-pix_fmt', 'yuv420p',
+                    clip_output
+                ]
+            
+            result = subprocess.run(clip_cmd, capture_output=True, timeout=120)
+            if result.returncode == 0 and os.path.exists(clip_output):
+                processed_clips.append(clip_output)
+        
+        if not processed_clips:
+            return jsonify({'error': 'No visuals could be processed'}), 500
+        
+        # Write concat file
+        with open(clips_list_path, 'w') as f:
+            for clip in processed_clips:
+                f.write(f"file '{os.path.abspath(clip)}'\n")
+        
+        # Concatenate all clips
+        concat_output = f'output/concat_{output_id}.mp4'
+        concat_cmd = [
+            'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', clips_list_path,
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            concat_output
+        ]
+        subprocess.run(concat_cmd, capture_output=True, timeout=300)
+        
+        # Step 3: Add voiceover
+        final_output = f'output/reskinned_{output_id}.mp4'
+        
+        if voiceover_path and os.path.exists(voiceover_path):
+            # Add custom or generated voiceover
+            audio_cmd = [
+                'ffmpeg', '-y',
+                '-i', concat_output,
+                '-i', voiceover_path,
+                '-c:v', 'copy',
+                '-c:a', 'aac', '-b:a', '192k',
+                '-map', '0:v:0', '-map', '1:a:0',
+                '-shortest',
+                final_output
+            ]
+            subprocess.run(audio_cmd, capture_output=True, timeout=300)
+        else:
+            import shutil
+            shutil.copy(concat_output, final_output)
+        
+        # Step 4: Add captions if script provided
+        if new_script and data.get('captions_enabled', True):
+            captioned_output = f'output/reskinned_captioned_{output_id}.mp4'
+            
+            # Get video duration
+            dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', final_output]
+            dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+            video_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else 30
+            
+            # Create SRT file with proper positioning
+            srt_path = f'output/captions_{output_id}.srt'
+            create_word_synced_subtitles(new_script, video_duration, srt_path)
+            
+            # Caption position mapping
+            position_margins = {
+                'top': 'MarginV=50,Alignment=8',
+                'center': 'MarginV=0,Alignment=5',
+                'bottom': 'MarginV=80,Alignment=2'
+            }
+            margin_style = position_margins.get(caption_position, position_margins['bottom'])
+            
+            # Caption style settings
+            styles = {
+                'modern': {'font': 'Inter-Bold', 'size': 42, 'outline': 2},
+                'minimal': {'font': 'Inter-Regular', 'size': 36, 'outline': 1},
+                'bold': {'font': 'Inter-ExtraBold', 'size': 48, 'outline': 3},
+            }
+            style = styles.get(caption_style, styles['modern'])
+            
+            caption_cmd = [
+                'ffmpeg', '-y',
+                '-i', final_output,
+                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow=1,{margin_style}'",
+                '-c:a', 'copy',
+                captioned_output
+            ]
+            result = subprocess.run(caption_cmd, capture_output=True, timeout=600)
+            
+            if result.returncode == 0:
+                import shutil
+                shutil.move(captioned_output, final_output)
+            
+            # Cleanup srt
+            if os.path.exists(srt_path):
+                os.remove(srt_path)
+        
+        # Cleanup temp files
+        for clip in processed_clips:
+            try:
+                os.remove(clip)
+            except:
+                pass
+        for sv in scene_visuals:
+            if sv.get('visual_path') and os.path.exists(sv['visual_path']) and sv.get('source') != 'custom':
+                try:
+                    os.remove(sv['visual_path'])
+                except:
+                    pass
+        for f in [clips_list_path, concat_output]:
+            if os.path.exists(f):
+                try:
+                    os.remove(f)
+                except:
+                    pass
+        
+        return jsonify({
+            'success': True,
+            'video_path': '/' + final_output,
+            'video_url': '/' + final_output,
+            'scene_count': len(scene_visuals),
+            'sources_used': [sv.get('source') for sv in scene_visuals]
+        })
+        
+    except Exception as e:
+        logging.error(f"Reskin video error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/ai-quality-review', methods=['POST'])
+def ai_quality_review():
+    """AI self-reviews a generated video before showing to user."""
+    import base64
+    import subprocess
+    from openai import OpenAI
+    
+    data = request.get_json()
+    video_path = data.get('video_path')
+    topic = data.get('topic', '')
+    script = data.get('script', '')
+    creative_dna = data.get('creative_dna', {})
+    
+    if not video_path or not os.path.exists(video_path.lstrip('/')):
+        return jsonify({'error': 'Video not found'}), 404
+    
+    actual_path = video_path.lstrip('/')
+    
+    try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        # Extract frames from the generated video for review
+        frames_dir = os.path.join('uploads', 'review_frames')
+        os.makedirs(frames_dir, exist_ok=True)
+        
+        # Get duration
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', actual_path]
+        result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        duration = float(result.stdout.strip()) if result.stdout.strip() else 30
+        
+        # Extract 3 frames: start, middle, end
+        frame_paths = []
+        for i, timestamp in enumerate([2, duration/2, max(duration-2, 3)]):
+            frame_path = os.path.join(frames_dir, f'review_{int(time.time())}_{i}.jpg')
+            extract_cmd = ['ffmpeg', '-y', '-ss', str(timestamp), '-i', actual_path, '-vframes', '1', '-q:v', '2', frame_path]
+            subprocess.run(extract_cmd, capture_output=True, timeout=30)
+            if os.path.exists(frame_path):
+                frame_paths.append(frame_path)
+        
+        if not frame_paths:
+            return jsonify({'quality_score': 0.5, 'pass': True, 'issues': ['Could not extract frames for review']})
+        
+        # Encode frames
+        frame_contents = []
+        for fp in frame_paths:
+            with open(fp, 'rb') as f:
+                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
+                frame_contents.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}})
+        
+        # AI reviews the video quality
+        review_prompt = f"""Review this generated video for quality. The video was created for topic: "{topic}"
+
+Script being used: {script[:500] if script else 'N/A'}
+
+Score each aspect from 0.0 to 1.0:
+1. Visual coherence - Do the scenes flow together naturally?
+2. Topic alignment - Do the visuals match the topic/script?
+3. Professional quality - Does it look like professional content, not stock footage slideshow?
+4. Brand consistency - Is there visual consistency throughout?
+
+Output JSON only:
+{{
+    "visual_coherence": 0.0-1.0,
+    "topic_alignment": 0.0-1.0,
+    "professional_quality": 0.0-1.0,
+    "brand_consistency": 0.0-1.0,
+    "overall_score": 0.0-1.0,
+    "pass": true/false (true if overall >= 0.6),
+    "issues": ["list of specific issues found"],
+    "weak_scenes": [0, 1, 2] (indexes of scenes that need regeneration),
+    "suggestions": ["how to improve"]
+}}"""
+
+        content = [{"type": "text", "text": review_prompt}] + frame_contents
+        
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": content}],
+            max_tokens=500
+        )
+        
+        review_text = response.choices[0].message.content
+        
+        # Parse review
+        try:
+            import json
+            cleaned = review_text.strip()
+            if cleaned.startswith('```'):
+                cleaned = cleaned.split('```')[1]
+                if cleaned.startswith('json'):
+                    cleaned = cleaned[4:]
+            review = json.loads(cleaned)
+        except:
+            review = {
+                "overall_score": 0.7,
+                "pass": True,
+                "issues": [],
+                "weak_scenes": [],
+                "suggestions": []
+            }
+        
+        # Cleanup frames
+        for fp in frame_paths:
+            try:
+                os.remove(fp)
+            except:
+                pass
+        
+        return jsonify({
+            'success': True,
+            'review': review,
+            'quality_score': review.get('overall_score', 0.7),
+            'pass': review.get('pass', True),
+            'issues': review.get('issues', []),
+            'weak_scenes': review.get('weak_scenes', [])
+        })
+        
+    except Exception as e:
+        logging.error(f"AI quality review error: {e}")
+        return jsonify({'quality_score': 0.6, 'pass': True, 'issues': [str(e)]})
+
+
+@app.route('/reskin-feedback', methods=['POST'])
+def reskin_feedback():
+    """Store feedback on reskinned video for global learning."""
+    from models import ReskinFeedback, VisualMatch
+    from flask_login import current_user
+    
+    data = request.get_json()
+    liked = data.get('liked')
+    comment = data.get('comment', '')
+    video_path = data.get('video_path')
+    topic = data.get('topic', '')
+    visual_sources = data.get('visual_sources', [])
+    search_queries = data.get('search_queries', [])
+    creative_dna = data.get('creative_dna', {})
+    quality_scores = data.get('quality_scores', {})
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    try:
+        # Store feedback
+        feedback = ReskinFeedback(
+            user_id=user_id,
+            source_dna=creative_dna,
+            topic=topic,
+            visual_sources=visual_sources,
+            ai_quality_score=quality_scores.get('overall_score'),
+            visual_match_score=quality_scores.get('topic_alignment'),
+            brand_alignment_score=quality_scores.get('brand_consistency'),
+            coherence_score=quality_scores.get('visual_coherence'),
+            user_liked=liked,
+            user_comment=comment,
+            search_queries_used=search_queries,
+            successful_visuals=[v for i, v in enumerate(visual_sources) if liked] if liked else [],
+            failed_visuals=[v for i, v in enumerate(visual_sources) if not liked] if not liked else []
+        )
+        db.session.add(feedback)
+        
+        # Update global visual match patterns
+        for i, scene in enumerate(creative_dna.get('scenes', [])):
+            intent = scene.get('intent', '')
+            scene_type = scene.get('scene_type', '')
+            query = search_queries[i] if i < len(search_queries) else ''
+            source = visual_sources[i] if i < len(visual_sources) else ''
+            
+            if intent and query:
+                # Find or create visual match record
+                match = VisualMatch.query.filter_by(
+                    scene_intent=intent[:500],
+                    search_query=query[:500]
+                ).first()
+                
+                if not match:
+                    match = VisualMatch(
+                        scene_intent=intent[:500],
+                        scene_type=scene_type,
+                        search_query=query[:500],
+                        source=source
+                    )
+                    db.session.add(match)
+                
+                # Update success/fail counts
+                if liked:
+                    match.success_count += 1
+                else:
+                    match.fail_count += 1
+                
+                total = match.success_count + match.fail_count
+                match.success_rate = match.success_count / total if total > 0 else 0
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Feedback recorded for global learning',
+            'feedback_id': feedback.id
+        })
+        
+    except Exception as e:
+        logging.error(f"Reskin feedback error: {e}")
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-best-visual-match', methods=['POST'])
+def get_best_visual_match():
+    """Get the best visual search query for a scene intent based on global learning."""
+    from models import VisualMatch
+    
+    data = request.get_json()
+    intent = data.get('intent', '')
+    scene_type = data.get('scene_type', '')
+    topic = data.get('topic', '')
+    
+    if not intent:
+        return jsonify({'query': topic or 'professional background'})
+    
+    try:
+        # Find best matching visual queries from global learning
+        matches = VisualMatch.query.filter(
+            VisualMatch.scene_intent.ilike(f'%{intent[:100]}%')
+        ).order_by(
+            VisualMatch.success_rate.desc(),
+            VisualMatch.success_count.desc()
+        ).limit(5).all()
+        
+        if matches and matches[0].success_rate > 0.5:
+            # Use proven query
+            best_query = matches[0].search_query
+            # Adapt to new topic
+            if topic:
+                best_query = f"{topic} {best_query}"
+            return jsonify({
+                'query': best_query,
+                'source': 'learned',
+                'confidence': matches[0].success_rate
+            })
+        
+        # No good match, return generic
+        return jsonify({
+            'query': f"{topic} {scene_type}" if topic else scene_type or 'professional background',
+            'source': 'default',
+            'confidence': 0.0
+        })
+        
+    except Exception as e:
+        logging.error(f"Visual match lookup error: {e}")
+        return jsonify({'query': topic or 'professional background', 'source': 'fallback'})
+
+
 @app.route('/render-personalized-video', methods=['POST'])
 @rate_limit(limit=5, window=60)
 def render_personalized_video():
@@ -7386,8 +8153,20 @@ def generate_voiceover_multi():
         if not lines:
             # Clean up script and treat as single narrator voice
             clean_script = script.strip()
-            # Remove any remaining headers/markers
+            # Remove any remaining headers/markers and AI meta-commentary
             clean_lines = []
+            
+            # Patterns that indicate AI meta-commentary (not actual script)
+            meta_patterns = [
+                r'^Understood', r'^I\'ll create', r'^Here\'s', r'^Let me create',
+                r'^This script', r'^The script', r'^I\'ve', r'^I can create',
+                r'^Let me know', r'^Would you like', r'^The message',
+                r'^exaggerated personas', r'^With voices', r'^I hope this',
+                r'^This uses a', r'^The humor comes', r'^Here is',
+                r'^I\'ve crafted', r'^This ad', r'^The ad', r'^Below is',
+                r'^Note:', r'^---', r'^\*\*', r'^Script:', r'^Title:',
+            ]
+            
             for line in clean_script.split('\n'):
                 line = line.strip()
                 if not line:
@@ -7396,6 +8175,12 @@ def generate_voiceover_multi():
                 if line.startswith('HOOK:') or line.startswith('BODY:') or line.startswith('CLOSER:'):
                     continue
                 if line.startswith('[') and line.endswith(']') and ':' not in line:
+                    continue
+                # Skip AI meta-commentary
+                if any(re.match(p, line, re.IGNORECASE) for p in meta_patterns):
+                    continue
+                # Skip lines that look like headers or explanations (all caps, short)
+                if re.match(r'^[A-Z\s]+$', line) and len(line) < 30:
                     continue
                 clean_lines.append(line)
             

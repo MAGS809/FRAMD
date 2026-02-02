@@ -485,3 +485,55 @@ class VideoTemplate(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     user = db.relationship('User', backref=db.backref('video_templates', lazy='dynamic'))
+
+
+class ReskinFeedback(db.Model):
+    """Global learning system for video re-skinning quality across all accounts"""
+    __tablename__ = 'reskin_feedback'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    
+    # What was created
+    source_dna = db.Column(db.JSON, nullable=True)
+    topic = db.Column(db.String(500), nullable=True)
+    visual_sources = db.Column(db.JSON, nullable=True)
+    
+    # Quality scores (from AI self-review)
+    ai_quality_score = db.Column(db.Float, nullable=True)
+    visual_match_score = db.Column(db.Float, nullable=True)
+    brand_alignment_score = db.Column(db.Float, nullable=True)
+    coherence_score = db.Column(db.Float, nullable=True)
+    
+    # User feedback
+    user_liked = db.Column(db.Boolean, nullable=True)
+    user_comment = db.Column(db.Text, nullable=True)
+    regenerated = db.Column(db.Boolean, default=False)
+    
+    # What worked / what didn't
+    successful_visuals = db.Column(db.JSON, nullable=True)
+    failed_visuals = db.Column(db.JSON, nullable=True)
+    search_queries_used = db.Column(db.JSON, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('reskin_feedback', lazy='dynamic'))
+
+
+class VisualMatch(db.Model):
+    """Track which visual search queries work for which intents globally"""
+    __tablename__ = 'visual_matches'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    scene_intent = db.Column(db.String(500), nullable=False)
+    scene_type = db.Column(db.String(50), nullable=True)
+    topic_category = db.Column(db.String(100), nullable=True)
+    
+    search_query = db.Column(db.String(500), nullable=False)
+    source = db.Column(db.String(50), nullable=True)
+    
+    success_count = db.Column(db.Integer, default=0)
+    fail_count = db.Column(db.Integer, default=0)
+    success_rate = db.Column(db.Float, default=0.0)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)

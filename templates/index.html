@@ -7738,10 +7738,58 @@
                     </div>
                     <div class="mode-option" data-mode="personalize" onclick="selectUploadMode('personalize')">
                         <div class="mode-option-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-                        <div class="mode-option-label">Personalize This File</div>
-                        <div class="mode-option-desc">Use as template, adapt for your content (<a href="/terms#personalization" target="_blank" style="color: var(--gold);">Terms of Service</a>)</div>
+                        <div class="mode-option-label">Re-skin This Video</div>
+                        <div class="mode-option-desc">Clone the style, make it yours (<a href="/terms#personalization" target="_blank" style="color: var(--gold);">Terms</a>)</div>
                     </div>
                 </div>
+                
+                <!-- Re-skin Options (shown when personalize mode selected) -->
+                <div class="reskin-options-section" id="reskin-options-section" style="display: none;">
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Re-skin Options</div>
+                    
+                    <!-- Topic Input -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px;">What's this video about?</label>
+                        <input type="text" id="reskin-topic-input" placeholder="e.g., My SaaS product, Coffee shop ad, Fitness tips..." 
+                            style="width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;">
+                    </div>
+                    
+                    <!-- Caption Position -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Caption Position</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="caption-pos-btn" data-pos="top" onclick="selectCaptionPosition('top')" style="flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px;">Top</button>
+                            <button type="button" class="caption-pos-btn" data-pos="center" onclick="selectCaptionPosition('center')" style="flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px;">Center</button>
+                            <button type="button" class="caption-pos-btn selected" data-pos="bottom" onclick="selectCaptionPosition('bottom')" style="flex: 1; padding: 10px; background: var(--gold-muted); border: 1px solid var(--gold); border-radius: 8px; color: var(--gold); cursor: pointer; font-size: 13px;">Bottom</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Voiceover Upload -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Voiceover</label>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="voice-mode-btn selected" data-mode="ai" onclick="selectVoiceMode('ai')" style="flex: 1; padding: 10px; background: var(--gold-muted); border: 1px solid var(--gold); border-radius: 8px; color: var(--gold); cursor: pointer; font-size: 13px;">AI Voice</button>
+                            <button type="button" class="voice-mode-btn" data-mode="custom" onclick="selectVoiceMode('custom')" style="flex: 1; padding: 10px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px;">Upload My Own</button>
+                        </div>
+                        <div id="custom-voice-upload" style="display: none; margin-top: 10px;">
+                            <input type="file" id="custom-voiceover-file" accept="audio/*" onchange="handleCustomVoiceover(this)" style="display: none;">
+                            <button type="button" onclick="document.getElementById('custom-voiceover-file').click()" style="width: 100%; padding: 12px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                                <span id="custom-voice-label">Click to upload audio file</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Custom Images -->
+                    <div style="margin-bottom: 8px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Custom Images (Optional)</label>
+                        <input type="file" id="custom-images-input" accept="image/*" multiple onchange="handleCustomImages(this)" style="display: none;">
+                        <button type="button" onclick="document.getElementById('custom-images-input').click()" style="width: 100%; padding: 12px; background: var(--card-bg); border: 1px dashed var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px;">
+                            <span id="custom-images-label">Add images AI should include</span>
+                        </button>
+                        <div id="custom-images-preview" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;"></div>
+                    </div>
+                </div>
+                
                 <div class="image-placement-options" id="placement-options-section">
                     <div class="placement-option selected" data-placement="background" onclick="selectPlacement('background')">
                         <div class="placement-option-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
@@ -12322,17 +12370,129 @@
             return filename.match(/\.(mp4|mov|avi|mkv|webm)$/i);
         }
         
+        // Reskin options state
+        let reskinCaptionPosition = 'bottom';
+        let reskinVoiceMode = 'ai';
+        let reskinCustomVoiceover = null;
+        let reskinCustomImages = [];
+        
         function selectUploadMode(mode) {
             selectedUploadMode = mode;
             document.querySelectorAll('.mode-option').forEach(opt => opt.classList.remove('selected'));
             document.querySelector(`.mode-option[data-mode="${mode}"]`).classList.add('selected');
             
             const placementSection = document.getElementById('placement-options-section');
+            const reskinSection = document.getElementById('reskin-options-section');
+            
             if (mode === 'personalize') {
                 placementSection.style.display = 'none';
+                reskinSection.style.display = 'block';
             } else {
                 placementSection.style.display = 'flex';
+                reskinSection.style.display = 'none';
             }
+        }
+        
+        function selectCaptionPosition(pos) {
+            reskinCaptionPosition = pos;
+            document.querySelectorAll('.caption-pos-btn').forEach(btn => {
+                if (btn.dataset.pos === pos) {
+                    btn.classList.add('selected');
+                    btn.style.background = 'var(--gold-muted)';
+                    btn.style.borderColor = 'var(--gold)';
+                    btn.style.color = 'var(--gold)';
+                } else {
+                    btn.classList.remove('selected');
+                    btn.style.background = 'var(--card-bg)';
+                    btn.style.borderColor = 'var(--border)';
+                    btn.style.color = 'var(--text-secondary)';
+                }
+            });
+        }
+        
+        function selectVoiceMode(mode) {
+            reskinVoiceMode = mode;
+            document.querySelectorAll('.voice-mode-btn').forEach(btn => {
+                if (btn.dataset.mode === mode) {
+                    btn.classList.add('selected');
+                    btn.style.background = 'var(--gold-muted)';
+                    btn.style.borderColor = 'var(--gold)';
+                    btn.style.color = 'var(--gold)';
+                } else {
+                    btn.classList.remove('selected');
+                    btn.style.background = 'var(--card-bg)';
+                    btn.style.borderColor = 'var(--border)';
+                    btn.style.color = 'var(--text-secondary)';
+                }
+            });
+            
+            const customUpload = document.getElementById('custom-voice-upload');
+            customUpload.style.display = mode === 'custom' ? 'block' : 'none';
+        }
+        
+        async function handleCustomVoiceover(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const label = document.getElementById('custom-voice-label');
+            label.textContent = 'Uploading...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                const response = await fetch('/upload-file', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    reskinCustomVoiceover = data.path;
+                    label.textContent = `✓ ${file.name}`;
+                    label.style.color = 'var(--gold)';
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (err) {
+                label.textContent = 'Upload failed. Try again.';
+                label.style.color = 'var(--error)';
+            }
+        }
+        
+        async function handleCustomImages(input) {
+            const files = input.files;
+            if (!files.length) return;
+            
+            const preview = document.getElementById('custom-images-preview');
+            const label = document.getElementById('custom-images-label');
+            
+            for (const file of files) {
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    
+                    const response = await fetch('/upload-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        reskinCustomImages.push(data.path);
+                        
+                        // Add preview thumbnail
+                        const thumb = document.createElement('div');
+                        thumb.style.cssText = 'width: 50px; height: 50px; border-radius: 6px; background-size: cover; background-position: center; border: 1px solid var(--border);';
+                        thumb.style.backgroundImage = `url(${data.path})`;
+                        preview.appendChild(thumb);
+                    }
+                } catch (err) {
+                    console.error('Image upload error:', err);
+                }
+            }
+            
+            label.textContent = `${reskinCustomImages.length} image(s) added`;
         }
         
         function updateConfirmButton() {
@@ -14323,13 +14483,29 @@
                                 fileContext += `\n[Template: ${uploadedFile.templateData.scene_count || 0} scenes, ${uploadedFile.templateData.duration?.toFixed(1) || '?'}s]`;
                             }
                             // Store for render flow
+                            // Get reskin options from UI
+                            const topicInput = document.getElementById('reskin-topic-input');
+                            
                             personalizeVideoData = {
                                 templateId: uploadedFile.templateId,
                                 templateData: uploadedFile.templateData,
                                 filePath: uploadedFile.filePath || uploadData.filename,
-                                analysis: uploadedFile.analysis
+                                analysis: uploadedFile.analysis,
+                                // Reskin options
+                                useReskin: true,
+                                topic: topicInput ? topicInput.value : '',
+                                captionPosition: reskinCaptionPosition || 'bottom',
+                                customVoiceover: reskinVoiceMode === 'custom' ? reskinCustomVoiceover : null,
+                                customImages: reskinCustomImages || [],
+                                brandColors: {}
                             };
                             pendingPersonalizeRender = true;
+                            
+                            // Reset reskin state for next upload
+                            reskinCaptionPosition = 'bottom';
+                            reskinVoiceMode = 'ai';
+                            reskinCustomVoiceover = null;
+                            reskinCustomImages = [];
                         }
                         
                         // Include video/image analysis that was captured during placement popup
@@ -14717,76 +14893,175 @@
             }
         }
         
-        // Render personalized video (mute original, dub with AI voice)
+        // Re-skin video: extract creative DNA, generate new visuals, render
         async function startPersonalizedRender() {
             if (!personalizeVideoData || !currentScript) {
                 addMessage('Missing template data or script. Please try again.');
                 return;
             }
             
+            // Check for reskin mode vs simple overlay mode
+            const useReskin = personalizeVideoData.useReskin !== false;
+            
             // Show unified loader
             unifiedLoader.show({
-                title: 'Rendering Personalized Video',
-                status: 'Preparing script...',
+                title: useReskin ? 'Re-skinning Video' : 'Rendering Personalized Video',
+                status: 'Analyzing source video...',
                 backgroundRender: true
             });
             unifiedLoader.setStep('script');
-            unifiedLoader.setProgress(10);
+            unifiedLoader.setProgress(5);
             
             try {
-                // Step 1: Generate voiceover from script
-                unifiedLoader.setStep('voice');
-                unifiedLoader.setStatus('Generating voiceover...');
-                unifiedLoader.setProgress(30);
+                let creativeDna = null;
+                let audioPath = null;
                 
-                const voiceResponse = await fetch('/generate-voiceover-multi', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        script: currentScript,
-                        character_voices: characterVoices || {},
-                        custom_prompts: customVoicePrompts || {}
-                    })
-                });
-                
-                const voiceData = await voiceResponse.json();
-                if (!voiceData.success) {
-                    throw new Error(voiceData.error || 'Voiceover generation failed');
+                if (useReskin) {
+                    // Step 1: Extract creative DNA from source video
+                    unifiedLoader.setStatus('Extracting creative DNA...');
+                    unifiedLoader.setProgress(10);
+                    
+                    const dnaResponse = await fetch('/extract-creative-dna', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            file_path: personalizeVideoData.filePath
+                        })
+                    });
+                    
+                    const dnaData = await dnaResponse.json();
+                    if (!dnaData.success) {
+                        console.warn('DNA extraction failed, falling back to simple render');
+                    } else {
+                        creativeDna = dnaData.creative_dna;
+                    }
                 }
                 
-                const audioPath = voiceData.audio_path;
+                // Step 2: Generate voiceover (unless custom provided)
+                unifiedLoader.setStep('voice');
+                unifiedLoader.setStatus('Generating voiceover...');
+                unifiedLoader.setProgress(25);
                 
-                // Step 2: Render with template video (muted) + new voiceover
-                unifiedLoader.setStep('render');
-                unifiedLoader.setStatus('Assembling final video...');
-                unifiedLoader.setProgress(60);
+                if (personalizeVideoData.customVoiceover) {
+                    audioPath = personalizeVideoData.customVoiceover;
+                } else {
+                    const voiceResponse = await fetch('/generate-voiceover-multi', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            script: currentScript,
+                            character_voices: characterVoices || {},
+                            custom_prompts: customVoicePrompts || {}
+                        })
+                    });
+                    
+                    const voiceData = await voiceResponse.json();
+                    if (!voiceData.success) {
+                        throw new Error(voiceData.error || 'Voiceover generation failed');
+                    }
+                    audioPath = voiceData.audio_path;
+                }
                 
-                const renderResponse = await fetch('/render-personalized-video', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        template_path: personalizeVideoData.filePath,
-                        template_id: personalizeVideoData.templateId,
-                        audio_path: audioPath,
-                        script: currentScript,
-                        captions: getCaptionSettings(),
-                        format: selectedFormat || '9:16'
-                    })
-                });
+                let renderData;
                 
-                const renderData = await renderResponse.json();
+                if (useReskin && creativeDna) {
+                    // Step 3: Re-skin with new visuals
+                    unifiedLoader.setStep('visuals');
+                    unifiedLoader.setStatus('Finding matching visuals...');
+                    unifiedLoader.setProgress(40);
+                    
+                    // Get caption settings with position
+                    const captionSettings = getCaptionSettings();
+                    const captionPosition = personalizeVideoData.captionPosition || 'bottom';
+                    
+                    const reskinResponse = await fetch('/reskin-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            creative_dna: creativeDna,
+                            topic: personalizeVideoData.topic || currentProjectThesis || '',
+                            script: currentScript,
+                            brand_colors: personalizeVideoData.brandColors || {},
+                            custom_images: personalizeVideoData.customImages || [],
+                            voiceover_path: audioPath,
+                            caption_position: captionPosition,
+                            caption_style: captionSettings.style || 'modern',
+                            captions_enabled: captionSettings.enabled !== false,
+                            format: selectedFormat || '9:16'
+                        })
+                    });
+                    
+                    renderData = await reskinResponse.json();
+                    
+                    if (renderData.success) {
+                        // Step 4: AI Quality Review
+                        unifiedLoader.setStep('render');
+                        unifiedLoader.setStatus('AI reviewing quality...');
+                        unifiedLoader.setProgress(85);
+                        
+                        const reviewResponse = await fetch('/ai-quality-review', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                video_path: renderData.video_path,
+                                topic: personalizeVideoData.topic || '',
+                                script: currentScript,
+                                creative_dna: creativeDna
+                            })
+                        });
+                        
+                        const reviewData = await reviewResponse.json();
+                        renderData.quality_review = reviewData;
+                        renderData.quality_score = reviewData.quality_score;
+                        
+                        // Store for feedback
+                        renderData.creative_dna = creativeDna;
+                        renderData.sources_used = renderData.sources_used || [];
+                    }
+                } else {
+                    // Fallback: Simple overlay render
+                    unifiedLoader.setStep('render');
+                    unifiedLoader.setStatus('Assembling video...');
+                    unifiedLoader.setProgress(60);
+                    
+                    const captionSettings = getCaptionSettings();
+                    
+                    const renderResponse = await fetch('/render-personalized-video', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            template_path: personalizeVideoData.filePath,
+                            template_id: personalizeVideoData.templateId,
+                            audio_path: audioPath,
+                            script: currentScript,
+                            captions: captionSettings,
+                            format: selectedFormat || '9:16'
+                        })
+                    });
+                    
+                    renderData = await renderResponse.json();
+                }
                 
                 unifiedLoader.hide();
                 
                 if (renderData.success) {
+                    // Show video with quality info if available
                     renderVideoResultInChat(renderData);
-                    showSuccess('Video Ready', 'Your personalized video has been rendered!');
+                    
+                    const qualityMsg = renderData.quality_score 
+                        ? ` (Quality: ${Math.round(renderData.quality_score * 100)}%)`
+                        : '';
+                    showSuccess('Video Ready', `Your re-skinned video is ready!${qualityMsg}`);
+                    
+                    // Show feedback buttons for learning
+                    if (useReskin) {
+                        showReskinFeedbackUI(renderData);
+                    }
                     
                     // Clear personalize state
                     personalizeVideoData = null;
                     pendingPersonalizeRender = false;
                     
-                    // Refresh token balance
                     refreshTokenBalance();
                 } else {
                     throw new Error(renderData.error || 'Render failed');
@@ -14797,6 +15072,62 @@
                 unifiedLoader.hide();
                 addMessage(`Render failed: ${err.message}`);
                 showError('Render Failed', err.message);
+            }
+        }
+        
+        // Show feedback UI for re-skinned videos to power global learning
+        function showReskinFeedbackUI(renderData) {
+            const feedbackHtml = `
+                <div class="reskin-feedback-card" style="background: var(--card-bg); border: 1px solid var(--gold-muted); border-radius: 12px; padding: 16px; margin-top: 12px;">
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">
+                        Help the AI learn: Did this match what you wanted?
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="submitReskinFeedback(true, this)" style="flex: 1; padding: 10px; background: var(--success-bg, #1a4d1a); border: 1px solid var(--success, #4ade80); border-radius: 8px; color: var(--success, #4ade80); cursor: pointer; font-weight: 600;">
+                            👍 Yes, looks great
+                        </button>
+                        <button onclick="submitReskinFeedback(false, this)" style="flex: 1; padding: 10px; background: var(--error-bg, #4d1a1a); border: 1px solid var(--error, #f87171); border-radius: 8px; color: var(--error, #f87171); cursor: pointer; font-weight: 600;">
+                            👎 Needs work
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Store render data for feedback submission
+            window.lastReskinData = renderData;
+            addMessage(feedbackHtml, false, true);
+        }
+        
+        // Submit feedback for global learning
+        async function submitReskinFeedback(liked, buttonEl) {
+            const data = window.lastReskinData;
+            if (!data) return;
+            
+            // Disable buttons
+            const card = buttonEl.closest('.reskin-feedback-card');
+            card.querySelectorAll('button').forEach(b => b.disabled = true);
+            
+            try {
+                await fetch('/reskin-feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        liked: liked,
+                        video_path: data.video_path,
+                        topic: data.topic || currentProjectThesis || '',
+                        visual_sources: data.sources_used || [],
+                        creative_dna: data.creative_dna || {},
+                        quality_scores: data.quality_review || {}
+                    })
+                });
+                
+                card.innerHTML = `
+                    <div style="text-align: center; color: var(--gold); padding: 8px;">
+                        ✓ Thanks! Your feedback helps the AI improve for everyone.
+                    </div>
+                `;
+            } catch (err) {
+                console.error('Feedback error:', err);
             }
         }
         

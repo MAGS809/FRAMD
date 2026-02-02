@@ -116,7 +116,15 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
 - **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
-- **Video/Image Personalization**: Two-mode upload system allowing users to either use AI curation (standard) or personalize existing content as templates. Includes mandatory content rights acknowledgment, template extraction via ffmpeg/GPT-4o vision, and template application to new content.
+- **Video Re-skinning System**: Advanced video style cloning that extracts "creative DNA" from uploaded videos (scene intents, composition, colors, motion patterns) and regenerates with new visuals matching user's topic while maintaining the original structure. Features:
+  - Creative DNA extraction via GPT-4o Vision analysis
+  - Smart visual matching with Pexels video/image search
+  - DALL-E generation fallback when curated content doesn't fit
+  - AI quality gate (self-review before showing user)
+  - Global learning system that tracks visual match success rates across all accounts
+  - Custom voiceover upload or AI voice generation
+  - Custom image integration with precise scene placement
+  - Caption position controls (top/center/bottom)
 - **Database**: PostgreSQL with 20+ tables and indexed foreign keys for performance.
 
 ## External Dependencies
