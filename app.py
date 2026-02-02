@@ -7382,6 +7382,27 @@ def generate_voiceover_multi():
                     lines.append({'character': char_name, 'text': dialogue})
                 continue
         
+        # If no structured lines found, treat entire script as narration
+        if not lines:
+            # Clean up script and treat as single narrator voice
+            clean_script = script.strip()
+            # Remove any remaining headers/markers
+            clean_lines = []
+            for line in clean_script.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                # Skip metadata lines
+                if line.startswith('HOOK:') or line.startswith('BODY:') or line.startswith('CLOSER:'):
+                    continue
+                if line.startswith('[') and line.endswith(']') and ':' not in line:
+                    continue
+                clean_lines.append(line)
+            
+            if clean_lines:
+                narration_text = ' '.join(clean_lines)
+                lines.append({'character': 'NARRATOR', 'text': narration_text})
+        
         # Generate audio for each segment
         audio_segments = []
         
