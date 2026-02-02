@@ -3095,6 +3095,164 @@
             line-height: 1.4;
         }
         
+        /* Inline Upload Card (replaces popup) */
+        .inline-upload-card {
+            background: linear-gradient(135deg, rgba(10, 31, 20, 0.95) 0%, rgba(15, 40, 25, 0.9) 100%);
+            border: 1px solid rgba(255, 214, 10, 0.25);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 12px 0;
+            max-width: 100%;
+        }
+        
+        .inline-upload-card .upload-preview {
+            width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .inline-upload-card .upload-analysis {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .inline-upload-card .mode-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        .inline-upload-card .mode-btn {
+            flex: 1;
+            padding: 14px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .inline-upload-card .mode-btn:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.05);
+        }
+        
+        .inline-upload-card .mode-btn.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.15);
+        }
+        
+        .inline-upload-card .mode-btn-icon {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+        
+        .inline-upload-card .mode-btn-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .inline-upload-card .mode-btn-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .inline-upload-card .upload-progress {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .inline-upload-card .progress-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+        
+        .inline-upload-card .progress-text {
+            font-size: 14px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .inline-upload-card .progress-detail {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+        
+        .inline-upload-card .upload-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        
+        .inline-upload-card .upload-actions button {
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .inline-upload-card .btn-cancel {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        
+        .inline-upload-card .btn-cancel:hover {
+            border-color: var(--text-secondary);
+        }
+        
+        .inline-upload-card .btn-confirm {
+            background: var(--gold);
+            border: none;
+            color: var(--bg);
+        }
+        
+        .inline-upload-card .btn-confirm:disabled {
+            background: var(--border);
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+        
+        .inline-upload-card .rights-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-top: 12px;
+            padding: 10px;
+            background: rgba(255, 214, 10, 0.05);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .inline-upload-card .rights-check input {
+            margin-top: 2px;
+            accent-color: var(--gold);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
         /* Content rights section */
         .content-rights-section {
             margin-top: 1rem;
@@ -12589,26 +12747,25 @@
             selectedPlacement = 'background';
             selectedUploadMode = 'curate';
             
+            const isVideo = isVideoFile(file.name);
+            
+            // Use inline card for video files instead of popup
+            if (isVideo) {
+                renderInlineUploadCard(file, filePath, true);
+                return;
+            }
+            
+            // For images, still use the popup (or could also use inline card)
             const popup = document.getElementById('image-placement-popup');
             const imgPreview = document.getElementById('image-placement-preview');
             const vidPreview = document.getElementById('video-placement-preview');
             const analysis = document.getElementById('image-placement-analysis');
             const placementSection = document.getElementById('placement-options-section');
             
-            const isVideo = isVideoFile(file.name);
-            
-            if (isVideo) {
-                imgPreview.style.display = 'none';
-                vidPreview.style.display = 'block';
-                vidPreview.src = URL.createObjectURL(file);
-                vidPreview.play();
-                analysis.innerHTML = '<em>Analyzing video...</em>';
-            } else {
-                imgPreview.style.display = 'block';
-                vidPreview.style.display = 'none';
-                imgPreview.src = URL.createObjectURL(file);
-                analysis.innerHTML = '<em>Analyzing image with AI...</em>';
-            }
+            imgPreview.style.display = 'block';
+            vidPreview.style.display = 'none';
+            imgPreview.src = URL.createObjectURL(file);
+            analysis.innerHTML = '<em>Analyzing image with AI...</em>';
             
             popup.classList.add('show');
             document.body.style.overflow = 'hidden';
@@ -12623,11 +12780,11 @@
             document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
             document.querySelector('.placement-option[data-placement="background"]').classList.add('selected');
             
-            // Call appropriate analysis endpoint based on file type
-            const analyzeEndpoint = isVideo ? '/analyze-video' : '/analyze-image';
+            // Call image analysis endpoint
+            const analyzeEndpoint = '/analyze-image';
             
             try {
-                analysis.innerHTML = isVideo ? '<em>Analyzing video (extracting frames & audio)...</em>' : '<em>Analyzing image with AI...</em>';
+                analysis.innerHTML = '<em>Analyzing image with AI...</em>';
                 
                 const response = await fetch(analyzeEndpoint, {
                     method: 'POST',
@@ -12638,36 +12795,22 @@
                 const data = await response.json();
                 if (data.success && data.analysis) {
                     pendingImageAnalysis = data.analysis;
-                    
-                    if (isVideo && data.analysis.transcript) {
-                        analysis.innerHTML = `
-                            <strong>Video analyzed (${data.analysis.duration?.toFixed(1) || '?'}s)</strong><br>
-                            <span style="color: var(--gold)">Content:</span> ${data.analysis.frame_analysis?.substring(0, 100) || 'Video content'}...<br>
-                            <span style="color: var(--gold)">Audio:</span> ${data.analysis.transcript ? 'Transcribed' : 'No speech detected'}
-                        `;
-                    } else if (isVideo) {
-                        analysis.innerHTML = `
-                            <strong>Video ready (${data.analysis.duration?.toFixed(1) || '?'}s)</strong><br>
-                            <span style="color: var(--gold)">Visual:</span> ${data.analysis.frame_analysis?.substring(0, 100) || 'Video content'}
-                        `;
-                    } else {
-                        analysis.innerHTML = `
-                            <strong>${data.analysis.description}</strong><br>
-                            <span style="color: var(--gold)">Mood:</span> ${data.analysis.mood}<br>
-                            <span style="color: var(--gold)">AI suggests:</span> ${data.analysis.suggested_use === 'background' ? 'Full Background' : 'Pop-up Visual'}
-                        `;
-                    }
+                    analysis.innerHTML = `
+                        <strong>${data.analysis.description}</strong><br>
+                        <span style="color: var(--gold)">Mood:</span> ${data.analysis.mood}<br>
+                        <span style="color: var(--gold)">AI suggests:</span> ${data.analysis.suggested_use === 'background' ? 'Full Background' : 'Pop-up Visual'}
+                    `;
                     
                     // Auto-select AI suggestion
                     selectedPlacement = data.analysis.suggested_use || 'background';
                     document.querySelectorAll('.placement-option').forEach(opt => opt.classList.remove('selected'));
                     document.querySelector(`.placement-option[data-placement="${selectedPlacement}"]`).classList.add('selected');
                 } else {
-                    analysis.innerHTML = isVideo ? '<em>Video ready for use</em>' : '<em>Image ready for use</em>';
+                    analysis.innerHTML = '<em>Image ready for use</em>';
                 }
             } catch (err) {
-                console.error('Media analysis error:', err);
-                analysis.innerHTML = isVideo ? '<em>Video ready for use</em>' : '<em>Image ready for use</em>';
+                console.error('Image analysis error:', err);
+                analysis.innerHTML = '<em>Image ready for use</em>';
             }
         }
         
@@ -12681,8 +12824,250 @@
             pendingImageFile = null;
             pendingImagePath = null;
             pendingImageAnalysis = null;
-            document.getElementById('image-placement-popup').classList.remove('show');
-            document.body.style.overflow = '';
+            // Remove inline card if exists
+            const inlineCard = document.getElementById('inline-upload-card');
+            if (inlineCard) inlineCard.remove();
+            // Legacy popup cleanup
+            const popup = document.getElementById('image-placement-popup');
+            if (popup) {
+                popup.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+        
+        // Inline Upload Card - Replaces the popup modal
+        let inlineUploadCardMode = 'reskin';
+        let inlineUploadRightsChecked = false;
+        
+        function renderInlineUploadCard(file, filePath, isVideo) {
+            pendingImageFile = file;
+            pendingImagePath = filePath;
+            inlineUploadCardMode = 'reskin'; // Default to reskin for videos
+            inlineUploadRightsChecked = false;
+            
+            const messagesDiv = document.getElementById('messages');
+            
+            // Remove any existing inline card
+            const existingCard = document.getElementById('inline-upload-card');
+            if (existingCard) existingCard.remove();
+            
+            const cardId = 'inline-upload-card';
+            const previewUrl = URL.createObjectURL(file);
+            
+            const cardHtml = `
+                <div class="message ai">
+                    <div class="inline-upload-card" id="${cardId}">
+                        ${isVideo 
+                            ? `<video class="upload-preview" src="${previewUrl}" muted loop autoplay playsinline></video>`
+                            : `<img class="upload-preview" src="${previewUrl}" alt="Preview">`
+                        }
+                        
+                        <div class="upload-analysis" id="inline-upload-analysis">
+                            <em>${isVideo ? 'Video ready' : 'Image ready'}</em>
+                        </div>
+                        
+                        <div class="mode-buttons" id="inline-mode-buttons">
+                            <div class="mode-btn selected" data-mode="reskin" onclick="selectInlineMode('reskin')">
+                                <div class="mode-btn-icon">✏️</div>
+                                <div class="mode-btn-label">Re-skin Mode</div>
+                                <div class="mode-btn-desc">AI regenerates visuals for your topic</div>
+                            </div>
+                            <div class="mode-btn" data-mode="clipper" onclick="selectInlineMode('clipper')">
+                                <div class="mode-btn-icon">🎬</div>
+                                <div class="mode-btn-label">Clipper Mode</div>
+                                <div class="mode-btn-desc">Script leads, template guides edits</div>
+                            </div>
+                        </div>
+                        
+                        <div class="rights-check">
+                            <input type="checkbox" id="inline-rights-check" onchange="updateInlineConfirmBtn()">
+                            <label for="inline-rights-check">I have rights to use this content</label>
+                        </div>
+                        
+                        <div class="upload-actions">
+                            <button class="btn-cancel" onclick="cancelInlineUpload()">Cancel</button>
+                            <button class="btn-confirm" id="inline-confirm-btn" onclick="confirmInlineUpload()" disabled>Use This Clip</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.insertAdjacentHTML('beforeend', cardHtml);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function selectInlineMode(mode) {
+            inlineUploadCardMode = mode;
+            document.querySelectorAll('#inline-upload-card .mode-btn').forEach(btn => {
+                btn.classList.toggle('selected', btn.dataset.mode === mode);
+            });
+        }
+        
+        function updateInlineConfirmBtn() {
+            const checkbox = document.getElementById('inline-rights-check');
+            const confirmBtn = document.getElementById('inline-confirm-btn');
+            inlineUploadRightsChecked = checkbox?.checked || false;
+            if (confirmBtn) confirmBtn.disabled = !inlineUploadRightsChecked;
+        }
+        
+        function cancelInlineUpload() {
+            pendingImageFile = null;
+            pendingImagePath = null;
+            const card = document.getElementById('inline-upload-card');
+            if (card) {
+                const messageDiv = card.closest('.message');
+                if (messageDiv) messageDiv.remove();
+            }
+        }
+        
+        async function confirmInlineUpload() {
+            if (!pendingImageFile || !pendingImagePath) return;
+            
+            const card = document.getElementById('inline-upload-card');
+            const modeButtons = document.getElementById('inline-mode-buttons');
+            const actionsDiv = card?.querySelector('.upload-actions');
+            const rightsCheck = card?.querySelector('.rights-check');
+            
+            // Hide selection UI, show loading
+            if (modeButtons) modeButtons.style.display = 'none';
+            if (actionsDiv) actionsDiv.style.display = 'none';
+            if (rightsCheck) rightsCheck.style.display = 'none';
+            
+            const analysisDiv = document.getElementById('inline-upload-analysis');
+            
+            const isVideo = isVideoFile(pendingImageFile.name);
+            const mode = inlineUploadCardMode;
+            
+            // Show progress UI
+            if (analysisDiv) {
+                analysisDiv.innerHTML = `
+                    <div class="upload-progress">
+                        <div class="progress-spinner"></div>
+                        <div class="progress-text">${mode === 'reskin' ? 'Extracting Creative DNA...' : 'Analyzing Clip Structure...'}</div>
+                        <div class="progress-detail">Learning rhythm, pacing, and visual patterns</div>
+                    </div>
+                `;
+            }
+            
+            try {
+                uploadedFile = pendingImageFile;
+                uploadedFile.placement = 'background';
+                uploadedFile.filePath = pendingImagePath;
+                uploadedFile.uploadMode = mode;
+                
+                if (mode === 'reskin' && isVideo) {
+                    // Extract creative DNA
+                    const response = await fetch('/extract-creative-dna', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ file_path: pendingImagePath })
+                    });
+                    const data = await response.json();
+                    
+                    if (data.creative_dna) {
+                        uploadedFile.creativeDna = data.creative_dna;
+                        uploadedFile.creativeDecisions = data.creative_dna.adjustable_elements || {};
+                        
+                        // Update progress to success
+                        if (analysisDiv) {
+                            const sceneCount = data.creative_dna.scenes?.length || 0;
+                            const duration = data.creative_dna.total_duration?.toFixed(1) || '?';
+                            analysisDiv.innerHTML = `
+                                <div style="text-align: center; padding: 16px;">
+                                    <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Creative DNA Extracted</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${sceneCount} scenes, ${duration}s duration</div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Store for reskin flow
+                        pendingPersonalizeRender = true;
+                        personalizeVideoData = {
+                            mode: 'reskin',
+                            filePath: pendingImagePath,
+                            creativeDna: data.creative_dna,
+                            creativeDecisions: data.creative_dna.adjustable_elements || {}
+                        };
+                        
+                        // Remove card after brief delay and prompt for topic
+                        setTimeout(() => {
+                            const messageDiv = card?.closest('.message');
+                            if (messageDiv) messageDiv.remove();
+                            addMessage("What's your topic? Tell me what this video should be about.", false);
+                        }, 1200);
+                        
+                    } else {
+                        throw new Error('Failed to extract creative DNA');
+                    }
+                    
+                } else if (mode === 'clipper' && isVideo) {
+                    // Extract template structure
+                    const response = await fetch('/extract-video-template', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ file_path: pendingImagePath })
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        uploadedFile.templateData = data;
+                        uploadedFile.templateId = data.template_id;
+                        
+                        if (analysisDiv) {
+                            analysisDiv.innerHTML = `
+                                <div style="text-align: center; padding: 16px;">
+                                    <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
+                                    <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Template Learned</div>
+                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${data.scene_count || '?'} scenes detected</div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Store for clipper flow
+                        pendingPersonalizeRender = true;
+                        personalizeVideoData = {
+                            mode: 'clipper',
+                            filePath: pendingImagePath,
+                            templateId: data.template_id,
+                            templateData: data
+                        };
+                        
+                        setTimeout(() => {
+                            const messageDiv = card?.closest('.message');
+                            if (messageDiv) messageDiv.remove();
+                            addMessage("Template ready! Now type your script or topic.", false);
+                        }, 1200);
+                        
+                    } else {
+                        throw new Error('Failed to analyze clip');
+                    }
+                } else {
+                    // Non-video file or curate mode - simple file attachment
+                    document.getElementById('file-name').textContent = pendingImageFile.name;
+                    document.getElementById('file-preview').classList.add('show');
+                    
+                    const messageDiv = card?.closest('.message');
+                    if (messageDiv) messageDiv.remove();
+                }
+                
+            } catch (err) {
+                console.error('Upload processing error:', err);
+                if (analysisDiv) {
+                    analysisDiv.innerHTML = `
+                        <div style="text-align: center; padding: 16px; color: #ff6b6b;">
+                            <div style="font-size: 32px; margin-bottom: 8px;">❌</div>
+                            <div style="font-size: 14px; font-weight: 600;">Processing Failed</div>
+                            <div style="font-size: 12px; margin-top: 4px;">${err.message || 'Please try again'}</div>
+                        </div>
+                    `;
+                }
+                // Show cancel button again
+                if (actionsDiv) {
+                    actionsDiv.style.display = 'flex';
+                    actionsDiv.innerHTML = `<button class="btn-cancel" onclick="cancelInlineUpload()" style="flex: 1;">Close</button>`;
+                }
+            }
         }
         
         async function confirmImagePlacement() {

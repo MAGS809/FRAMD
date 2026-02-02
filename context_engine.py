@@ -809,10 +809,17 @@ Output as JSON with keys: hook, core_claim, grounding, closing, tone, visual_int
     return result
 
 
-def validate_loop_score(thesis: str, script: dict) -> dict:
+def validate_loop_score(thesis: str, script) -> dict:
     """Validate how well the script closes back to the thesis. Returns loop score and fix suggestions."""
-    full_script = script.get('full_script', '')
-    closing = script.get('closing', '')
+    # Handle both string and dict input
+    if isinstance(script, str):
+        full_script = script
+        # Try to extract closing from the last line
+        lines = [l.strip() for l in script.strip().split('\n') if l.strip()]
+        closing = lines[-1] if lines else ''
+    else:
+        full_script = script.get('full_script', '')
+        closing = script.get('closing', '')
     
     prompt = f"""Analyze how well this script "closes the loop" back to its thesis.
 
