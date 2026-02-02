@@ -7301,6 +7301,11 @@ def generate_voiceover_multi():
     character_voices = data.get('character_voices', {})
     stage_directions = data.get('stage_directions', '')
     
+    # Handle case where script is passed as a dict instead of string
+    if isinstance(script, dict):
+        # Extract text from various possible dict formats
+        script = script.get('text', '') or script.get('content', '') or script.get('script', '') or str(script)
+    
     if not script:
         return jsonify({'error': 'No script provided'}), 400
     
