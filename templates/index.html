@@ -8211,6 +8211,10 @@
         let pendingImageAnalysis = null;
         let selectedPlacement = 'background';
         
+        // Personalization mode state
+        let personalizeVideoData = null; // Stores template data for personalized video rendering
+        let pendingPersonalizeRender = false; // Flag to trigger render after script confirmation
+        
         // Unified Engine State
         let contentMode = 'auto'; // auto, create, clip
         let currentThesis = null;
@@ -14160,6 +14164,25 @@
                     if (uploadData.success) {
                         fileContext = `[Uploaded: ${uploadedFile.name}, path: ${uploadData.filename}]`;
                         
+                        // Include upload mode for personalization flow
+                        if (uploadedFile.uploadMode === 'personalize') {
+                            fileContext += `\n[MODE: PERSONALIZE TEMPLATE]`;
+                            if (uploadedFile.templateId) {
+                                fileContext += `\n[Template ID: ${uploadedFile.templateId}]`;
+                            }
+                            if (uploadedFile.templateData) {
+                                fileContext += `\n[Template: ${uploadedFile.templateData.scene_count || 0} scenes, ${uploadedFile.templateData.duration?.toFixed(1) || '?'}s]`;
+                            }
+                            // Store for render flow
+                            personalizeVideoData = {
+                                templateId: uploadedFile.templateId,
+                                templateData: uploadedFile.templateData,
+                                filePath: uploadedFile.filePath || uploadData.filename,
+                                analysis: uploadedFile.analysis
+                            };
+                            pendingPersonalizeRender = true;
+                        }
+                        
                         // Include video/image analysis that was captured during placement popup
                         if (uploadedFile.analysis) {
                             const analysis = uploadedFile.analysis;
@@ -14523,18 +14546,109 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
-        // Confirm script and proceed to visuals
+        // Confirm script and proceed to visuals or render (for personalized content)
         function confirmScriptAndProceed() {
             currentWorkflowStep = 3;
             
             // Collapse the entire script card to a summary line
             collapseScriptSection();
             
-            // Proceed to visuals
-            setTimeout(() => {
-                addMessage('Script confirmed! Now let\'s find visuals for each scene.', false);
-                setTimeout(() => proceedToVisuals(), 300);
-            }, 200);
+            // Check if we're in personalize mode - go directly to render
+            if (pendingPersonalizeRender && personalizeVideoData) {
+                setTimeout(() => {
+                    addMessage('Script confirmed! Rendering your personalized video...', false);
+                    setTimeout(() => startPersonalizedRender(), 300);
+                }, 200);
+            } else {
+                // Standard flow - proceed to visuals
+                setTimeout(() => {
+                    addMessage('Script confirmed! Now let\'s find visuals for each scene.', false);
+                    setTimeout(() => proceedToVisuals(), 300);
+                }, 200);
+            }
+        }
+        
+        // Render personalized video (mute original, dub with AI voice)
+        async function startPersonalizedRender() {
+            if (!personalizeVideoData || !currentScript) {
+                addMessage('Missing template data or script. Please try again.');
+                return;
+            }
+            
+            // Show unified loader
+            unifiedLoader.show({
+                title: 'Rendering Personalized Video',
+                status: 'Preparing script...',
+                backgroundRender: true
+            });
+            unifiedLoader.setStep('script');
+            unifiedLoader.setProgress(10);
+            
+            try {
+                // Step 1: Generate voiceover from script
+                unifiedLoader.setStep('voice');
+                unifiedLoader.setStatus('Generating voiceover...');
+                unifiedLoader.setProgress(30);
+                
+                const voiceResponse = await fetch('/generate-voiceover-multi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        script: currentScript,
+                        character_voices: characterVoices || {},
+                        custom_prompts: customVoicePrompts || {}
+                    })
+                });
+                
+                const voiceData = await voiceResponse.json();
+                if (!voiceData.success) {
+                    throw new Error(voiceData.error || 'Voiceover generation failed');
+                }
+                
+                const audioPath = voiceData.audio_path;
+                
+                // Step 2: Render with template video (muted) + new voiceover
+                unifiedLoader.setStep('render');
+                unifiedLoader.setStatus('Assembling final video...');
+                unifiedLoader.setProgress(60);
+                
+                const renderResponse = await fetch('/render-personalized-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        template_path: personalizeVideoData.filePath,
+                        template_id: personalizeVideoData.templateId,
+                        audio_path: audioPath,
+                        script: currentScript,
+                        captions: getCaptionSettings(),
+                        format: selectedFormat || '9:16'
+                    })
+                });
+                
+                const renderData = await renderResponse.json();
+                
+                unifiedLoader.hide();
+                
+                if (renderData.success) {
+                    renderVideoResultInChat(renderData);
+                    showSuccess('Video Ready', 'Your personalized video has been rendered!');
+                    
+                    // Clear personalize state
+                    personalizeVideoData = null;
+                    pendingPersonalizeRender = false;
+                    
+                    // Refresh token balance
+                    refreshTokenBalance();
+                } else {
+                    throw new Error(renderData.error || 'Render failed');
+                }
+                
+            } catch (err) {
+                console.error('Personalized render error:', err);
+                unifiedLoader.hide();
+                addMessage(`Render failed: ${err.message}`);
+                showError('Render Failed', err.message);
+            }
         }
         
         // Collapse script card to single summary line

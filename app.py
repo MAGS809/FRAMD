@@ -312,6 +312,78 @@ def generate_sound_effect(effect_type, output_path, duration=1.0):
         return None
 
 
+def create_word_synced_subtitles(script_text, audio_duration, output_path):
+    """
+    Create SRT subtitle file with word-level timing based on audio duration.
+    Distributes words evenly across the audio duration.
+    """
+    import re
+    
+    # Clean script text
+    clean_text = re.sub(r'\[.*?\]', '', script_text)  # Remove anchor tags
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+    words = clean_text.split()
+    
+    if not words:
+        return output_path
+    
+    # Calculate timing per word
+    words_per_second = len(words) / max(audio_duration, 1)
+    seconds_per_word = 1 / max(words_per_second, 0.5)
+    
+    # Group words into subtitle chunks (3-5 words per chunk)
+    chunk_size = 4
+    chunks = []
+    for i in range(0, len(words), chunk_size):
+        chunks.append(' '.join(words[i:i+chunk_size]))
+    
+    # Write SRT file
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for i, chunk in enumerate(chunks):
+            start_time = i * chunk_size * seconds_per_word
+            end_time = min((i + 1) * chunk_size * seconds_per_word, audio_duration)
+            
+            # Format timecodes
+            def format_time(seconds):
+                h = int(seconds // 3600)
+                m = int((seconds % 3600) // 60)
+                s = int(seconds % 60)
+                ms = int((seconds % 1) * 1000)
+                return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
+            
+            f.write(f"{i+1}\n")
+            f.write(f"{format_time(start_time)} --> {format_time(end_time)}\n")
+            f.write(f"{chunk}\n\n")
+    
+    return output_path
+
+
+def generate_video_description(script_text, max_length=280):
+    """
+    Generate a social media description from script text.
+    Returns a concise, engaging caption with hashtags.
+    """
+    import re
+    
+    # Clean script text
+    clean_text = re.sub(r'\[.*?\]', '', script_text)  # Remove tags
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+    
+    # Extract first sentence or two as hook
+    sentences = re.split(r'[.!?]', clean_text)
+    hook = sentences[0].strip() if sentences else clean_text[:100]
+    
+    if len(hook) > max_length - 50:
+        hook = hook[:max_length - 50] + '...'
+    
+    # Add relevant hashtags based on common themes
+    hashtags = '#Framd #ContentCreation #VideoMaker'
+    
+    description = f"{hook}\n\n{hashtags}"
+    
+    return description[:max_length * 2]  # Allow some overflow for hashtags
+
+
 def parse_sfx_from_directions(script_text, stage_directions=''):
     """
     Parse [SOUND: description] tags from script and stage directions.
@@ -4798,6 +4870,190 @@ Respond in JSON:
         
     except Exception as e:
         logging.error(f"Video template extraction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/render-personalized-video', methods=['POST'])
+@rate_limit(limit=5, window=60)
+def render_personalized_video():
+    """Render a personalized video: mute original audio, dub with new voiceover, add captions."""
+    import subprocess
+    import uuid
+    from models import Subscription, User
+    from flask_login import current_user
+    
+    user_id = None
+    is_dev_mode = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEV_MODE') == 'true'
+    
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    # Check subscription (same as render-video)
+    if not is_dev_mode:
+        sub = Subscription.query.filter_by(user_id=user_id).first() if user_id else None
+        user = User.query.get(user_id) if user_id else None
+        
+        has_active_sub = sub and sub.is_active()
+        has_free_generation = user and hasattr(user, 'free_video_generations') and (user.free_video_generations or 0) > 0
+        
+        if not has_active_sub and not has_free_generation:
+            return jsonify({
+                'error': 'Pro subscription required',
+                'requires_subscription': True,
+                'message': 'Video rendering requires a Pro subscription.'
+            }), 403
+        
+        if not has_active_sub and has_free_generation:
+            user.free_video_generations = max(0, (user.free_video_generations or 1) - 1)
+            db.session.commit()
+    
+    data = request.get_json()
+    template_path = data.get('template_path')
+    template_id = data.get('template_id')
+    audio_path = data.get('audio_path')
+    script_text = data.get('script', '')
+    captions_data = data.get('captions', {})
+    video_format = data.get('format', '9:16')
+    
+    if not template_path or not os.path.exists(template_path):
+        return jsonify({'error': 'Template video not found'}), 404
+    
+    if not audio_path or not os.path.exists(audio_path):
+        return jsonify({'error': 'Audio file not found'}), 404
+    
+    try:
+        output_id = str(uuid.uuid4())[:8]
+        output_path = f'output/personalized_{output_id}.mp4'
+        os.makedirs('output', exist_ok=True)
+        
+        # Get format dimensions
+        format_dims = {
+            '9:16': (1080, 1920),
+            '16:9': (1920, 1080),
+            '1:1': (1080, 1080),
+            '4:5': (1080, 1350)
+        }
+        width, height = format_dims.get(video_format, (1080, 1920))
+        
+        # Get template video duration
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', template_path]
+        dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        video_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else 30
+        
+        # Get audio duration
+        audio_dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path]
+        audio_result = subprocess.run(audio_dur_cmd, capture_output=True, text=True, timeout=30)
+        audio_duration = float(audio_result.stdout.strip()) if audio_result.stdout.strip() else 30
+        
+        # Determine output duration (use whichever is shorter, or loop video if audio is longer)
+        target_duration = max(audio_duration, video_duration)
+        
+        # Step 1: Mute original video and scale to format
+        muted_path = f'output/muted_{output_id}.mp4'
+        mute_cmd = [
+            'ffmpeg', '-y', '-i', template_path,
+            '-an',  # Remove audio
+            '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1',
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-t', str(target_duration),
+            muted_path
+        ]
+        subprocess.run(mute_cmd, capture_output=True, timeout=300)
+        
+        # Step 2: Add new voiceover to muted video
+        dubbed_path = f'output/dubbed_{output_id}.mp4'
+        dub_cmd = [
+            'ffmpeg', '-y',
+            '-i', muted_path,
+            '-i', audio_path,
+            '-c:v', 'copy',
+            '-c:a', 'aac', '-b:a', '192k',
+            '-map', '0:v:0', '-map', '1:a:0',
+            '-shortest',
+            dubbed_path
+        ]
+        subprocess.run(dub_cmd, capture_output=True, timeout=300)
+        
+        # Step 3: Add captions if enabled
+        captions_enabled = captions_data.get('enabled', False) if isinstance(captions_data, dict) else bool(captions_data)
+        
+        if captions_enabled and script_text:
+            final_path = output_path
+            
+            # Get script as full text
+            full_script = script_text.get('full_script', '') if isinstance(script_text, dict) else str(script_text)
+            
+            # Create SRT subtitle file
+            srt_path = f'output/captions_{output_id}.srt'
+            create_word_synced_subtitles(full_script, audio_duration, srt_path)
+            
+            # Get caption styling
+            caption_style = captions_data.get('style', 'modern') if isinstance(captions_data, dict) else 'modern'
+            
+            # Define caption styles
+            styles = {
+                'modern': {'font': 'Inter-Bold', 'size': 52, 'color': 'white', 'outline': 3, 'shadow': 2},
+                'minimal': {'font': 'Inter-Regular', 'size': 44, 'color': 'white', 'outline': 2, 'shadow': 0},
+                'bold': {'font': 'Inter-ExtraBold', 'size': 60, 'color': 'yellow', 'outline': 4, 'shadow': 2},
+                'neon': {'font': 'Inter-Bold', 'size': 54, 'color': '#00ffff', 'outline': 3, 'shadow': 4}
+            }
+            style = styles.get(caption_style, styles['modern'])
+            
+            # Burn captions
+            caption_cmd = [
+                'ffmpeg', '-y',
+                '-i', dubbed_path,
+                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow={style['shadow']},MarginV=60'",
+                '-c:a', 'copy',
+                final_path
+            ]
+            result = subprocess.run(caption_cmd, capture_output=True, timeout=600)
+            
+            if result.returncode != 0:
+                # Fallback without fancy subtitles
+                import shutil
+                shutil.copy(dubbed_path, final_path)
+            
+            # Cleanup temp files
+            for f in [srt_path]:
+                if os.path.exists(f):
+                    os.remove(f)
+        else:
+            # No captions, just use dubbed video
+            import shutil
+            shutil.copy(dubbed_path, output_path)
+        
+        # Cleanup intermediate files
+        for f in [muted_path, dubbed_path]:
+            if os.path.exists(f):
+                try:
+                    os.remove(f)
+                except:
+                    pass
+        
+        # Generate video description
+        description = ""
+        if script_text:
+            full_script = script_text.get('full_script', '') if isinstance(script_text, dict) else str(script_text)
+            description = generate_video_description(full_script[:500])
+        
+        return jsonify({
+            'success': True,
+            'video_path': '/' + output_path,
+            'video_url': '/' + output_path,
+            'url': '/' + output_path,
+            'duration': target_duration,
+            'format': video_format,
+            'description': description,
+            'template_id': template_id
+        })
+        
+    except Exception as e:
+        logging.error(f"Personalized video render error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
