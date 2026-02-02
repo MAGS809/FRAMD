@@ -14925,6 +14925,9 @@
             const lines = scriptText.split('\n').filter(l => l.trim() && !l.trim().startsWith('['));
             const hook = lines[0]?.substring(0, 120) || 'Your script';
             
+            // Generate unique ID for this card instance
+            const cardUniqueId = 'sc-' + Date.now();
+            
             cardDiv.innerHTML = `
                 <div class="script-loop-container" style="display: flex; flex-direction: column; gap: 2px;">
                     <!-- Script Card -->
@@ -14937,16 +14940,16 @@
                             </div>
                         </div>
                         <div style="font-size: 13px; color: var(--text-dim); margin-bottom: 12px; font-style: italic;">"${escapeHtml(hook)}${hook.length >= 120 ? '...' : ''}"</div>
-                        <div class="script-preview" id="script-preview-text" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">${escapeHtml(scriptText)}</div>
+                        <div class="script-preview" id="script-preview-text-${cardUniqueId}" style="max-height: 200px; overflow-y: auto; font-size: 13px; line-height: 1.6; color: var(--text); white-space: pre-wrap; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">${escapeHtml(scriptText)}</div>
                     </div>
                     
                     <!-- Loop Score Card (separate but connected) -->
-                    <div class="inline-loop-score-card" id="inline-loop-score" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-top: none; border-radius: 0 0 4px 4px; padding: 12px 16px;">
+                    <div class="inline-loop-score-card" id="inline-loop-score-${cardUniqueId}" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-top: none; border-radius: 0 0 4px 4px; padding: 12px 16px;">
                         <div style="display: flex; align-items: center; gap: 12px;">
                             <span style="font-size: 13px; color: var(--text-dim);">Loop Score</span>
-                            <span id="loop-score-value" style="font-size: 14px; font-weight: 600; color: var(--gold);">Analyzing...</span>
+                            <span id="loop-score-value-${cardUniqueId}" style="font-size: 14px; font-weight: 600; color: var(--gold);">Analyzing...</span>
                         </div>
-                        <div id="loop-score-analysis" style="font-size: 12px; color: var(--text-dim); margin-top: 6px; display: none;"></div>
+                        <div id="loop-score-analysis-${cardUniqueId}" style="font-size: 12px; color: var(--text-dim); margin-top: 6px; display: none;"></div>
                     </div>
                     
                     <!-- Action Buttons Card (separate but connected) -->
@@ -14962,12 +14965,15 @@
             messagesDiv.appendChild(cardDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             
-            // Fetch and display Loop Score asynchronously
-            fetchInlineLoopScore(scriptText);
+            // Fetch and display Loop Score asynchronously with scoped ID
+            fetchInlineLoopScore(scriptText, cardUniqueId);
         }
         
         // Fetch Loop Score and update inline card
-        async function fetchInlineLoopScore(scriptText) {
+        async function fetchInlineLoopScore(scriptText, cardId) {
+            const scoreEl = document.getElementById('loop-score-value-' + cardId);
+            const analysisEl = document.getElementById('loop-score-analysis-' + cardId);
+            
             try {
                 const thesis = currentProjectThesis || scriptText.split('\n')[0];
                 const response = await fetch('/validate-loop', {
@@ -14977,21 +14983,19 @@
                 });
                 
                 const data = await response.json();
-                if (data.success) {
-                    updateInlineLoopScore(data);
-                } else {
-                    document.getElementById('loop-score-value').textContent = 'N/A';
+                if (data.success && scoreEl) {
+                    updateInlineLoopScore(data, scoreEl, analysisEl);
+                } else if (scoreEl) {
+                    scoreEl.textContent = 'N/A';
                 }
             } catch (err) {
                 console.error('Loop score error:', err);
-                document.getElementById('loop-score-value').textContent = 'N/A';
+                if (scoreEl) scoreEl.textContent = 'N/A';
             }
         }
         
         // Update the inline Loop Score display
-        function updateInlineLoopScore(loopData) {
-            const scoreEl = document.getElementById('loop-score-value');
-            const analysisEl = document.getElementById('loop-score-analysis');
+        function updateInlineLoopScore(loopData, scoreEl, analysisEl) {
             if (!scoreEl) return;
             
             const score = loopData.loop_score || 0;
