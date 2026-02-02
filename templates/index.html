@@ -12922,149 +12922,35 @@
             if (!pendingImageFile || !pendingImagePath) return;
             
             const card = document.getElementById('inline-upload-card');
-            const modeButtons = document.getElementById('inline-mode-buttons');
-            const actionsDiv = card?.querySelector('.upload-actions');
-            const rightsCheck = card?.querySelector('.rights-check');
-            
-            // Hide selection UI, show loading
-            if (modeButtons) modeButtons.style.display = 'none';
-            if (actionsDiv) actionsDiv.style.display = 'none';
-            if (rightsCheck) rightsCheck.style.display = 'none';
-            
-            const analysisDiv = document.getElementById('inline-upload-analysis');
-            
             const isVideo = isVideoFile(pendingImageFile.name);
             const mode = inlineUploadCardMode;
             
-            // Show progress UI
-            if (analysisDiv) {
-                analysisDiv.innerHTML = `
-                    <div class="upload-progress">
-                        <div class="progress-spinner"></div>
-                        <div class="progress-text">${mode === 'reskin' ? 'Extracting Creative DNA...' : 'Analyzing Clip Structure...'}</div>
-                        <div class="progress-detail">Learning rhythm, pacing, and visual patterns</div>
-                    </div>
-                `;
-            }
+            // Store file info for later processing (after topic is provided)
+            uploadedFile = pendingImageFile;
+            uploadedFile.placement = 'background';
+            uploadedFile.filePath = pendingImagePath;
+            uploadedFile.uploadMode = mode;
             
-            try {
-                uploadedFile = pendingImageFile;
-                uploadedFile.placement = 'background';
-                uploadedFile.filePath = pendingImagePath;
-                uploadedFile.uploadMode = mode;
-                
-                if (mode === 'reskin' && isVideo) {
-                    // Extract creative DNA
-                    const response = await fetch('/extract-creative-dna', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ file_path: pendingImagePath })
-                    });
-                    const data = await response.json();
-                    
-                    if (data.creative_dna) {
-                        uploadedFile.creativeDna = data.creative_dna;
-                        uploadedFile.creativeDecisions = data.creative_dna.adjustable_elements || {};
-                        
-                        // Update progress to success
-                        if (analysisDiv) {
-                            const sceneCount = data.creative_dna.scenes?.length || 0;
-                            const duration = data.creative_dna.total_duration?.toFixed(1) || '?';
-                            analysisDiv.innerHTML = `
-                                <div style="text-align: center; padding: 16px;">
-                                    <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
-                                    <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Creative DNA Extracted</div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${sceneCount} scenes, ${duration}s duration</div>
-                                </div>
-                            `;
-                        }
-                        
-                        // Store for reskin flow
-                        pendingPersonalizeRender = true;
-                        personalizeVideoData = {
-                            mode: 'reskin',
-                            filePath: pendingImagePath,
-                            creativeDna: data.creative_dna,
-                            creativeDecisions: data.creative_dna.adjustable_elements || {}
-                        };
-                        
-                        // Remove card after brief delay and prompt for topic
-                        setTimeout(() => {
-                            const messageDiv = card?.closest('.message');
-                            if (messageDiv) messageDiv.remove();
-                            addMessage("What's your topic? Tell me what this video should be about.", false);
-                        }, 1200);
-                        
-                    } else {
-                        throw new Error('Failed to extract creative DNA');
-                    }
-                    
-                } else if (mode === 'clipper' && isVideo) {
-                    // Extract template structure
-                    const response = await fetch('/extract-video-template', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ file_path: pendingImagePath })
-                    });
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        uploadedFile.templateData = data;
-                        uploadedFile.templateId = data.template_id;
-                        
-                        if (analysisDiv) {
-                            analysisDiv.innerHTML = `
-                                <div style="text-align: center; padding: 16px;">
-                                    <div style="font-size: 32px; margin-bottom: 8px;">✅</div>
-                                    <div style="font-size: 14px; font-weight: 600; color: var(--gold);">Template Learned</div>
-                                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${data.scene_count || '?'} scenes detected</div>
-                                </div>
-                            `;
-                        }
-                        
-                        // Store for clipper flow
-                        pendingPersonalizeRender = true;
-                        personalizeVideoData = {
-                            mode: 'clipper',
-                            filePath: pendingImagePath,
-                            templateId: data.template_id,
-                            templateData: data
-                        };
-                        
-                        setTimeout(() => {
-                            const messageDiv = card?.closest('.message');
-                            if (messageDiv) messageDiv.remove();
-                            addMessage("Template ready! Now type your script or topic.", false);
-                        }, 1200);
-                        
-                    } else {
-                        throw new Error('Failed to analyze clip');
-                    }
-                } else {
-                    // Non-video file or curate mode - simple file attachment
-                    document.getElementById('file-name').textContent = pendingImageFile.name;
-                    document.getElementById('file-preview').classList.add('show');
-                    
-                    const messageDiv = card?.closest('.message');
-                    if (messageDiv) messageDiv.remove();
-                }
-                
-            } catch (err) {
-                console.error('Upload processing error:', err);
-                if (analysisDiv) {
-                    analysisDiv.innerHTML = `
-                        <div style="text-align: center; padding: 16px; color: #ff6b6b;">
-                            <div style="font-size: 32px; margin-bottom: 8px;">❌</div>
-                            <div style="font-size: 14px; font-weight: 600;">Processing Failed</div>
-                            <div style="font-size: 12px; margin-top: 4px;">${err.message || 'Please try again'}</div>
-                        </div>
-                    `;
-                }
-                // Show cancel button again
-                if (actionsDiv) {
-                    actionsDiv.style.display = 'flex';
-                    actionsDiv.innerHTML = `<button class="btn-cancel" onclick="cancelInlineUpload()" style="flex: 1;">Close</button>`;
-                }
+            // Set pending state - DNA extraction happens AFTER topic is provided
+            pendingPersonalizeRender = true;
+            personalizeVideoData = {
+                mode: mode,
+                filePath: pendingImagePath,
+                needsExtraction: true  // Flag that we need to extract DNA when topic is provided
+            };
+            
+            // Remove card and ask for topic (no expensive AI calls yet)
+            const messageDiv = card?.closest('.message');
+            if (messageDiv) messageDiv.remove();
+            
+            if (mode === 'reskin') {
+                addMessage("What's your topic? Tell me what this video should be about and I'll regenerate the visuals to match.", false);
+            } else if (mode === 'clipper') {
+                addMessage("What's your script or topic? I'll create a video using this clip's editing style.", false);
+            } else {
+                // Non-video file - simple file attachment
+                document.getElementById('file-name').textContent = pendingImageFile.name;
+                document.getElementById('file-preview').classList.add('show');
             }
         }
         
@@ -15127,14 +15013,34 @@
                 return;
             }
             
-            // Handle reskin mode - user sending topic after DNA extraction
+            // Handle reskin mode - user sending topic (DNA extraction happens now)
             if (pendingPersonalizeRender && personalizeVideoData && personalizeVideoData.mode === 'reskin' && currentWorkflowStep === 2 && message) {
-                // This is the topic for the reskin - capture it and proceed
                 personalizeVideoData.topic = message;
                 removeTypingIndicator();
                 
-                // Generate script with the topic, then show inline script card (60s timeout)
                 try {
+                    // Step 1: Extract creative DNA now (deferred until topic is provided)
+                    if (personalizeVideoData.needsExtraction && personalizeVideoData.filePath) {
+                        addMessage('Analyzing your clip...', false);
+                        
+                        const dnaResponse = await fetchWithRetry('/extract-creative-dna', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ file_path: personalizeVideoData.filePath })
+                        }, { timeoutMs: 90000, maxRetries: 1 });
+                        
+                        const dnaData = await dnaResponse.json();
+                        
+                        if (dnaData.creative_dna) {
+                            personalizeVideoData.creativeDna = dnaData.creative_dna;
+                            personalizeVideoData.creativeDecisions = dnaData.creative_dna.adjustable_elements || {};
+                            personalizeVideoData.needsExtraction = false;
+                        } else {
+                            throw new Error(dnaData.error || 'Failed to analyze clip');
+                        }
+                    }
+                    
+                    // Step 2: Generate script with the topic
                     const scriptResponse = await fetchWithRetry('/unified-engine', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -15155,20 +15061,16 @@
                         currentScript = scriptData.result.script.full_script;
                         currentProjectThesis = scriptData.result.script.thesis || message;
                         
-                        // Show script card inline for confirmation
                         renderScriptCardInChat(currentScript);
                         addMessage('Here\'s your script. Review it and click "Confirm & Continue" to proceed to rendering.', false);
                     } else {
                         addMessage('Script generated. Click "Confirm & Continue" when ready.', false);
-                        // Fallback - create a simple script from the topic
                         currentScript = message;
                         renderScriptCardInChat(message);
                     }
                 } catch (err) {
-                    console.error('Script generation error:', err);
-                    addMessage('Ready to proceed. Click "Confirm & Continue" to start rendering.', false);
-                    currentScript = message;
-                    renderScriptCardInChat(message);
+                    console.error('Reskin flow error:', err);
+                    addMessage('Something went wrong: ' + (err.message || 'Please try again'), false);
                 }
                 
                 stopLoading();
