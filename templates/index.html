@@ -15140,22 +15140,19 @@
             const useReskin = personalizeVideoData.useReskin !== false;
             
             // Show unified loader
-            unifiedLoader.show({
-                title: useReskin ? 'Re-skinning Video' : 'Rendering Personalized Video',
-                status: 'Analyzing source video...',
-                backgroundRender: true
-            });
-            unifiedLoader.setStep('script');
-            unifiedLoader.setProgress(5);
+            const loader = document.getElementById('unified-loader');
+            const statusEl = document.getElementById('unified-loader-status');
+            if (loader) loader.style.display = 'flex';
+            if (statusEl) statusEl.textContent = 'Starting render...';
             
             try {
-                let creativeDna = null;
+                // Use already-extracted creative DNA if available
+                let creativeDna = personalizeVideoData.creativeDna || null;
                 let audioPath = null;
                 
-                if (useReskin) {
-                    // Step 1: Extract creative DNA from source video
-                    unifiedLoader.setStatus('Extracting creative DNA...');
-                    unifiedLoader.setProgress(10);
+                if (useReskin && !creativeDna && personalizeVideoData.filePath) {
+                    // Only extract DNA if not already available
+                    if (statusEl) statusEl.textContent = 'Extracting creative DNA...';
                     
                     const dnaResponse = await fetch('/extract-creative-dna', {
                         method: 'POST',
@@ -15174,9 +15171,7 @@
                 }
                 
                 // Step 2: Generate voiceover (unless custom provided)
-                unifiedLoader.setStep('voice');
-                unifiedLoader.setStatus('Generating voiceover...');
-                unifiedLoader.setProgress(25);
+                if (statusEl) statusEl.textContent = 'Generating voiceover...';
                 
                 if (personalizeVideoData.customVoiceover) {
                     audioPath = personalizeVideoData.customVoiceover;
@@ -15202,9 +15197,7 @@
                 
                 if (useReskin && creativeDna) {
                     // Step 3: Re-skin with new visuals
-                    unifiedLoader.setStep('visuals');
-                    unifiedLoader.setStatus('Finding matching visuals...');
-                    unifiedLoader.setProgress(40);
+                    if (statusEl) statusEl.textContent = 'Generating AI visuals...';
                     
                     // Get caption settings with position
                     const captionSettings = getCaptionSettings();
@@ -15231,9 +15224,7 @@
                     
                     if (renderData.success) {
                         // Step 4: AI Quality Review
-                        unifiedLoader.setStep('render');
-                        unifiedLoader.setStatus('AI reviewing quality...');
-                        unifiedLoader.setProgress(85);
+                        if (statusEl) statusEl.textContent = 'AI reviewing quality...';
                         
                         const reviewResponse = await fetch('/ai-quality-review', {
                             method: 'POST',
@@ -15256,9 +15247,7 @@
                     }
                 } else {
                     // Fallback: Simple overlay render
-                    unifiedLoader.setStep('render');
-                    unifiedLoader.setStatus('Assembling video...');
-                    unifiedLoader.setProgress(60);
+                    if (statusEl) statusEl.textContent = 'Assembling video...';
                     
                     const captionSettings = getCaptionSettings();
                     
@@ -15278,7 +15267,8 @@
                     renderData = await renderResponse.json();
                 }
                 
-                unifiedLoader.hide();
+                // Hide loader
+                if (loader) loader.style.display = 'none';
                 
                 if (renderData.success) {
                     // Show video with quality info if available
@@ -15305,7 +15295,7 @@
                 
             } catch (err) {
                 console.error('Personalized render error:', err);
-                unifiedLoader.hide();
+                if (loader) loader.style.display = 'none';
                 addMessage(`Render failed: ${err.message}`);
                 showError('Render Failed', err.message);
             }
