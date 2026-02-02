@@ -5708,6 +5708,13 @@ No text, no watermarks, no logos."""
         if new_script and data.get('captions_enabled', True):
             captioned_output = f'output/reskinned_captioned_{output_id}.mp4'
             
+            # Extract script text if it's a dict
+            script_text = new_script
+            if isinstance(new_script, dict):
+                script_text = new_script.get('text', new_script.get('script', new_script.get('content', '')))
+            if not isinstance(script_text, str):
+                script_text = str(script_text) if script_text else ''
+            
             # Get video duration
             dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', final_output]
             dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
@@ -5715,7 +5722,7 @@ No text, no watermarks, no logos."""
             
             # Create SRT file with proper positioning
             srt_path = f'output/captions_{output_id}.srt'
-            create_word_synced_subtitles(new_script, video_duration, srt_path)
+            create_word_synced_subtitles(script_text, video_duration, srt_path)
             
             # Caption position mapping
             position_margins = {
