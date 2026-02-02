@@ -300,15 +300,28 @@
             background: transparent;
         }
         
-        /* Layout */
+        /* Layout - Full width on desktop, constrained on mobile */
         .app {
             display: flex;
             flex-direction: column;
             height: 100vh;
             height: 100dvh;
-            max-width: 640px;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 0 1rem;
+            padding: 0 2rem;
+        }
+        
+        /* Desktop: wider content area for messages */
+        @media (min-width: 1024px) {
+            .app {
+                padding: 0 4rem;
+            }
+        }
+        
+        @media (min-width: 1440px) {
+            .app {
+                padding: 0 8rem;
+            }
         }
         
         /* Header - Clean 3-column layout */
@@ -2207,7 +2220,7 @@
         .message.user {
             display: flex;
             justify-content: flex-end;
-            padding-left: 10%;
+            padding-left: 20%;
             color: var(--text);
             animation: userMessageIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -2216,8 +2229,8 @@
             background: rgba(255, 214, 10, 0.1);
             border: 1px solid rgba(255, 214, 10, 0.2);
             border-radius: 16px 16px 4px 16px;
-            padding: 10px 14px;
-            max-width: 100%;
+            padding: 12px 16px;
+            max-width: 800px;
         }
         
         @keyframes userMessageIn {
@@ -2234,7 +2247,7 @@
         .message.ai {
             display: flex;
             justify-content: flex-start;
-            padding-right: 5%;
+            padding-right: 10%;
             color: var(--text);
             animation: aiMessageIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
         }
@@ -2243,8 +2256,8 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--border);
             border-radius: 16px 16px 16px 4px;
-            padding: 10px 14px;
-            max-width: 100%;
+            padding: 12px 16px;
+            max-width: 900px;
         }
         
         /* Workflow cards appear centered */
