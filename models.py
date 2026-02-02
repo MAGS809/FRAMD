@@ -537,3 +537,55 @@ class VisualMatch(db.Model):
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class VisualLearning(db.Model):
+    """Track which visual source decisions work well for content types"""
+    __tablename__ = 'visual_learning'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    content_type = db.Column(db.String(50), nullable=False, index=True)
+    scene_position = db.Column(db.String(20), nullable=False)
+    source_type = db.Column(db.String(50), nullable=False)
+    feedback = db.Column(db.String(20), default='positive')
+    scene_text_sample = db.Column(db.String(200), nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+
+class VisualPlan(db.Model):
+    """Store visual plans for videos - enables revision without re-planning"""
+    __tablename__ = 'visual_plans'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    plan_id = db.Column(db.String(20), nullable=False, unique=True)
+    
+    content_type = db.Column(db.String(50), nullable=True)
+    color_palette = db.Column(db.JSON, default=[])
+    editing_dna = db.Column(db.JSON, default={})
+    scenes = db.Column(db.JSON, default=[])
+    
+    script_hash = db.Column(db.String(64), nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class PreviewVideo(db.Model):
+    """Track preview videos before final render - enables watermark removal flow"""
+    __tablename__ = 'preview_videos'
+    id = db.Column(db.Integer, primary_key=True)
+    
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    preview_path = db.Column(db.String(500), nullable=False)
+    final_path = db.Column(db.String(500), nullable=True)
+    plan_id = db.Column(db.String(20), nullable=True)
+    
+    is_finalized = db.Column(db.Boolean, default=False)
+    revision_count = db.Column(db.Integer, default=0)
+    feedback_history = db.Column(db.JSON, default=[])
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    finalized_at = db.Column(db.DateTime, nullable=True)

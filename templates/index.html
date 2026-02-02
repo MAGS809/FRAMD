@@ -2279,6 +2279,256 @@
             width: 100%;
         }
         
+        /* Bouncing Watermark for Preview Videos */
+        .video-preview-container {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .video-preview-container video {
+            width: 100%;
+            max-height: 400px;
+            background: #000;
+            display: block;
+        }
+        
+        .bouncing-watermark {
+            position: absolute;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(255, 214, 10, 0.7);
+            background: rgba(0, 0, 0, 0.5);
+            padding: 4px 10px;
+            border-radius: 4px;
+            pointer-events: none;
+            animation: bounceWatermark 8s ease-in-out infinite;
+            z-index: 10;
+        }
+        
+        @keyframes bounceWatermark {
+            0% { top: 10%; left: 10%; }
+            25% { top: 10%; left: 70%; }
+            50% { top: 70%; left: 70%; }
+            75% { top: 70%; left: 10%; }
+            100% { top: 10%; left: 10%; }
+        }
+        
+        /* Preview Video Actions */
+        .preview-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .preview-actions .btn-accept {
+            background: var(--gold);
+            color: #000;
+            font-weight: 600;
+        }
+        
+        .preview-actions .btn-revision {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--border);
+        }
+        
+        .preview-actions .btn-final {
+            background: linear-gradient(135deg, var(--gold), #e6c200);
+            color: #000;
+            font-weight: 600;
+        }
+        
+        /* Revision Flow UI */
+        .revision-panel {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255, 214, 10, 0.05);
+            border: 1px solid rgba(255, 214, 10, 0.2);
+            border-radius: 10px;
+        }
+        
+        .revision-panel h4 {
+            font-size: 14px;
+            color: var(--gold);
+            margin-bottom: 12px;
+        }
+        
+        .revision-options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        .revision-option {
+            flex: 1;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+        
+        .revision-option:hover {
+            border-color: var(--gold);
+        }
+        
+        .revision-option.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.1);
+        }
+        
+        .revision-option .option-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .revision-option .option-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .revision-feedback {
+            width: 100%;
+            min-height: 80px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            color: var(--text);
+            font-size: 14px;
+            resize: none;
+            margin-bottom: 12px;
+        }
+        
+        .revision-feedback:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+        
+        /* Caption Position Selector */
+        .caption-position-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        
+        .caption-position-selector label {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-right: 8px;
+        }
+        
+        .caption-pos-btn {
+            padding: 6px 12px;
+            font-size: 11px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-dim);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .caption-pos-btn:hover {
+            border-color: var(--gold);
+            color: var(--text);
+        }
+        
+        .caption-pos-btn.active {
+            background: var(--gold);
+            border-color: var(--gold);
+            color: #000;
+            font-weight: 600;
+        }
+        
+        /* Visual Plan Display */
+        .visual-plan-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        
+        .visual-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .visual-plan-header h4 {
+            font-size: 14px;
+            color: var(--gold);
+        }
+        
+        .visual-plan-scenes {
+            display: grid;
+            gap: 8px;
+        }
+        
+        .scene-plan-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+        }
+        
+        .scene-plan-index {
+            width: 24px;
+            height: 24px;
+            background: var(--gold);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        .scene-plan-details {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .scene-plan-text {
+            font-size: 12px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .scene-plan-source {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        
+        .scene-plan-source .source-tag {
+            display: inline-block;
+            padding: 2px 6px;
+            background: rgba(255, 214, 10, 0.15);
+            border-radius: 3px;
+            color: var(--gold);
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 4px;
+        }
+        
         @keyframes aiMessageIn {
             from { 
                 opacity: 0; 
@@ -16521,8 +16771,12 @@
             }
         }
         
-        // Render video result inline in chat
-        function renderVideoResultInChat(renderData) {
+        // Track current preview data for revision flow
+        let currentPreviewData = null;
+        // Note: selectedCaptionPosition is already declared in caption settings section
+        
+        // Render video result inline in chat - now shows PREVIEW with watermark
+        function renderVideoResultInChat(renderData, isPreview = true) {
             const messagesDiv = document.getElementById('messages');
             if (!messagesDiv) return;
             
@@ -16532,6 +16786,9 @@
                 return;
             }
             
+            // Store preview data for potential revisions
+            currentPreviewData = { ...renderData, videoUrl };
+            
             const cardDiv = document.createElement('div');
             cardDiv.className = 'message ai video-result-message';
             cardDiv.id = 'video-result-' + Date.now();
@@ -16539,13 +16796,66 @@
             const trendSources = renderData.trend_sources || [];
             const hasSources = trendSources.length > 0;
             
+            // Different UI for preview vs final
+            const headerText = isPreview ? 'Preview Ready' : 'Your Video is Ready!';
+            const headerSubtext = isPreview ? 'Review your video below. Happy with it? Download or get the final version.' : '';
+            
             cardDiv.innerHTML = `
                 <div class="inline-video-card" id="video-completion-card" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 8px 0;">
-                    <div class="video-ready-header" style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 12px;">Your Video is Ready!</div>
-                    <video controls style="width: 100%; max-height: 400px; border-radius: 8px; background: #000;">
-                        <source src="${videoUrl}" type="video/mp4">
-                        Your browser does not support video playback.
-                    </video>
+                    <div class="video-ready-header" style="font-size: 14px; font-weight: 600; color: var(--gold); margin-bottom: 4px;">${headerText}</div>
+                    ${isPreview ? `<div style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">${headerSubtext}</div>` : ''}
+                    
+                    <!-- Video with bouncing watermark -->
+                    <div class="video-preview-container" id="preview-container">
+                        <video controls style="width: 100%; max-height: 400px; border-radius: 8px; background: #000;">
+                            <source src="${videoUrl}" type="video/mp4">
+                            Your browser does not support video playback.
+                        </video>
+                        ${isPreview ? `<div class="bouncing-watermark">PREVIEW - Framd</div>` : ''}
+                    </div>
+                    
+                    <!-- Caption Position Selector -->
+                    <div class="caption-position-selector" id="caption-position-ui">
+                        <label>Captions:</label>
+                        <button class="caption-pos-btn ${selectedCaptionPosition === 'top' ? 'active' : ''}" onclick="setCaptionPosition('top', this)">Top</button>
+                        <button class="caption-pos-btn ${selectedCaptionPosition === 'middle' ? 'active' : ''}" onclick="setCaptionPosition('middle', this)">Middle</button>
+                        <button class="caption-pos-btn ${selectedCaptionPosition === 'bottom' ? 'active' : ''}" onclick="setCaptionPosition('bottom', this)">Bottom</button>
+                        <button class="caption-pos-btn ${selectedCaptionPosition === 'none' ? 'active' : ''}" onclick="setCaptionPosition('none', this)">None</button>
+                    </div>
+                    
+                    <!-- Preview Actions -->
+                    <div class="preview-actions">
+                        <button class="btn btn-accept" onclick="acceptVideo('${videoUrl}')" style="font-size: 12px; padding: 10px 20px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px; vertical-align: middle;"><polyline points="20 6 9 17 4 12"/></svg>
+                            Download
+                        </button>
+                        <button class="btn btn-final" onclick="getFinalVideo('${videoUrl}')" style="font-size: 12px; padding: 10px 20px;">
+                            Get Final Video
+                        </button>
+                        <button class="btn btn-revision" onclick="showRevisionPanel()" style="font-size: 12px; padding: 10px 20px;">
+                            Needs Changes
+                        </button>
+                    </div>
+                    
+                    <!-- Revision Panel (hidden by default) -->
+                    <div class="revision-panel" id="revision-panel" style="display: none;">
+                        <h4>What would you like to change?</h4>
+                        <div class="revision-options">
+                            <div class="revision-option" onclick="selectRevisionType('minor', this)" data-type="minor">
+                                <div class="option-title">Minor Tweaks</div>
+                                <div class="option-desc">Adjust pacing, colors, or small details</div>
+                            </div>
+                            <div class="revision-option" onclick="selectRevisionType('major', this)" data-type="major">
+                                <div class="option-title">Start Over</div>
+                                <div class="option-desc">Regenerate with different approach</div>
+                            </div>
+                        </div>
+                        <textarea class="revision-feedback" id="revision-feedback" placeholder="Tell the AI what's wrong or what you'd like changed..."></textarea>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="submitRevision()" style="flex: 1;">Submit Feedback</button>
+                            <button class="btn btn-secondary" onclick="hideRevisionPanel()">Cancel</button>
+                        </div>
+                    </div>
                     
                     <!-- Video Description Section -->
                     <div style="margin-top: 16px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
@@ -16565,22 +16875,6 @@
                             </div>
                         </div>
                         ` : ''}
-                    </div>
-                    
-                    <!-- Video URL Section -->
-                    <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 8px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                            <span style="font-size: 11px; font-weight: 600; color: var(--gold);">Video Link</span>
-                            <button onclick="copyVideoUrl('${videoUrl}')" class="btn btn-secondary" style="font-size: 10px; padding: 4px 10px;">Copy Link</button>
-                        </div>
-                        <input type="text" id="video-url-display" value="${window.location.origin}${videoUrl}" readonly style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-dim); font-size: 11px; padding: 6px 8px; font-family: monospace;">
-                    </div>
-                    
-                    <div style="display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap;">
-                        <a href="${videoUrl}" download class="btn btn-primary download-video-btn" id="download-video-btn" style="font-size: 12px; padding: 8px 16px; text-decoration: none;">Download Video</a>
-                        <button class="btn btn-secondary" onclick="openVideoEditor('${videoUrl}')" style="font-size: 12px; padding: 8px 16px;">Edit Captions</button>
-                        <button class="btn btn-secondary" onclick="likeVideo()" style="font-size: 12px; padding: 8px 16px;">Like</button>
-                        <button class="btn btn-secondary" onclick="showDislikeOptions()" style="font-size: 12px; padding: 8px 16px;">Needs Work</button>
                     </div>
                     
                     <!-- Multi-Platform Export & Promo Pack -->
@@ -16606,19 +16900,252 @@
             // Trigger completion effects after a brief delay
             setTimeout(() => {
                 const completionCard = document.getElementById('video-completion-card');
-                const downloadBtn = document.getElementById('download-video-btn');
-                
                 if (completionCard) {
                     triggerConfetti(completionCard);
                     triggerShimmer(completionCard);
                 }
-                
-                if (downloadBtn) {
-                    pulseAttention(downloadBtn);
-                    // Stop pulsing when clicked
-                    downloadBtn.addEventListener('click', () => stopPulseAttention(downloadBtn), { once: true });
-                }
             }, 100);
+        }
+        
+        // Caption position selector
+        function setCaptionPosition(position, btn) {
+            selectedCaptionPosition = position;
+            document.querySelectorAll('.caption-pos-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        
+        // Accept video (download as preview) - counts as "like"
+        function acceptVideo(videoUrl) {
+            // Record positive feedback
+            recordVideoFeedback('positive', 'User downloaded preview');
+            
+            // Trigger download
+            const link = document.createElement('a');
+            link.href = videoUrl;
+            link.download = 'framd-video.mp4';
+            link.click();
+            
+            showSuccess('Downloaded', 'Your video has been downloaded.');
+        }
+        
+        // Get final video (removes watermark, uses tokens)
+        async function getFinalVideo(previewUrl) {
+            showRenderOverlay('Generating Final Video');
+            updateRenderStage('Removing watermark...', 'Creating your final video');
+            
+            try {
+                const response = await fetch('/finalize-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        preview_url: previewUrl,
+                        caption_position: selectedCaptionPosition
+                    })
+                });
+                
+                const data = await response.json();
+                hideRenderOverlay();
+                
+                if (data.success) {
+                    // Replace preview with final video
+                    const container = document.getElementById('preview-container');
+                    if (container) {
+                        const watermark = container.querySelector('.bouncing-watermark');
+                        if (watermark) watermark.remove();
+                        
+                        const video = container.querySelector('video source');
+                        if (video) {
+                            video.src = data.video_url;
+                            container.querySelector('video').load();
+                        }
+                    }
+                    
+                    showSuccess('Final Video Ready', 'Your video is ready to download without watermark!');
+                    
+                    // Update download button
+                    const acceptBtn = document.querySelector('.btn-accept');
+                    if (acceptBtn) {
+                        acceptBtn.onclick = () => acceptVideo(data.video_url);
+                    }
+                    
+                    refreshTokenBalance();
+                } else {
+                    showError('Error', data.error || 'Failed to generate final video');
+                }
+            } catch (err) {
+                hideRenderOverlay();
+                showError('Error', 'Failed to generate final video');
+            }
+        }
+        
+        // Revision flow
+        let selectedRevisionType = 'minor';
+        
+        function showRevisionPanel() {
+            document.getElementById('revision-panel').style.display = 'block';
+        }
+        
+        function hideRevisionPanel() {
+            document.getElementById('revision-panel').style.display = 'none';
+        }
+        
+        function selectRevisionType(type, element) {
+            selectedRevisionType = type;
+            document.querySelectorAll('.revision-option').forEach(opt => opt.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+        
+        async function submitRevision() {
+            const feedback = document.getElementById('revision-feedback').value.trim();
+            if (!feedback) {
+                showWarning('Feedback Required', 'Please describe what you want changed');
+                return;
+            }
+            
+            hideRevisionPanel();
+            
+            // Send feedback to AI
+            addMessage(feedback, true);
+            
+            // Record feedback for learning
+            recordVideoFeedback('revision', feedback);
+            
+            // Let AI handle the revision request
+            const revisionPrompt = selectedRevisionType === 'minor' 
+                ? `The user wants minor tweaks to the video: "${feedback}". Adjust the current video accordingly.`
+                : `The user wants to start over with a different approach: "${feedback}". Regenerate the video with this feedback in mind.`;
+            
+            // Trigger AI response
+            handleAIRevision(revisionPrompt, selectedRevisionType);
+        }
+        
+        async function handleAIRevision(prompt, revisionType) {
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: prompt,
+                        revision_type: revisionType,
+                        previous_video: currentPreviewData
+                    })
+                });
+                
+                removeTypingIndicator();
+                const data = await response.json();
+                
+                if (data.response) {
+                    addMessage(data.response, false);
+                }
+            } catch (err) {
+                removeTypingIndicator();
+                showError('Error', 'Failed to process revision request');
+            }
+        }
+        
+        function recordVideoFeedback(type, details) {
+            fetch('/record-video-feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    feedback_type: type,
+                    details: details,
+                    video_data: currentPreviewData
+                })
+            }).catch(err => console.warn('Failed to record feedback:', err));
+        }
+        
+        // Display Visual Plan before generating
+        async function createAndShowVisualPlan(script, intent, template) {
+            try {
+                const response = await fetch('/create-visual-plan', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        script: script,
+                        intent: intent,
+                        template: template
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success && data.plan) {
+                    displayVisualPlan(data.plan);
+                    return data.plan;
+                }
+                return null;
+            } catch (err) {
+                console.error('Failed to create visual plan:', err);
+                return null;
+            }
+        }
+        
+        function displayVisualPlan(plan) {
+            const messagesDiv = document.getElementById('messages');
+            if (!messagesDiv) return;
+            
+            const sourceLabels = {
+                'stock': 'Stock Photo',
+                'dalle': 'AI Generated',
+                'user_content': 'Your Content'
+            };
+            
+            const scenesHtml = plan.scenes.map((scene, i) => `
+                <div class="scene-plan-item">
+                    <div class="scene-plan-index">${i + 1}</div>
+                    <div class="scene-plan-details">
+                        <div class="scene-plan-text">${scene.text.substring(0, 60)}${scene.text.length > 60 ? '...' : ''}</div>
+                        <div class="scene-plan-source">
+                            <span class="source-tag">${sourceLabels[scene.source] || scene.source}</span>
+                            ${scene.source_reason}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            const planCard = document.createElement('div');
+            planCard.className = 'message ai';
+            planCard.innerHTML = `
+                <div class="message-content">
+                    <div class="visual-plan-card">
+                        <div class="visual-plan-header">
+                            <h4>Visual Plan</h4>
+                            <span style="font-size: 11px; color: var(--text-dim);">Content Type: ${plan.content_type}</span>
+                        </div>
+                        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                            ${plan.color_palette.slice(0, 5).map(color => `
+                                <div style="width: 24px; height: 24px; border-radius: 4px; background: ${color}; border: 1px solid rgba(255,255,255,0.1);"></div>
+                            `).join('')}
+                            <span style="font-size: 11px; color: var(--text-dim); align-self: center; margin-left: 8px;">${plan.color_mood}</span>
+                        </div>
+                        <div class="visual-plan-scenes">
+                            ${scenesHtml}
+                        </div>
+                        <div style="margin-top: 12px; display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="proceedWithPlan('${plan.plan_id}')" style="flex: 1;">Generate Video</button>
+                            <button class="btn btn-secondary" onclick="adjustPlan('${plan.plan_id}')">Adjust Plan</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(planCard);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        async function proceedWithPlan(planId) {
+            addMessage('Generating video based on the visual plan...', false);
+            // This would trigger the render with the plan
+            // For now, proceed with normal render
+            if (typeof startPersonalizedRender === 'function') {
+                startPersonalizedRender();
+            }
+        }
+        
+        function adjustPlan(planId) {
+            addMessage('Tell me what you would like to change about the visual plan.', false);
         }
         
         // Store workflow preference for AI learning

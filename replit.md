@@ -116,7 +116,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
 - **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
-- **Video Re-skinning System (Re-skin Mode)**: Clip-guided video regeneration. User uploads any video, AI extracts "creative DNA" (rhythm, structure, pacing, scene timing) as the guide. AI then generates NEW visuals (DALL-E primary) matching the user's topic while preserving the original video's feel. Features:
+- **AI Remix Mode** (formerly Re-skin Mode): Clip-guided video regeneration. User uploads any video, AI extracts "creative DNA" (rhythm, structure, pacing, scene timing) as the guide. AI then generates NEW visuals (DALL-E primary) matching the user's topic while preserving the original video's feel. Features:
   - Creative DNA extraction via GPT-4o Vision (scene intents, composition, colors, motion)
   - Adjustable elements (AI has creative leeway): colors, angles, visual content
   - Fixed elements (preserved from original): rhythm, structure, transitions, motion patterns
@@ -126,10 +126,25 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
   - Global learning system tracking which creative decisions work
   - Custom voiceover upload or AI voice generation
   - Custom image integration with precise scene placement
-  - Caption position controls (top/center/bottom)
-- **Next Gen Clipper Mode**: Script-guided video creation. User provides script (or generates from template), AI clips and edits according to the script structure, influenced by the chosen template's editing style.
+  - Caption position controls (top/middle/bottom/none)
+- **Next-gen clipper Mode**: Script-guided video creation. User provides script (or generates from template), AI clips and edits according to the script structure, influenced by the chosen template's editing style.
 - **Custom Template System**: Users upload videos to create personal templates. AI learns the editing style (pacing, cuts, rhythm) for reuse across future projects.
-- **Database**: PostgreSQL with 20+ tables and indexed foreign keys for performance.
+- **Visual Director AI** (`visual_director.py`): Pre-plans all visuals before generation for coherent, professional output:
+  - Content type detection (podcast, explainer, hot_take, ad, story, news, meme)
+  - Per-scene source selection (stock vs DALL-E vs user content)
+  - Color palette and style consistency across all scenes
+  - Editing DNA patterns per content type (pacing, cut style, transitions)
+  - Learning system tracks which visual decisions work well
+- **Preview Protection System**: Bouncing TikTok-style watermark on previews:
+  - Download = accept (user is satisfied)
+  - "Needs Changes" triggers revision flow (Minor Tweaks vs Start Over)
+  - "Get Final Video" removes watermark (uses tokens)
+  - Revision feedback recorded for AI learning
+- **Intelligent Source Mixing**: AI decides optimal source per scene:
+  - Stock photos for real people/places (authenticity)
+  - DALL-E for abstract concepts, custom scenes
+  - User content prioritized when available
+- **Database**: PostgreSQL with 25+ tables including VisualPlan, VisualLearning, PreviewVideo for AI learning.
 
 ## External Dependencies
 - **Python 3.11**

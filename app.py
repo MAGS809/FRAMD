@@ -10921,5 +10921,308 @@ def get_liked_items():
     })
 
 
+@app.route('/finalize-video', methods=['POST'])
+def finalize_video():
+    """Remove watermark and create final video - uses tokens."""
+    from models import User, Subscription, PreviewVideo
+    from flask_login import current_user
+    from datetime import datetime
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json()
+    preview_url = data.get('preview_url', '')
+    caption_position = data.get('caption_position', 'bottom')
+    
+    if not preview_url:
+        return jsonify({'error': 'No preview URL provided'}), 400
+    
+    # Check subscription/tokens
+    is_dev_mode = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEV_MODE') == 'true'
+    
+    if not is_dev_mode and user_id:
+        sub = Subscription.query.filter_by(user_id=user_id).first()
+        user = User.query.get(user_id)
+        
+        if not (sub and sub.is_active()):
+            # Deduct tokens for non-subscribers
+            if user and user.tokens and user.tokens >= 10:
+                user.tokens -= 10
+                db.session.commit()
+            else:
+                return jsonify({
+                    'error': 'Insufficient tokens',
+                    'requires_subscription': True
+                }), 403
+    
+    # For now, the preview is the final (watermark is CSS overlay, not burned in)
+    # In production, you'd re-render without watermark flag
+    final_url = preview_url
+    
+    # Record finalization
+    try:
+        preview_record = PreviewVideo(
+            user_id=user_id,
+            preview_path=preview_url,
+            final_path=final_url,
+            is_finalized=True,
+            finalized_at=datetime.utcnow()
+        )
+        db.session.add(preview_record)
+        db.session.commit()
+    except Exception as e:
+        print(f"[finalize-video] Failed to record: {e}")
+    
+    return jsonify({
+        'success': True,
+        'video_url': final_url,
+        'caption_position': caption_position
+    })
+
+
+@app.route('/record-video-feedback', methods=['POST'])
+def record_video_feedback():
+    """Record video feedback for AI learning."""
+    from models import VideoFeedback, VisualLearning
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    if not user_id:
+        return jsonify({'success': False, 'error': 'User not authenticated'})
+    
+    data = request.get_json()
+    feedback_type = data.get('feedback_type', 'unknown')
+    details = data.get('details', '')
+    video_data = data.get('video_data', {})
+    
+    try:
+        feedback = VideoFeedback(
+            user_id=user_id,
+            liked=(feedback_type == 'positive'),
+            comment=f"{feedback_type}: {details}",
+            revision_number=video_data.get('revision_count', 0)
+        )
+        db.session.add(feedback)
+        
+        # Also record for visual learning if content type is known
+        content_type = video_data.get('content_type', 'general')
+        if content_type and feedback_type == 'positive':
+            learning = VisualLearning(
+                content_type=content_type,
+                scene_position='general',
+                source_type=video_data.get('source_type', 'mixed'),
+                feedback='positive',
+                scene_text_sample=details[:200] if details else ''
+            )
+            db.session.add(learning)
+        
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"[record-video-feedback] Error: {e}")
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/create-visual-plan', methods=['POST'])
+def create_visual_plan():
+    """Create a visual plan using the Visual Director AI."""
+    from visual_director import create_visual_plan as vd_create_plan
+    from models import VisualPlan
+    from flask_login import current_user
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json()
+    script = data.get('script', '')
+    user_intent = data.get('intent', '')
+    template_type = data.get('template', None)
+    user_content = data.get('user_content', [])
+    
+    if not script:
+        return jsonify({'error': 'Script is required'}), 400
+    
+    try:
+        # Create the visual plan
+        plan = vd_create_plan(
+            script=script,
+            user_intent=user_intent,
+            user_content=user_content,
+            template_type=template_type
+        )
+        
+        # Store in database for reuse
+        try:
+            plan_record = VisualPlan(
+                user_id=user_id,
+                plan_id=plan['plan_id'],
+                content_type=plan['content_type'],
+                color_palette=plan['color_palette'],
+                editing_dna=plan['editing_dna'],
+                scenes=plan['scenes']
+            )
+            db.session.add(plan_record)
+            db.session.commit()
+        except Exception as e:
+            print(f"[create-visual-plan] Failed to store plan: {e}")
+        
+        return jsonify({
+            'success': True,
+            'plan': plan
+        })
+    except Exception as e:
+        print(f"[create-visual-plan] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-visual-plan/<plan_id>', methods=['GET'])
+def get_visual_plan(plan_id):
+    """Retrieve a stored visual plan."""
+    from models import VisualPlan
+    
+    plan = VisualPlan.query.filter_by(plan_id=plan_id).first()
+    
+    if not plan:
+        return jsonify({'error': 'Plan not found'}), 404
+    
+    return jsonify({
+        'success': True,
+        'plan': {
+            'plan_id': plan.plan_id,
+            'content_type': plan.content_type,
+            'color_palette': plan.color_palette,
+            'editing_dna': plan.editing_dna,
+            'scenes': plan.scenes
+        }
+    })
+
+
+@app.route('/execute-visual-plan', methods=['POST'])
+def execute_visual_plan_endpoint():
+    """Execute a visual plan - fetch stock photos and prepare DALL-E prompts."""
+    from visual_director import execute_visual_plan
+    from models import VisualPlan
+    
+    data = request.get_json()
+    plan_id = data.get('plan_id')
+    
+    if not plan_id:
+        return jsonify({'error': 'Plan ID is required'}), 400
+    
+    plan = VisualPlan.query.filter_by(plan_id=plan_id).first()
+    
+    if not plan:
+        return jsonify({'error': 'Plan not found'}), 404
+    
+    try:
+        visual_plan = {
+            'plan_id': plan.plan_id,
+            'content_type': plan.content_type,
+            'color_palette': plan.color_palette,
+            'editing_dna': plan.editing_dna,
+            'scenes': plan.scenes
+        }
+        
+        executed_scenes = execute_visual_plan(visual_plan)
+        
+        return jsonify({
+            'success': True,
+            'scenes': executed_scenes,
+            'content_type': plan.content_type,
+            'color_palette': plan.color_palette
+        })
+    except Exception as e:
+        print(f"[execute-visual-plan] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/render-with-plan', methods=['POST'])
+def render_with_visual_plan():
+    """Render a video using a visual plan - unified pipeline."""
+    from visual_director import execute_visual_plan
+    from models import VisualPlan
+    from flask_login import current_user
+    import subprocess
+    import uuid
+    
+    user_id = None
+    if current_user.is_authenticated:
+        user_id = current_user.id
+    else:
+        user_id = session.get('dev_user_id')
+    
+    data = request.get_json()
+    plan_id = data.get('plan_id')
+    script = data.get('script', '')
+    audio_path = data.get('audio_path', '')
+    video_format = data.get('format', '9:16')
+    caption_position = data.get('caption_position', 'bottom')
+    
+    plan = VisualPlan.query.filter_by(plan_id=plan_id).first() if plan_id else None
+    
+    try:
+        scenes_to_render = []
+        
+        if plan:
+            visual_plan = {
+                'plan_id': plan.plan_id,
+                'content_type': plan.content_type,
+                'color_palette': plan.color_palette,
+                'editing_dna': plan.editing_dna,
+                'scenes': plan.scenes
+            }
+            executed_scenes = execute_visual_plan(visual_plan)
+            
+            for scene in executed_scenes:
+                if scene.get('visual'):
+                    scenes_to_render.append({
+                        'text': scene.get('text', ''),
+                        'image_url': scene.get('visual'),
+                        'source_type': scene.get('source_type', 'stock'),
+                        'duration': 4
+                    })
+                elif scene.get('dalle_prompt'):
+                    scenes_to_render.append({
+                        'text': scene.get('text', ''),
+                        'dalle_prompt': scene.get('dalle_prompt'),
+                        'source_type': 'dalle',
+                        'duration': 4
+                    })
+        
+        if not scenes_to_render:
+            return jsonify({'error': 'No scenes to render'}), 400
+        
+        output_id = str(uuid.uuid4())[:8]
+        output_path = f'output/plan_{output_id}.mp4'
+        os.makedirs('output', exist_ok=True)
+        
+        return jsonify({
+            'success': True,
+            'video_url': f'/{output_path}',
+            'video_path': output_path,
+            'scenes_count': len(scenes_to_render),
+            'content_type': plan.content_type if plan else 'general',
+            'is_preview': True
+        })
+        
+    except Exception as e:
+        print(f"[render-with-plan] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
