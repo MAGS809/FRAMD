@@ -5769,12 +5769,20 @@ No text, no watermarks, no logos."""
                 except:
                     pass
         
+        # Collect creative decisions for learning and transparency
+        creative_decisions = [sv.get('creative_decision') for sv in scene_visuals if sv.get('creative_decision')]
+        stock_warning = any(sv.get('stock_warning') for sv in scene_visuals)
+        
         return jsonify({
             'success': True,
             'video_path': '/' + final_output,
             'video_url': '/' + final_output,
             'scene_count': len(scene_visuals),
-            'sources_used': [sv.get('source') for sv in scene_visuals]
+            'sources_used': [sv.get('source') for sv in scene_visuals],
+            'creative_decisions': creative_decisions,
+            'stock_warning': stock_warning,
+            'ai_generated_count': len([sv for sv in scene_visuals if sv.get('source') == 'ai_generated']),
+            'stock_fallback_count': len([sv for sv in scene_visuals if sv.get('source') == 'stock_fallback'])
         })
         
     except Exception as e:

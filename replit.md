@@ -99,7 +99,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **AI Reasoning**: Utilizes a 4-question framework for content generation.
 - **Trend Intelligence**: AI researches social media platforms for current trends to inform script generation, visual curation, and output descriptions, with caching and optional citations.
 - **Auto-Generated Descriptions**: Videos include auto-generated social media descriptions with hashtags.
-- **Visual Content Sourcing**: Prioritizes Wikimedia Commons and Pexels, selecting visuals based on underlying ideas.
+- **Visual Content Sourcing**: Prioritizes AI-generated visuals (DALL-E) for uniqueness, with stock (Wikimedia/Pexels) as last-resort fallback only.
 - **Voice System**: 8 distinct character personas with multi-character script support.
 - **Caption System**: Word-synced captions rendered with FFmpeg, displayed with dynamic phone-frame preview.
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
@@ -116,15 +116,19 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
 - **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
-- **Video Re-skinning System**: Advanced video style cloning that extracts "creative DNA" from uploaded videos (scene intents, composition, colors, motion patterns) and regenerates with new visuals matching user's topic while maintaining the original structure. Features:
-  - Creative DNA extraction via GPT-4o Vision analysis
-  - Smart visual matching with Pexels video/image search
-  - DALL-E generation fallback when curated content doesn't fit
+- **Video Re-skinning System (Re-skin Mode)**: Clip-guided video regeneration. User uploads any video, AI extracts "creative DNA" (rhythm, structure, pacing, scene timing) as the guide. AI then generates NEW visuals (DALL-E primary) matching the user's topic while preserving the original video's feel. Features:
+  - Creative DNA extraction via GPT-4o Vision (scene intents, composition, colors, motion)
+  - Adjustable elements (AI has creative leeway): colors, angles, visual content
+  - Fixed elements (preserved from original): rhythm, structure, transitions, motion patterns
+  - AI-generated visuals (DALL-E primary) - stock fallback only when generation fails
+  - Creative decision logging: AI records what it changed and why
   - AI quality gate (self-review before showing user)
-  - Global learning system that tracks visual match success rates across all accounts
+  - Global learning system tracking which creative decisions work
   - Custom voiceover upload or AI voice generation
   - Custom image integration with precise scene placement
   - Caption position controls (top/center/bottom)
+- **Next Gen Clipper Mode**: Script-guided video creation. User provides script (or generates from template), AI clips and edits according to the script structure, influenced by the chosen template's editing style.
+- **Custom Template System**: Users upload videos to create personal templates. AI learns the editing style (pacing, cuts, rhythm) for reuse across future projects.
 - **Database**: PostgreSQL with 20+ tables and indexed foreign keys for performance.
 
 ## External Dependencies
