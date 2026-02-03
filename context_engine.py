@@ -2769,6 +2769,261 @@ def store_ai_learnings(critique_result: dict, db_session=None) -> bool:
         return False
 
 
+def analyze_remix_input(user_input: str, uploaded_files: list = None, user_context: str = "") -> dict:
+    """
+    Seamless Remix workflow: AI auto-detects template base vs content to implement.
+    
+    The AI determines from user input:
+    1. What is the template base (the structure/format to remix)
+    2. What is the content to implement (the user's unique message)
+    
+    If unclear, returns a clarifying question. Otherwise proceeds seamlessly.
+    
+    Args:
+        user_input: The user's raw input (description, link, idea, etc.)
+        uploaded_files: List of uploaded files (videos, images, etc.)
+        user_context: Previous conversation context
+        
+    Returns:
+        dict with either:
+        - {needs_clarification: True, question: "...", partial_analysis: {...}}
+        - {needs_clarification: False, template_base: {...}, content: {...}, remix_plan: {...}}
+    """
+    file_context = ""
+    if uploaded_files:
+        file_context = f"\nUPLOADED FILES:\n" + "\n".join([
+            f"- {f.get('name', 'file')}: {f.get('type', 'unknown')} ({f.get('size', 0)} bytes)"
+            for f in uploaded_files
+        ])
+    
+    prompt = f"""Analyze this Remix request. Your job is to intelligently understand:
+
+1. TEMPLATE BASE: What structure/format should this video follow?
+   - Is this an Explainer? Hot Take? Ad? Story? Meme?
+   - What editing style, pacing, and visual approach?
+   
+2. CONTENT TO IMPLEMENT: What is the user's unique message?
+   - What's the core thesis/idea?
+   - What specific points need to be made?
+   - Any brand elements, logos, or custom requirements?
+
+USER INPUT:
+{user_input}
+{file_context}
+
+CONVERSATION CONTEXT:
+{user_context[:500] if user_context else "First message in conversation"}
+
+AVAILABLE TEMPLATES AND THEIR CHARACTERISTICS:
+- hot_take: Provocative, punchy, fast opener, sharp close. Bold claims.
+- explainer: Educational, patient, question hook, steady build.
+- story_time: Narrative, immersive, tension build, emotional beats.
+- commentary: Analytical, observational, insight-driven.
+- meme_funny: Comedic, timing-focused, subverted expectations.
+- make_an_ad: Persuasive, benefit-focused, problem/solution, CTA.
+- tiktok_edit: Fast, visual-first, trend-forward, audio-synced.
+- open_letter: Direct address, personal, emotional weight.
+
+DECISION LOGIC:
+- If you can clearly identify BOTH the template base AND the content, proceed.
+- If the template is clear but content details are missing (brand colors, target audience, specific points), proceed with defaults.
+- If the content is clear but template choice is ambiguous between 2+ options, ASK.
+- If both are unclear, ASK ONE focused question.
+
+Output JSON:
+{{
+    "needs_clarification": true/false,
+    "clarification_question": "ONE focused question if needed, otherwise null",
+    "confidence": 0.0-1.0,
+    "analysis": {{
+        "detected_template": "template_name or null",
+        "template_confidence": 0.0-1.0,
+        "template_alternatives": ["other possible templates"],
+        "detected_content": {{
+            "core_thesis": "the main point/message",
+            "key_points": ["point 1", "point 2"],
+            "tone": "detected tone",
+            "target_audience": "who this is for or 'general'"
+        }},
+        "has_uploaded_content": true/false,
+        "missing_info": ["list of important missing details"]
+    }},
+    "remix_plan": {{
+        "template_to_use": "final template choice",
+        "editing_style": "description of editing approach",
+        "visual_approach": "how to handle visuals (Runway + stock + user files)",
+        "pacing": "fast/moderate/slow",
+        "estimated_duration": 30,
+        "source_priority": ["runway", "stock", "user_files"]
+    }}
+}}
+
+IMPORTANT: Default to proceeding. Only ask if genuinely critical info is missing."""
+
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    
+    if not result:
+        return {
+            "needs_clarification": True,
+            "clarification_question": "What kind of video would you like to create? (Explainer, Ad, Story, etc.)",
+            "confidence": 0,
+            "analysis": {}
+        }
+    
+    if result.get("needs_clarification") and result.get("clarification_question"):
+        print(f"[Remix Workflow] Needs clarification: {result.get('clarification_question')}")
+    else:
+        template = result.get("remix_plan", {}).get("template_to_use", "unknown")
+        confidence = result.get("confidence", 0)
+        print(f"[Remix Workflow] Auto-detected template: {template} (confidence: {confidence})")
+    
+    return result
+
+
+def orchestrate_remix_sources(remix_plan: dict, user_files: list = None) -> dict:
+    """
+    Orchestrate multi-source Remix: Runway API + stock + user files.
+    AI gives instructions to each source based on the remix plan.
+    
+    Args:
+        remix_plan: Output from analyze_remix_input
+        user_files: List of user uploaded files
+        
+    Returns:
+        Orchestration instructions for each source
+    """
+    template = remix_plan.get("remix_plan", {}).get("template_to_use", "explainer")
+    visual_approach = remix_plan.get("remix_plan", {}).get("visual_approach", "")
+    content = remix_plan.get("analysis", {}).get("detected_content", {})
+    
+    prompt = f"""Create orchestration instructions for a multi-source Remix video.
+
+TEMPLATE: {template}
+VISUAL APPROACH: {visual_approach}
+CONTENT THESIS: {content.get('core_thesis', '')}
+KEY POINTS: {json.dumps(content.get('key_points', []))}
+HAS USER FILES: {bool(user_files)}
+USER FILES: {json.dumps([f.get('name', 'file') for f in (user_files or [])]) if user_files else 'None'}
+
+Create instructions for each source in the video production pipeline:
+
+1. RUNWAY API: What AI-generated video transformations are needed?
+2. STOCK SOURCES: What stock footage/images should be searched for?
+3. USER FILES: How should user's uploaded content be incorporated?
+4. VIDEO EDITOR: How should all sources be merged? (timing, transitions, layering)
+
+Output JSON:
+{{
+    "runway_instructions": {{
+        "generation_type": "image_to_video|video_to_video|text_to_video",
+        "style_prompt": "visual style description for Runway",
+        "motion_guidance": "how motion should flow",
+        "scenes": [
+            {{"scene_num": 1, "duration": 5, "runway_prompt": "specific prompt for this scene"}}
+        ]
+    }},
+    "stock_instructions": {{
+        "search_queries": ["query 1", "query 2"],
+        "preferred_style": "cinematic|documentary|modern|vintage",
+        "scenes_needing_stock": [1, 3, 5],
+        "avoid": ["what to avoid in stock selection"]
+    }},
+    "user_file_instructions": {{
+        "incorporation_method": "overlay|replace|blend",
+        "placement": ["where user files should appear"],
+        "treatment": "how to process user files to match style"
+    }},
+    "editor_instructions": {{
+        "transition_style": "cut|fade|zoom|whip",
+        "pacing_bpm": 120,
+        "color_grade": "warm|cool|neutral|cinematic",
+        "caption_style": "bold_pop|clean_minimal|boxed",
+        "audio_sync": true/false,
+        "render_priority": ["scene order or priority notes"]
+    }},
+    "estimated_api_calls": {{
+        "runway_seconds": 30,
+        "stock_queries": 5,
+        "estimated_cost": 5.10
+    }}
+}}"""
+
+    result = call_ai(prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+    
+    if result:
+        print(f"[Remix Orchestration] Runway: {result.get('runway_instructions', {}).get('generation_type', 'N/A')}")
+        print(f"[Remix Orchestration] Stock queries: {len(result.get('stock_instructions', {}).get('search_queries', []))}")
+        print(f"[Remix Orchestration] Estimated cost: ${result.get('estimated_api_calls', {}).get('estimated_cost', 5.10)}")
+    
+    return result if result else {}
+
+
+def record_remix_success(remix_result: dict, user_feedback: str = "accepted", db_session=None) -> bool:
+    """
+    Record successful Remix outputs for cross-user learning.
+    Stores what worked well so future Remixes can build on success patterns.
+    
+    Args:
+        remix_result: The completed remix with orchestration details
+        user_feedback: "accepted", "rejected", or specific feedback
+        db_session: Database session for storage
+        
+    Returns:
+        Success boolean
+    """
+    if not db_session or not remix_result:
+        return False
+    
+    try:
+        from models import GlobalPattern
+        
+        pattern_type = f"remix_{remix_result.get('template', 'general')}"
+        
+        runway_instructions = remix_result.get('runway_instructions', {})
+        editor_instructions = remix_result.get('editor_instructions', {})
+        
+        pattern_data = {
+            'runway_style': runway_instructions.get('style_prompt', ''),
+            'generation_type': runway_instructions.get('generation_type', ''),
+            'color_grade': editor_instructions.get('color_grade', ''),
+            'transition_style': editor_instructions.get('transition_style', ''),
+            'pacing_bpm': editor_instructions.get('pacing_bpm', 120),
+            'user_feedback': user_feedback
+        }
+        
+        existing = db_session.query(GlobalPattern).filter_by(
+            pattern_type=pattern_type
+        ).first()
+        
+        success = user_feedback in ['accepted', 'downloaded', 'liked']
+        
+        if existing:
+            existing.usage_count += 1
+            if success:
+                existing.success_count += 1
+            existing.success_rate = existing.success_count / max(existing.usage_count, 1)
+            if success and existing.success_rate > 0.7:
+                existing.pattern_data = pattern_data
+        else:
+            from models import GlobalPattern
+            new_pattern = GlobalPattern(
+                pattern_type=pattern_type,
+                pattern_data=pattern_data,
+                success_count=1 if success else 0,
+                usage_count=1,
+                success_rate=1.0 if success else 0.0
+            )
+            db_session.add(new_pattern)
+        
+        db_session.commit()
+        print(f"[Remix Learning] Recorded {'success' if success else 'attempt'} for {pattern_type}")
+        return True
+        
+    except Exception as e:
+        print(f"[Remix Learning] Error: {e}")
+        return False
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) > 1:

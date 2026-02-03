@@ -12,6 +12,8 @@
             --text: #ffd60a;
             --text-dim: rgba(255, 214, 10, 0.6);
             --text-faint: rgba(255, 214, 10, 0.2);
+            --green: #4ade80;
+            --red: #ef4444;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -25,7 +27,7 @@
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 1.5rem;
         }
@@ -116,8 +118,8 @@
         
         .pricing-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
             margin: 3rem 0;
         }
         
@@ -125,9 +127,11 @@
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--text-faint);
             border-radius: 16px;
-            padding: 2rem;
+            padding: 1.5rem;
             position: relative;
             transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
         }
         
         .pricing-card:hover {
@@ -147,67 +151,104 @@
             transform: translateX(-50%);
             background: var(--text);
             color: var(--bg);
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             font-weight: 600;
-            padding: 0.3rem 1rem;
+            padding: 0.3rem 0.8rem;
             border-radius: 20px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            white-space: nowrap;
         }
         
         .pricing-card h3 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
         }
         
         .pricing-card .price {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
-            margin: 1rem 0;
+            margin: 0.5rem 0;
         }
         
         .pricing-card .price span {
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 400;
             color: var(--text-dim);
         }
         
+        .token-value {
+            background: rgba(255, 214, 10, 0.1);
+            border-radius: 6px;
+            padding: 0.5rem;
+            margin: 0.5rem 0 1rem;
+            font-size: 0.85rem;
+        }
+        
+        .token-value strong {
+            color: var(--text);
+        }
+        
+        .savings-badge {
+            display: inline-block;
+            background: var(--green);
+            color: var(--bg);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+        
         .pricing-card .description {
             color: var(--text-dim);
-            font-size: 0.9rem;
-            margin-bottom: 1.5rem;
-            min-height: 50px;
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+            min-height: 40px;
         }
         
         .feature-list {
             list-style: none;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
+            flex-grow: 1;
         }
         
         .feature-list li {
-            padding: 0.5rem 0;
-            font-size: 0.9rem;
+            padding: 0.4rem 0;
+            font-size: 0.8rem;
             color: var(--text-dim);
             display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            align-items: flex-start;
+            gap: 0.5rem;
         }
         
         .feature-list li svg {
-            width: 18px;
-            height: 18px;
-            color: var(--text);
+            width: 16px;
+            height: 16px;
             flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .feature-list li.disabled {
+            opacity: 0.5;
+        }
+        
+        .check-icon {
+            color: var(--green);
+        }
+        
+        .x-icon {
+            color: var(--red);
         }
         
         .btn {
             display: block;
             width: 100%;
-            padding: 0.875rem 1.5rem;
+            padding: 0.75rem 1rem;
             border-radius: 8px;
-            font-size: 1rem;
+            font-size: 0.9rem;
             font-weight: 500;
             text-decoration: none;
             text-align: center;
@@ -236,24 +277,21 @@
             border-color: var(--text);
         }
         
-        .extras {
-            text-align: center;
-            padding: 2rem 0 4rem;
-        }
-        
-        .extras h2 {
+        .section-title {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 1.25rem;
-            margin-bottom: 1.5rem;
+            text-align: center;
+            margin: 3rem 0 1.5rem;
         }
         
-        .extras-grid {
+        .mode-costs {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 1rem;
+            margin-bottom: 2rem;
         }
         
-        .extra-item {
+        .mode-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid var(--text-faint);
             border-radius: 10px;
@@ -261,20 +299,93 @@
             text-align: center;
         }
         
-        .extra-item h4 {
+        .mode-card h4 {
             font-family: 'Space Grotesk', sans-serif;
-            font-size: 0.95rem;
+            font-size: 1rem;
             margin-bottom: 0.5rem;
         }
         
-        .extra-item .extra-price {
-            font-size: 1.25rem;
+        .mode-card .mode-price {
+            font-size: 1.5rem;
             font-weight: 600;
             margin-bottom: 0.25rem;
         }
         
-        .extra-item p {
+        .mode-card .mode-price span {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-dim);
+        }
+        
+        .mode-card p {
             font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+        
+        .mode-card .mode-tech {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+            opacity: 0.7;
+        }
+        
+        .tokens-section {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--text-faint);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .tokens-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.25rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .tokens-note {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tokens-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        
+        .token-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--text-faint);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .token-item:hover {
+            border-color: var(--text);
+            transform: translateY(-2px);
+        }
+        
+        .token-item h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .token-item .token-price {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .token-item p {
+            font-size: 0.75rem;
             color: var(--text-dim);
         }
         
@@ -284,14 +395,40 @@
             color: var(--text-dim);
             font-size: 0.85rem;
             border-top: 1px solid var(--text-faint);
+            margin-top: 3rem;
         }
         
-        @media (max-width: 700px) {
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .footer-links a {
+            color: var(--text);
+            text-decoration: none;
+        }
+        
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 900px) {
+            .pricing-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 600px) {
             .pricing-grid {
                 grid-template-columns: 1fr;
             }
-            .extras-grid {
+            .mode-costs {
                 grid-template-columns: 1fr;
+            }
+            .tokens-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -319,161 +456,228 @@
         
         <section class="philosophy">
             <h2>Our Philosophy</h2>
-            <p>We believe in quality over quantity. Every feature is built to help you create content that matters — content that's clear, intentional, and resonant. We don't optimize for virality or cheap engagement. We optimize for impact.</p>
+            <p>We believe in quality over quantity. Every feature is built to help you create content that matters. Content that's clear, intentional, and resonant. We don't optimize for virality or cheap engagement. We optimize for impact.</p>
         </section>
         
-        <div class="pricing-grid" style="grid-template-columns: repeat(3, 1fr);">
-            <!-- Free Tier -->
+        <div class="pricing-grid">
             <div class="pricing-card">
                 <h3>Free</h3>
                 <div class="price">$0<span>/month</span></div>
-                <p class="description">Try the platform and generate scripts.</p>
+                <div class="token-value">Preview only</div>
+                <p class="description">Try the platform. Generate unlimited scripts and previews.</p>
                 <ul class="feature-list">
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         Unlimited script generation
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         AI voice preview
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        <span style="opacity: 0.5;">Video export (pay per video)</span>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Unlimited video previews
                     </li>
-                    <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        <span style="opacity: 0.5;">Premium voices</span>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Video export (pay per video)
                     </li>
-                    <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        <span style="opacity: 0.5;">Auto-generator</span>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Free daily Clipper exports
+                    </li>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Custom voice hosting
+                    </li>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Auto-generator
                     </li>
                 </ul>
                 <a href="{{ url_for('replit_auth.login') }}" class="btn btn-secondary">Get Started</a>
             </div>
             
-            <!-- Creator Tier -->
             <div class="pricing-card">
-                <h3>Creator</h3>
-                <div class="price">$10<span>/month</span></div>
-                <div style="color: var(--text); font-size: 0.9rem; margin-bottom: 1rem;">~10 Simple Stock videos included</div>
-                <p class="description">For creators ready to export videos.</p>
+                <h3>Starter</h3>
+                <div class="price">$29<span>/month</span></div>
+                <div class="token-value">
+                    <strong>400 tokens</strong> ($40 value)
+                    <span class="savings-badge">28% savings</span>
+                </div>
+                <p class="description">For creators ready to export quality videos.</p>
                 <ul class="feature-list">
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        Unlimited script generation
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Everything in Free
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        <strong>$10 video credits/month</strong>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>400 tokens/month</strong>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>10 free Clipper exports/day</strong>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         Premium voices
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         Video hosting
                     </li>
-                    <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                        <span style="opacity: 0.5;">Auto-generator</span>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Custom voice hosting
+                    </li>
+                    <li class="disabled">
+                        <svg class="x-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        Auto-generator
                     </li>
                 </ul>
-                <a href="/subscribe?tier=creator" class="btn btn-primary">Get Creator</a>
+                <a href="/subscribe?tier=starter" class="btn btn-primary">Get Starter</a>
             </div>
             
-            <!-- Pro Tier -->
             <div class="pricing-card featured">
                 <div class="featured-badge">BEST VALUE</div>
                 <h3>Pro</h3>
-                <div class="price">$25<span>/month</span></div>
-                <div style="color: var(--text); font-size: 0.9rem; margin-bottom: 1rem;">~25 Simple Stock videos included</div>
+                <div class="price">$59<span>/month</span></div>
+                <div class="token-value">
+                    <strong>900 tokens</strong> ($90 value)
+                    <span class="savings-badge">34% savings</span>
+                </div>
                 <p class="description">Full power for serious creators.</p>
                 <ul class="feature-list">
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        Everything in Creator
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Everything in Starter
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        <strong>$25 video credits/month</strong>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>900 tokens/month</strong>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                        <strong>Auto-generator unlocked</strong>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>25 free Clipper exports/day</strong>
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>1 custom voice hosted</strong>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Auto-generator unlocked
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         AI character generation
                     </li>
                     <li>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
                         Priority rendering
                     </li>
                 </ul>
-                <a href="/subscribe?tier=pro" class="btn btn-primary" style="background: var(--text); color: var(--bg);">Get Pro</a>
+                <a href="/subscribe?tier=pro" class="btn btn-primary">Get Pro</a>
+            </div>
+            
+            <div class="pricing-card">
+                <h3>Pro Creator</h3>
+                <div class="price">$99<span>/month</span></div>
+                <div class="token-value">
+                    <strong>1700 tokens</strong> ($170 value)
+                    <span class="savings-badge">42% savings</span>
+                </div>
+                <p class="description">Maximum output for power users.</p>
+                <ul class="feature-list">
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Everything in Pro
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>1700 tokens/month</strong>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>Unlimited Clipper exports/day</strong>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <strong>2 custom voices hosted</strong>
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Fastest priority rendering
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Early access to new features
+                    </li>
+                    <li>
+                        <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        Direct support channel
+                    </li>
+                </ul>
+                <a href="/subscribe?tier=pro_creator" class="btn btn-primary">Get Pro Creator</a>
             </div>
         </div>
         
-        <section class="extras" style="margin-top: 2rem;">
+        <h2 class="section-title">Video Costs by Mode</h2>
+        <div class="mode-costs">
+            <div class="mode-card">
+                <h4>Remix</h4>
+                <div class="mode-price">$5.10 <span>for 30s</span></div>
+                <p>AI transforms video with Runway + stock + your files</p>
+                <div class="mode-tech">Runway API + Smart Video Editor</div>
+            </div>
+            <div class="mode-card">
+                <h4>Clipper</h4>
+                <div class="mode-price">$6.60 - $11.10 <span>for 30s</span></div>
+                <p>Extract best moments from long videos</p>
+                <div class="mode-tech">AI Scene Detection + Editing</div>
+            </div>
+            <div class="mode-card">
+                <h4>Simple Stock</h4>
+                <div class="mode-price">$0.99 <span>for 30s</span></div>
+                <p>Create from stock and AI visuals</p>
+                <div class="mode-tech">Stock + DALL-E + FFmpeg</div>
+            </div>
+        </div>
+        
+        <section class="tokens-section">
             <h2>Or Buy Tokens Directly</h2>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem; padding: 1rem; background: rgba(255,214,10,0.1); border-radius: 8px; border-left: 3px solid var(--gold);">
-                Tokens are used for: Video rendering, AI voiceovers, and Auto-generator. Script generation is always free. Tokens never expire.
-            </p>
-            <div class="extras-grid" style="grid-template-columns: repeat(4, 1fr);">
-                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(50)">
+            <p class="tokens-note">Tokens are used for video rendering, AI voiceovers, and Auto-generator. Script generation is always free. Tokens never expire.</p>
+            <div class="tokens-grid">
+                <div class="token-item" onclick="purchaseTokens(50)">
                     <h4>50 Tokens</h4>
-                    <div class="extra-price" style="color: var(--gold);">$5</div>
+                    <div class="token-price">$5</div>
                     <p>~2 videos</p>
                 </div>
-                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(150)">
+                <div class="token-item" onclick="purchaseTokens(150)">
                     <h4>150 Tokens</h4>
-                    <div class="extra-price" style="color: var(--gold);">$12</div>
+                    <div class="token-price">$12</div>
                     <p>~6 videos</p>
                 </div>
-                <div class="extra-item" style="cursor: pointer; border-color: var(--gold);" onclick="purchaseTokens(400)">
+                <div class="token-item" style="border-color: var(--text);" onclick="purchaseTokens(400)">
                     <h4>400 Tokens</h4>
-                    <div class="extra-price" style="color: var(--gold);">$25</div>
+                    <div class="token-price">$25</div>
                     <p>~16 videos</p>
                 </div>
-                <div class="extra-item" style="cursor: pointer;" onclick="purchaseTokens(1000)">
+                <div class="token-item" onclick="purchaseTokens(1000)">
                     <h4>1000 Tokens</h4>
-                    <div class="extra-price" style="color: var(--gold);">$50</div>
+                    <div class="token-price">$50</div>
                     <p>~40 videos</p>
                 </div>
             </div>
         </section>
         
-        <section class="extras" style="margin-top: 3rem;">
-            <h2>Video Costs by Mode</h2>
-            <div class="extras-grid">
-                <div class="extra-item">
-                    <h4>Remix</h4>
-                    <div class="extra-price">$5.10 <span style="font-size: 0.7rem; font-weight: 400;">for 30s</span></div>
-                    <p>Transform video with new visuals</p>
-                </div>
-                <div class="extra-item">
-                    <h4>Clipper</h4>
-                    <div class="extra-price">$6.60 - $11.10 <span style="font-size: 0.7rem; font-weight: 400;">for 30s</span></div>
-                    <p>Extract best moments from long videos</p>
-                </div>
-                <div class="extra-item">
-                    <h4>Simple Stock</h4>
-                    <div class="extra-price">$0.99 <span style="font-size: 0.7rem; font-weight: 400;">for 30s</span></div>
-                    <p>Create from stock and AI visuals</p>
-                </div>
-            </div>
-            <p style="color: var(--text-dim); margin-top: 1.5rem; font-size: 0.85rem;">Script generation is always free. Tokens never expire.</p>
-        </section>
-        
         <footer>
-            <div class="footer-links" style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
-                <a href="/terms" style="color: var(--text); text-decoration: none;">Terms</a>
-                <a href="/privacy" style="color: var(--text); text-decoration: none;">Privacy</a>
-                <a href="/faq" style="color: var(--text); text-decoration: none;">FAQ</a>
-                <a href="mailto:support@framd.com" style="color: var(--text); text-decoration: none;">Contact</a>
+            <div class="footer-links">
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
+                <a href="/faq">FAQ</a>
+                <a href="mailto:support@framd.com">Contact</a>
             </div>
             <p>&copy; 2026 Framd. Quality content for those who care.</p>
         </footer>
@@ -481,7 +685,7 @@
     
     <script>
         async function purchaseTokens(amount) {
-            const btn = event.target.closest('.extra-item');
+            const btn = event.target.closest('.token-item');
             if (btn) btn.style.opacity = '0.6';
             
             try {
