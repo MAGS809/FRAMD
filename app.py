@@ -5459,20 +5459,23 @@ def validate_safe_path(file_path):
 @app.route('/extract-creative-dna', methods=['POST'])
 @rate_limit(limit=10, window=60)
 def extract_creative_dna():
-    """Extract creative DNA from a video for AI Remix: preserves source video structure for reskinning."""
+    """Extract creative DNA from a video for AI Remix: preserves source video structure for reskinning.
+    Uses Claude as primary vision model with OpenAI as fallback."""
     import base64
     import subprocess
-    from openai import OpenAI
+    from anthropic import Anthropic
+    from visual_director import create_visual_plan, COLOR_GRADING_PROFILES
     
     data = request.get_json()
     file_path = data.get('file_path')
+    topic = data.get('topic', '')
     
     file_path = validate_safe_path(file_path)
     if not file_path or not os.path.exists(file_path):
         return jsonify({'error': 'Video file not found or invalid path'}), 404
     
     try:
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        anthropic_client = Anthropic()
         
         dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file_path]
         result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
@@ -5521,16 +5524,7 @@ def extract_creative_dna():
         
         scenes_dna = []
         
-        for frame_info in frame_paths:
-            with open(frame_info['path'], 'rb') as f:
-                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
-            
-            response = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[{
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": """Analyze this video frame for AI Remix. The goal is to RESKIN this video - keeping its motion and structure while transforming the visuals for a new topic.
+        vision_prompt = """Analyze this video frame for AI Remix. The goal is to transform this video's visuals while keeping its motion and structure.
 
 Output ONLY valid JSON:
 {
@@ -5548,29 +5542,75 @@ Output ONLY valid JSON:
         "mood": "warm/cool/neutral/vibrant/muted"
     },
     "motion_detected": "static/slow_zoom/pan/tracking/handheld/fast_motion",
-    "reskin_approach": "style_transfer/overlay_graphics/color_grade/keep_with_effects/full_replace",
+    "reskin_approach": "color_grade/overlay_graphics/style_transfer/keep_with_effects",
     "reskin_reasoning": "Why this approach works for this scene",
     "has_text": true/false,
     "has_person": true/false,
     "enhancement_suggestion": "What stock/AI elements could enhance (not replace) this scene"
-}"""},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}}
-                    ]
-                }],
-                max_tokens=600,
-                timeout=180
-            )
-            
-            scene_analysis = response.choices[0].message.content
-            
+}"""
+        
+        def parse_vision_response(raw_text):
+            """Parse JSON from vision model response."""
+            cleaned = raw_text.strip()
+            if cleaned.startswith('```'):
+                cleaned = cleaned.split('```')[1]
+                if cleaned.startswith('json'):
+                    cleaned = cleaned[4:]
+            return json.loads(cleaned)
+        
+        def analyze_frame_with_claude(frame_b64):
+            """Analyze a single frame using Claude vision."""
             try:
-                cleaned = scene_analysis.strip()
-                if cleaned.startswith('```'):
-                    cleaned = cleaned.split('```')[1]
-                    if cleaned.startswith('json'):
-                        cleaned = cleaned[4:]
-                scene_data = json.loads(cleaned)
-            except:
+                response = anthropic_client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=600,
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": frame_b64}},
+                            {"type": "text", "text": vision_prompt}
+                        ]
+                    }]
+                )
+                return parse_vision_response(response.content[0].text)
+            except Exception as e:
+                logging.warning(f"Claude vision analysis failed: {e}")
+                return None
+        
+        def analyze_frame_with_openai(frame_b64):
+            """Fallback: Analyze frame using OpenAI GPT-4o vision."""
+            try:
+                from openai import OpenAI
+                openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": vision_prompt},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}}
+                        ]
+                    }],
+                    max_tokens=600,
+                    timeout=180
+                )
+                return parse_vision_response(response.choices[0].message.content)
+            except Exception as e:
+                logging.warning(f"OpenAI vision fallback failed: {e}")
+                return None
+        
+        for frame_info in frame_paths:
+            with open(frame_info['path'], 'rb') as f:
+                frame_b64 = base64.b64encode(f.read()).decode('utf-8')
+            
+            scene_data = analyze_frame_with_claude(frame_b64)
+            
+            if not scene_data:
+                logging.info("Claude failed, trying OpenAI fallback...")
+                scene_data = analyze_frame_with_openai(frame_b64)
+            
+            if not scene_data:
+                logging.warning("Both vision models failed, using default scene data")
                 scene_data = {
                     "scene_type": "b_roll",
                     "intent": "Visual content",
@@ -5579,10 +5619,10 @@ Output ONLY valid JSON:
                     "colors": {"dominant": "#333333", "mood": "neutral"},
                     "motion_detected": "static",
                     "reskin_approach": "color_grade",
-                    "reskin_reasoning": "Default approach",
+                    "reskin_reasoning": "Default approach - apply color grading to preserve original footage",
                     "has_text": False,
                     "has_person": False,
-                    "enhancement_suggestion": "Add subtle overlay graphics"
+                    "enhancement_suggestion": "Apply subtle color grading to match new topic"
                 }
             
             scene_data['timestamp'] = frame_info['timestamp']
@@ -5604,8 +5644,10 @@ Output ONLY valid JSON:
         
         if os.path.exists(audio_path) and os.path.getsize(audio_path) > 1000:
             try:
+                from openai import OpenAI
+                openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
                 with open(audio_path, 'rb') as audio_file:
-                    transcription = client.audio.transcriptions.create(
+                    transcription = openai_client.audio.transcriptions.create(
                         model="whisper-1",
                         file=audio_file,
                         response_format="text"
@@ -5618,6 +5660,32 @@ Output ONLY valid JSON:
                     os.remove(audio_path)
                 except:
                     pass
+        
+        visual_plan = None
+        if topic or transcript:
+            try:
+                visual_plan = create_visual_plan(
+                    script=transcript or topic,
+                    user_intent=topic,
+                    template_type=None
+                )
+                logging.info(f"Visual Director plan created: content_type={visual_plan.get('content_type')}")
+            except Exception as e:
+                logging.warning(f"Visual Director planning failed: {e}")
+        
+        recommended_grade = 'cinematic'
+        if visual_plan:
+            color_mood = visual_plan.get('color_mood', 'clean_modern')
+            mood_to_grade = {
+                'warm_professional': 'warm',
+                'clean_modern': 'cool',
+                'bold_contrast': 'vibrant',
+                'atmospheric': 'cinematic',
+                'professional_serious': 'cool',
+                'vibrant_saturated': 'vibrant',
+                'brand_aligned': 'cinematic',
+            }
+            recommended_grade = mood_to_grade.get(color_mood, 'cinematic')
         
         creative_dna = {
             "total_duration": duration,
@@ -5633,6 +5701,8 @@ Output ONLY valid JSON:
             },
             "transcript": transcript[:2000] if transcript else None,
             "source_path": file_path,
+            "visual_director_plan": visual_plan,
+            "recommended_color_grade": recommended_grade,
             "remix_strategy": {
                 "use_source_video": True,
                 "apply_style_transfer": True,
