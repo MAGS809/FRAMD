@@ -15681,7 +15681,7 @@
                 removeTypingIndicator();
                 
                 try {
-                    // Step 1: Extract creative DNA now (deferred until topic is provided)
+                    // Step 1: Extract creative DNA now (deferred until topic is provided, 180s timeout)
                     if (personalizeVideoData.needsExtraction && personalizeVideoData.filePath) {
                         addMessage('Analyzing your clip...', false);
                         
@@ -15689,7 +15689,7 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ file_path: personalizeVideoData.filePath })
-                        }, { timeoutMs: 90000, maxRetries: 1 });
+                        }, { timeoutMs: 180000, maxRetries: 1 });
                         
                         const dnaData = await dnaResponse.json();
                         
@@ -16231,7 +16231,7 @@
                 let creativeDna = personalizeVideoData.creativeDna || null;
                 let audioPath = null;
                 
-                // Step 1: Extract DNA if needed (60s timeout)
+                // Step 1: Extract DNA if needed (180s timeout - GPT-4 Vision + Whisper can take time)
                 if (useReskin && !creativeDna && personalizeVideoData.filePath) {
                     updateProgress(1, 5, 'Extracting creative DNA...');
                     
@@ -16241,7 +16241,7 @@
                         body: JSON.stringify({
                             file_path: personalizeVideoData.filePath
                         })
-                    }, { timeoutMs: 60000, maxRetries: 1, signal });
+                    }, { timeoutMs: 180000, maxRetries: 1, signal });
                     
                     const dnaData = await dnaResponse.json();
                     if (!dnaData.success) {
@@ -16253,7 +16253,7 @@
                     updateProgress(1, 5, 'Using cached creative DNA...');
                 }
                 
-                // Step 2: Generate voiceover (60s timeout - can be slow)
+                // Step 2: Generate voiceover (120s timeout - ElevenLabs can be slow)
                 updateProgress(2, 5, 'Generating voiceover...');
                 
                 if (personalizeVideoData.customVoiceover) {
@@ -16267,7 +16267,7 @@
                             character_voices: characterVoices || {},
                             custom_prompts: customVoicePrompts || {}
                         })
-                    }, { timeoutMs: 90000, maxRetries: 1, signal });
+                    }, { timeoutMs: 120000, maxRetries: 1, signal });
                     
                     const voiceData = await voiceResponse.json();
                     if (!voiceData.success) {
@@ -16279,7 +16279,7 @@
                 let renderData;
                 
                 if (useReskin && creativeDna) {
-                    // Step 3: Re-skin with new visuals (180s timeout - DALL-E generation is slow)
+                    // Step 3: Re-skin with new visuals (300s timeout - DALL-E generation is slow)
                     updateProgress(3, 5, 'Generating AI visuals...');
                     
                     // Get caption settings with position
@@ -16301,7 +16301,7 @@
                             captions_enabled: captionSettings.enabled !== false,
                             format: selectedFormat || '9:16'
                         })
-                    }, { timeoutMs: 180000, maxRetries: 1, signal });
+                    }, { timeoutMs: 300000, maxRetries: 1, signal });
                     
                     renderData = await reskinResponse.json();
                     
