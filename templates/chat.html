@@ -314,48 +314,6 @@
             color: var(--gold);
         }
         
-        .dev-toggle {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-size: 11px;
-            color: var(--text-dim);
-        }
-        
-        .dev-toggle-switch {
-            width: 32px;
-            height: 18px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 9px;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .dev-toggle-switch.on {
-            background: var(--gold);
-        }
-        
-        .dev-toggle-switch::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 14px;
-            height: 14px;
-            background: white;
-            border-radius: 50%;
-            transition: transform 0.2s;
-        }
-        
-        .dev-toggle-switch.on::after {
-            transform: translateX(14px);
-        }
-        
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -686,10 +644,6 @@
                         </svg>
                         <span id="token-balance">{{ token_balance }}</span>
                     </div>
-                    <div class="dev-toggle">
-                        <span>System</span>
-                        <div class="dev-toggle-switch on" id="dev-toggle" onclick="toggleDevMode()"></div>
-                    </div>
                 </div>
             </header>
             
@@ -784,7 +738,6 @@
             messages: [],
             projects: [],
             exportCount: {{ export_count }},
-            devModeOn: true,
             isProcessing: false
         };
         
@@ -1051,17 +1004,6 @@
             }
         }
         
-        function toggleDevMode() {
-            state.devModeOn = !state.devModeOn;
-            document.getElementById('dev-toggle').classList.toggle('on', state.devModeOn);
-            
-            fetch('/api/dev-mode', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: state.devModeOn })
-            });
-        }
-        
         function showProcessingBanner(jobId) {
             state.isProcessing = true;
             document.getElementById('processing-banner').classList.add('active');
@@ -1101,7 +1043,10 @@
         }
         
         function toggleUserMenu() {
-            window.location.href = '/settings';
+            // User profile menu - show logout option
+            if (confirm('Log out of Framd?')) {
+                window.location.href = '/logout';
+            }
         }
         
         document.addEventListener('DOMContentLoaded', () => {

@@ -5234,14 +5234,6 @@ Be helpful, concise, and focused on delivering great video content."""
     })
 
 
-@app.route('/api/dev-mode', methods=['POST'])
-def api_toggle_dev_mode():
-    data = request.get_json()
-    enabled = data.get('enabled', True)
-    session['system_enabled'] = enabled
-    return jsonify({'ok': True, 'enabled': enabled})
-
-
 @app.route('/api/job/<job_id>/status', methods=['GET'])
 def api_job_status(job_id):
     if job_id in background_render_jobs:
