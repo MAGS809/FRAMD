@@ -271,6 +271,87 @@
             line-height: 1.5;
         }
         
+        .bargain-section {
+            padding: 2.5rem 0;
+        }
+        
+        .bargain-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .bargain-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .bargain-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 214, 10, 0.15);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .bargain-feature {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+        
+        .bargain-reason {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+        
+        .bargain-highlight {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        
+        .bargain-highlight-item {
+            background: rgba(255, 214, 10, 0.08);
+            border: 1px solid rgba(255, 214, 10, 0.3);
+            border-radius: 12px;
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+            flex: 1;
+            min-width: 200px;
+            max-width: 280px;
+        }
+        
+        .bargain-highlight-item h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+        
+        .bargain-highlight-item p {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        
+        @media (max-width: 600px) {
+            .bargain-grid {
+                grid-template-columns: 1fr;
+            }
+            .bargain-highlight {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+        
         .pricing-cta {
             text-align: center;
             padding: 2rem 0 3rem;
@@ -334,6 +415,47 @@
             
         </section>
         
+        <section class="bargain-section">
+            <h2>What Makes This a Bargain</h2>
+            <div class="bargain-grid">
+                <div class="bargain-item">
+                    <span class="bargain-feature">Unlimited previews</span>
+                    <span class="bargain-reason">Zero risk experimentation</span>
+                </div>
+                <div class="bargain-item">
+                    <span class="bargain-feature">Multiple clips per upload</span>
+                    <span class="bargain-reason">One video = many outputs</span>
+                </div>
+                <div class="bargain-item">
+                    <span class="bargain-feature">No per-preview charges</span>
+                    <span class="bargain-reason">Competitors charge per generation</span>
+                </div>
+                <div class="bargain-item">
+                    <span class="bargain-feature">Clear cost warnings</span>
+                    <span class="bargain-reason">No surprise charges</span>
+                </div>
+                <div class="bargain-item">
+                    <span class="bargain-feature">8 premium AI voices</span>
+                    <span class="bargain-reason">Competitors charge $30+</span>
+                </div>
+                <div class="bargain-item">
+                    <span class="bargain-feature">Six-anchor script structure</span>
+                    <span class="bargain-reason">Precision-built narratives</span>
+                </div>
+            </div>
+            
+            <div class="bargain-highlight">
+                <div class="bargain-highlight-item">
+                    <h4>ONE Unified AI Brain</h4>
+                    <p>Not fragmented tools. One intelligence that understands your style across all modes.</p>
+                </div>
+                <div class="bargain-highlight-item">
+                    <h4>Auto-Generator That Learns</h4>
+                    <p>After 5 exports, AI drafts content for you. Competitors don't have this.</p>
+                </div>
+            </div>
+        </section>
+        
         <section class="pricing-cta">
             <a href="/pricing" class="btn btn-pricing">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -343,7 +465,6 @@
                 Check Pricing
             </a>
         </section>
-        
         
         <section class="features">
             <h2>Three Ways to Create</h2>
