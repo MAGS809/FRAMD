@@ -375,13 +375,27 @@
         }
         
         .mode-name {
-            font-size: 15px;
+            font-size: 16px;
             font-weight: 600;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+        }
+        
+        .mode-desc {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.4;
+            margin-bottom: 12px;
         }
         
         .mode-price {
-            font-size: 12px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .mode-price-detail {
+            font-size: 11px;
+            font-weight: 400;
             color: var(--text-dim);
         }
         
@@ -732,7 +746,8 @@
                                 </svg>
                             </div>
                             <div class="mode-name">Remix</div>
-                            <div class="mode-price">$0.17/sec</div>
+                            <div class="mode-desc">Transform your video with new visuals while keeping the motion</div>
+                            <div class="mode-price">$5.10 <span class="mode-price-detail">for 30s video</span></div>
                         </div>
                         
                         <div class="mode-card" onclick="selectMode('clipper')">
@@ -746,7 +761,8 @@
                                 </svg>
                             </div>
                             <div class="mode-name">Clipper</div>
-                            <div class="mode-price">$0.22 - $0.37</div>
+                            <div class="mode-desc">Extract the best moments from long videos into short clips</div>
+                            <div class="mode-price">$6.60 - $11.10 <span class="mode-price-detail">for 30s clip</span></div>
                         </div>
                         
                         <div class="mode-card" onclick="selectMode('simple')">
@@ -758,7 +774,8 @@
                                 </svg>
                             </div>
                             <div class="mode-name">Simple Stock</div>
-                            <div class="mode-price">$0.033/sec</div>
+                            <div class="mode-desc">Create videos from stock footage and AI visuals</div>
+                            <div class="mode-price">$0.99 <span class="mode-price-detail">for 30s video</span></div>
                         </div>
                     </div>
                 </div>
