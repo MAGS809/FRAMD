@@ -5142,6 +5142,28 @@ def api_get_project_chat(project_id):
     })
 
 
+@app.route('/api/project/<int:project_id>/rename', methods=['POST'])
+def api_rename_project(project_id):
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'ok': False, 'error': 'Project not found'}), 404
+    
+    data = request.get_json()
+    new_name = data.get('name', '').strip()
+    
+    if not new_name:
+        return jsonify({'ok': False, 'error': 'Name cannot be empty'}), 400
+    
+    project.name = new_name[:100]
+    db.session.commit()
+    
+    return jsonify({'ok': True, 'name': project.name})
+
+
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
     user_id = get_user_id()

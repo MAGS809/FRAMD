@@ -314,6 +314,66 @@
             color: var(--gold);
         }
         
+        .token-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background: var(--gold);
+            color: var(--bg);
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 4px;
+            transition: transform 0.15s;
+        }
+        
+        .token-add:hover {
+            transform: scale(1.1);
+        }
+        
+        .project-name-edit {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        
+        .project-name-edit:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .project-name-text {
+            font-size: 13px;
+            color: var(--text);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .project-name-icon {
+            color: var(--text-dim);
+            opacity: 0.6;
+        }
+        
+        .project-name-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: var(--text);
+            font-family: inherit;
+            width: 180px;
+        }
+        
         .chat-area {
             flex: 1;
             overflow-y: auto;
@@ -708,11 +768,19 @@
             <header class="main-header">
                 <div class="project-title-display" id="current-project-title"></div>
                 <div class="header-actions">
+                    <div class="project-name-edit" id="project-name-edit" onclick="startProjectRename()">
+                        <span class="project-name-text" id="project-name-text">Untitled Project</span>
+                        <svg class="project-name-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                    </div>
                     <div class="token-pill">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <circle cx="12" cy="12" r="10"/>
                         </svg>
                         <span id="token-balance">{{ token_balance }}</span>
+                        <a href="/billing" class="token-add" title="Get more tokens">+</a>
                     </div>
                 </div>
             </header>
@@ -806,6 +874,7 @@
     <script>
         const state = {
             currentProjectId: null,
+            currentProjectName: null,
             currentMode: null,
             messages: [],
             projects: [],
@@ -815,9 +884,11 @@
         
         function startNewProject() {
             state.currentProjectId = null;
+            state.currentProjectName = null;
             state.currentMode = null;
             state.messages = [];
             document.getElementById('current-project-title').textContent = '';
+            document.getElementById('project-name-text').textContent = 'Untitled Project';
             document.getElementById('chat-welcome').style.display = 'block';
             document.getElementById('chat-messages').classList.remove('active');
             document.getElementById('chat-messages').innerHTML = '';
@@ -863,7 +934,9 @@
                 if (data.ok) {
                     state.messages = data.messages || [];
                     state.currentMode = data.mode;
+                    state.currentProjectName = data.name || 'Untitled Project';
                     document.getElementById('current-project-title').textContent = data.name;
+                    document.getElementById('project-name-text').textContent = state.currentProjectName;
                     document.getElementById('chat-welcome').style.display = 'none';
                     document.getElementById('chat-messages').classList.add('active');
                     renderMessages();
@@ -871,6 +944,61 @@
             } catch (err) {
                 console.error('Failed to load project chat:', err);
             }
+        }
+        
+        function startProjectRename() {
+            if (!state.currentProjectId) return;
+            
+            const container = document.getElementById('project-name-edit');
+            const currentName = state.currentProjectName || 'Untitled Project';
+            
+            container.innerHTML = `<input type="text" class="project-name-input" id="project-name-input" value="${escapeHtml(currentName)}" onblur="finishProjectRename()" onkeydown="if(event.key==='Enter')finishProjectRename();if(event.key==='Escape')cancelProjectRename();">`;
+            
+            const input = document.getElementById('project-name-input');
+            input.focus();
+            input.select();
+        }
+        
+        async function finishProjectRename() {
+            const input = document.getElementById('project-name-input');
+            if (!input) return;
+            
+            const newName = input.value.trim() || 'Untitled Project';
+            
+            if (state.currentProjectId && newName !== state.currentProjectName) {
+                try {
+                    const response = await fetch(`/api/project/${state.currentProjectId}/rename`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: newName })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.ok) {
+                        state.currentProjectName = newName;
+                        loadProjects();
+                    }
+                } catch (err) {
+                    console.error('Failed to rename project:', err);
+                }
+            }
+            
+            restoreProjectNameDisplay(newName);
+        }
+        
+        function cancelProjectRename() {
+            restoreProjectNameDisplay(state.currentProjectName || 'Untitled Project');
+        }
+        
+        function restoreProjectNameDisplay(name) {
+            const container = document.getElementById('project-name-edit');
+            container.innerHTML = `
+                <span class="project-name-text" id="project-name-text">${escapeHtml(name)}</span>
+                <svg class="project-name-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+            `;
         }
         
         function renderMessages() {
@@ -951,7 +1079,9 @@
                 if (data.ok) {
                     if (data.project_id && !state.currentProjectId) {
                         state.currentProjectId = data.project_id;
-                        document.getElementById('current-project-title').textContent = data.project_name || 'New Project';
+                        state.currentProjectName = data.project_name || 'New Project';
+                        document.getElementById('current-project-title').textContent = state.currentProjectName;
+                        document.getElementById('project-name-text').textContent = state.currentProjectName;
                         loadProjects();
                     }
                     
