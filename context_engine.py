@@ -199,12 +199,32 @@ openai_client = OpenAI(
 # Alias for backwards compatibility
 client = xai_client
 
-SYSTEM_GUARDRAILS = """You are Calligra - a thinking engine, not a content factory. Your purpose is to turn ideas into clear, honest posts while respecting the audience's intelligence.
+SYSTEM_GUARDRAILS = """You are the Framd AI - a video editing brain, not a content factory. Your purpose is to create videos that match the user's vision with precision and care.
+
+IDENTITY (ALL MODES - REMIX, CLIPPER, SIMPLE STOCK):
+You are ONE unified intelligence. The same philosophy applies whether you're:
+- REMIX: Transforming existing video while preserving motion/structure
+- CLIPPER: Extracting the best moments from long content
+- SIMPLE STOCK: Creating original content from stock and AI visuals
+
+YOUR JOB:
+1. Understand what the user actually wants (not what you think they want)
+2. Ask ONE clear question when critical info is missing
+3. Create content that serves their specific goal
+4. Be critical of your own work - learn from every output
+
+YOU MUST ASK WHEN:
+- Brand colors not specified (don't guess)
+- Tone/direction unclear (serious? funny? educational?)
+- Target audience unknown (who is this for?)
+- Missing logo, assets, or brand materials
+- Vague request that could go multiple directions
 
 CORE OPERATING PRINCIPLE:
-Script → Visual Intent → Safe Assets → Edit → Post
-- NEVER select visuals before a script exists.
-- EVERY visual choice must serve the script.
+Intent → Script → Visual → Edit → Deliver
+- NEVER select visuals before understanding the message
+- EVERY visual choice must serve the script
+- EVERY cut must have a purpose
 
 SHORT-FORM CONTENT MASTERY:
 You understand that short-form video (TikTok, Reels, Shorts) is about MESSAGE COMPRESSION, not content compression.
@@ -2616,6 +2636,137 @@ def get_global_learned_patterns(db_session=None) -> list:
     except Exception as e:
         print(f"[Global Learning] Error retrieving patterns: {e}")
         return []
+
+
+def ai_self_critique(project_data: dict, user_accepted: bool = True) -> dict:
+    """
+    AI self-critique system. Runs AFTER user accepts/downloads a video.
+    Analyzes what the AI did well and what it didn't do well.
+    Stores learnings for future improvement.
+    
+    Args:
+        project_data: Dict containing script, visual_plan, template, user_feedback
+        user_accepted: Whether the user accepted this output
+    
+    Returns:
+        Dict with critique analysis and learnings
+    """
+    script = project_data.get('script', '')
+    visual_plan = project_data.get('visual_plan', {})
+    template = project_data.get('template', 'start_from_scratch')
+    user_feedback = project_data.get('user_feedback', '')
+    original_request = project_data.get('original_request', '')
+    
+    critique_prompt = f"""You just created a video that the user {"accepted and downloaded" if user_accepted else "rejected"}.
+
+ORIGINAL USER REQUEST:
+{original_request}
+
+SCRIPT YOU CREATED:
+{script}
+
+VISUAL APPROACH:
+{json.dumps(visual_plan, indent=2) if isinstance(visual_plan, dict) else str(visual_plan)}
+
+TEMPLATE USED: {template}
+
+USER FEEDBACK (if any): {user_feedback or "None provided"}
+
+Now be CRITICAL of your own work. Analyze honestly:
+
+1. WHAT YOU DID WELL:
+- List specific things that worked (hook, pacing, visuals, message clarity)
+- Be specific - cite actual lines or decisions
+
+2. WHAT YOU DIDN'T DO WELL:
+- List specific weaknesses or missed opportunities
+- What could have been better? Be honest.
+
+3. DID YOU TRULY SERVE THE USER'S INTENT?
+- Did you understand what they actually wanted?
+- Did you add anything unnecessary?
+- Did you miss anything important?
+
+4. LEARNINGS FOR NEXT TIME:
+- What patterns should you repeat?
+- What patterns should you avoid?
+- How can you serve similar requests better?
+
+Return JSON with:
+{{
+    "did_well": ["specific thing 1", "specific thing 2"],
+    "did_poorly": ["specific weakness 1", "specific weakness 2"],
+    "served_intent_score": 0.0-1.0,
+    "intent_analysis": "explanation of how well you understood and served the request",
+    "learnings_to_repeat": ["pattern to repeat"],
+    "learnings_to_avoid": ["pattern to avoid"],
+    "overall_self_score": 0.0-10.0,
+    "honest_assessment": "one sentence summary of your performance"
+}}
+"""
+    
+    try:
+        result = call_ai(critique_prompt, SYSTEM_GUARDRAILS, json_output=True, max_tokens=1024)
+        
+        if result:
+            result['user_accepted'] = user_accepted
+            result['project_id'] = project_data.get('project_id')
+            print(f"[AI Self-Critique] Score: {result.get('overall_self_score', 'N/A')}/10")
+            print(f"[AI Self-Critique] Did well: {result.get('did_well', [])}")
+            print(f"[AI Self-Critique] Did poorly: {result.get('did_poorly', [])}")
+        
+        return result
+    except Exception as e:
+        print(f"[AI Self-Critique] Error: {e}")
+        return {
+            'error': str(e),
+            'user_accepted': user_accepted
+        }
+
+
+def store_ai_learnings(critique_result: dict, db_session=None) -> bool:
+    """
+    Store AI self-critique learnings in the database for future reference.
+    """
+    if not db_session or not critique_result:
+        return False
+    
+    try:
+        from models import AILearning, GlobalPattern
+        
+        user_id = critique_result.get('user_id')
+        if not user_id:
+            return False
+        
+        ai_learning = db_session.query(AILearning).filter_by(user_id=user_id).first()
+        if not ai_learning:
+            return False
+        
+        current_learnings = ai_learning.dislike_learnings or []
+        
+        new_learning = {
+            'timestamp': str(datetime.now()) if 'datetime' in dir() else 'now',
+            'project_id': critique_result.get('project_id'),
+            'accepted': critique_result.get('user_accepted', False),
+            'score': critique_result.get('overall_self_score', 0),
+            'did_well': critique_result.get('did_well', []),
+            'did_poorly': critique_result.get('did_poorly', []),
+            'to_repeat': critique_result.get('learnings_to_repeat', []),
+            'to_avoid': critique_result.get('learnings_to_avoid', [])
+        }
+        
+        current_learnings.append(new_learning)
+        if len(current_learnings) > 50:
+            current_learnings = current_learnings[-50:]
+        
+        ai_learning.dislike_learnings = current_learnings
+        db_session.commit()
+        
+        print(f"[AI Learning] Stored critique for user {user_id}")
+        return True
+    except Exception as e:
+        print(f"[AI Learning] Error storing: {e}")
+        return False
 
 
 if __name__ == "__main__":

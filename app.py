@@ -4997,7 +4997,31 @@ def add_no_cache_headers(response):
 def index():
     from flask_login import current_user
     if current_user.is_authenticated:
-        return render_template('index.html', user=current_user)
+        subscription = Subscription.query.filter_by(user_id=current_user.id).first()
+        token_balance = subscription.token_balance if subscription else 0
+        
+        ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+        export_count = ai_learning.successful_projects if ai_learning else 0
+        
+        user_initials = ''
+        if current_user.first_name:
+            user_initials += current_user.first_name[0].upper()
+        if current_user.last_name:
+            user_initials += current_user.last_name[0].upper()
+        if not user_initials:
+            user_initials = current_user.email[0].upper() if current_user.email else 'U'
+        
+        user_name = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip()
+        if not user_name:
+            user_name = current_user.email or 'User'
+        
+        return render_template('chat.html',
+            user=current_user,
+            user_initials=user_initials,
+            user_name=user_name,
+            token_balance=token_balance,
+            export_count=export_count
+        )
     return render_template('landing.html')
 
 @app.route('/pricing')
@@ -5019,7 +5043,218 @@ def faq():
 @app.route('/dev')
 def dev_mode():
     session['dev_mode'] = True
-    return render_template('index.html', user=None, dev_mode=True)
+    return render_template('chat.html', 
+        user=None, 
+        dev_mode=True,
+        user_initials='D',
+        user_name='Dev User',
+        token_balance=1000,
+        export_count=0
+    )
+
+@app.route('/chat')
+def chat_interface():
+    from flask_login import current_user
+    if current_user.is_authenticated:
+        subscription = Subscription.query.filter_by(user_id=current_user.id).first()
+        token_balance = subscription.token_balance if subscription else 0
+        
+        ai_learning = AILearning.query.filter_by(user_id=current_user.id).first()
+        export_count = ai_learning.successful_projects if ai_learning else 0
+        
+        user_initials = ''
+        if current_user.first_name:
+            user_initials += current_user.first_name[0].upper()
+        if current_user.last_name:
+            user_initials += current_user.last_name[0].upper()
+        if not user_initials:
+            user_initials = current_user.email[0].upper() if current_user.email else 'U'
+        
+        user_name = f"{current_user.first_name or ''} {current_user.last_name or ''}".strip()
+        if not user_name:
+            user_name = current_user.email or 'User'
+        
+        return render_template('chat.html',
+            user=current_user,
+            user_initials=user_initials,
+            user_name=user_name,
+            token_balance=token_balance,
+            export_count=export_count
+        )
+    return render_template('landing.html')
+
+
+@app.route('/api/projects', methods=['GET'])
+def api_get_projects():
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    projects = Project.query.filter_by(user_id=user_id).order_by(Project.updated_at.desc()).limit(50).all()
+    
+    return jsonify({
+        'ok': True,
+        'projects': [{
+            'id': p.id,
+            'name': p.name,
+            'mode': p.template_type,
+            'status': p.status,
+            'duration': 0,
+            'thumbnail': None,
+            'created_at': p.created_at.isoformat() if p.created_at else None,
+            'updated_at': p.updated_at.isoformat() if p.updated_at else None
+        } for p in projects]
+    })
+
+
+@app.route('/api/project/<int:project_id>/chat', methods=['GET'])
+def api_get_project_chat(project_id):
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'ok': False, 'error': 'Project not found'}), 404
+    
+    conversations = Conversation.query.filter_by(user_id=user_id).order_by(Conversation.created_at.asc()).all()
+    
+    project_messages = []
+    for conv in conversations:
+        try:
+            content_data = json.loads(conv.content) if conv.content.startswith('{') else {'text': conv.content}
+            if content_data.get('project_id') == project_id or not content_data.get('project_id'):
+                project_messages.append({
+                    'role': conv.role,
+                    'content': content_data.get('text', conv.content)
+                })
+        except:
+            project_messages.append({
+                'role': conv.role,
+                'content': conv.content
+            })
+    
+    return jsonify({
+        'ok': True,
+        'name': project.name,
+        'mode': project.template_type,
+        'messages': project_messages
+    })
+
+
+@app.route('/api/chat', methods=['POST'])
+def api_chat():
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    message = data.get('message', '').strip()
+    project_id = data.get('project_id')
+    mode = data.get('mode')
+    
+    if not message:
+        return jsonify({'ok': False, 'error': 'No message provided'}), 400
+    
+    project = None
+    if project_id:
+        project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    
+    if not project:
+        project_name = message[:50] + '...' if len(message) > 50 else message
+        project = Project(
+            user_id=user_id,
+            name=project_name,
+            template_type=mode or 'auto',
+            status='draft'
+        )
+        db.session.add(project)
+        db.session.commit()
+        project_id = project.id
+    
+    user_conv = Conversation(
+        user_id=user_id,
+        role='user',
+        content=json.dumps({'project_id': project_id, 'text': message})
+    )
+    db.session.add(user_conv)
+    db.session.commit()
+    
+    ai_role = """You are an AI video editor for Framd. Your purpose is to create videos that match the user's vision.
+
+YOUR JOB:
+1. Transform videos while preserving motion and structure (Remix mode)
+2. Extract the best moments from long content (Clipper mode)
+3. Create original content using stock and AI visuals (Simple Stock mode)
+4. Ask questions when critical information is missing
+5. Rate your own work honestly - minimum 7.5 to show user
+
+YOU MUST ASK WHEN:
+- Brand colors not specified
+- Tone/direction unclear (serious? funny? educational?)
+- Target audience unknown
+- Missing logo, assets, or brand materials
+- Vague request that could go multiple directions
+
+Be helpful, concise, and focused on delivering great video content."""
+
+    try:
+        response = call_ai(
+            prompt=f"User message: {message}\n\nCurrent mode: {mode or 'not selected'}\n\nRespond naturally as a video creation assistant. If you need more information to proceed, ask ONE clear question.",
+            system_prompt=ai_role,
+            json_output=False,
+            max_tokens=500
+        )
+        
+        if isinstance(response, dict):
+            ai_response = response.get('response', response.get('text', str(response)))
+        else:
+            ai_response = str(response)
+        
+        needs_clarification = any(q in ai_response.lower() for q in ['?', 'what', 'which', 'how', 'could you', 'can you'])
+        
+    except Exception as e:
+        ai_response = "I'm ready to help you create your video. What would you like to make?"
+        needs_clarification = True
+    
+    ai_conv = Conversation(
+        user_id=user_id,
+        role='assistant',
+        content=json.dumps({'project_id': project_id, 'text': ai_response})
+    )
+    db.session.add(ai_conv)
+    db.session.commit()
+    
+    return jsonify({
+        'ok': True,
+        'response': ai_response,
+        'project_id': project_id,
+        'project_name': project.name,
+        'needs_clarification': needs_clarification
+    })
+
+
+@app.route('/api/dev-mode', methods=['POST'])
+def api_toggle_dev_mode():
+    data = request.get_json()
+    enabled = data.get('enabled', True)
+    session['system_enabled'] = enabled
+    return jsonify({'ok': True, 'enabled': enabled})
+
+
+@app.route('/api/job/<job_id>/status', methods=['GET'])
+def api_job_status(job_id):
+    if job_id in background_render_jobs:
+        job = background_render_jobs[job_id]
+        return jsonify({
+            'ok': True,
+            'status': job.get('status', 'unknown'),
+            'progress': job.get('progress', 0),
+            'message': job.get('status', 'Processing...').replace('_', ' ').title(),
+            'video_url': job.get('video_url'),
+            'error': job.get('error')
+        })
+    return jsonify({'ok': False, 'error': 'Job not found'}), 404
 
 @app.route('/logout')
 def logout():
@@ -10480,6 +10715,27 @@ def render_video():
                 print(f"Description generation error: {desc_err}")
                 response_data['description'] = ''
                 response_data['trend_sources'] = []
+            
+            # AI Self-Critique: Run AFTER successful export (user accepted by downloading)
+            # This lets the AI analyze what it did well and didn't do well
+            try:
+                from context_engine import ai_self_critique, store_ai_learnings
+                project_data = {
+                    'project_id': session.get('current_project_id'),
+                    'script': script_text or '',
+                    'visual_plan': scenes,
+                    'template': session.get('current_template', 'start_from_scratch'),
+                    'original_request': session.get('original_user_request', ''),
+                    'user_id': user_id
+                }
+                critique_result = ai_self_critique(project_data, user_accepted=True)
+                if critique_result:
+                    critique_result['user_id'] = user_id
+                    store_ai_learnings(critique_result, db.session)
+                    response_data['ai_self_score'] = critique_result.get('overall_self_score', 0)
+                    print(f"[AI Self-Critique] Completed: {critique_result.get('honest_assessment', 'N/A')}")
+            except Exception as critique_err:
+                print(f"[AI Self-Critique] Error (non-blocking): {critique_err}")
             
             return jsonify(response_data)
         else:

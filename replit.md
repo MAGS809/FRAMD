@@ -120,6 +120,17 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **AI Learning System**: Tracks successful projects and user style to enable auto-generation.
 - **Video Feedback System**: Like/Dislike functionality with comments for AI refinement, supporting revisions.
 - **AI Self-Improvement**: Tracks feedback patterns and success rates to inform future prompt generation.
+- **AI Self-Critique System**: When user accepts/downloads a video, AI critically analyzes its own work:
+  - Identifies what it did well (specific hooks, pacing, visual choices)
+  - Identifies what it didn't do well (missed opportunities, weaknesses)
+  - Scores how well it served the user's actual intent (0-10)
+  - Stores learnings to repeat and learnings to avoid for future videos
+  - Non-blocking: runs after export, doesn't slow down delivery
+- **Unified AI Philosophy**: ONE AI brain (Claude) with consistent ethos across all modes:
+  - Remix: Transforms video while preserving motion/structure
+  - Clipper: Extracts best moments from long content
+  - Simple Stock: Creates original content from stock/AI visuals
+  - Same core principles apply regardless of mode
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
 - **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
