@@ -8427,6 +8427,20 @@
                         </div>
                     </div>
                     
+                    <!-- Color Grade -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Visual Style</label>
+                        <select id="reskin-color-grade" style="width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; cursor: pointer;">
+                            <option value="cinematic" selected>Cinematic (Film Look)</option>
+                            <option value="warm">Warm (Golden Hour)</option>
+                            <option value="cool">Cool (Modern/Tech)</option>
+                            <option value="vibrant">Vibrant (High Energy)</option>
+                            <option value="muted">Muted (Documentary)</option>
+                            <option value="vintage">Vintage (Retro Film)</option>
+                            <option value="none">None (Keep Original)</option>
+                        </select>
+                    </div>
+                    
                     <!-- Custom Images -->
                     <div style="margin-bottom: 8px;">
                         <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Custom Images (Optional)</label>
@@ -16279,12 +16293,15 @@
                 let renderData;
                 
                 if (useReskin && creativeDna) {
-                    // Step 3: Re-skin with new visuals (300s timeout - DALL-E generation is slow)
-                    updateProgress(3, 5, 'Generating AI visuals...');
+                    // Step 3: AI Remix - transform source video with new style (300s timeout)
+                    updateProgress(3, 5, 'Transforming video with AI Remix...');
                     
                     // Get caption settings with position
                     const captionSettings = getCaptionSettings();
                     const captionPosition = personalizeVideoData.captionPosition || 'bottom';
+                    
+                    const colorGradeSelect = document.getElementById('reskin-color-grade');
+                    const colorGrade = colorGradeSelect ? colorGradeSelect.value : 'cinematic';
                     
                     const reskinResponse = await fetchWithRetry('/reskin-video', {
                         method: 'POST',
@@ -16299,7 +16316,8 @@
                             caption_position: captionPosition,
                             caption_style: captionSettings.style || 'modern',
                             captions_enabled: captionSettings.enabled !== false,
-                            format: selectedFormat || '9:16'
+                            format: selectedFormat || '9:16',
+                            color_grade: colorGrade
                         })
                     }, { timeoutMs: 300000, maxRetries: 1, signal });
                     

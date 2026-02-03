@@ -5297,7 +5297,7 @@ def validate_safe_path(file_path):
 @app.route('/extract-creative-dna', methods=['POST'])
 @rate_limit(limit=10, window=60)
 def extract_creative_dna():
-    """Extract creative DNA from a video for re-skinning: scene intents, composition, colors, motion."""
+    """Extract creative DNA from a video for AI Remix: preserves source video structure for reskinning."""
     import base64
     import subprocess
     from openai import OpenAI
@@ -5305,7 +5305,6 @@ def extract_creative_dna():
     data = request.get_json()
     file_path = data.get('file_path')
     
-    # Validate path is safe
     file_path = validate_safe_path(file_path)
     if not file_path or not os.path.exists(file_path):
         return jsonify({'error': 'Video file not found or invalid path'}), 404
@@ -5313,17 +5312,34 @@ def extract_creative_dna():
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         
-        # Get video duration
         dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', file_path]
         result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
         duration = float(result.stdout.strip()) if result.stdout.strip() else 30
         
-        # Extract keyframes at regular intervals (1 per 2-3 seconds for detailed analysis)
+        fps_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=r_frame_rate', '-of', 'csv=p=0', file_path]
+        fps_result = subprocess.run(fps_cmd, capture_output=True, text=True, timeout=30)
+        fps_str = fps_result.stdout.strip() if fps_result.stdout.strip() else '30/1'
+        try:
+            if '/' in fps_str:
+                num, den = fps_str.split('/')
+                fps = float(num) / float(den)
+            else:
+                fps = float(fps_str)
+        except:
+            fps = 30.0
+        
+        res_cmd = ['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0', file_path]
+        res_result = subprocess.run(res_cmd, capture_output=True, text=True, timeout=30)
+        try:
+            w, h = res_result.stdout.strip().split(',')
+            source_width, source_height = int(w), int(h)
+        except:
+            source_width, source_height = 1080, 1920
+        
         frames_dir = os.path.join('uploads', 'dna_frames')
         os.makedirs(frames_dir, exist_ok=True)
         
-        # Calculate frame extraction interval
-        num_scenes = max(3, min(12, int(duration / 3)))
+        num_scenes = max(3, min(8, int(duration / 4)))
         interval = duration / num_scenes
         
         frame_paths = []
@@ -5333,59 +5349,59 @@ def extract_creative_dna():
             extract_cmd = ['ffmpeg', '-y', '-ss', str(timestamp), '-i', file_path, '-vframes', '1', '-q:v', '2', frame_path]
             subprocess.run(extract_cmd, capture_output=True, timeout=30)
             if os.path.exists(frame_path):
-                frame_paths.append({'path': frame_path, 'timestamp': timestamp, 'index': i})
+                frame_paths.append({
+                    'path': frame_path, 
+                    'timestamp': timestamp, 
+                    'start_time': i * interval,
+                    'end_time': (i + 1) * interval,
+                    'index': i
+                })
         
-        # Analyze each frame for creative DNA
         scenes_dna = []
         
         for frame_info in frame_paths:
             with open(frame_info['path'], 'rb') as f:
                 frame_b64 = base64.b64encode(f.read()).decode('utf-8')
             
-            # Deep scene analysis with GPT-4 Vision
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": """Analyze this video frame for creative DNA extraction. Output ONLY valid JSON:
+                        {"type": "text", "text": """Analyze this video frame for AI Remix. The goal is to RESKIN this video - keeping its motion and structure while transforming the visuals for a new topic.
 
+Output ONLY valid JSON:
 {
     "scene_type": "talking_head/product_shot/b_roll/text_overlay/action/transition/establishing",
-    "intent": "What is this scene trying to communicate? (1 sentence)",
+    "intent": "What is this scene communicating? (1 sentence)",
+    "visual_description": "Detailed description of what's visually shown",
     "composition": {
         "layout": "centered/rule_of_thirds/split_screen/fullscreen",
         "subject_position": "center/left/right/top/bottom",
-        "depth": "shallow/medium/deep",
         "framing": "close_up/medium/wide/extreme_wide"
     },
     "colors": {
         "dominant": "#hex",
-        "accent": "#hex",
+        "accent": "#hex", 
         "mood": "warm/cool/neutral/vibrant/muted"
     },
-    "motion": "static/slow_zoom/fast_cut/pan/tracking/handheld",
-    "text_overlay": {
-        "present": true/false,
-        "position": "top/center/bottom/left/right",
-        "style": "bold/subtle/animated",
-        "content_type": "headline/subtitle/callout/none"
-    },
-    "visual_elements": ["list of key visual elements"],
-    "replacement_query": "Search query to find similar visual for different topic"
+    "motion_detected": "static/slow_zoom/pan/tracking/handheld/fast_motion",
+    "reskin_approach": "style_transfer/overlay_graphics/color_grade/keep_with_effects/full_replace",
+    "reskin_reasoning": "Why this approach works for this scene",
+    "has_text": true/false,
+    "has_person": true/false,
+    "enhancement_suggestion": "What stock/AI elements could enhance (not replace) this scene"
 }"""},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{frame_b64}"}}
                     ]
                 }],
-                max_tokens=500
+                max_tokens=600,
+                timeout=180
             )
             
             scene_analysis = response.choices[0].message.content
             
-            # Parse JSON response
             try:
-                import json
-                # Clean up response
                 cleaned = scene_analysis.strip()
                 if cleaned.startswith('```'):
                     cleaned = cleaned.split('```')[1]
@@ -5396,24 +5412,29 @@ def extract_creative_dna():
                 scene_data = {
                     "scene_type": "b_roll",
                     "intent": "Visual content",
-                    "composition": {"layout": "centered"},
+                    "visual_description": "Video content",
+                    "composition": {"layout": "centered", "framing": "medium"},
                     "colors": {"dominant": "#333333", "mood": "neutral"},
-                    "motion": "static",
-                    "replacement_query": "professional background footage"
+                    "motion_detected": "static",
+                    "reskin_approach": "color_grade",
+                    "reskin_reasoning": "Default approach",
+                    "has_text": False,
+                    "has_person": False,
+                    "enhancement_suggestion": "Add subtle overlay graphics"
                 }
             
             scene_data['timestamp'] = frame_info['timestamp']
+            scene_data['start_time'] = frame_info['start_time']
+            scene_data['end_time'] = frame_info['end_time']
             scene_data['duration'] = interval
             scene_data['index'] = frame_info['index']
             scenes_dna.append(scene_data)
             
-            # Cleanup frame
             try:
                 os.remove(frame_info['path'])
             except:
                 pass
         
-        # Extract audio transcript
         transcript = ""
         audio_path = file_path.rsplit('.', 1)[0] + '_dna_audio.mp3'
         audio_cmd = ['ffmpeg', '-y', '-i', file_path, '-vn', '-acodec', 'mp3', '-q:a', '4', audio_path]
@@ -5436,30 +5457,27 @@ def extract_creative_dna():
                 except:
                     pass
         
-        # Build overall creative DNA
         creative_dna = {
             "total_duration": duration,
+            "fps": fps,
+            "source_width": source_width,
+            "source_height": source_height,
             "scene_count": len(scenes_dna),
             "scenes": scenes_dna,
             "overall_style": {
                 "pacing": "fast" if duration / len(scenes_dna) < 3 else "medium" if duration / len(scenes_dna) < 5 else "slow",
                 "color_palette": list(set([s.get('colors', {}).get('dominant', '#333') for s in scenes_dna])),
-                "dominant_motion": max(set([s.get('motion', 'static') for s in scenes_dna]), key=[s.get('motion', 'static') for s in scenes_dna].count)
+                "dominant_motion": max(set([s.get('motion_detected', 'static') for s in scenes_dna]), key=[s.get('motion_detected', 'static') for s in scenes_dna].count) if scenes_dna else 'static'
             },
             "transcript": transcript[:2000] if transcript else None,
             "source_path": file_path,
-            # Define what AI can adjust vs what must stay fixed
-            "adjustable_elements": {
-                "colors": True,  # AI can change colors to match topic
-                "angles": True,  # AI can adjust composition angles
-                "visual_content": True,  # AI generates new visuals for the topic
-                "text_overlays": True  # AI can modify text content
-            },
-            "fixed_elements": {
-                "rhythm": True,  # Scene timing/pacing must match original
-                "structure": True,  # Scene order and purpose stays same
-                "transitions": True,  # Cut types and timing preserved
-                "motion_patterns": True  # Zoom/pan/static follows original
+            "remix_strategy": {
+                "use_source_video": True,
+                "apply_style_transfer": True,
+                "overlay_graphics": True,
+                "replace_scenes": False,
+                "preserve_motion": True,
+                "preserve_duration": True
             }
         }
         
@@ -5478,9 +5496,17 @@ def extract_creative_dna():
 @app.route('/reskin-video', methods=['POST'])
 @rate_limit(limit=3, window=60)
 def reskin_video():
-    """Re-skin a video using creative DNA: replace visuals while maintaining structure."""
+    """AI Remix: Transform source video with new visual style while preserving motion and structure.
+    
+    NEW APPROACH:
+    1. Keep source video as the foundation (not replace with static images)
+    2. Apply visual transformations (color grading, overlays, effects) to original footage
+    3. Mix in stock images/DALL-E only as enhancements, not replacements
+    4. Preserve original duration, motion, and timing exactly
+    """
     import subprocess
     import uuid
+    import shutil
     from openai import OpenAI
     
     data = request.get_json()
@@ -5492,14 +5518,18 @@ def reskin_video():
     voiceover_path = data.get('voiceover_path')
     caption_position = data.get('caption_position', 'bottom')
     caption_style = data.get('caption_style', 'modern')
+    color_grade = data.get('color_grade', 'cinematic')
     
-    # Validate all file paths
     custom_images = [validate_safe_path(p) for p in custom_images_raw if validate_safe_path(p)]
     if voiceover_path:
         voiceover_path = validate_safe_path(voiceover_path)
     
-    if not creative_dna or not creative_dna.get('scenes'):
+    if not creative_dna:
         return jsonify({'error': 'Creative DNA required'}), 400
+    
+    source_path = creative_dna.get('source_path')
+    if not source_path or not os.path.exists(source_path):
+        return jsonify({'error': 'Source video not found. Please re-upload the video.'}), 400
     
     if not new_topic and not new_script:
         return jsonify({'error': 'Topic or script required'}), 400
@@ -5507,319 +5537,293 @@ def reskin_video():
     try:
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         output_id = str(uuid.uuid4())[:8]
+        os.makedirs('output', exist_ok=True)
+        os.makedirs('uploads/remix_overlays', exist_ok=True)
         
-        # Helper function for parallel image generation
-        def generate_scene_visual(scene, scene_idx, custom_path=None):
-            scene_visual = {
-                'index': scene.get('index', 0),
-                'timestamp': scene.get('timestamp', 0),
-                'duration': scene.get('duration', 3),
-                'visual_path': None,
-                'motion': scene.get('motion', 'static'),
-                'composition': scene.get('composition', {})
+        source_duration = creative_dna.get('total_duration', 30)
+        source_width = creative_dna.get('source_width', 1080)
+        source_height = creative_dna.get('source_height', 1920)
+        scenes = creative_dna.get('scenes', [])
+        
+        logging.info(f"AI Remix starting: {len(scenes)} scenes, {source_duration:.1f}s duration")
+        
+        format_dims = {'9:16': (1080, 1920), '16:9': (1920, 1080), '1:1': (1080, 1080)}
+        target_width, target_height = format_dims.get(data.get('format', '9:16'), (1080, 1920))
+        
+        color_grades = {
+            'cinematic': 'eq=contrast=1.1:brightness=0.02:saturation=1.2,colorbalance=rs=0.05:gs=-0.02:bs=0.08',
+            'warm': 'eq=contrast=1.05:brightness=0.03:saturation=1.1,colorbalance=rs=0.12:gs=0.05:bs=-0.05',
+            'cool': 'eq=contrast=1.1:brightness=0:saturation=0.95,colorbalance=rs=-0.05:gs=0:bs=0.1',
+            'vibrant': 'eq=contrast=1.15:brightness=0.02:saturation=1.4',
+            'muted': 'eq=contrast=0.95:brightness=0:saturation=0.7',
+            'vintage': 'eq=contrast=1.1:brightness=-0.02:saturation=0.85,colorbalance=rs=0.1:gs=0.05:bs=-0.1',
+            'none': ''
+        }
+        grade_filter = color_grades.get(color_grade, color_grades['cinematic'])
+        
+        base_reskinned = f'output/remix_base_{output_id}.mp4'
+        
+        base_filter = f'scale={target_width}:{target_height}:force_original_aspect_ratio=increase,crop={target_width}:{target_height},setsar=1'
+        if grade_filter:
+            base_filter += f',{grade_filter}'
+        
+        logging.info("Step 1: Applying visual transformation to source video...")
+        base_cmd = [
+            'ffmpeg', '-y', '-i', source_path,
+            '-vf', base_filter,
+            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+            '-c:a', 'aac', '-b:a', '192k',
+            base_reskinned
+        ]
+        result = subprocess.run(base_cmd, capture_output=True, timeout=300)
+        
+        if result.returncode != 0:
+            logging.error(f"Base transformation failed: {result.stderr.decode()}")
+            return jsonify({'error': 'Failed to process source video'}), 500
+        
+        current_video = base_reskinned
+        
+        overlay_decisions = []
+        pexels_key = os.environ.get("PEXELS_API_KEY")
+        
+        def generate_overlay_for_scene(scene, scene_idx):
+            approach = scene.get('reskin_approach', 'color_grade')
+            enhancement = scene.get('enhancement_suggestion', '')
+            intent = scene.get('intent', '')
+            has_person = scene.get('has_person', False)
+            
+            overlay_info = {
+                'scene_index': scene_idx,
+                'approach': approach,
+                'overlay_path': None,
+                'overlay_type': None,
+                'start_time': scene.get('start_time', 0),
+                'end_time': scene.get('end_time', 0),
+                'duration': scene.get('duration', 3)
             }
             
-            if custom_path and os.path.exists(custom_path):
-                scene_visual['visual_path'] = custom_path
-                scene_visual['source'] = 'custom'
-                return scene_visual
+            if approach in ['color_grade', 'keep_with_effects']:
+                overlay_info['action'] = 'keep_original'
+                return overlay_info
             
-            intent = scene.get('intent', 'visual content')
-            original_colors = scene.get('colors', {})
-            original_composition = scene.get('composition', {})
-            
-            creative_decision = {
-                'scene_index': scene.get('index', 0),
-                'original_intent': intent,
-                'original_colors': original_colors,
-                'original_composition': original_composition,
-                'changes_made': []
-            }
-            
-            try:
-                framing = original_composition.get('framing', 'medium')
-                layout = original_composition.get('layout', 'centered')
-                mood = original_colors.get('mood', 'neutral')
-                
-                if brand_colors and brand_colors.get('primary'):
-                    color_instruction = f"Use brand colors: {brand_colors.get('primary')}"
-                    creative_decision['changes_made'].append(f"Adjusted colors to brand: {brand_colors.get('primary')}")
-                else:
-                    color_instruction = f"Use a {mood} color palette that fits the topic"
-                    creative_decision['changes_made'].append(f"Adapted {mood} mood to fit topic")
-                
-                generation_prompt = f"""Professional {framing} shot for "{new_topic}". 
-Scene intent: {intent}.
-Composition: {layout} layout.
-{color_instruction}.
-High quality, cinematic, suitable for social media video.
-No text, no watermarks, no logos."""
-                
-                creative_decision['generation_prompt'] = generation_prompt
-                creative_decision['changes_made'].append(f"Generated new visual for: {new_topic}")
-                
-                dalle_response = client.images.generate(
-                    model="dall-e-3",
-                    prompt=generation_prompt,
-                    size="1024x1792",
-                    quality="standard",
-                    n=1
-                )
-                
-                image_url = dalle_response.data[0].url
-                img_path = f'uploads/reskin_gen_{output_id}_{scene_idx}.jpg'
-                img_response = requests.get(image_url, timeout=30)
-                with open(img_path, 'wb') as f:
-                    f.write(img_response.content)
-                
-                scene_visual['visual_path'] = img_path
-                scene_visual['source'] = 'ai_generated'
-                scene_visual['creative_decision'] = creative_decision
-                return scene_visual
-                
-            except Exception as e:
-                logging.warning(f"AI generation failed for scene {scene_idx}: {e}")
-                creative_decision['changes_made'].append(f"AI generation failed, using fallback")
-            
-            pexels_key = os.environ.get("PEXELS_API_KEY")
-            base_query = scene.get('replacement_query', 'professional background')
-            adapted_query = f"{new_topic} {base_query}" if new_topic else base_query
-            
-            if pexels_key:
+            if approach == 'overlay_graphics' and not has_person:
                 try:
+                    overlay_prompt = f"""Create a subtle, semi-transparent graphic overlay for: {new_topic}.
+Scene context: {intent}.
+Style: Modern, minimalist, suitable as video overlay.
+Must be: Abstract shapes, light patterns, or decorative elements only.
+No text, no faces, no solid backgrounds."""
+                    
+                    dalle_response = client.images.generate(
+                        model="dall-e-3",
+                        prompt=overlay_prompt,
+                        size="1024x1792",
+                        quality="standard",
+                        n=1
+                    )
+                    
+                    overlay_url = dalle_response.data[0].url
+                    overlay_path = f'uploads/remix_overlays/overlay_{output_id}_{scene_idx}.png'
+                    img_response = requests.get(overlay_url, timeout=30)
+                    with open(overlay_path, 'wb') as f:
+                        f.write(img_response.content)
+                    
+                    overlay_info['overlay_path'] = overlay_path
+                    overlay_info['overlay_type'] = 'ai_graphic'
+                    overlay_info['action'] = 'blend_overlay'
+                    return overlay_info
+                    
+                except Exception as e:
+                    logging.warning(f"Overlay generation failed for scene {scene_idx}: {e}")
+            
+            if approach == 'style_transfer' and pexels_key:
+                try:
+                    search_query = f"{new_topic} {enhancement or 'background'}"
                     headers = {"Authorization": pexels_key}
-                    search_url = f"https://api.pexels.com/v1/search?query={adapted_query}&per_page=3&orientation=portrait"
-                    response = requests.get(search_url, headers=headers, timeout=10)
+                    
+                    video_url = f"https://api.pexels.com/videos/search?query={search_query}&per_page=1&orientation=portrait"
+                    response = requests.get(video_url, headers=headers, timeout=10)
                     
                     if response.status_code == 200:
-                        photos = response.json().get('photos', [])
-                        if photos:
-                            image_url = photos[0].get('src', {}).get('large2x') or photos[0].get('src', {}).get('large')
-                            img_path = f'uploads/reskin_img_{output_id}_{scene_idx}.jpg'
-                            img_response = requests.get(image_url, timeout=10)
-                            with open(img_path, 'wb') as f:
-                                f.write(img_response.content)
-                            
-                            scene_visual['visual_path'] = img_path
-                            scene_visual['source'] = 'stock_fallback'
-                            scene_visual['stock_warning'] = True
-                            creative_decision['changes_made'].append('Used stock fallback (not ideal)')
-                            scene_visual['creative_decision'] = creative_decision
-                            return scene_visual
+                        videos = response.json().get('videos', [])
+                        if videos:
+                            video_files = videos[0].get('video_files', [])
+                            hd_files = [f for f in video_files if f.get('height', 0) >= 720]
+                            if hd_files:
+                                stock_url = hd_files[0].get('link')
+                                stock_path = f'uploads/remix_overlays/stock_{output_id}_{scene_idx}.mp4'
+                                stock_response = requests.get(stock_url, timeout=30)
+                                with open(stock_path, 'wb') as f:
+                                    f.write(stock_response.content)
+                                
+                                overlay_info['overlay_path'] = stock_path
+                                overlay_info['overlay_type'] = 'stock_video'
+                                overlay_info['action'] = 'blend_video'
+                                return overlay_info
                 except Exception as e:
-                    logging.warning(f"Stock fallback failed: {e}")
+                    logging.warning(f"Stock video fetch failed: {e}")
             
-            scene_visual['visual_path'] = None
-            scene_visual['source'] = 'fallback'
-            creative_decision['changes_made'].append('All visual sources failed - using fallback')
-            scene_visual['creative_decision'] = creative_decision
-            return scene_visual
+            overlay_info['action'] = 'keep_original'
+            return overlay_info
         
-        # Step 1: Generate visuals in PARALLEL (3 concurrent workers to avoid rate limits)
-        scenes = creative_dna.get('scenes', [])
-        scene_visuals = [None] * len(scenes)
+        logging.info("Step 2: Analyzing scenes for enhancements...")
         
-        logging.info(f"Generating {len(scenes)} scene visuals in parallel...")
+        enhancement_scenes = [s for s in scenes if s.get('reskin_approach') in ['overlay_graphics', 'style_transfer']]
         
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            future_to_idx = {}
-            for idx, scene in enumerate(scenes):
-                custom_path = custom_images[idx] if idx < len(custom_images) else None
-                future = executor.submit(generate_scene_visual, scene, idx, custom_path)
-                future_to_idx[future] = idx
+        if enhancement_scenes and len(enhancement_scenes) <= 3:
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                futures = {executor.submit(generate_overlay_for_scene, scene, scene.get('index', i)): i 
+                          for i, scene in enumerate(enhancement_scenes)}
+                for future in as_completed(futures):
+                    try:
+                        overlay_info = future.result()
+                        if overlay_info.get('overlay_path'):
+                            overlay_decisions.append(overlay_info)
+                    except Exception as e:
+                        logging.warning(f"Overlay generation error: {e}")
+        
+        if overlay_decisions:
+            logging.info(f"Step 3: Applying {len(overlay_decisions)} enhancement overlays...")
             
-            for future in as_completed(future_to_idx):
-                idx = future_to_idx[future]
+            for overlay in overlay_decisions:
+                if not overlay.get('overlay_path') or not os.path.exists(overlay['overlay_path']):
+                    continue
+                
+                overlay_output = f'output/remix_overlay_{output_id}_{overlay["scene_index"]}.mp4'
+                start_time = overlay.get('start_time', 0)
+                end_time = overlay.get('end_time', start_time + 3)
+                
+                if overlay['overlay_type'] == 'ai_graphic':
+                    overlay_filter = f"[1:v]scale={target_width}:{target_height},format=rgba,colorchannelmixer=aa=0.3[ovr];[0:v][ovr]overlay=0:0:enable='between(t,{start_time},{end_time})'"
+                else:
+                    overlay_filter = f"[1:v]scale={target_width}:{target_height},format=rgba,colorchannelmixer=aa=0.25[ovr];[0:v][ovr]blend=all_mode=overlay:all_opacity=0.3:enable='between(t,{start_time},{end_time})'"
+                
                 try:
-                    scene_visuals[idx] = future.result()
-                    logging.info(f"Scene {idx+1}/{len(scenes)} visual ready")
+                    overlay_cmd = [
+                        'ffmpeg', '-y',
+                        '-i', current_video,
+                        '-i', overlay['overlay_path'],
+                        '-filter_complex', overlay_filter,
+                        '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                        '-c:a', 'copy',
+                        overlay_output
+                    ]
+                    result = subprocess.run(overlay_cmd, capture_output=True, timeout=120)
+                    
+                    if result.returncode == 0 and os.path.exists(overlay_output):
+                        if current_video != base_reskinned:
+                            try:
+                                os.remove(current_video)
+                            except:
+                                pass
+                        current_video = overlay_output
                 except Exception as e:
-                    logging.error(f"Scene {idx} generation error: {e}")
-                    scene_visuals[idx] = {
-                        'index': idx,
-                        'visual_path': None,
-                        'source': 'error',
-                        'duration': scenes[idx].get('duration', 3)
-                    }
+                    logging.warning(f"Overlay application failed: {e}")
         
-        scene_visuals = [sv for sv in scene_visuals if sv is not None]
-        
-        # Step 2: Assemble video from scene visuals
-        clips_list_path = f'output/clips_{output_id}.txt'
-        os.makedirs('output', exist_ok=True)
-        
-        processed_clips = []
-        format_dims = {'9:16': (1080, 1920), '16:9': (1920, 1080), '1:1': (1080, 1080)}
-        width, height = format_dims.get(data.get('format', '9:16'), (1080, 1920))
-        
-        for sv in scene_visuals:
-            if not sv.get('visual_path') or not os.path.exists(sv['visual_path']):
-                continue
-            
-            clip_output = f'output/processed_clip_{output_id}_{sv["index"]}.mp4'
-            duration = sv.get('duration', 3)
-            motion = sv.get('motion', 'static')
-            
-            # Build motion filter based on DNA
-            motion_filter = ""
-            if motion == 'slow_zoom':
-                motion_filter = f",zoompan=z='min(zoom+0.001,1.2)':d={int(duration*25)}:s={width}x{height}"
-            elif motion == 'pan':
-                motion_filter = f",zoompan=z=1.1:x='iw/2-(iw/zoom/2)+sin(on/100)*50':d={int(duration*25)}:s={width}x{height}"
-            
-            # Check if source is video or image
-            if sv['visual_path'].lower().endswith(('.mp4', '.mov', '.webm')):
-                # Process video clip
-                clip_cmd = [
-                    'ffmpeg', '-y', '-i', sv['visual_path'],
-                    '-t', str(duration),
-                    '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1{motion_filter}',
-                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                    '-an',
-                    clip_output
-                ]
-            else:
-                # Process image with motion
-                clip_cmd = [
-                    'ffmpeg', '-y', '-loop', '1', '-i', sv['visual_path'],
-                    '-t', str(duration),
-                    '-vf', f'scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height},setsar=1,zoompan=z=\'min(zoom+0.0015,1.2)\':d={int(duration*25)}:s={width}x{height}:fps=25',
-                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-                    '-pix_fmt', 'yuv420p',
-                    clip_output
-                ]
-            
-            result = subprocess.run(clip_cmd, capture_output=True, timeout=120)
-            if result.returncode == 0 and os.path.exists(clip_output):
-                processed_clips.append(clip_output)
-        
-        if not processed_clips:
-            return jsonify({'error': 'No visuals could be processed'}), 500
-        
-        # Write concat file
-        with open(clips_list_path, 'w') as f:
-            for clip in processed_clips:
-                f.write(f"file '{os.path.abspath(clip)}'\n")
-        
-        # Concatenate all clips
-        concat_output = f'output/concat_{output_id}.mp4'
-        concat_cmd = [
-            'ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', clips_list_path,
-            '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
-            concat_output
-        ]
-        subprocess.run(concat_cmd, capture_output=True, timeout=300)
-        
-        # Step 3: Add voiceover
         final_output = f'output/reskinned_{output_id}.mp4'
         
         if voiceover_path and os.path.exists(voiceover_path):
-            # Add custom or generated voiceover
+            logging.info("Step 4: Adding voiceover...")
             audio_cmd = [
                 'ffmpeg', '-y',
-                '-i', concat_output,
+                '-i', current_video,
                 '-i', voiceover_path,
                 '-c:v', 'copy',
                 '-c:a', 'aac', '-b:a', '192k',
                 '-map', '0:v:0', '-map', '1:a:0',
-                '-shortest',
                 final_output
             ]
             subprocess.run(audio_cmd, capture_output=True, timeout=300)
         else:
-            import shutil
-            shutil.copy(concat_output, final_output)
+            shutil.copy(current_video, final_output)
         
-        # Step 4: Add captions if script provided
         if new_script and data.get('captions_enabled', True):
+            logging.info("Step 5: Adding captions synced to audio...")
             captioned_output = f'output/reskinned_captioned_{output_id}.mp4'
             
-            # Extract script text if it's a dict
             script_text = new_script
             if isinstance(new_script, dict):
                 script_text = new_script.get('text', new_script.get('script', new_script.get('content', '')))
             if not isinstance(script_text, str):
                 script_text = str(script_text) if script_text else ''
             
-            # Get video duration
-            dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', final_output]
-            dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
-            video_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else 30
+            if voiceover_path and os.path.exists(voiceover_path):
+                dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', voiceover_path]
+                dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+                audio_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else source_duration
+            else:
+                audio_duration = source_duration
             
-            # Create SRT file with proper positioning
             srt_path = f'output/captions_{output_id}.srt'
-            create_word_synced_subtitles(script_text, video_duration, srt_path)
+            create_word_synced_subtitles(script_text, audio_duration, srt_path)
             
-            # Caption position mapping
             position_margins = {
                 'top': 'MarginV=50,Alignment=8',
                 'center': 'MarginV=0,Alignment=5',
-                'bottom': 'MarginV=80,Alignment=2'
+                'bottom': 'MarginV=100,Alignment=2'
             }
             margin_style = position_margins.get(caption_position, position_margins['bottom'])
             
-            # Caption style settings
             styles = {
-                'modern': {'font': 'Inter-Bold', 'size': 42, 'outline': 2},
-                'minimal': {'font': 'Inter-Regular', 'size': 36, 'outline': 1},
-                'bold': {'font': 'Inter-ExtraBold', 'size': 48, 'outline': 3},
+                'modern': {'font': 'Arial', 'size': 48, 'outline': 3, 'shadow': 2},
+                'minimal': {'font': 'Arial', 'size': 40, 'outline': 2, 'shadow': 1},
+                'bold': {'font': 'Arial', 'size': 56, 'outline': 4, 'shadow': 2},
+                'bold_pop': {'font': 'Arial', 'size': 52, 'outline': 4, 'shadow': 3},
             }
             style = styles.get(caption_style, styles['modern'])
             
             caption_cmd = [
                 'ffmpeg', '-y',
                 '-i', final_output,
-                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow=1,{margin_style}'",
+                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow={style['shadow']},Bold=1,{margin_style}'",
                 '-c:a', 'copy',
                 captioned_output
             ]
             result = subprocess.run(caption_cmd, capture_output=True, timeout=600)
             
-            if result.returncode == 0:
-                import shutil
+            if result.returncode == 0 and os.path.exists(captioned_output):
                 shutil.move(captioned_output, final_output)
             
-            # Cleanup srt
             if os.path.exists(srt_path):
                 os.remove(srt_path)
         
-        # Cleanup temp files
-        for clip in processed_clips:
-            try:
-                os.remove(clip)
-            except:
-                pass
-        for sv in scene_visuals:
-            if sv.get('visual_path') and os.path.exists(sv['visual_path']) and sv.get('source') != 'custom':
-                try:
-                    os.remove(sv['visual_path'])
-                except:
-                    pass
-        for f in [clips_list_path, concat_output]:
-            if os.path.exists(f):
+        logging.info("Cleaning up temporary files...")
+        cleanup_files = [base_reskinned]
+        if current_video != base_reskinned and current_video != final_output:
+            cleanup_files.append(current_video)
+        
+        for overlay in overlay_decisions:
+            if overlay.get('overlay_path') and os.path.exists(overlay['overlay_path']):
+                cleanup_files.append(overlay['overlay_path'])
+        
+        for f in cleanup_files:
+            if f and os.path.exists(f) and f != final_output:
                 try:
                     os.remove(f)
                 except:
                     pass
         
-        # Collect creative decisions for learning and transparency
-        creative_decisions = [sv.get('creative_decision') for sv in scene_visuals if sv.get('creative_decision')]
-        stock_warning = any(sv.get('stock_warning') for sv in scene_visuals)
+        dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', final_output]
+        dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+        final_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else source_duration
+        
+        logging.info(f"AI Remix complete: {final_duration:.1f}s video created")
         
         return jsonify({
             'success': True,
             'video_path': '/' + final_output,
             'video_url': '/' + final_output,
-            'scene_count': len(scene_visuals),
-            'sources_used': [sv.get('source') for sv in scene_visuals],
-            'creative_decisions': creative_decisions,
-            'stock_warning': stock_warning,
-            'ai_generated_count': len([sv for sv in scene_visuals if sv.get('source') == 'ai_generated']),
-            'stock_fallback_count': len([sv for sv in scene_visuals if sv.get('source') == 'stock_fallback'])
+            'duration': final_duration,
+            'source_duration': source_duration,
+            'scene_count': len(scenes),
+            'color_grade_applied': color_grade,
+            'overlays_applied': len([o for o in overlay_decisions if o.get('overlay_path')]),
+            'approach': 'source_video_transformation',
+            'creative_decisions': overlay_decisions
         })
         
     except Exception as e:
-        logging.error(f"Reskin video error: {e}")
+        logging.error(f"AI Remix error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500

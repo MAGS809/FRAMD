@@ -116,17 +116,18 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts with unique angles, vibes, and hooks. Includes configurable daily limits and enhanced feedback learning.
 - **Subscription Model**: Three tiers (Free, Creator, Pro) with varying token allowances and features.
 - **NSFW Content Filter**: Blocks inappropriate images from visual sources.
-- **AI Remix Mode** (formerly Re-skin Mode): Clip-guided video regeneration. User uploads any video, AI extracts "creative DNA" (rhythm, structure, pacing, scene timing) as the guide. AI then generates NEW visuals (DALL-E primary) matching the user's topic while preserving the original video's feel. Features:
+- **AI Remix Mode** (formerly Re-skin Mode): Source-video-preserving transformation. User uploads any video, AI keeps the original footage as the foundation and transforms it with new visual style. Key principle: SOURCE VIDEO IS THE BASE, not replaced with static images.
   - Creative DNA extraction via GPT-4o Vision (scene intents, composition, colors, motion)
-  - Adjustable elements (AI has creative leeway): colors, angles, visual content
-  - Fixed elements (preserved from original): rhythm, structure, transitions, motion patterns
-  - AI-generated visuals (DALL-E primary) - stock fallback only when generation fails
+  - **Source Video Preservation**: Original footage motion and structure are kept intact
+  - **Visual Transformation**: Color grading profiles applied to source video (Cinematic, Warm, Cool, Vibrant, Muted, Vintage)
+  - **Intelligent Enhancement**: Stock VIDEO clips and DALL-E graphics used as overlays/enhancements, NOT replacements
+  - Per-scene decision matrix: AI decides optimal approach (style_transfer, overlay_graphics, color_grade, keep_with_effects)
   - Creative decision logging: AI records what it changed and why
   - AI quality gate (self-review before showing user)
   - Global learning system tracking which creative decisions work
   - Custom voiceover upload or AI voice generation
   - Custom image integration with precise scene placement
-  - Caption position controls (top/middle/bottom/none)
+  - Caption position controls (top/middle/bottom) with voiceover-synced timing
 - **Next-gen clipper Mode**: Script-guided video creation. User provides script (or generates from template), AI clips and edits according to the script structure, influenced by the chosen template's editing style.
 - **Custom Template System**: Users upload videos to create personal templates. AI learns the editing style (pacing, cuts, rhythm) for reuse across future projects.
 - **Visual Director AI** (`visual_director.py`): Pre-plans all visuals before generation for coherent, professional output:
