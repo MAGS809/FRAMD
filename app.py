@@ -611,6 +611,173 @@ def build_visual_fx_filter(visual_fx, width, height):
     return ','.join(filters)
 
 
+CAPTION_TEMPLATES = {
+    'bold_pop': {
+        'name': 'Bold Pop',
+        'font': 'Arial',
+        'base_size': 52,
+        'highlight_size': 62,
+        'primary_color': '&H00FFFFFF',
+        'highlight_color': '&H0000D4FF',
+        'outline_color': '&H00000000',
+        'outline': 4,
+        'shadow': 3,
+        'bold': True,
+        'animation': 'pop'
+    },
+    'clean_minimal': {
+        'name': 'Clean Minimal',
+        'font': 'Arial',
+        'base_size': 44,
+        'highlight_size': 48,
+        'primary_color': '&H00FFFFFF',
+        'highlight_color': '&H00FFFFFF',
+        'outline_color': '&H80000000',
+        'outline': 2,
+        'shadow': 1,
+        'bold': False,
+        'animation': 'fade'
+    },
+    'gradient_glow': {
+        'name': 'Gradient Glow',
+        'font': 'Arial',
+        'base_size': 48,
+        'highlight_size': 56,
+        'primary_color': '&H00FFFFFF',
+        'highlight_color': '&H00FFD700',
+        'outline_color': '&H00000000',
+        'outline': 3,
+        'shadow': 4,
+        'bold': True,
+        'animation': 'glow'
+    },
+    'street_style': {
+        'name': 'Street Style',
+        'font': 'Impact',
+        'base_size': 56,
+        'highlight_size': 64,
+        'primary_color': '&H00FFFFFF',
+        'highlight_color': '&H0000FF00',
+        'outline_color': '&H00000000',
+        'outline': 5,
+        'shadow': 2,
+        'bold': True,
+        'animation': 'bounce'
+    },
+    'boxed': {
+        'name': 'Boxed',
+        'font': 'Arial',
+        'base_size': 42,
+        'highlight_size': 46,
+        'primary_color': '&H00000000',
+        'highlight_color': '&H00000000',
+        'back_color': '&H80FFFFFF',
+        'outline_color': '&H00000000',
+        'outline': 0,
+        'shadow': 0,
+        'bold': True,
+        'animation': 'slide'
+    }
+}
+
+
+def create_dynamic_captions_ass(script_text, audio_duration, output_path, template='bold_pop', position='bottom', video_width=1080, video_height=1920):
+    """
+    Create ASS subtitle file with word-by-word animated captions.
+    Features pop/scale animations synced to audio timing.
+    """
+    import re
+    
+    style = CAPTION_TEMPLATES.get(template, CAPTION_TEMPLATES['bold_pop'])
+    
+    clean_text = re.sub(r'\[.*?\]', '', script_text)
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+    words = clean_text.split()
+    
+    margin_v = {'top': 100, 'center': int(video_height/2 - 50), 'bottom': 150}.get(position, 150)
+    alignment = {'top': 8, 'center': 5, 'bottom': 2}.get(position, 2)
+    
+    bold_val = -1 if style['bold'] else 0
+    back_color = style.get('back_color', '&H00000000')
+    
+    border_style = 3 if template == 'boxed' else 1
+    
+    ass_header = f"""[Script Info]
+Title: Dynamic Captions
+ScriptType: v4.00+
+PlayResX: {video_width}
+PlayResY: {video_height}
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,{style['font']},{style['base_size']},{style['primary_color']},&H000000FF,{style['outline_color']},{back_color},{bold_val},0,0,0,100,100,0,0,{border_style},{style['outline']},{style['shadow']},{alignment},40,40,{margin_v},1
+Style: Highlight,{style['font']},{style['highlight_size']},{style['highlight_color']},&H000000FF,{style['outline_color']},{back_color},{bold_val},0,0,0,100,100,0,0,{border_style},{style['outline']},{style['shadow']},{alignment},40,40,{margin_v},1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+    
+    if not words:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(ass_header)
+        return output_path
+    
+    seconds_per_word = audio_duration / len(words)
+    
+    def format_ass_time(seconds):
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = seconds % 60
+        return f"{h}:{m:02d}:{s:05.2f}"
+    
+    if style['animation'] == 'pop':
+        anim_effect = r"\fscx110\fscy110\t(0,100,\fscx100\fscy100)"
+    elif style['animation'] == 'bounce':
+        anim_effect = r"\fscx120\fscy120\t(0,80,\fscx100\fscy100)"
+    elif style['animation'] == 'glow':
+        anim_effect = r"\blur3\t(0,150,\blur0)"
+    elif style['animation'] == 'fade':
+        anim_effect = r"\alpha&HFF&\t(0,100,\alpha&H00&)"
+    elif style['animation'] == 'slide':
+        anim_effect = r"\fscx105\t(0,100,\fscx100)"
+    else:
+        anim_effect = ""
+    
+    events = []
+    chunk_size = 4
+    
+    for chunk_idx in range(0, len(words), chunk_size):
+        chunk_words = words[chunk_idx:chunk_idx + chunk_size]
+        chunk_start = chunk_idx * seconds_per_word
+        chunk_end = min((chunk_idx + len(chunk_words)) * seconds_per_word, audio_duration)
+        
+        for word_offset, word in enumerate(chunk_words):
+            word_start = chunk_start + (word_offset * seconds_per_word)
+            word_end = min(word_start + seconds_per_word, chunk_end)
+            
+            before_words = chunk_words[:word_offset]
+            after_words = chunk_words[word_offset + 1:]
+            
+            text_parts = []
+            if before_words:
+                text_parts.append("{\\rDefault}" + ' '.join(before_words) + " ")
+            text_parts.append("{\\rHighlight" + anim_effect + "}" + word)
+            if after_words:
+                text_parts.append("{\\rDefault} " + ' '.join(after_words))
+            
+            full_text = ''.join(text_parts)
+            
+            event_line = f"Dialogue: 0,{format_ass_time(word_start)},{format_ass_time(word_end)},Default,,0,0,0,,{full_text}"
+            events.append(event_line)
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        f.write(ass_header)
+        f.write('\n'.join(events))
+    
+    return output_path
+
+
 def create_word_synced_subtitles(script_text, audio_duration, output_path):
     """
     Create SRT subtitle file with word-level timing based on audio duration.
@@ -618,31 +785,26 @@ def create_word_synced_subtitles(script_text, audio_duration, output_path):
     """
     import re
     
-    # Clean script text
-    clean_text = re.sub(r'\[.*?\]', '', script_text)  # Remove anchor tags
+    clean_text = re.sub(r'\[.*?\]', '', script_text)
     clean_text = re.sub(r'\s+', ' ', clean_text).strip()
     words = clean_text.split()
     
     if not words:
         return output_path
     
-    # Calculate timing per word
     words_per_second = len(words) / max(audio_duration, 1)
     seconds_per_word = 1 / max(words_per_second, 0.5)
     
-    # Group words into subtitle chunks (3-5 words per chunk)
     chunk_size = 4
     chunks = []
     for i in range(0, len(words), chunk_size):
         chunks.append(' '.join(words[i:i+chunk_size]))
     
-    # Write SRT file
     with open(output_path, 'w', encoding='utf-8') as f:
         for i, chunk in enumerate(chunks):
             start_time = i * chunk_size * seconds_per_word
             end_time = min((i + 1) * chunk_size * seconds_per_word, audio_duration)
             
-            # Format timecodes
             def format_time(seconds):
                 h = int(seconds // 3600)
                 m = int((seconds % 3600) // 60)
@@ -5738,7 +5900,7 @@ No text, no faces, no solid backgrounds."""
             shutil.copy(current_video, final_output)
         
         if new_script and data.get('captions_enabled', True):
-            logging.info("Step 5: Adding captions synced to audio...")
+            logging.info("Step 5: Adding dynamic animated captions...")
             captioned_output = f'output/reskinned_captioned_{output_id}.mp4'
             
             script_text = new_script
@@ -5754,28 +5916,23 @@ No text, no faces, no solid backgrounds."""
             else:
                 audio_duration = source_duration
             
-            srt_path = f'output/captions_{output_id}.srt'
-            create_word_synced_subtitles(script_text, audio_duration, srt_path)
+            caption_template = caption_style if caption_style in CAPTION_TEMPLATES else 'bold_pop'
             
-            position_margins = {
-                'top': 'MarginV=50,Alignment=8',
-                'center': 'MarginV=0,Alignment=5',
-                'bottom': 'MarginV=100,Alignment=2'
-            }
-            margin_style = position_margins.get(caption_position, position_margins['bottom'])
-            
-            styles = {
-                'modern': {'font': 'Arial', 'size': 48, 'outline': 3, 'shadow': 2},
-                'minimal': {'font': 'Arial', 'size': 40, 'outline': 2, 'shadow': 1},
-                'bold': {'font': 'Arial', 'size': 56, 'outline': 4, 'shadow': 2},
-                'bold_pop': {'font': 'Arial', 'size': 52, 'outline': 4, 'shadow': 3},
-            }
-            style = styles.get(caption_style, styles['modern'])
+            ass_path = f'output/captions_{output_id}.ass'
+            create_dynamic_captions_ass(
+                script_text, 
+                audio_duration, 
+                ass_path, 
+                template=caption_template,
+                position=caption_position,
+                video_width=target_width,
+                video_height=target_height
+            )
             
             caption_cmd = [
                 'ffmpeg', '-y',
                 '-i', final_output,
-                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow={style['shadow']},Bold=1,{margin_style}'",
+                '-vf', f"ass={ass_path}",
                 '-c:a', 'copy',
                 captioned_output
             ]
@@ -5783,9 +5940,27 @@ No text, no faces, no solid backgrounds."""
             
             if result.returncode == 0 and os.path.exists(captioned_output):
                 shutil.move(captioned_output, final_output)
+                logging.info(f"Dynamic captions applied with template: {caption_template}")
+            else:
+                logging.warning(f"ASS caption failed, falling back to SRT: {result.stderr.decode() if result.stderr else 'unknown error'}")
+                srt_path = f'output/captions_{output_id}.srt'
+                create_word_synced_subtitles(script_text, audio_duration, srt_path)
+                
+                fallback_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', final_output,
+                    '-vf', f"subtitles={srt_path}:force_style='FontName=Arial,FontSize=48,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=3,Shadow=2,Bold=1,MarginV=100,Alignment=2'",
+                    '-c:a', 'copy',
+                    captioned_output
+                ]
+                fallback_result = subprocess.run(fallback_cmd, capture_output=True, timeout=600)
+                if fallback_result.returncode == 0 and os.path.exists(captioned_output):
+                    shutil.move(captioned_output, final_output)
+                if os.path.exists(srt_path):
+                    os.remove(srt_path)
             
-            if os.path.exists(srt_path):
-                os.remove(srt_path)
+            if os.path.exists(ass_path):
+                os.remove(ass_path)
         
         logging.info("Cleaning up temporary files...")
         cleanup_files = [base_reskinned]

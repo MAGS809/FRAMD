@@ -8441,6 +8441,18 @@
                         </select>
                     </div>
                     
+                    <!-- Caption Style -->
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Caption Style</label>
+                        <select id="reskin-caption-style" style="width: 100%; padding: 12px 14px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; cursor: pointer;">
+                            <option value="bold_pop" selected>Bold Pop (Word-by-word highlight)</option>
+                            <option value="clean_minimal">Clean Minimal (Subtle fade)</option>
+                            <option value="gradient_glow">Gradient Glow (Golden emphasis)</option>
+                            <option value="street_style">Street Style (High impact)</option>
+                            <option value="boxed">Boxed (Clean background)</option>
+                        </select>
+                    </div>
+                    
                     <!-- Custom Images -->
                     <div style="margin-bottom: 8px;">
                         <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Custom Images (Optional)</label>
@@ -16303,6 +16315,9 @@
                     const colorGradeSelect = document.getElementById('reskin-color-grade');
                     const colorGrade = colorGradeSelect ? colorGradeSelect.value : 'cinematic';
                     
+                    const captionStyleSelect = document.getElementById('reskin-caption-style');
+                    const dynamicCaptionStyle = captionStyleSelect ? captionStyleSelect.value : 'bold_pop';
+                    
                     const reskinResponse = await fetchWithRetry('/reskin-video', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -16314,7 +16329,7 @@
                             custom_images: personalizeVideoData.customImages || [],
                             voiceover_path: audioPath,
                             caption_position: captionPosition,
-                            caption_style: captionSettings.style || 'modern',
+                            caption_style: dynamicCaptionStyle,
                             captions_enabled: captionSettings.enabled !== false,
                             format: selectedFormat || '9:16',
                             color_grade: colorGrade

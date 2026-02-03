@@ -101,7 +101,13 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generated Descriptions**: Videos include auto-generated social media descriptions with hashtags.
 - **Visual Content Sourcing**: Prioritizes AI-generated visuals (DALL-E) for uniqueness, with stock (Wikimedia/Pexels) as last-resort fallback only.
 - **Voice System**: 8 distinct character personas with multi-character script support.
-- **Caption System**: Word-synced captions rendered with FFmpeg, displayed with dynamic phone-frame preview.
+- **Caption Template System** (GetCaptions-style):
+  - 5 templates: Bold Pop, Clean Minimal, Boxed, Gradient Glow, Street Style
+  - Word-by-word highlighting with pop/scale animation synced to audio
+  - AI auto-selects best template based on content type
+  - Refresh button cycles to new AI-generated style
+  - Back/forward navigation through style history
+  - Learning tracks which styles users keep vs refresh
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
 - **Scene Composer**: Enables background picking and character layering with Pillow-based background removal.
 - **Stage Directions**: AI-generated audio direction layer with effects.
