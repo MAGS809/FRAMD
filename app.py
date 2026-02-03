@@ -27,6 +27,7 @@ from extensions import db, login_manager
 from functools import wraps
 from collections import defaultdict
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -5507,11 +5508,8 @@ def reskin_video():
         client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         output_id = str(uuid.uuid4())[:8]
         
-        # Step 1: For each scene in DNA, find or generate replacement visual
-        scene_visuals = []
-        custom_image_index = 0
-        
-        for scene in creative_dna.get('scenes', []):
+        # Helper function for parallel image generation
+        def generate_scene_visual(scene, scene_idx, custom_path=None):
             scene_visual = {
                 'index': scene.get('index', 0),
                 'timestamp': scene.get('timestamp', 0),
@@ -5521,23 +5519,15 @@ def reskin_video():
                 'composition': scene.get('composition', {})
             }
             
-            # Check if user provided custom image for this scene
-            if custom_image_index < len(custom_images):
-                custom_path = custom_images[custom_image_index]
-                if os.path.exists(custom_path):
-                    scene_visual['visual_path'] = custom_path
-                    scene_visual['source'] = 'custom'
-                    custom_image_index += 1
-                    scene_visuals.append(scene_visual)
-                    continue
+            if custom_path and os.path.exists(custom_path):
+                scene_visual['visual_path'] = custom_path
+                scene_visual['source'] = 'custom'
+                return scene_visual
             
-            # Generate visual adapted to new topic
             intent = scene.get('intent', 'visual content')
-            scene_type = scene.get('scene_type', 'b_roll')
             original_colors = scene.get('colors', {})
             original_composition = scene.get('composition', {})
             
-            # AI makes creative decisions about what to change
             creative_decision = {
                 'scene_index': scene.get('index', 0),
                 'original_intent': intent,
@@ -5546,15 +5536,11 @@ def reskin_video():
                 'changes_made': []
             }
             
-            # PRIMARY: Generate AI visual tailored to topic (not stock)
-            # AI has creative leeway on colors/angles but respects rhythm/structure
             try:
-                # Build generation prompt respecting original structure with creative leeway
                 framing = original_composition.get('framing', 'medium')
                 layout = original_composition.get('layout', 'centered')
                 mood = original_colors.get('mood', 'neutral')
                 
-                # Determine color adjustment
                 if brand_colors and brand_colors.get('primary'):
                     color_instruction = f"Use brand colors: {brand_colors.get('primary')}"
                     creative_decision['changes_made'].append(f"Adjusted colors to brand: {brand_colors.get('primary')}")
@@ -5581,10 +5567,7 @@ No text, no watermarks, no logos."""
                 )
                 
                 image_url = dalle_response.data[0].url
-                
-                # Download generated image
-                import requests
-                img_path = f'uploads/reskin_gen_{output_id}_{scene["index"]}.jpg'
+                img_path = f'uploads/reskin_gen_{output_id}_{scene_idx}.jpg'
                 img_response = requests.get(image_url, timeout=30)
                 with open(img_path, 'wb') as f:
                     f.write(img_response.content)
@@ -5592,21 +5575,18 @@ No text, no watermarks, no logos."""
                 scene_visual['visual_path'] = img_path
                 scene_visual['source'] = 'ai_generated'
                 scene_visual['creative_decision'] = creative_decision
-                scene_visuals.append(scene_visual)
-                continue
+                return scene_visual
                 
             except Exception as e:
-                logging.warning(f"AI generation failed for scene {scene.get('index')}: {e}")
+                logging.warning(f"AI generation failed for scene {scene_idx}: {e}")
                 creative_decision['changes_made'].append(f"AI generation failed, using fallback")
             
-            # FALLBACK ONLY: Use stock as last resort (with warning)
             pexels_key = os.environ.get("PEXELS_API_KEY")
             base_query = scene.get('replacement_query', 'professional background')
             adapted_query = f"{new_topic} {base_query}" if new_topic else base_query
             
             if pexels_key:
                 try:
-                    import requests
                     headers = {"Authorization": pexels_key}
                     search_url = f"https://api.pexels.com/v1/search?query={adapted_query}&per_page=3&orientation=portrait"
                     response = requests.get(search_url, headers=headers, timeout=10)
@@ -5615,8 +5595,7 @@ No text, no watermarks, no logos."""
                         photos = response.json().get('photos', [])
                         if photos:
                             image_url = photos[0].get('src', {}).get('large2x') or photos[0].get('src', {}).get('large')
-                            
-                            img_path = f'uploads/reskin_img_{output_id}_{scene["index"]}.jpg'
+                            img_path = f'uploads/reskin_img_{output_id}_{scene_idx}.jpg'
                             img_response = requests.get(image_url, timeout=10)
                             with open(img_path, 'wb') as f:
                                 f.write(img_response.content)
@@ -5626,17 +5605,44 @@ No text, no watermarks, no logos."""
                             scene_visual['stock_warning'] = True
                             creative_decision['changes_made'].append('Used stock fallback (not ideal)')
                             scene_visual['creative_decision'] = creative_decision
-                            scene_visuals.append(scene_visual)
-                            continue
+                            return scene_visual
                 except Exception as e:
                     logging.warning(f"Stock fallback failed: {e}")
             
-            # Final fallback: solid color placeholder
             scene_visual['visual_path'] = None
             scene_visual['source'] = 'fallback'
             creative_decision['changes_made'].append('All visual sources failed - using fallback')
             scene_visual['creative_decision'] = creative_decision
-            scene_visuals.append(scene_visual)
+            return scene_visual
+        
+        # Step 1: Generate visuals in PARALLEL (3 concurrent workers to avoid rate limits)
+        scenes = creative_dna.get('scenes', [])
+        scene_visuals = [None] * len(scenes)
+        
+        logging.info(f"Generating {len(scenes)} scene visuals in parallel...")
+        
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            future_to_idx = {}
+            for idx, scene in enumerate(scenes):
+                custom_path = custom_images[idx] if idx < len(custom_images) else None
+                future = executor.submit(generate_scene_visual, scene, idx, custom_path)
+                future_to_idx[future] = idx
+            
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                try:
+                    scene_visuals[idx] = future.result()
+                    logging.info(f"Scene {idx+1}/{len(scenes)} visual ready")
+                except Exception as e:
+                    logging.error(f"Scene {idx} generation error: {e}")
+                    scene_visuals[idx] = {
+                        'index': idx,
+                        'visual_path': None,
+                        'source': 'error',
+                        'duration': scenes[idx].get('duration', 3)
+                    }
+        
+        scene_visuals = [sv for sv in scene_visuals if sv is not None]
         
         # Step 2: Assemble video from scene visuals
         clips_list_path = f'output/clips_{output_id}.txt'
