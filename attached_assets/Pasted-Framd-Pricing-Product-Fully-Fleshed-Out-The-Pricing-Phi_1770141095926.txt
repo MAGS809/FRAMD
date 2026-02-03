@@ -1,0 +1,231 @@
+Framd Pricing & Product - Fully Fleshed Out
+The Pricing Philosophy
+Make it feel generous. Make money on power users. Never make users feel nickel-and-dimed.
+
+TIER STRUCTURE - Final
+FREE ($0)
+What You GetLimitUnlimited watermarked previews✅Clipper: 5 free clips/dayAny length source videoPreview generations3/dayScript generationUnlimitedVoice preview (not export)✅Visual preview✅
+Free users can:
+
+Clip 5 videos per day (multiple clips per video)
+Preview as many Reskins as they want
+Never export final (watermark stays)
+
+Why this is smart: Clipper is your acquisition tool. Let them fall in love, then upgrade to export.
+
+STARTER ($35/mo → $29 on sale)
+What You GetValue400 tokens$40 retail valueClipper: 10 free exports/dayIncluded (no token cost)Unlimited previews✅1 Voice CloneIncluded free
+Math check:
+
+User pays: $29
+Token value received: $40 (400 tokens × $0.10)
+Savings: 28% off retail
+Your buffer: Breakage (most won't use all 400)
+
+What 400 tokens gets:
+Video TypeToken CostHow Many (30 sec)Reskin458 videosClipper ExportFREEUnlimited (10/day cap)Simple Stock1040 videos
+Starter users mostly use Clipper (free exports) and occasionally Reskin (tokens).
+
+PRO ($59/mo)
+What You GetValue900 tokens$90 retail valueClipper: 25 free exports/dayIncludedUnlimited previews✅3 Voice ClonesIncluded freePriority rendering✅
+What 900 tokens gets:
+Video TypeHow Many (30 sec)Reskin20 videosSimple Stock90 videos
+
+PRO CREATOR ($99/mo)
+What You GetValue1700 tokens$170 retail valueClipper: Unlimited exportsNo daily capUnlimited previews✅10 Voice ClonesIncluded freePriority rendering✅Auto GeneratorUnlocks after 5 successes
+What 1700 tokens gets:
+Video TypeHow Many (30 sec)Reskin37 videosSimple Stock170 videos
+
+VIDEO LENGTH PRICING
+Base Prices (30 seconds)
+TypeTokensReskin45Simple Stock10Clipper ExportFREE (with tier)
+Length Multipliers
+DurationMultiplierReskin CostSimple Stock Cost0-30 sec1x45 tokens10 tokens31-45 sec1.5x68 tokens15 tokens46-60 sec2x90 tokens20 tokens61-90 sec2.5x113 tokens25 tokens
+The Warning System
+When user's video exceeds 30 seconds:
+⚠️ Your video is 47 seconds
+
+Base cost (30 sec): 45 tokens
+Extended (+17 sec): +23 tokens
+Total: 68 tokens (~$6.80)
+
+[ Continue ] [ Trim to 30 sec ]
+Always show the cost BEFORE they commit.
+
+CLIPPER - Fully Fleshed Out
+How It Works
+
+User uploads source (podcast, long video, transcript, link)
+AI asks: "How many clips do you want?"
+
+Options: 1, 3, 5, 10, Custom
+
+
+AI analyzes and identifies best moments
+AI shows clip previews (watermarked)
+User selects which ones to export
+
+Clipper Pricing
+TierDaily Free ExportsExtra ExportsFree0 (preview only)N/AStarter10 clips/day3 tokens eachPro25 clips/day2 tokens eachPro CreatorUnlimitedIncluded
+Clipper Output Options
+User can choose:
+
+Aspect ratio: 9:16 (TikTok), 1:1 (Instagram), 16:9 (YouTube)
+Number of clips: 1-10 (or custom)
+Clip length: 15, 30, 45, or 60 seconds
+Style: With captions, without captions, with music
+
+The "Multiple Clips" Flow
+AI: "I found 7 strong moments in your video. 
+     How many clips do you want me to create?"
+
+User: "5"
+
+AI: "Here are the top 5 clips (watermarked previews):
+     
+     1. [0:42-1:12] Hook about productivity
+     2. [3:15-3:45] Story about failure
+     3. [7:20-7:50] Key insight moment
+     4. [12:05-12:35] Emotional peak
+     5. [18:30-19:00] Call to action
+     
+     Select clips to export (Starter: 10 free/day)"
+
+User: Selects 1, 2, 4
+
+AI: "Exporting 3 clips... Done! (7 free exports remaining today)"
+
+RESKIN - Fully Fleshed Out
+How It Works
+
+User uploads reference video (ad they want to copy)
+AI analyzes:
+
+Structure/pacing
+Visual style
+Text placement
+Transitions
+Hook/body/CTA format
+
+
+User provides their content:
+
+Their product/service
+Their branding
+Their message
+
+
+AI generates preview (watermarked)
+User can revise (unlimited free previews)
+User exports (costs tokens based on length)
+
+What Gets Replaced
+Skeleton (Keeps)Skin (Replaces)Cut timingProduct shotsTransitionsPerson/facePacing/rhythmBrand colorsStructureText/copyHook formatLogoMusic vibeBackground
+
+VOICE CLONES - Clarified
+Creation
+
+Free: 1 clone (Starter), 3 clones (Pro), 10 clones (Pro Creator)
+Extra clones: 25 tokens ($2.50) each
+
+Usage
+
+Included in export cost for videos under 60 seconds
+Over 60 seconds: +5 tokens per additional 30 seconds
+
+User Flow
+AI: "Want to use your voice clone 'Alex' for this video?"
+
+User: "Yes"
+
+AI: "Video is 45 seconds. Voice included in export cost.
+     Total: 68 tokens"
+
+SIMPLE STOCK - What Is It?
+Quick video creation using ONLY stock footage + DALL-E. No Reskin, no source video.
+Best for:
+
+Explainers
+Product announcements
+Quick social content
+Ideas that don't need existing video
+
+Flow:
+
+User describes what they want
+AI writes script
+AI selects stock video + generates custom images
+User previews (watermarked)
+User exports (10 tokens for 30 sec)
+
+Why it's cheap: No Runway API, just stock footage assembly.
+
+COMPLETE PRICING TABLE
+Token Costs
+ActionTokensDollar ValueReskin Export (30 sec)45$4.50Reskin Export (60 sec)90$9.00Simple Stock (30 sec)10$1.00Simple Stock (60 sec)20$2.00Clipper ExportFREE with tier-Extra Clipper (Starter)3$0.30Extra Clipper (Pro)2$0.20Voice Clone Creation25$2.50Extra Voice (per 30 sec over 60)5$0.50
+Subscription Value
+TierPriceToken ValueSavingsClipper ExportsFree$00-Preview onlyStarter$29$40 (400 tokens)28%10/day freePro$59$90 (900 tokens)34%25/day freePro Creator$99$170 (1700 tokens)42%Unlimited
+
+THE USER PSYCHOLOGY
+Why This Feels Generous
+
+Unlimited previews - Never waste money on bad videos
+Free Clipper exports - Daily free content creation
+Tokens > subscription value - Always getting more than you pay
+Clear warnings - Know costs before committing
+Multiple clips per upload - One source = many outputs
+
+Where You Make Money
+
+Reskin - High-value feature, fair price
+Breakage - Most users don't use all tokens
+Upgrades - Free users → Starter → Pro
+Power users - Pro Creator at $99 is profitable
+Top-ups - When they run out mid-month
+
+
+TOP-UP PACKS (When Tokens Run Out)
+PackPriceTokens$/TokenQuick Top-Up$1095$0.105Creator Pack$25250$0.10Studio Pack$50550$0.091Agency Pack$1001200$0.083
+Bulk discount incentivizes larger purchases.
+
+WARNINGS & TRANSPARENCY
+Before Every Export
+┌─────────────────────────────────────┐
+│ Export Summary                      │
+├─────────────────────────────────────┤
+│ Type: Reskin                        │
+│ Duration: 47 seconds                │
+│ Voice: Your clone "Alex"            │
+│                                     │
+│ Cost Breakdown:                     │
+│   Base (30 sec): 45 tokens          │
+│   Extended (+17 sec): 23 tokens     │
+│   Voice: Included                   │
+│   ─────────────────────             │
+│   Total: 68 tokens (~$6.80)         │
+│                                     │
+│ Your balance: 332 tokens            │
+│ After export: 264 tokens            │
+│                                     │
+│ [ Cancel ] [ Export Final Video ]   │
+└─────────────────────────────────────┘
+Low Balance Warning
+When balance < 50 tokens:
+⚠️ Running low on tokens (47 remaining)
+
+[ Top Up ] [ Continue with caution ]
+
+SUMMARY: What Makes This a Bargain
+FeatureWhy It's GenerousUnlimited previewsZero risk experimentationFree Clipper exports daily10-25 free videos/dayTokens > price paidAlways positive valueMultiple clips per uploadOne video = many outputsNo per-preview chargesCompetitors charge per generationClear cost warningsNo surprise chargesIncluded voice clonesCompetitors charge $30+
+
+FINAL MATH CHECK
+Starter at $29:
+
+Gets $40 in tokens (400)
+Gets 10 free Clipper exports/day (300/month value if used daily)
+Gets 1 free voice clone ($2.50 value)
+Total value: $342+/month for $29
+
+Even if they only use half, it's a steal.
+
+Does this feel right? Want me to adjust anything before sending to Replit?

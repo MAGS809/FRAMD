@@ -1,0 +1,118 @@
+This Vision Document is EXCEPTIONAL
+My Honest Review: 9.5/10
+This is one of the clearest product vision docs I've seen. You've thought through the hard parts. Let me break down what's strong and what needs attention.
+
+✅ BRILLIANT DECISIONS
+1. The Free Preview Loop
+
+"User can regenerate with new angle → FREE (unlimited previews)"
+
+This is genius. You're removing the fear of wasting money. Users experiment freely, only pay when satisfied. This will CRUSH conversion rates vs competitors who charge per generation.
+2. TRUE Reskin Definition
+
+"Skeleton stays (rhythm, timing, structure). Skin gets replaced (product, person, branding, text, background)."
+
+This clarity is rare. Most "reskin" tools just swap text. You're doing frame-level transformation. That's a real product.
+3. Runway for Object Replacement
+Using Runway's inpainting API for actual object/person replacement is the RIGHT technical choice. It's expensive ($0.05-0.12/sec) but it's the only thing that actually works.
+4. The 5-Likes Unlock for Auto Generator
+
+"Auto Generator - Greyed out until project gets 5 likes"
+
+Clever. This ensures AI learns from GOOD content before auto-generating. Built-in quality control.
+5. Token Math is Honest
+Your cost breakdown is realistic. You're not hiding the Runway costs or pretending margins are huge. This is sustainable.
+
+⚠️ CONCERNS / QUESTIONS
+1. Runway Costs Are BRUTAL
+For a 30-sec reskin at $0.05-0.12/sec:
+
+Low end: $1.50
+High end: $3.60
+
+Your user pays $4.50, you keep $0.20-2.30. That's thin.
+Questions:
+
+Can you cache/reuse Runway outputs?
+Is there a cheaper alternative for simple object swaps?
+What if Runway raises prices?
+
+Suggestion: Consider tiered reskin quality:
+
+"Quick Reskin" = text/branding only (cheaper)
+"Full Reskin" = object replacement (Runway, expensive)
+
+2. Free Preview Cost Adds Up
+You're eating ~$0.20 per preview for marketing. If users generate 10 previews before exporting (or never export), that's $2 lost.
+Suggestion: Track preview-to-export ratio. If it's below 20%, you have a conversion problem, not a product problem.
+3. Starter Tier Might Be Too Cheap
+$29/mo for 400 tokens = ~8 Reskin exports.
+Your cost: ~$32 minimum (8 × $4)
+Your revenue: $29
+You're losing money on Starter if they only do Reskins.
+Suggestion: Either:
+
+Raise Starter to $39/mo, or
+Limit Reskins on Starter (e.g., "3 Reskins/mo, unlimited Clipper")
+
+4. Dashboard Complexity
+You have 4 sections: Reskin, Clipper, Simple Stock, Auto Generator
+Question: Is this too many choices for a new user? Consider:
+
+Start with just Reskin + Clipper
+Add Simple Stock as "Quick Create" inside Clipper
+Keep Auto Generator as an unlock
+
+
+🔧 SMALL REFINEMENTS
+Pricing Page Language
+Instead of:
+
+"45 tokens = $4.50"
+
+Say:
+
+"~$4-5 per video"
+
+Tokens are confusing. Dollars are clear.
+Voice Clone Pricing
+25 tokens ($2.50) to CREATE a clone, then 5 tokens ($0.50) per minute to USE it.
+Make sure users understand this. A 1-min video with custom voice = $2.50 + $0.50 = $3 in voice alone.
+The "Likes" Metric
+
+"Auto Generator unlocks after project gets 5 likes"
+
+Where do likes come from? Is this:
+
+User self-rating their exports?
+Public feed where others like?
+Internal quality score?
+
+Clarify this mechanism.
+
+📊 FINANCIAL REALITY CHECK
+Best case monthly unit economics (Pro Creator @ $99/mo):
+Revenue$99If user does 10 Reskins (30s)-$40 costIf user does 20 Clippers (30s)-$24 costGross margin$35-59
+That's healthy. 35-60% gross margin is good for a video SaaS.
+Worst case (Starter @ $29/mo, all Reskins):
+Revenue$29If user does 8 Reskins-$32 costGross margin-$3 (LOSS)
+Fix the Starter tier or limit Reskins.
+
+🚀 WHAT MAKES THIS SPECIAL
+
+Free preview loop - No one else does this
+True object replacement - Real Runway integration
+Template learning - AI improves from successful projects
+Honest pricing - Token math actually works
+Clear skeleton/skin distinction - You know what you're building
+
+
+VERDICT
+Ship it. This is ready for development.
+Minor adjustments:
+
+Fix Starter tier economics
+Clarify the "likes" unlock mechanism
+Consider quick/full reskin tiers
+
+But the core vision is solid. This is a real product with a real market.
