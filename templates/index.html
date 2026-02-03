@@ -2316,6 +2316,139 @@
             100% { top: 10%; left: 10%; }
         }
         
+        /* Element Selection Mode */
+        .element-edit-mode .video-preview-container {
+            cursor: crosshair;
+        }
+        
+        .element-overlay-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 20;
+        }
+        
+        .element-edit-mode .element-overlay-container {
+            pointer-events: auto;
+        }
+        
+        .element-hotspot {
+            position: absolute;
+            border: 2px dashed transparent;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .element-hotspot:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.15);
+        }
+        
+        .element-hotspot.selected {
+            border-color: var(--gold);
+            border-style: solid;
+            background: rgba(255, 214, 10, 0.2);
+            box-shadow: 0 0 10px rgba(255, 214, 10, 0.3);
+        }
+        
+        .element-label {
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--gold);
+            color: #000;
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+        }
+        
+        .element-hotspot:hover .element-label,
+        .element-hotspot.selected .element-label {
+            opacity: 1;
+        }
+        
+        .btn-edit-elements {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-edit-elements:hover,
+        .btn-edit-elements.active {
+            background: var(--gold);
+            color: #000;
+        }
+        
+        .element-edit-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface);
+            border: 1px solid var(--gold);
+            border-radius: 12px;
+            padding: 16px 24px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            min-width: 300px;
+        }
+        
+        .element-edit-panel.visible {
+            display: block;
+            animation: slideUp 0.3s ease;
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        .element-edit-panel h4 {
+            color: var(--gold);
+            margin: 0 0 12px 0;
+            font-size: 14px;
+        }
+        
+        .element-edit-input {
+            width: 100%;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 10px 12px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        
+        .element-edit-input:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+        
+        .element-edit-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
         /* Preview Video Actions */
         .preview-actions {
             display: flex;
@@ -17142,6 +17275,11 @@
             // Store preview data for potential revisions
             currentPreviewData = { ...renderData, videoUrl };
             
+            // Store template ID if available for element editing
+            if (renderData.template_id) {
+                currentTemplateId = renderData.template_id;
+            }
+            
             const cardDiv = document.createElement('div');
             cardDiv.className = 'message ai video-result-message';
             cardDiv.id = 'video-result-' + Date.now();
@@ -17184,6 +17322,10 @@
                         </button>
                         <button class="btn btn-final" onclick="getFinalVideo('${videoUrl}')" style="font-size: 12px; padding: 10px 20px;">
                             Get Final Video
+                        </button>
+                        <button class="btn-edit-elements" id="edit-elements-btn" onclick="toggleElementEditMode()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            Edit Elements
                         </button>
                         <button class="btn btn-revision" onclick="showRevisionPanel()" style="font-size: 12px; padding: 10px 20px;">
                             Needs Changes
@@ -17333,6 +17475,193 @@
         
         // Revision flow
         let selectedRevisionType = 'minor';
+        
+        // Element editing state
+        let elementEditMode = false;
+        let currentElements = [];
+        let selectedElement = null;
+        let currentTemplateId = null;
+        
+        function toggleElementEditMode() {
+            elementEditMode = !elementEditMode;
+            const btn = document.getElementById('edit-elements-btn');
+            const container = document.getElementById('preview-container');
+            
+            if (elementEditMode) {
+                btn.classList.add('active');
+                btn.textContent = 'Exit Edit Mode';
+                container.classList.add('element-edit-mode');
+                loadTemplateElements();
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Edit Elements';
+                container.classList.remove('element-edit-mode');
+                clearElementOverlays();
+                hideElementEditPanel();
+            }
+        }
+        
+        async function loadTemplateElements() {
+            if (!currentTemplateId) {
+                // If no template loaded yet, show a message
+                showToast('No template loaded. Generate a video first, then edit elements.');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/get-template-elements/${currentTemplateId}`);
+                const data = await response.json();
+                
+                if (data.elements) {
+                    currentElements = data.elements;
+                    renderElementOverlays(data.elements);
+                }
+            } catch (error) {
+                console.error('Failed to load elements:', error);
+            }
+        }
+        
+        function renderElementOverlays(elements) {
+            const container = document.getElementById('preview-container');
+            
+            // Remove existing overlay
+            const existingOverlay = container.querySelector('.element-overlay-container');
+            if (existingOverlay) existingOverlay.remove();
+            
+            // Create overlay container
+            const overlayContainer = document.createElement('div');
+            overlayContainer.className = 'element-overlay-container';
+            
+            elements.forEach(elem => {
+                const hotspot = document.createElement('div');
+                hotspot.className = 'element-hotspot';
+                hotspot.dataset.elementId = elem.id;
+                hotspot.dataset.elementName = elem.display_name || elem.name;
+                
+                // Position based on element data
+                const x = (elem.position?.x || 0.5) * 100;
+                const y = (elem.position?.y || 0.5) * 100;
+                const w = (elem.position?.width || 0.2) * 100;
+                const h = (elem.position?.height || 0.1) * 100;
+                
+                hotspot.style.left = `${x - w/2}%`;
+                hotspot.style.top = `${y - h/2}%`;
+                hotspot.style.width = `${w}%`;
+                hotspot.style.height = `${h}%`;
+                
+                // Add label
+                const label = document.createElement('div');
+                label.className = 'element-label';
+                label.textContent = elem.display_name || elem.name;
+                hotspot.appendChild(label);
+                
+                // Click handler
+                hotspot.onclick = () => selectElement(elem);
+                
+                overlayContainer.appendChild(hotspot);
+            });
+            
+            container.appendChild(overlayContainer);
+        }
+        
+        function clearElementOverlays() {
+            const container = document.getElementById('preview-container');
+            const overlay = container?.querySelector('.element-overlay-container');
+            if (overlay) overlay.remove();
+        }
+        
+        function selectElement(element) {
+            selectedElement = element;
+            
+            // Update UI
+            document.querySelectorAll('.element-hotspot').forEach(h => h.classList.remove('selected'));
+            const hotspot = document.querySelector(`[data-element-id="${element.id}"]`);
+            if (hotspot) hotspot.classList.add('selected');
+            
+            showElementEditPanel(element);
+        }
+        
+        function showElementEditPanel(element) {
+            // Remove existing panel
+            let panel = document.getElementById('element-edit-panel');
+            if (panel) panel.remove();
+            
+            // Create panel
+            panel = document.createElement('div');
+            panel.id = 'element-edit-panel';
+            panel.className = 'element-edit-panel visible';
+            panel.innerHTML = `
+                <h4>Editing: ${element.display_name || element.name}</h4>
+                <input type="text" class="element-edit-input" id="element-edit-input" 
+                       placeholder="Describe what you want..." 
+                       value="">
+                <div class="element-edit-actions">
+                    <button class="btn btn-primary" onclick="submitElementChange()" style="flex: 1;">Apply Change</button>
+                    <button class="btn btn-secondary" onclick="hideElementEditPanel()">Cancel</button>
+                </div>
+            `;
+            
+            document.body.appendChild(panel);
+            document.getElementById('element-edit-input').focus();
+            
+            // Handle enter key
+            document.getElementById('element-edit-input').onkeydown = (e) => {
+                if (e.key === 'Enter') submitElementChange();
+            };
+        }
+        
+        function hideElementEditPanel() {
+            const panel = document.getElementById('element-edit-panel');
+            if (panel) panel.remove();
+            selectedElement = null;
+            document.querySelectorAll('.element-hotspot').forEach(h => h.classList.remove('selected'));
+        }
+        
+        async function submitElementChange() {
+            if (!selectedElement) return;
+            
+            const input = document.getElementById('element-edit-input');
+            const instruction = input.value.trim();
+            
+            if (!instruction) {
+                showWarning('Instruction Required', 'Please describe what you want to change');
+                return;
+            }
+            
+            // Send to chat with element context
+            const message = `Change the "${selectedElement.display_name || selectedElement.name}" element: ${instruction}`;
+            addMessage(message, true);
+            
+            hideElementEditPanel();
+            toggleElementEditMode(); // Exit edit mode
+            
+            // Trigger regeneration
+            addTypingIndicator();
+            
+            try {
+                const response = await fetch('/regenerate-element', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        element_id: selectedElement.id,
+                        instruction: instruction
+                    })
+                });
+                
+                removeTypingIndicator();
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage(`Updated "${data.element_name}". The change has been applied.`, false);
+                    showToast('Element updated successfully');
+                } else {
+                    addMessage(`I couldn't update that element: ${data.error}`, false);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('Sorry, there was an error updating the element.', false);
+            }
+        }
         
         function showRevisionPanel() {
             document.getElementById('revision-panel').style.display = 'block';

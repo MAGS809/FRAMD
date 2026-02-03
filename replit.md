@@ -135,7 +135,15 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
   - Custom image integration with precise scene placement
   - Caption position controls (top/middle/bottom) with voiceover-synced timing
 - **Next-gen clipper Mode**: Script-guided video creation. User provides script (or generates from template), AI clips and edits according to the script structure, influenced by the chosen template's editing style.
-- **Custom Template System**: Users upload videos to create personal templates. AI learns the editing style (pacing, cuts, rhythm) for reuse across future projects.
+- **Custom Template System** (`template_engine.py`): Users upload videos to create personal templates with element-level precision:
+  - 6 element groups: branding, text, visuals, motion, interactive, data
+  - Frame-by-frame element detection via Claude/OpenAI vision
+  - Element slots with positions, timing, animations, and style properties
+  - Transition detection between scenes
+  - Template matching AI auto-selects best template for user request
+  - Interactive element editing: hover to see element names, click to select
+  - Element-specific regeneration: change one element without affecting others
+  - Database models: TemplateElement, GeneratedAsset for reusable assets
 - **Visual Director AI** (`visual_director.py`): Pre-plans all visuals before generation for coherent, professional output:
   - Content type detection (podcast, explainer, hot_take, ad, story, news, meme)
   - Per-scene source selection (stock vs DALL-E vs user content)

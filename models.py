@@ -617,3 +617,69 @@ class UserMergingPreferences(db.Model):
     
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class TemplateElement(db.Model):
+    """Individual element within a video template - named, positioned, and animated"""
+    __tablename__ = 'template_elements'
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey('video_templates.id'), nullable=False, index=True)
+    
+    name = db.Column(db.String(100), nullable=False)
+    display_name = db.Column(db.String(100), nullable=True)
+    element_group = db.Column(db.String(50), nullable=False)
+    element_type = db.Column(db.String(50), nullable=False)
+    
+    position_x = db.Column(db.Float, default=0.5)
+    position_y = db.Column(db.Float, default=0.5)
+    width = db.Column(db.Float, nullable=True)
+    height = db.Column(db.Float, nullable=True)
+    z_index = db.Column(db.Integer, default=0)
+    
+    start_time = db.Column(db.Float, default=0.0)
+    end_time = db.Column(db.Float, nullable=True)
+    duration = db.Column(db.Float, nullable=True)
+    
+    animation_in = db.Column(db.String(50), nullable=True)
+    animation_out = db.Column(db.String(50), nullable=True)
+    motion_during = db.Column(db.String(50), nullable=True)
+    easing = db.Column(db.String(30), default='ease_out')
+    
+    original_content = db.Column(db.Text, nullable=True)
+    content_description = db.Column(db.Text, nullable=True)
+    style_properties = db.Column(db.JSON, nullable=True)
+    
+    is_swappable = db.Column(db.Boolean, default=True)
+    swap_prompt_hint = db.Column(db.Text, nullable=True)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    template = db.relationship('VideoTemplate', backref=db.backref('elements', lazy='dynamic'))
+
+
+class GeneratedAsset(db.Model):
+    """AI-generated assets that can be reused across projects"""
+    __tablename__ = 'generated_assets'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    
+    asset_type = db.Column(db.String(50), nullable=False)
+    name = db.Column(db.String(255), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    
+    file_path = db.Column(db.String(500), nullable=False)
+    thumbnail_path = db.Column(db.String(500), nullable=True)
+    
+    tags = db.Column(db.JSON, nullable=True)
+    element_types = db.Column(db.JSON, nullable=True)
+    style_tags = db.Column(db.JSON, nullable=True)
+    
+    generation_prompt = db.Column(db.Text, nullable=True)
+    source = db.Column(db.String(50), default='dalle')
+    
+    usage_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=False)
+    
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    
+    user = db.relationship('User', backref=db.backref('generated_assets', lazy='dynamic'))

@@ -277,7 +277,8 @@ db.init_app(app)
 from models import (
     User, OAuth, Conversation, UserPreference, Project, VideoFeedback,
     AILearning, GeneratedDraft, GlobalPattern, Subscription, VideoHistory,
-    UserTokens, MediaAsset, KeywordAssetCache, SourceDocument, VideoTemplate
+    UserTokens, MediaAsset, KeywordAssetCache, SourceDocument, VideoTemplate,
+    TemplateElement, GeneratedAsset
 )
 
 with app.app_context():
@@ -5429,6 +5430,289 @@ Respond in JSON:
         logging.error(f"Video template extraction error: {e}")
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/extract-template-elements', methods=['POST'])
+def extract_template_elements():
+    """Extract template with element-level precision for frame-accurate recreation."""
+    from template_engine import extract_template, ELEMENT_GROUPS
+    
+    data = request.get_json()
+    file_path = data.get('file_path')
+    template_name = data.get('name', f"Template {datetime.now().strftime('%m/%d %H:%M')}")
+    user_id = session.get('replit_user_id') or data.get('user_id')
+    
+    if not file_path or not os.path.exists(file_path):
+        return jsonify({'error': 'Video file not found'}), 404
+    
+    try:
+        template_data = extract_template(
+            file_path, 
+            template_name,
+            anthropic_client=anthropic_client,
+            openai_client=None
+        )
+        
+        if 'error' in template_data:
+            return jsonify(template_data), 400
+        
+        if user_id:
+            template = VideoTemplate(
+                user_id=user_id,
+                name=template_name,
+                source_video_path=file_path,
+                duration=template_data.get('duration'),
+                scene_count=len(template_data.get('transitions', [])) + 1,
+                scenes=template_data.get('transitions'),
+                aesthetic={'element_summary': template_data.get('element_summary')},
+                transitions=template_data.get('transitions')
+            )
+            db.session.add(template)
+            db.session.commit()
+            
+            for elem in template_data.get('elements', []):
+                template_elem = TemplateElement(
+                    template_id=template.id,
+                    name=elem.get('name', 'unknown'),
+                    display_name=elem.get('display_name'),
+                    element_group=elem.get('element_group', 'visuals'),
+                    element_type=elem.get('element_type', 'graphic'),
+                    position_x=elem.get('position', {}).get('x', 0.5),
+                    position_y=elem.get('position', {}).get('y', 0.5),
+                    width=elem.get('position', {}).get('width'),
+                    height=elem.get('position', {}).get('height'),
+                    z_index=elem.get('z_index', 0),
+                    start_time=elem.get('start_time', 0),
+                    end_time=elem.get('end_time'),
+                    duration=elem.get('duration'),
+                    animation_in=elem.get('animation_detected'),
+                    original_content=elem.get('original_content'),
+                    content_description=elem.get('content_description'),
+                    style_properties=elem.get('style_properties'),
+                    is_swappable=elem.get('is_swappable', True),
+                    swap_prompt_hint=elem.get('swap_prompt_hint')
+                )
+                db.session.add(template_elem)
+            
+            db.session.commit()
+            template_data['template_id'] = template.id
+        
+        return jsonify({
+            'success': True,
+            **template_data
+        })
+        
+    except Exception as e:
+        logging.error(f"Template element extraction error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/generate-from-template', methods=['POST'])
+def generate_from_template():
+    """Generate a video by filling template element slots with AI-generated content."""
+    from template_engine import generate_element_content
+    
+    data = request.get_json()
+    template_id = data.get('template_id')
+    user_request = data.get('request', '')
+    user_assets = data.get('assets', {})
+    user_id = session.get('replit_user_id') or data.get('user_id')
+    
+    if not template_id:
+        return jsonify({'error': 'Template ID required'}), 400
+    
+    try:
+        template = VideoTemplate.query.get(template_id)
+        if not template:
+            return jsonify({'error': 'Template not found'}), 404
+        
+        # Authorization - owner or public template
+        if template.user_id != user_id and not template.is_public:
+            return jsonify({'error': 'Not authorized'}), 403
+        
+        # Increment usage count
+        template.usage_count = (template.usage_count or 0) + 1
+        db.session.commit()
+        
+        elements = TemplateElement.query.filter_by(template_id=template_id).all()
+        
+        generated_elements = []
+        for elem in elements:
+            elem_dict = {
+                'id': elem.id,
+                'name': elem.name,
+                'display_name': elem.display_name,
+                'element_type': elem.element_type,
+                'element_group': elem.element_group,
+                'position': {
+                    'x': elem.position_x,
+                    'y': elem.position_y,
+                    'width': elem.width,
+                    'height': elem.height
+                },
+                'start_time': elem.start_time,
+                'end_time': elem.end_time,
+                'original_content': elem.original_content,
+                'swap_prompt_hint': elem.swap_prompt_hint
+            }
+            
+            if elem.is_swappable:
+                new_content = generate_element_content(
+                    elem_dict, 
+                    user_request,
+                    user_assets=user_assets,
+                    anthropic_client=anthropic_client
+                )
+                elem_dict['generated_content'] = new_content
+            
+            generated_elements.append(elem_dict)
+        
+        return jsonify({
+            'success': True,
+            'template_id': template_id,
+            'template_name': template.name,
+            'duration': template.duration,
+            'elements': generated_elements,
+            'element_count': len(generated_elements)
+        })
+        
+    except Exception as e:
+        logging.error(f"Template generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/regenerate-element', methods=['POST'])
+def regenerate_element():
+    """Regenerate a single element based on user feedback."""
+    from template_engine import generate_element_content
+    
+    data = request.get_json()
+    element_id = data.get('element_id')
+    user_instruction = data.get('instruction', '')
+    user_id = session.get('replit_user_id') or data.get('user_id')
+    
+    if not element_id:
+        return jsonify({'error': 'Element ID required'}), 400
+    
+    try:
+        elem = TemplateElement.query.get(element_id)
+        if not elem:
+            return jsonify({'error': 'Element not found'}), 404
+        
+        # Authorization - check template ownership
+        template = VideoTemplate.query.get(elem.template_id)
+        if not template or (template.user_id != user_id and not template.is_public):
+            return jsonify({'error': 'Not authorized'}), 403
+        
+        elem_dict = {
+            'element_type': elem.element_type,
+            'element_group': elem.element_group,
+            'original_content': elem.original_content,
+            'swap_prompt_hint': elem.swap_prompt_hint
+        }
+        
+        new_content = generate_element_content(
+            elem_dict,
+            user_instruction,
+            anthropic_client=anthropic_client
+        )
+        
+        return jsonify({
+            'success': True,
+            'element_id': element_id,
+            'element_name': elem.display_name or elem.name,
+            'new_content': new_content
+        })
+        
+    except Exception as e:
+        logging.error(f"Element regeneration error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-templates', methods=['GET'])
+def get_templates():
+    """Get available templates for the user."""
+    user_id = session.get('replit_user_id') or request.args.get('user_id')
+    
+    try:
+        if user_id:
+            templates = VideoTemplate.query.filter_by(user_id=user_id).order_by(VideoTemplate.created_at.desc()).limit(20).all()
+        else:
+            templates = VideoTemplate.query.filter_by(is_public=True).order_by(VideoTemplate.usage_count.desc()).limit(10).all()
+        
+        result = []
+        for t in templates:
+            element_count = TemplateElement.query.filter_by(template_id=t.id).count()
+            result.append({
+                'id': t.id,
+                'name': t.name,
+                'duration': t.duration,
+                'scene_count': t.scene_count,
+                'element_count': element_count,
+                'thumbnail': t.thumbnail_path,
+                'aesthetic': t.aesthetic,
+                'usage_count': t.usage_count,
+                'created_at': t.created_at.isoformat() if t.created_at else None
+            })
+        
+        return jsonify({'templates': result})
+        
+    except Exception as e:
+        logging.error(f"Get templates error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/get-template-elements/<int:template_id>', methods=['GET'])
+def get_template_elements(template_id):
+    """Get all elements for a specific template."""
+    user_id = session.get('replit_user_id')
+    
+    try:
+        template = VideoTemplate.query.get(template_id)
+        if not template:
+            return jsonify({'error': 'Template not found'}), 404
+        
+        # Authorization check - only owner or public templates
+        if template.user_id != user_id and not template.is_public:
+            return jsonify({'error': 'Not authorized'}), 403
+        
+        elements = TemplateElement.query.filter_by(template_id=template_id).order_by(TemplateElement.start_time).all()
+        
+        result = []
+        for e in elements:
+            result.append({
+                'id': e.id,
+                'name': e.name,
+                'display_name': e.display_name,
+                'element_group': e.element_group,
+                'element_type': e.element_type,
+                'position': {
+                    'x': e.position_x,
+                    'y': e.position_y,
+                    'width': e.width,
+                    'height': e.height
+                },
+                'z_index': e.z_index,
+                'start_time': e.start_time,
+                'end_time': e.end_time,
+                'duration': e.duration,
+                'animation_in': e.animation_in,
+                'animation_out': e.animation_out,
+                'original_content': e.original_content,
+                'content_description': e.content_description,
+                'style_properties': e.style_properties,
+                'is_swappable': e.is_swappable
+            })
+        
+        return jsonify({'elements': result})
+        
+    except Exception as e:
+        logging.error(f"Get template elements error: {e}")
         return jsonify({'error': str(e)}), 500
 
 
