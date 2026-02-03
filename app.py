@@ -682,10 +682,174 @@ CAPTION_TEMPLATES = {
 }
 
 
+def create_whisper_synced_captions(audio_path, output_path, template='bold_pop', position='bottom', video_width=1080, video_height=1920, uppercase=False):
+    """
+    Create ASS subtitle file with word-by-word captions synced to actual voiceover audio using Whisper.
+    Returns (output_path, success) tuple.
+    """
+    from openai import OpenAI
+    import re
+    
+    try:
+        whisper_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        
+        with open(audio_path, 'rb') as audio_file:
+            transcription = whisper_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                response_format="verbose_json",
+                timestamp_granularities=["word"]
+            )
+        
+        # Extract words with timestamps
+        words = []
+        if hasattr(transcription, 'words') and transcription.words:
+            words = transcription.words
+        elif hasattr(transcription, 'segments'):
+            for segment in transcription.segments:
+                if hasattr(segment, 'words'):
+                    words.extend(segment.words)
+        
+        if not words:
+            print("Whisper returned no word timestamps, falling back to estimated timing")
+            return None, False
+        
+        print(f"Whisper returned {len(words)} word timestamps for caption sync")
+        
+        style = CAPTION_TEMPLATES.get(template, CAPTION_TEMPLATES['bold_pop'])
+        
+        margin_v = {'top': 100, 'center': int(video_height/2 - 50), 'bottom': 150}.get(position, 150)
+        alignment = {'top': 8, 'center': 5, 'bottom': 2}.get(position, 2)
+        
+        bold_val = -1 if style['bold'] else 0
+        back_color = style.get('back_color', '&H00000000')
+        border_style = 3 if template == 'boxed' else 1
+        
+        ass_header = f"""[Script Info]
+Title: Whisper-Synced Captions
+ScriptType: v4.00+
+PlayResX: {video_width}
+PlayResY: {video_height}
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,{style['font']},{style['base_size']},{style['primary_color']},&H000000FF,{style['outline_color']},{back_color},{bold_val},0,0,0,100,100,0,0,{border_style},{style['outline']},{style['shadow']},{alignment},40,40,{margin_v},1
+Style: Highlight,{style['font']},{style['highlight_size']},{style['highlight_color']},&H000000FF,{style['outline_color']},{back_color},{bold_val},0,0,0,100,100,0,0,{border_style},{style['outline']},{style['shadow']},{alignment},40,40,{margin_v},1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+        
+        def format_ass_time(seconds):
+            h = int(seconds // 3600)
+            m = int((seconds % 3600) // 60)
+            s = seconds % 60
+            return f"{h}:{m:02d}:{s:05.2f}"
+        
+        # Animation effect based on style
+        if style['animation'] == 'pop':
+            anim_effect = r"\fscx110\fscy110\t(0,100,\fscx100\fscy100)"
+        elif style['animation'] == 'bounce':
+            anim_effect = r"\fscx120\fscy120\t(0,80,\fscx100\fscy100)"
+        elif style['animation'] == 'glow':
+            anim_effect = r"\blur3\t(0,150,\blur0)"
+        elif style['animation'] == 'fade':
+            anim_effect = r"\alpha&HFF&\t(0,100,\alpha&H00&)"
+        elif style['animation'] == 'slide':
+            anim_effect = r"\fscx105\t(0,100,\fscx100)"
+        else:
+            anim_effect = ""
+        
+        events = []
+        chunk_size = 4
+        
+        # Group words into phrases using actual Whisper timestamps
+        phrases = []
+        current_phrase = []
+        current_start = None
+        current_end = 0
+        
+        for word_data in words:
+            if isinstance(word_data, dict):
+                word = word_data.get('word', '').strip()
+                start = word_data.get('start', 0)
+                end = word_data.get('end', 0)
+            else:
+                word = getattr(word_data, 'word', '').strip()
+                start = getattr(word_data, 'start', 0)
+                end = getattr(word_data, 'end', 0)
+            
+            if not word:
+                continue
+            
+            if uppercase:
+                word = word.upper()
+            
+            if current_start is None:
+                current_start = start
+            
+            current_phrase.append({'word': word, 'start': start, 'end': end})
+            current_end = end
+            
+            # Break into phrases at punctuation or every 4 words
+            if len(current_phrase) >= chunk_size or word.rstrip().endswith(('.', '!', '?', ',')):
+                phrases.append({
+                    'words': current_phrase,
+                    'start': current_start,
+                    'end': current_end
+                })
+                current_phrase = []
+                current_start = None
+        
+        if current_phrase:
+            phrases.append({
+                'words': current_phrase,
+                'start': current_start,
+                'end': current_end
+            })
+        
+        # Generate ASS events with word-by-word highlighting using actual timestamps
+        for phrase in phrases:
+            phrase_words = phrase['words']
+            
+            for i, word_data in enumerate(phrase_words):
+                word_start = word_data['start']
+                word_end = word_data['end']
+                
+                before_words = [w['word'] for w in phrase_words[:i]]
+                after_words = [w['word'] for w in phrase_words[i+1:]]
+                current_word = word_data['word']
+                
+                text_parts = []
+                if before_words:
+                    text_parts.append("{\\rDefault}" + ' '.join(before_words) + " ")
+                text_parts.append("{\\rHighlight" + anim_effect + "}" + current_word)
+                if after_words:
+                    text_parts.append("{\\rDefault} " + ' '.join(after_words))
+                
+                full_text = ''.join(text_parts)
+                
+                event_line = f"Dialogue: 0,{format_ass_time(word_start)},{format_ass_time(word_end)},Default,,0,0,0,,{full_text}"
+                events.append(event_line)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(ass_header)
+            f.write('\n'.join(events))
+        
+        print(f"Created Whisper-synced captions with {len(events)} events: {output_path}")
+        return output_path, True
+        
+    except Exception as e:
+        print(f"Whisper caption sync failed: {e}")
+        return None, False
+
+
 def create_dynamic_captions_ass(script_text, audio_duration, output_path, template='bold_pop', position='bottom', video_width=1080, video_height=1920):
     """
     Create ASS subtitle file with word-by-word animated captions.
     Features pop/scale animations synced to audio timing.
+    NOTE: This uses ESTIMATED timing. Use create_whisper_synced_captions for true audio sync.
     """
     import re
     
@@ -6273,15 +6437,31 @@ No text, no faces, no solid backgrounds."""
             caption_template = caption_style if caption_style in CAPTION_TEMPLATES else 'bold_pop'
             
             ass_path = f'output/captions_{output_id}.ass'
-            create_dynamic_captions_ass(
-                script_text, 
-                audio_duration, 
-                ass_path, 
-                template=caption_template,
-                position=caption_position,
-                video_width=target_width,
-                video_height=target_height
-            )
+            
+            # Use Whisper-synced captions if voiceover exists, otherwise fall back to estimated timing
+            whisper_success = False
+            if voiceover_path and os.path.exists(voiceover_path):
+                _, whisper_success = create_whisper_synced_captions(
+                    voiceover_path,
+                    ass_path,
+                    template=caption_template,
+                    position=caption_position,
+                    video_width=target_width,
+                    video_height=target_height
+                )
+            
+            if not whisper_success:
+                # Fall back to estimated timing
+                logging.info("Using estimated caption timing (no voiceover for Whisper sync)")
+                create_dynamic_captions_ass(
+                    script_text, 
+                    audio_duration, 
+                    ass_path, 
+                    template=caption_template,
+                    position=caption_position,
+                    video_width=target_width,
+                    video_height=target_height
+                )
             
             caption_cmd = [
                 'ffmpeg', '-y',
@@ -6294,7 +6474,7 @@ No text, no faces, no solid backgrounds."""
             
             if result.returncode == 0 and os.path.exists(captioned_output):
                 shutil.move(captioned_output, final_output)
-                logging.info(f"Dynamic captions applied with template: {caption_template}")
+                logging.info(f"Captions applied with template: {caption_template} (Whisper-synced: {whisper_success})")
             else:
                 logging.warning(f"ASS caption failed, falling back to SRT: {result.stderr.decode() if result.stderr else 'unknown error'}")
                 srt_path = f'output/captions_{output_id}.srt'
@@ -6725,9 +6905,23 @@ def render_personalized_video():
             # Get script as full text
             full_script = script_text.get('full_script', '') if isinstance(script_text, dict) else str(script_text)
             
-            # Create SRT subtitle file
+            # Try Whisper-synced captions first, fallback to estimated timing
+            ass_path = f'output/captions_{output_id}.ass'
             srt_path = f'output/captions_{output_id}.srt'
-            create_word_synced_subtitles(full_script, audio_duration, srt_path)
+            whisper_success = False
+            
+            if audio_path and os.path.exists(audio_path):
+                _, whisper_success = create_whisper_synced_captions(
+                    audio_path,
+                    ass_path,
+                    template='bold_pop',
+                    position='bottom',
+                    video_width=width,
+                    video_height=height
+                )
+            
+            if not whisper_success:
+                create_word_synced_subtitles(full_script, audio_duration, srt_path)
             
             # Get caption styling
             caption_style = captions_data.get('style', 'modern') if isinstance(captions_data, dict) else 'modern'
@@ -6741,14 +6935,26 @@ def render_personalized_video():
             }
             style = styles.get(caption_style, styles['modern'])
             
-            # Burn captions
-            caption_cmd = [
-                'ffmpeg', '-y',
-                '-i', dubbed_path,
-                '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow={style['shadow']},MarginV=60'",
-                '-c:a', 'copy',
-                final_path
-            ]
+            # Use ASS if Whisper succeeded, otherwise SRT
+            if whisper_success and os.path.exists(ass_path):
+                caption_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', dubbed_path,
+                    '-vf', f"ass={ass_path}",
+                    '-c:a', 'copy',
+                    final_path
+                ]
+                logging.info("Using Whisper-synced ASS captions")
+            else:
+                caption_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', dubbed_path,
+                    '-vf', f"subtitles={srt_path}:force_style='FontName={style['font']},FontSize={style['size']},PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style['outline']},Shadow={style['shadow']},MarginV=60'",
+                    '-c:a', 'copy',
+                    final_path
+                ]
+                logging.info("Using estimated timing SRT captions")
+            
             result = subprocess.run(caption_cmd, capture_output=True, timeout=600)
             
             if result.returncode != 0:
@@ -6757,7 +6963,7 @@ def render_personalized_video():
                 shutil.copy(dubbed_path, final_path)
             
             # Cleanup temp files
-            for f in [srt_path]:
+            for f in [srt_path, ass_path]:
                 if os.path.exists(f):
                     os.remove(f)
         else:
@@ -11786,6 +11992,219 @@ def render_with_visual_plan():
         output_id = str(uuid.uuid4())[:8]
         output_path = f'output/plan_{output_id}.mp4'
         os.makedirs('output', exist_ok=True)
+        
+        # Get video dimensions from format
+        format_dims = {
+            '9:16': (1080, 1920), '16:9': (1920, 1080),
+            '1:1': (1080, 1080), '4:5': (1080, 1350)
+        }
+        width, height = format_dims.get(video_format, (1080, 1920))
+        
+        # Calculate audio duration for scene timing
+        audio_duration = 0
+        if audio_path and os.path.exists(audio_path):
+            dur_cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', audio_path]
+            dur_result = subprocess.run(dur_cmd, capture_output=True, text=True, timeout=30)
+            audio_duration = float(dur_result.stdout.strip()) if dur_result.stdout.strip() else 30
+        else:
+            audio_duration = len(scenes_to_render) * 4  # Default 4s per scene
+        
+        scene_duration = audio_duration / max(len(scenes_to_render), 1)
+        
+        # Download/generate images for each scene and compose into video
+        scene_clips = []
+        temp_files = []
+        
+        for i, scene in enumerate(scenes_to_render):
+            scene_img_path = f'output/scene_{output_id}_{i}.jpg'
+            
+            if scene.get('image_url'):
+                # Download stock image
+                try:
+                    import requests
+                    resp = requests.get(scene['image_url'], timeout=30)
+                    if resp.status_code == 200:
+                        with open(scene_img_path, 'wb') as f:
+                            f.write(resp.content)
+                        temp_files.append(scene_img_path)
+                except Exception as e:
+                    print(f"Failed to download scene {i} image: {e}")
+                    continue
+            elif scene.get('dalle_prompt'):
+                # Generate DALL-E image
+                try:
+                    from openai import OpenAI
+                    dalle_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                    response = dalle_client.images.generate(
+                        model="dall-e-3",
+                        prompt=scene['dalle_prompt'],
+                        size="1024x1792" if video_format == '9:16' else "1792x1024",
+                        quality="standard",
+                        n=1
+                    )
+                    img_url = response.data[0].url
+                    import requests
+                    resp = requests.get(img_url, timeout=60)
+                    if resp.status_code == 200:
+                        with open(scene_img_path, 'wb') as f:
+                            f.write(resp.content)
+                        temp_files.append(scene_img_path)
+                except Exception as e:
+                    print(f"Failed to generate DALL-E image for scene {i}: {e}")
+                    continue
+            else:
+                continue
+            
+            if os.path.exists(scene_img_path):
+                scene_clips.append({
+                    'path': scene_img_path,
+                    'duration': scene_duration
+                })
+        
+        if not scene_clips:
+            return jsonify({'error': 'Failed to create any scene clips'}), 400
+        
+        # Create video from scene images using FFmpeg concat
+        concat_file = f'output/concat_{output_id}.txt'
+        temp_scene_videos = []
+        
+        # Build color grading filter from merging config
+        color_filter = merging_config.get('filter_chain', '')
+        
+        for i, clip in enumerate(scene_clips):
+            scene_video = f'output/scene_vid_{output_id}_{i}.mp4'
+            
+            # Calculate zoompan duration (frames = fps * duration)
+            fps = 30
+            zoom_frames = int(fps * clip['duration'])
+            
+            # Create video from image with zoom/pan effect and color grading
+            # Use dynamic size matching the target format
+            vf_filters = [
+                f'scale={width*2}:{height*2}:force_original_aspect_ratio=increase',
+                f'crop={width*2}:{height*2}',
+                f'zoompan=z=1.04:d={zoom_frames}:x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):s={width}x{height}:fps={fps}'
+            ]
+            
+            # Safely add color filter if valid
+            if color_filter and isinstance(color_filter, str) and color_filter.strip():
+                # Validate basic filter structure (no empty or malformed filters)
+                try:
+                    vf_filters.append(color_filter.strip())
+                except:
+                    pass
+            
+            img_cmd = [
+                'ffmpeg', '-y',
+                '-loop', '1', '-i', clip['path'],
+                '-t', str(clip['duration']),
+                '-vf', ','.join(vf_filters),
+                '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                '-pix_fmt', 'yuv420p',
+                scene_video
+            ]
+            result = subprocess.run(img_cmd, capture_output=True, timeout=180)
+            
+            if result.returncode == 0 and os.path.exists(scene_video):
+                temp_scene_videos.append(scene_video)
+            else:
+                # Fallback: simpler approach without zoompan if it fails
+                stderr_msg = result.stderr.decode()[:500] if result.stderr else 'unknown error'
+                print(f"[render-with-plan] Zoompan failed for scene {i}: {stderr_msg}")
+                simple_filters = [
+                    f'scale={width}:{height}:force_original_aspect_ratio=increase',
+                    f'crop={width}:{height}',
+                    'setsar=1'
+                ]
+                simple_cmd = [
+                    'ffmpeg', '-y',
+                    '-loop', '1', '-i', clip['path'],
+                    '-t', str(clip['duration']),
+                    '-vf', ','.join(simple_filters),
+                    '-c:v', 'libx264', '-preset', 'fast', '-crf', '23',
+                    '-pix_fmt', 'yuv420p',
+                    '-r', str(fps),
+                    scene_video
+                ]
+                fallback_result = subprocess.run(simple_cmd, capture_output=True, timeout=180)
+                if fallback_result.returncode == 0 and os.path.exists(scene_video):
+                    temp_scene_videos.append(scene_video)
+        
+        if not temp_scene_videos:
+            return jsonify({'error': 'Failed to create scene videos'}), 400
+        
+        # Write concat file
+        with open(concat_file, 'w') as f:
+            for vid in temp_scene_videos:
+                f.write(f"file '{os.path.abspath(vid)}'\n")
+        temp_files.append(concat_file)
+        
+        # Concat all scenes
+        concat_output = f'output/concat_out_{output_id}.mp4'
+        concat_cmd = [
+            'ffmpeg', '-y', '-f', 'concat', '-safe', '0',
+            '-i', concat_file,
+            '-c', 'copy',
+            concat_output
+        ]
+        subprocess.run(concat_cmd, capture_output=True, timeout=300)
+        temp_files.append(concat_output)
+        
+        # Add audio if available
+        if audio_path and os.path.exists(audio_path):
+            audio_output = f'output/audio_{output_id}.mp4'
+            audio_cmd = [
+                'ffmpeg', '-y',
+                '-i', concat_output,
+                '-i', audio_path,
+                '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+                '-map', '0:v:0', '-map', '1:a:0',
+                '-shortest',
+                audio_output
+            ]
+            subprocess.run(audio_cmd, capture_output=True, timeout=300)
+            temp_files.append(audio_output)
+            current_video = audio_output
+        else:
+            current_video = concat_output
+        
+        # Add Whisper-synced captions if audio exists
+        if audio_path and os.path.exists(audio_path):
+            ass_path = f'output/plan_captions_{output_id}.ass'
+            _, whisper_success = create_whisper_synced_captions(
+                audio_path, ass_path,
+                template=caption_template,
+                position=caption_position,
+                video_width=width, video_height=height
+            )
+            
+            if whisper_success:
+                caption_output = f'output/captioned_{output_id}.mp4'
+                caption_cmd = [
+                    'ffmpeg', '-y',
+                    '-i', current_video,
+                    '-vf', f"ass={ass_path}",
+                    '-c:a', 'copy',
+                    caption_output
+                ]
+                result = subprocess.run(caption_cmd, capture_output=True, timeout=300)
+                if result.returncode == 0 and os.path.exists(caption_output):
+                    current_video = caption_output
+                    temp_files.append(caption_output)
+                temp_files.append(ass_path)
+        
+        # Move final video to output path
+        shutil.move(current_video, output_path)
+        
+        # Cleanup temp files
+        for f in temp_files + temp_scene_videos:
+            if f and os.path.exists(f) and f != output_path:
+                try:
+                    os.remove(f)
+                except:
+                    pass
+        
+        print(f"[render-with-plan] Created video with {len(scene_clips)} scenes: {output_path}")
         
         return jsonify({
             'success': True,

@@ -104,6 +104,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Caption Template System** (GetCaptions-style):
   - 5 templates: Bold Pop, Clean Minimal, Boxed, Gradient Glow, Street Style
   - Word-by-word highlighting with pop/scale animation synced to audio
+  - **Whisper-synced captions**: Uses OpenAI Whisper to extract actual word-level timestamps from voiceover audio for precise caption timing
   - AI auto-selects best template based on content type
   - Refresh button cycles to new AI-generated style
   - Back/forward navigation through style history
