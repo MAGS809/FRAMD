@@ -433,6 +433,182 @@ def runway_generate_video(
         }
 
 
+def runway_generate_with_retry(
+    prompt_image: str,
+    prompt_text: str,
+    quality_tier: QualityTier = QualityTier.GOOD,
+    duration: int = 5,
+    ratio: str = "9:16",
+    max_retries: int = 3,
+    base_delay: float = 5.0
+) -> Dict[str, Any]:
+    """
+    Generate video with automatic retry and exponential backoff for rate limits.
+    
+    Retry delays: 5s -> 10s -> 20s (exponential backoff)
+    
+    Args:
+        prompt_image: Source image URL
+        prompt_text: Motion description
+        quality_tier: Quality tier enum
+        duration: 5 or 10 seconds
+        ratio: Aspect ratio
+        max_retries: Maximum retry attempts (default 3)
+        base_delay: Initial retry delay in seconds (default 5)
+        
+    Returns:
+        Dict with success status and output URL or user-friendly error
+    """
+    import time
+    
+    last_error = None
+    
+    for attempt in range(max_retries + 1):
+        try:
+            result = runway_create_image_to_video(
+                prompt_image=prompt_image,
+                prompt_text=prompt_text,
+                quality_tier=quality_tier,
+                duration=duration,
+                ratio=ratio
+            )
+            
+            final_result = runway_wait_for_completion(result.task_id)
+            
+            return {
+                "success": True,
+                "task_id": final_result.task_id,
+                "status": final_result.status.value,
+                "output_url": final_result.output_urls[0] if final_result.output_urls else None,
+                "all_outputs": final_result.output_urls,
+                "retries_used": attempt
+            }
+            
+        except RunwayError as e:
+            last_error = e
+            
+            if e.code == "RATE_LIMITED" and attempt < max_retries:
+                delay = base_delay * (2 ** attempt)
+                print(f"[Runway Queue] Rate limited, retrying in {delay}s (attempt {attempt + 1}/{max_retries})")
+                time.sleep(delay)
+                continue
+            elif e.code == "CONTENT_MODERATED":
+                return {
+                    "success": False,
+                    "error": "The image couldn't be processed. Please try a different source image.",
+                    "error_code": e.code,
+                    "user_message": "Content couldn't be processed"
+                }
+            elif e.code == "TIMEOUT":
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** attempt)
+                    print(f"[Runway Queue] Timeout, retrying in {delay}s (attempt {attempt + 1}/{max_retries})")
+                    time.sleep(delay)
+                    continue
+                return {
+                    "success": False,
+                    "error": "Generation is taking longer than expected. Your video is queued and will be ready shortly.",
+                    "error_code": e.code,
+                    "user_message": "High demand — video queued"
+                }
+            else:
+                break
+    
+    return {
+        "success": False,
+        "error": last_error.message if last_error else "Unknown error",
+        "error_code": last_error.code if last_error else "UNKNOWN",
+        "user_message": "Something went wrong. Please try again in a moment."
+    }
+
+
+class RunwayQueue:
+    """
+    Sequential request queue to prevent rate limiting.
+    Processes one Runway request at a time with delays between requests.
+    """
+    
+    def __init__(self, delay_between_requests: float = 2.0):
+        self.delay = delay_between_requests
+        self._last_request_time = 0.0
+    
+    def process(
+        self,
+        prompt_image: str,
+        prompt_text: str,
+        quality_tier: QualityTier = QualityTier.GOOD,
+        duration: int = 5,
+        ratio: str = "9:16"
+    ) -> Dict[str, Any]:
+        """
+        Process a single request, respecting rate limits.
+        """
+        import time
+        
+        now = time.time()
+        time_since_last = now - self._last_request_time
+        
+        if time_since_last < self.delay:
+            sleep_time = self.delay - time_since_last
+            print(f"[Runway Queue] Waiting {sleep_time:.1f}s before next request...")
+            time.sleep(sleep_time)
+        
+        self._last_request_time = time.time()
+        
+        return runway_generate_with_retry(
+            prompt_image=prompt_image,
+            prompt_text=prompt_text,
+            quality_tier=quality_tier,
+            duration=duration,
+            ratio=ratio
+        )
+    
+    def process_batch(
+        self,
+        requests: List[Dict[str, Any]],
+        quality_tier: QualityTier = QualityTier.GOOD,
+        on_progress: Any = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Process multiple requests sequentially with progress callbacks.
+        
+        Args:
+            requests: List of dicts with prompt_image, prompt_text, duration, ratio
+            quality_tier: Quality tier for all requests
+            on_progress: Optional callback(current, total, status_message)
+            
+        Returns:
+            List of results for each request
+        """
+        results = []
+        total = len(requests)
+        
+        for i, req in enumerate(requests):
+            if on_progress:
+                remaining_time = (total - i) * 1.5
+                on_progress(i + 1, total, f"Generating scene {i + 1} of {total}... ~{int(remaining_time)} min remaining")
+            
+            result = self.process(
+                prompt_image=req.get("prompt_image", ""),
+                prompt_text=req.get("prompt_text", ""),
+                quality_tier=quality_tier,
+                duration=req.get("duration", 5),
+                ratio=req.get("ratio", "9:16")
+            )
+            results.append(result)
+            
+            if not result.get("success") and result.get("error_code") == "CONTENT_MODERATED":
+                print(f"[Runway Queue] Scene {i + 1} failed moderation, continuing with next...")
+        
+        if on_progress:
+            on_progress(total, total, "All scenes generated!")
+        
+        return results
+
+
+RUNWAY_QUEUE = RunwayQueue(delay_between_requests=2.0)
+
+
 def extract_vibe_from_reference(
     reference_file: Optional[Dict[str, Any]] = None,
     user_description: Optional[str] = None
@@ -1250,10 +1426,12 @@ def execute_orchestration(
     
     if not RUNWAY_API_KEY:
         results["errors"].append("RUNWAY_API_KEY not configured - cannot generate videos")
+        results["user_message"] = "Video generation is not available at the moment."
         print("[Execute] ERROR: RUNWAY_API_KEY missing")
     else:
-        print(f"[Execute] Starting Runway generation for {len(plan.runway_instructions)} scenes...")
+        print(f"[Execute] Starting Runway generation for {len(plan.runway_instructions)} scenes via queue...")
         
+        runway_requests = []
         for i, instr in enumerate(plan.runway_instructions):
             source_image = None
             if source_images and len(source_images) > i:
@@ -1269,19 +1447,31 @@ def execute_orchestration(
                 })
                 continue
             
-            try:
-                runway_result = runway_generate_video(
-                    prompt_image=source_image,
-                    prompt_text=instr.prompt,
-                    quality_tier=quality_tier,
-                    duration=min(int(instr.duration), 10),
-                    ratio="9:16",
-                    wait_for_completion=wait_for_completion
-                )
+            runway_requests.append({
+                "scene_id": instr.scene_id,
+                "prompt_image": source_image,
+                "prompt_text": instr.prompt,
+                "duration": min(int(instr.duration), 10),
+                "ratio": "9:16"
+            })
+        
+        if runway_requests:
+            def progress_callback(current, total, message):
+                results["progress"] = {"current": current, "total": total, "message": message}
+                print(f"[Execute] {message}")
+            
+            queue_results = RUNWAY_QUEUE.process_batch(
+                requests=runway_requests,
+                quality_tier=quality_tier,
+                on_progress=progress_callback if wait_for_completion else None
+            )
+            
+            for i, runway_result in enumerate(queue_results):
+                scene_id = runway_requests[i]["scene_id"]
                 
                 if runway_result.get("success"):
                     results["runway_tasks"].append({
-                        "scene_id": instr.scene_id,
+                        "scene_id": scene_id,
                         "task_id": runway_result.get("task_id"),
                         "status": runway_result.get("status"),
                         "output_url": runway_result.get("output_url")
@@ -1289,30 +1479,24 @@ def execute_orchestration(
                     
                     if runway_result.get("output_url"):
                         results["runway_outputs"].append({
-                            "scene_id": instr.scene_id,
+                            "scene_id": scene_id,
                             "url": runway_result.get("output_url"),
-                            "duration": instr.duration,
+                            "duration": runway_requests[i]["duration"],
                             "type": "video",
                             "source": "runway"
                         })
                 else:
+                    user_msg = runway_result.get("user_message", runway_result.get("error", "Generation failed"))
                     results["runway_tasks"].append({
-                        "scene_id": instr.scene_id,
+                        "scene_id": scene_id,
                         "status": "failed",
                         "error": runway_result.get("error"),
-                        "error_code": runway_result.get("error_code")
+                        "error_code": runway_result.get("error_code"),
+                        "user_message": user_msg
                     })
-                    results["errors"].append(f"Scene {instr.scene_id}: {runway_result.get('error')}")
-                    
-            except Exception as e:
-                results["runway_tasks"].append({
-                    "scene_id": instr.scene_id,
-                    "status": "error",
-                    "error": str(e)
-                })
-                results["errors"].append(f"Scene {instr.scene_id}: {str(e)}")
-    
-    print(f"[Execute] Runway complete: {len(results['runway_outputs'])} videos generated")
+                    results["errors"].append(f"Scene {scene_id}: {user_msg}")
+        
+        print(f"[Execute] Queue complete: {len(results['runway_outputs'])} videos generated")
     
     print("[Execute] Fetching stock assets...")
     for query in plan.stock_queries:

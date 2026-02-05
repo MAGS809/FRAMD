@@ -118,6 +118,159 @@
             cursor: pointer;
             transition: background 0.15s;
             margin-bottom: 4px;
+            position: relative;
+        }
+        
+        .project-generating-spinner {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-faint);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+        
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .toast {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+            animation: slideIn 0.3s ease;
+            max-width: 360px;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .toast-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .toast-icon svg {
+            width: 18px;
+            height: 18px;
+            color: #0d0d0d;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 2px;
+        }
+        
+        .toast-message {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        
+        .toast-action {
+            padding: 6px 12px;
+            background: var(--gold);
+            color: #0d0d0d;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        
+        .toast-action:hover {
+            opacity: 0.9;
+        }
+        
+        .toast-close {
+            padding: 4px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        
+        .toast-close:hover {
+            opacity: 1;
+        }
+        
+        .progress-panel {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            min-width: 240px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            z-index: 100;
+            display: none;
+        }
+        
+        .progress-panel.active {
+            display: block;
+        }
+        
+        .progress-panel-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+        
+        .progress-bar-container {
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            height: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar-fill {
+            height: 100%;
+            background: var(--gold);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-status {
+            font-size: 12px;
+            color: var(--text-dim);
         }
         
         .project-card:hover {
@@ -459,6 +612,109 @@
             color: var(--text-dim);
         }
         
+        .quality-selector {
+            margin-top: 16px;
+            padding: 16px;
+            background: rgba(255, 214, 10, 0.05);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .quality-selector-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+        
+        .quality-cards {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .quality-card {
+            flex: 1;
+            padding: 14px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .quality-card:hover {
+            border-color: var(--text-dim);
+            background: rgba(255, 214, 10, 0.08);
+        }
+        
+        .quality-card.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.12);
+        }
+        
+        .quality-tier-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        
+        .quality-tier-model {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-bottom: 8px;
+        }
+        
+        .quality-tier-price {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .quality-tier-unit {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .quality-tier-desc {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        
+        .quality-disclaimer {
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: rgba(255, 214, 10, 0.03);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+        }
+        
+        .quality-cost-estimate {
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cost-label {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        
+        .cost-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        
         .chat-messages {
             max-width: 720px;
             margin: 0 auto;
@@ -697,6 +953,7 @@
     </style>
 </head>
 <body>
+<div class="toast-container" id="toast-container"></div>
     <!-- Dropzone overlay for file drag and drop -->
     <div class="dropzone-overlay" id="dropzone-overlay">
         <div class="dropzone-content">
@@ -876,11 +1133,40 @@
             currentProjectId: null,
             currentProjectName: null,
             currentMode: null,
+            qualityTier: 'good',
+            videoDuration: 30,
             messages: [],
             projects: [],
             exportCount: {{ export_count }},
-            isProcessing: false
+            isProcessing: false,
+            isGenerating: false
         };
+        
+        const QUALITY_TIERS = {
+            good: {
+                name: 'Good',
+                model: 'Gen-3 Turbo',
+                pricePerThirty: 4.00,
+                costPerSecond: 0.05,
+                description: 'Fast generation, solid quality for most content'
+            },
+            better: {
+                name: 'Better',
+                model: 'Gen-4 Turbo',
+                pricePerThirty: 6.00,
+                costPerSecond: 0.10,
+                description: 'Enhanced detail and motion consistency'
+            },
+            best: {
+                name: 'Best',
+                model: 'Gen-4 Aleph',
+                pricePerThirty: 8.00,
+                costPerSecond: 0.15,
+                description: 'Cinema-grade output with maximum fidelity'
+            }
+        };
+        
+        const QUALITY_DISCLAIMER = "Quality tier affects visual generation only. It won't change your video's direction, pacing, or message — just how sharp and polished the final output looks.";
         
         function startNewProject() {
             state.currentProjectId = null;
@@ -900,22 +1186,170 @@
             document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
             
-            const modeNames = {
-                remix: 'Remix Mode',
-                clipper: 'Clipper Mode',
-                simple: 'Simple Stock Mode'
-            };
-            
             document.getElementById('chat-welcome').style.display = 'none';
             document.getElementById('chat-messages').classList.add('active');
             
-            const modeDescriptions = {
-                remix: "You selected Remix mode. Upload a reference video and tell me what content you want. I'll preserve the motion and structure while transforming the visuals.",
-                clipper: "You selected Clipper mode. Share a long video or transcript and I'll extract the best moments to create professional clips.",
-                simple: "You selected Simple Stock mode. Tell me your topic or script and I'll create a video using stock footage and AI-generated visuals."
-            };
+            if (mode === 'remix') {
+                addAIMessageWithQualitySelector();
+            } else {
+                const modeDescriptions = {
+                    clipper: "You selected Clipper mode. Share a long video or transcript and I'll extract the best moments to create professional clips.",
+                    simple: "You selected Simple Stock mode. Tell me your topic or script and I'll create a video using stock footage and AI-generated visuals."
+                };
+                addAIMessage(modeDescriptions[mode] + "\n\nWhat would you like to create?");
+            }
+        }
+        
+        function addAIMessageWithQualitySelector() {
+            const container = document.getElementById('chat-messages');
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message message-ai';
             
-            addAIMessage(modeDescriptions[mode] + "\n\nWhat would you like to create?");
+            const qualityCardsHtml = Object.entries(QUALITY_TIERS).map(([key, tier]) => `
+                <div class="quality-card ${key === state.qualityTier ? 'selected' : ''}" onclick="selectQualityTier('${key}')">
+                    <div class="quality-tier-name">${tier.name}</div>
+                    <div class="quality-tier-model">${tier.model}</div>
+                    <div class="quality-tier-price">$${tier.pricePerThirty.toFixed(2)}<span class="quality-tier-unit">/30s</span></div>
+                    <div class="quality-tier-desc">${tier.description}</div>
+                </div>
+            `).join('');
+            
+            msgEl.innerHTML = `
+                <div class="message-ai-avatar">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="message-ai-content">
+                    <p>You selected <strong>Remix mode</strong>. First, choose your quality tier:</p>
+                    
+                    <div class="quality-selector">
+                        <div class="quality-selector-title">Select Video Quality</div>
+                        <div class="quality-cards" id="quality-cards">
+                            ${qualityCardsHtml}
+                        </div>
+                        <div class="quality-disclaimer">${QUALITY_DISCLAIMER}</div>
+                        <div class="quality-cost-estimate">
+                            <span class="cost-label">Estimated cost for 30s video:</span>
+                            <span class="cost-value" id="quality-cost-estimate">$${calculateCostEstimate(30).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 16px;">Upload a reference video for the vibe you want, then tell me what content to create. I'll preserve the motion and structure while transforming the visuals.</p>
+                </div>
+            `;
+            
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function selectQualityTier(tier) {
+            state.qualityTier = tier;
+            document.querySelectorAll('.quality-card').forEach(c => c.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            updateCostEstimate();
+        }
+        
+        function calculateCostEstimate(durationSeconds) {
+            const tier = QUALITY_TIERS[state.qualityTier];
+            const runwayCost = tier.costPerSecond * durationSeconds;
+            const shotstackCost = 0.20 * (durationSeconds / 30);
+            const claudeCost = 0.50;
+            const elevenLabsCost = 0.30;
+            const stockCost = 0.10;
+            return runwayCost + shotstackCost + claudeCost + elevenLabsCost + stockCost;
+        }
+        
+        function updateCostEstimate() {
+            const costEl = document.getElementById('quality-cost-estimate');
+            if (costEl) {
+                costEl.textContent = '$' + calculateCostEstimate(state.videoDuration).toFixed(2);
+            }
+        }
+        
+        function showToast(title, message, action = null, actionLabel = 'View', autoClose = true) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const actionHtml = action ? `<button class="toast-action" onclick="(${action})(); this.closest('.toast').remove();">${actionLabel}</button>` : '';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                </div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                ${actionHtml}
+                <button class="toast-close" onclick="this.closest('.toast').remove()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            `;
+            
+            container.appendChild(toast);
+            
+            if (autoClose) {
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.style.animation = 'slideIn 0.3s ease reverse';
+                        setTimeout(() => toast.remove(), 300);
+                    }
+                }, 8000);
+            }
+            
+            return toast;
+        }
+        
+        function showGeneratingSpinner(projectId) {
+            const card = document.querySelector(`[data-project-id="${projectId}"]`);
+            if (card && !card.querySelector('.project-generating-spinner')) {
+                const spinner = document.createElement('div');
+                spinner.className = 'project-generating-spinner';
+                card.appendChild(spinner);
+            }
+        }
+        
+        function hideGeneratingSpinner(projectId) {
+            const card = document.querySelector(`[data-project-id="${projectId}"]`);
+            if (card) {
+                const spinner = card.querySelector('.project-generating-spinner');
+                if (spinner) spinner.remove();
+            }
+        }
+        
+        function setGeneratingState(isGenerating, projectId = null) {
+            state.isGenerating = isGenerating;
+            if (projectId) {
+                if (isGenerating) {
+                    showGeneratingSpinner(projectId);
+                } else {
+                    hideGeneratingSpinner(projectId);
+                }
+            }
+        }
+        
+        function onVideoGenerationComplete(projectId, videoUrl) {
+            setGeneratingState(false, projectId);
+            showToast(
+                'Video Ready!',
+                'Your video has been generated successfully.',
+                `function() { window.location.href = '/project/${projectId}'; }`,
+                'View',
+                false
+            );
+        }
+        
+        function showProgressMessage(sceneNum, totalScenes, estimatedMinutes) {
+            const progressText = `Generating scene ${sceneNum} of ${totalScenes}... ${estimatedMinutes > 0 ? `~${estimatedMinutes} min remaining` : 'Almost done'}`;
+            return progressText;
         }
         
         function selectProject(projectId) {
