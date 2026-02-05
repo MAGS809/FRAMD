@@ -1352,6 +1352,113 @@
             return progressText;
         }
         
+        const activeJobPolls = new Map();
+        
+        async function createVideoJob(projectId, qualityTier, jobData) {
+            try {
+                const response = await fetch('/api/jobs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: projectId,
+                        quality_tier: qualityTier,
+                        job_data: jobData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.ok) {
+                    setGeneratingState(true, projectId);
+                    startJobPolling(data.job.id, projectId);
+                    addAIMessage(`Video generation started! You can continue working while it processes. Quality: ${QUALITY_TIERS[qualityTier].name}`);
+                    return data.job;
+                } else {
+                    addAIMessage(`Failed to start generation: ${data.error}`);
+                    return null;
+                }
+            } catch (err) {
+                console.error('Failed to create job:', err);
+                addAIMessage('Something went wrong. Please try again.');
+                return null;
+            }
+        }
+        
+        function startJobPolling(jobId, projectId) {
+            if (activeJobPolls.has(jobId)) return;
+            
+            const pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/jobs/${jobId}`);
+                    const data = await response.json();
+                    
+                    if (!data.ok) {
+                        clearInterval(pollInterval);
+                        activeJobPolls.delete(jobId);
+                        return;
+                    }
+                    
+                    const job = data.job;
+                    
+                    if (job.status === 'completed') {
+                        clearInterval(pollInterval);
+                        activeJobPolls.delete(jobId);
+                        onVideoGenerationComplete(projectId, job.result_url);
+                    } else if (job.status === 'failed') {
+                        clearInterval(pollInterval);
+                        activeJobPolls.delete(jobId);
+                        setGeneratingState(false, projectId);
+                        showToast('Generation Failed', job.error_message || 'Please try again.', null, null, true);
+                    } else if (job.status === 'processing') {
+                        const progress = job.progress;
+                        if (progress && progress.message) {
+                            updateProgressDisplay(projectId, progress.current, progress.total, progress.message);
+                        }
+                    }
+                } catch (err) {
+                    console.error('Job polling error:', err);
+                }
+            }, 3000);
+            
+            activeJobPolls.set(jobId, pollInterval);
+        }
+        
+        function updateProgressDisplay(projectId, current, total, message) {
+            const card = document.querySelector(`[data-project-id="${projectId}"]`);
+            if (card) {
+                let progressEl = card.querySelector('.project-progress-text');
+                if (!progressEl) {
+                    progressEl = document.createElement('div');
+                    progressEl.className = 'project-progress-text';
+                    progressEl.style.cssText = 'font-size: 10px; color: var(--text-dim); margin-top: 2px;';
+                    card.querySelector('.project-info')?.appendChild(progressEl);
+                }
+                progressEl.textContent = message || `${current}/${total}`;
+            }
+        }
+        
+        async function checkActiveJobs() {
+            try {
+                const response = await fetch('/api/jobs?active=true');
+                const data = await response.json();
+                
+                if (data.ok && data.jobs.length > 0) {
+                    data.jobs.forEach(job => {
+                        if (!activeJobPolls.has(job.id)) {
+                            setGeneratingState(true, job.project_id);
+                            startJobPolling(job.id, job.project_id);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to check active jobs:', err);
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkActiveJobs, 1000);
+        });
+        
         function selectProject(projectId) {
             state.currentProjectId = projectId;
             document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
@@ -1525,6 +1632,11 @@
                     
                     if (data.needs_clarification) {
                         addAIMessage(data.clarification_question);
+                    }
+                    
+                    if (data.trigger_generation && data.job_data) {
+                        const selectedTier = state.selectedQualityTier || 'good';
+                        createVideoJob(state.currentProjectId, selectedTier, data.job_data);
                     }
                     
                     if (data.processing) {

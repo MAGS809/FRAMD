@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "Echo Engine"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Video Worker"
+
 [[workflows.workflow]]
 name = "Echo Engine"
 author = "agent"
@@ -31,6 +35,17 @@ outputType = "webview"
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Video Worker"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python worker.py"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [[ports]]
 localPort = 5000

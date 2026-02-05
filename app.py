@@ -4441,8 +4441,9 @@ def save_email_preferences():
 
 @app.route('/start-background-render', methods=['POST'])
 def start_background_render():
-    """Start a video render in the background. Returns job ID for polling."""
+    """Start a video render in the background using database-backed job queue."""
     from flask_login import current_user
+    from job_queue import JOB_QUEUE
     import uuid
     
     user_id = None
@@ -4453,18 +4454,10 @@ def start_background_render():
     
     data = request.get_json() or {}
     
-    job_id = str(uuid.uuid4())[:12]
+    project_id = data.get('project_id')
+    quality_tier = data.get('quality_tier', 'good')
     
-    background_render_jobs[job_id] = {
-        'status': 'queued',
-        'progress': 0,
-        'video_url': None,
-        'error': None,
-        'user_id': user_id,
-        'created_at': time.time()
-    }
-    
-    render_params = {
+    job_data = {
         'scenes': data.get('scenes', []),
         'audio_path': data.get('audio_path', ''),
         'format': data.get('format', '9:16'),
@@ -4474,34 +4467,53 @@ def start_background_render():
         'template': data.get('template', 'start_from_scratch')
     }
     
-    render_executor.submit(
-        background_render_task, 
-        job_id, 
-        render_params, 
-        user_id,
-        app.app_context()
+    job = JOB_QUEUE.add_job(
+        user_id=user_id,
+        project_id=project_id,
+        quality_tier=quality_tier,
+        job_data=job_data
     )
     
-    return jsonify({
-        'success': True,
-        'job_id': job_id,
-        'message': 'Video rendering started. You can close this tab and we\'ll email you when it\'s ready.'
-    })
+    if job:
+        return jsonify({
+            'success': True,
+            'ok': True,
+            'job_id': job['id'],
+            'job': job,
+            'message': 'Video rendering started. You can continue working while it processes.'
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'ok': False,
+            'error': 'Failed to create job'
+        }), 500
 
 
 @app.route('/render-status/<job_id>', methods=['GET'])
 def get_render_status(job_id):
     """Check the status of a background render job."""
-    if job_id not in background_render_jobs:
-        return jsonify({'error': 'Job not found'}), 404
+    from job_queue import JOB_QUEUE
     
-    job = background_render_jobs[job_id]
+    job = JOB_QUEUE.get_job(job_id)
+    
+    if not job:
+        if job_id in background_render_jobs:
+            old_job = background_render_jobs[job_id]
+            return jsonify({
+                'status': old_job['status'],
+                'progress': old_job['progress'],
+                'video_url': old_job['video_url'],
+                'error': old_job['error']
+            })
+        return jsonify({'error': 'Job not found'}), 404
     
     return jsonify({
         'status': job['status'],
-        'progress': job['progress'],
-        'video_url': job['video_url'],
-        'error': job['error']
+        'progress': job.get('progress', {}).get('percent', 0),
+        'video_url': job.get('result_url'),
+        'error': job.get('error_message'),
+        'job': job
     })
 
 
@@ -5164,6 +5176,119 @@ def api_rename_project(project_id):
     return jsonify({'ok': True, 'name': project.name})
 
 
+@app.route('/api/jobs', methods=['POST'])
+def api_create_job():
+    """Create a new video generation job."""
+    from job_queue import JOB_QUEUE
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    project_id = data.get('project_id')
+    quality_tier = data.get('quality_tier', 'good')
+    job_data = data.get('job_data', {})
+    
+    if not project_id:
+        return jsonify({'ok': False, 'error': 'Project ID required'}), 400
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'ok': False, 'error': 'Project not found'}), 404
+    
+    job_id = JOB_QUEUE.add_job(
+        user_id=user_id,
+        project_id=project_id,
+        quality_tier=quality_tier,
+        job_data=job_data
+    )
+    
+    job = JOB_QUEUE.get_job(job_id)
+    
+    return jsonify({
+        'ok': True,
+        'job': JOB_QUEUE.to_dict(job)
+    })
+
+
+@app.route('/api/jobs/<int:job_id>', methods=['GET'])
+def api_get_job(job_id):
+    """Get job status and progress."""
+    from job_queue import JOB_QUEUE
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    job = JOB_QUEUE.get_job(job_id)
+    if not job:
+        return jsonify({'ok': False, 'error': 'Job not found'}), 404
+    
+    if job.user_id != user_id:
+        return jsonify({'ok': False, 'error': 'Not authorized'}), 403
+    
+    position = JOB_QUEUE.get_queue_position(job_id) if job.status == 'pending' else 0
+    
+    return jsonify({
+        'ok': True,
+        'job': JOB_QUEUE.to_dict(job),
+        'queue_position': position
+    })
+
+
+@app.route('/api/jobs', methods=['GET'])
+def api_get_user_jobs():
+    """Get all jobs for the current user."""
+    from job_queue import JOB_QUEUE
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    active_only = request.args.get('active', 'false').lower() == 'true'
+    
+    if active_only:
+        jobs = JOB_QUEUE.get_active_jobs(user_id)
+    else:
+        jobs = JOB_QUEUE.get_user_jobs(user_id, limit=20)
+    
+    return jsonify({
+        'ok': True,
+        'jobs': [JOB_QUEUE.to_dict(job) for job in jobs]
+    })
+
+
+@app.route('/api/jobs/<int:job_id>/cancel', methods=['POST'])
+def api_cancel_job(job_id):
+    """Cancel a pending job."""
+    from job_queue import JOB_QUEUE
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    success = JOB_QUEUE.cancel_job(job_id, user_id)
+    
+    if success:
+        return jsonify({'ok': True, 'message': 'Job cancelled'})
+    else:
+        return jsonify({'ok': False, 'error': 'Cannot cancel job (may already be processing)'}), 400
+
+
+@app.route('/api/jobs/stats', methods=['GET'])
+def api_queue_stats():
+    """Get overall queue statistics (admin)."""
+    from job_queue import JOB_QUEUE
+    
+    stats = JOB_QUEUE.get_queue_stats()
+    
+    return jsonify({
+        'ok': True,
+        'stats': stats
+    })
+
+
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
     user_id = get_user_id()
@@ -5247,12 +5372,31 @@ Be helpful, concise, and focused on delivering great video content."""
     db.session.add(ai_conv)
     db.session.commit()
     
+    generation_ready = any(phrase in message.lower() for phrase in [
+        'generate', 'create video', 'make video', 'start generation',
+        'build video', 'render', "let's go", "looks good", "that's perfect"
+    ]) and not needs_clarification
+    
+    trigger_generation = False
+    job_data = None
+    
+    if generation_ready and mode in ['remix', 'simple', 'clipper']:
+        trigger_generation = True
+        job_data = {
+            'mode': mode,
+            'project_name': project.name,
+            'project_id': project_id,
+            'user_message': message
+        }
+    
     return jsonify({
         'ok': True,
         'response': ai_response,
         'project_id': project_id,
         'project_name': project.name,
-        'needs_clarification': needs_clarification
+        'needs_clarification': needs_clarification,
+        'trigger_generation': trigger_generation,
+        'job_data': job_data
     })
 
 
