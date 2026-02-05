@@ -142,10 +142,12 @@ class OrchestrationPlan:
 RUNWAY_API_KEY = os.environ.get("RUNWAY_API_KEY")
 SHOTSTACK_API_KEY = os.environ.get("SHOTSTACK_API_KEY")
 SHOTSTACK_ENV = os.environ.get("SHOTSTACK_ENV", "stage")  # stage or v1
+PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 
 RUNWAY_BASE_URL = "https://api.dev.runwayml.com/v1"
 RUNWAY_API_VERSION = "2024-11-06"
 SHOTSTACK_BASE_URL = f"https://api.shotstack.io/{SHOTSTACK_ENV}"
+PEXELS_BASE_URL = "https://api.pexels.com/videos"
 
 
 class RunwayTaskStatus(Enum):
@@ -164,6 +166,139 @@ class RunwayError(Exception):
         self.code = code
         self.status_code = status_code
         super().__init__(self.message)
+
+
+def search_pexels_videos(
+    query: str,
+    per_page: int = 3,
+    min_duration: int = 5,
+    orientation: str = "portrait"
+) -> List[Dict[str, Any]]:
+    """
+    Search Pexels API for stock videos.
+    
+    Args:
+        query: Search term (e.g., "ocean waves", "city night")
+        per_page: Number of results (max 80, default 3)
+        min_duration: Minimum video duration in seconds
+        orientation: portrait, landscape, or square
+        
+    Returns:
+        List of video objects with url, duration, width, height
+    """
+    if not PEXELS_API_KEY:
+        print("[Pexels] API key not configured, skipping stock video search")
+        return []
+    
+    try:
+        headers = {"Authorization": PEXELS_API_KEY}
+        params = {
+            "query": query,
+            "per_page": min(per_page, 80),
+            "orientation": orientation
+        }
+        
+        response = requests.get(
+            f"{PEXELS_BASE_URL}/search",
+            headers=headers,
+            params=params,
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            videos = []
+            
+            for video in data.get("videos", []):
+                duration = video.get("duration", 0)
+                if duration < min_duration:
+                    continue
+                    
+                video_files = video.get("video_files", [])
+                best_file = None
+                for vf in video_files:
+                    if vf.get("quality") == "hd" and vf.get("file_type") == "video/mp4":
+                        best_file = vf
+                        break
+                
+                if not best_file and video_files:
+                    best_file = video_files[0]
+                
+                if best_file:
+                    videos.append({
+                        "id": video.get("id"),
+                        "url": best_file.get("link"),
+                        "duration": duration,
+                        "width": best_file.get("width"),
+                        "height": best_file.get("height"),
+                        "query": query,
+                        "source": "pexels",
+                        "attribution": f"Video by {video.get('user', {}).get('name', 'Unknown')} from Pexels"
+                    })
+            
+            print(f"[Pexels] Found {len(videos)} videos for '{query}'")
+            return videos
+            
+        elif response.status_code == 429:
+            print(f"[Pexels] Rate limited, skipping query: {query}")
+            return []
+        else:
+            print(f"[Pexels] API error {response.status_code}: {response.text[:200]}")
+            return []
+            
+    except requests.RequestException as e:
+        print(f"[Pexels] Request failed: {e}")
+        return []
+
+
+def fetch_stock_videos_for_plan(
+    stock_queries: List[Dict[str, Any]],
+    orientation: str = "portrait"
+) -> List[Dict[str, Any]]:
+    """
+    Fetch stock videos for all queries in an orchestration plan.
+    
+    Args:
+        stock_queries: List of query objects from OrchestrationPlan
+        orientation: Video orientation preference
+        
+    Returns:
+        List of stock assets with URLs ready for Shotstack timeline
+    """
+    stock_assets = []
+    
+    for query_obj in stock_queries:
+        if isinstance(query_obj, str):
+            query_str = query_obj
+            scene_id = None
+        else:
+            query_str = query_obj.get("query") or query_obj.get("pattern") or str(query_obj)
+            scene_id = query_obj.get("scene_id")
+        
+        videos = search_pexels_videos(query_str, per_page=2, orientation=orientation)
+        
+        if videos:
+            best_video = videos[0]
+            stock_assets.append({
+                "query": query_str,
+                "scene_id": scene_id,
+                "status": "fetched",
+                "url": best_video["url"],
+                "duration": best_video["duration"],
+                "source": "pexels",
+                "attribution": best_video.get("attribution")
+            })
+        else:
+            stock_assets.append({
+                "query": query_str,
+                "scene_id": scene_id,
+                "status": "not_found",
+                "url": None
+            })
+    
+    fetched = sum(1 for a in stock_assets if a.get("url"))
+    print(f"[Stock] Fetched {fetched}/{len(stock_queries)} stock videos")
+    return stock_assets
 
 
 @dataclass
@@ -1498,14 +1633,15 @@ def execute_orchestration(
         
         print(f"[Execute] Queue complete: {len(results['runway_outputs'])} videos generated")
     
-    print("[Execute] Fetching stock assets...")
-    for query in plan.stock_queries:
-        query_str = query if isinstance(query, str) else str(query)
-        results["stock_assets"].append({
-            "query": query_str,
-            "status": "pending",
-            "url": None
-        })
+    print("[Execute] Fetching stock assets via Pexels API...")
+    if plan.stock_queries:
+        stock_assets = fetch_stock_videos_for_plan(
+            stock_queries=plan.stock_queries,
+            orientation="portrait"
+        )
+        results["stock_assets"] = stock_assets
+    else:
+        print("[Execute] No stock queries in plan")
     
     validated_content = filter_reference_files(content_files or [])
     has_content = bool(results["runway_outputs"] or validated_content or any(a.get("url") for a in results["stock_assets"]))
