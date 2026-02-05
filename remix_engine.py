@@ -30,6 +30,61 @@ class FileType(Enum):
     GENERATED = "generated"  # DALL-E or other AI images
 
 
+class QualityTier(Enum):
+    """Video generation quality tiers with Runway model mapping."""
+    GOOD = "good"
+    BETTER = "better"
+    BEST = "best"
+
+
+QUALITY_TIERS = {
+    QualityTier.GOOD: {
+        "model": "gen3a_turbo",
+        "name": "Good",
+        "price_per_30s": 4.00,
+        "description": "Fast generation, solid quality for most content",
+        "cost_per_second": 0.05,
+    },
+    QualityTier.BETTER: {
+        "model": "gen4_turbo",
+        "name": "Better",
+        "price_per_30s": 6.00,
+        "description": "Enhanced detail and motion consistency",
+        "cost_per_second": 0.10,
+    },
+    QualityTier.BEST: {
+        "model": "gen4_aleph",
+        "name": "Best",
+        "price_per_30s": 8.00,
+        "description": "Cinema-grade output with maximum fidelity",
+        "cost_per_second": 0.15,
+    },
+}
+
+QUALITY_DISCLAIMER = "Quality tier affects visual generation only. It won't change your video's direction, pacing, or message — just how sharp and polished the final output looks."
+
+
+def get_quality_tier_info(tier: QualityTier) -> Dict[str, Any]:
+    """Get full info for a quality tier."""
+    return QUALITY_TIERS.get(tier, QUALITY_TIERS[QualityTier.GOOD])
+
+
+def get_runway_model_for_tier(tier: QualityTier) -> str:
+    """Get the Runway model ID for a quality tier."""
+    return QUALITY_TIERS.get(tier, QUALITY_TIERS[QualityTier.GOOD])["model"]
+
+
+def calculate_cost_for_tier(tier: QualityTier, duration_seconds: float) -> float:
+    """Calculate total cost for a video at given quality tier."""
+    tier_info = QUALITY_TIERS.get(tier, QUALITY_TIERS[QualityTier.GOOD])
+    runway_cost = tier_info["cost_per_second"] * duration_seconds
+    shotstack_cost = 0.20 * (duration_seconds / 30)
+    claude_cost = 0.50
+    elevenlabs_cost = 0.30
+    stock_cost = 0.10
+    return round(runway_cost + shotstack_cost + claude_cost + elevenlabs_cost + stock_cost, 2)
+
+
 @dataclass
 class VibeProfile:
     """Extracted vibe characteristics from reference material."""
@@ -88,7 +143,294 @@ RUNWAY_API_KEY = os.environ.get("RUNWAY_API_KEY")
 SHOTSTACK_API_KEY = os.environ.get("SHOTSTACK_API_KEY")
 SHOTSTACK_ENV = os.environ.get("SHOTSTACK_ENV", "stage")  # stage or v1
 
+RUNWAY_BASE_URL = "https://api.dev.runwayml.com/v1"
+RUNWAY_API_VERSION = "2024-11-06"
 SHOTSTACK_BASE_URL = f"https://api.shotstack.io/{SHOTSTACK_ENV}"
+
+
+class RunwayTaskStatus(Enum):
+    """Runway API task status codes."""
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class RunwayError(Exception):
+    """Custom exception for Runway API errors."""
+    def __init__(self, message: str, code: Optional[str] = None, status_code: Optional[int] = None):
+        self.message = message
+        self.code = code
+        self.status_code = status_code
+        super().__init__(self.message)
+
+
+@dataclass
+class RunwayTaskResult:
+    """Result from a Runway API task."""
+    task_id: str
+    status: RunwayTaskStatus
+    progress: Optional[float]
+    output_urls: Optional[List[str]]
+    error_message: Optional[str]
+    error_code: Optional[str]
+
+
+def runway_create_image_to_video(
+    prompt_image: str,
+    prompt_text: str,
+    quality_tier: QualityTier = QualityTier.GOOD,
+    duration: int = 5,
+    ratio: str = "9:16"
+) -> RunwayTaskResult:
+    """
+    Create an image-to-video generation task via Runway API.
+    
+    Endpoint: POST /v1/image_to_video
+    
+    Args:
+        prompt_image: Image URL (HTTPS, Runway URI, or data URI)
+        prompt_text: Motion/style description (max 1000 chars)
+        quality_tier: QualityTier enum for model selection
+        duration: 5 or 10 seconds
+        ratio: Aspect ratio (16:9, 9:16, 1:1)
+        
+    Returns:
+        RunwayTaskResult with task_id and initial status
+        
+    Raises:
+        RunwayError: On API failure
+    """
+    if not RUNWAY_API_KEY:
+        raise RunwayError("RUNWAY_API_KEY not configured", code="MISSING_API_KEY")
+    
+    model = get_runway_model_for_tier(quality_tier)
+    
+    headers = {
+        "Authorization": f"Bearer {RUNWAY_API_KEY}",
+        "X-Runway-Version": RUNWAY_API_VERSION,
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": model,
+        "promptImage": prompt_image,
+        "promptText": prompt_text[:1000],
+        "duration": duration,
+        "ratio": ratio,
+        "watermark": False
+    }
+    
+    print(f"[Runway API] Creating image_to_video task with model={model}")
+    
+    try:
+        response = requests.post(
+            f"{RUNWAY_BASE_URL}/image_to_video",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 401:
+            raise RunwayError("Invalid API key", code="UNAUTHORIZED", status_code=401)
+        elif response.status_code == 429:
+            raise RunwayError("Rate limit exceeded", code="RATE_LIMITED", status_code=429)
+        elif response.status_code == 400:
+            error_data = response.json() if response.text else {}
+            error_code = error_data.get("code", "BAD_REQUEST")
+            if error_code == "CONTENT_MODERATED" or "moderat" in error_data.get("message", "").lower():
+                raise RunwayError(
+                    "Content was flagged by moderation - please use different source imagery",
+                    code="CONTENT_MODERATED",
+                    status_code=400
+                )
+            raise RunwayError(
+                error_data.get("message", "Bad request"),
+                code=error_code,
+                status_code=400
+            )
+        elif response.status_code not in [200, 201, 202]:
+            raise RunwayError(
+                f"Unexpected response: {response.status_code}",
+                code="API_ERROR",
+                status_code=response.status_code
+            )
+        
+        data = response.json()
+        
+        return RunwayTaskResult(
+            task_id=data.get("id", ""),
+            status=RunwayTaskStatus(data.get("status", "PENDING")),
+            progress=data.get("progress"),
+            output_urls=data.get("output"),
+            error_message=data.get("failure"),
+            error_code=data.get("failureCode")
+        )
+        
+    except requests.exceptions.Timeout:
+        raise RunwayError("Request timed out", code="TIMEOUT")
+    except requests.exceptions.RequestException as e:
+        raise RunwayError(f"Network error: {str(e)}", code="NETWORK_ERROR")
+
+
+def runway_get_task_status(task_id: str) -> RunwayTaskResult:
+    """
+    Get status of a Runway generation task.
+    
+    Endpoint: GET /v1/tasks/{task_id}
+    
+    Args:
+        task_id: The task ID from create call
+        
+    Returns:
+        RunwayTaskResult with current status and output if complete
+        
+    Raises:
+        RunwayError: On API failure
+    """
+    if not RUNWAY_API_KEY:
+        raise RunwayError("RUNWAY_API_KEY not configured", code="MISSING_API_KEY")
+    
+    headers = {
+        "Authorization": f"Bearer {RUNWAY_API_KEY}",
+        "X-Runway-Version": RUNWAY_API_VERSION
+    }
+    
+    try:
+        response = requests.get(
+            f"{RUNWAY_BASE_URL}/tasks/{task_id}",
+            headers=headers,
+            timeout=30
+        )
+        
+        if response.status_code == 404:
+            raise RunwayError("Task not found", code="NOT_FOUND", status_code=404)
+        elif response.status_code != 200:
+            raise RunwayError(
+                f"Failed to get task status: {response.status_code}",
+                code="API_ERROR",
+                status_code=response.status_code
+            )
+        
+        data = response.json()
+        
+        return RunwayTaskResult(
+            task_id=task_id,
+            status=RunwayTaskStatus(data.get("status", "PENDING")),
+            progress=data.get("progress"),
+            output_urls=data.get("output"),
+            error_message=data.get("failure"),
+            error_code=data.get("failureCode")
+        )
+        
+    except requests.exceptions.Timeout:
+        raise RunwayError("Request timed out", code="TIMEOUT")
+    except requests.exceptions.RequestException as e:
+        raise RunwayError(f"Network error: {str(e)}", code="NETWORK_ERROR")
+
+
+def runway_wait_for_completion(
+    task_id: str,
+    max_wait_seconds: int = 300,
+    poll_interval: int = 5
+) -> RunwayTaskResult:
+    """
+    Poll Runway task until completion or timeout.
+    
+    Args:
+        task_id: The task ID to poll
+        max_wait_seconds: Maximum time to wait (default 5 minutes)
+        poll_interval: Seconds between polls (default 5)
+        
+    Returns:
+        Final RunwayTaskResult
+        
+    Raises:
+        RunwayError: On failure or timeout
+    """
+    import time
+    
+    elapsed = 0
+    while elapsed < max_wait_seconds:
+        result = runway_get_task_status(task_id)
+        
+        print(f"[Runway API] Task {task_id[:8]}... status={result.status.value}, progress={result.progress}")
+        
+        if result.status == RunwayTaskStatus.SUCCEEDED:
+            print(f"[Runway API] Task completed! Output URLs: {result.output_urls}")
+            return result
+        elif result.status == RunwayTaskStatus.FAILED:
+            raise RunwayError(
+                result.error_message or "Task failed",
+                code=result.error_code or "TASK_FAILED"
+            )
+        elif result.status == RunwayTaskStatus.CANCELLED:
+            raise RunwayError("Task was cancelled", code="CANCELLED")
+        
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+    
+    raise RunwayError(f"Task timed out after {max_wait_seconds}s", code="TIMEOUT")
+
+
+def runway_generate_video(
+    prompt_image: str,
+    prompt_text: str,
+    quality_tier: QualityTier = QualityTier.GOOD,
+    duration: int = 5,
+    ratio: str = "9:16",
+    wait_for_completion: bool = True
+) -> Dict[str, Any]:
+    """
+    High-level function to generate a video via Runway.
+    Handles create + poll in one call.
+    
+    Args:
+        prompt_image: Source image URL
+        prompt_text: Motion description
+        quality_tier: Quality tier enum
+        duration: 5 or 10 seconds
+        ratio: Aspect ratio
+        wait_for_completion: Whether to poll until done
+        
+    Returns:
+        Dict with task_id, status, and output_url if complete
+    """
+    try:
+        result = runway_create_image_to_video(
+            prompt_image=prompt_image,
+            prompt_text=prompt_text,
+            quality_tier=quality_tier,
+            duration=duration,
+            ratio=ratio
+        )
+        
+        if not wait_for_completion:
+            return {
+                "success": True,
+                "task_id": result.task_id,
+                "status": result.status.value,
+                "output_url": None
+            }
+        
+        final_result = runway_wait_for_completion(result.task_id)
+        
+        return {
+            "success": True,
+            "task_id": final_result.task_id,
+            "status": final_result.status.value,
+            "output_url": final_result.output_urls[0] if final_result.output_urls else None,
+            "all_outputs": final_result.output_urls
+        }
+        
+    except RunwayError as e:
+        return {
+            "success": False,
+            "error": e.message,
+            "error_code": e.code,
+            "status_code": e.status_code
+        }
 
 
 def extract_vibe_from_reference(
@@ -338,7 +680,7 @@ PRESENTATION RESEARCH:
 {json.dumps(presentation, indent=2)}
 
 SCRIPT SEGMENTS:
-{json.dumps(script_segments[:10], indent=2)}
+{json.dumps((script_segments or [])[:10], indent=2)}
 {stock_context}
 
 Generate Runway instructions for each scene. Each instruction must be:
@@ -863,61 +1205,307 @@ def create_orchestration_plan(
     )
 
 
-def execute_orchestration(plan: OrchestrationPlan) -> Dict[str, Any]:
+def execute_orchestration(
+    plan: OrchestrationPlan,
+    quality_tier: QualityTier = QualityTier.GOOD,
+    source_images: Optional[List[Dict[str, Any]]] = None,
+    content_files: Optional[List[Dict[str, Any]]] = None,
+    wait_for_completion: bool = True
+) -> Dict[str, Any]:
     """
     Execute the orchestration plan: Runway -> Stock -> Shotstack.
     
-    NOTE: Runway API integration is stubbed pending API key configuration.
-    When RUNWAY_API_KEY is set, this will make actual API calls.
-    
-    Pipeline:
-    1. Generate visuals via Runway API (stubbed if no API key)
+    SURGICAL IMPLEMENTATION:
+    1. Generate visuals via Runway API with selected quality tier
     2. Fetch stock assets based on orchestration queries
-    3. Assemble via Shotstack API
+    3. Transform Runway outputs + stock into Shotstack timeline
+    4. Submit to Shotstack for final assembly
     
     Args:
         plan: The complete orchestration plan
+        quality_tier: Quality tier for Runway model selection
+        source_images: Base images for image-to-video generation
+        wait_for_completion: Whether to poll until all tasks complete
         
     Returns:
-        Execution result with final video URL or render status
+        Execution result with task IDs or final video URL
     """
     results: Dict[str, Any] = {
         "status": "processing",
+        "quality_tier": quality_tier.value,
+        "runway_tasks": [],
         "runway_outputs": [],
         "stock_assets": [],
         "shotstack_result": None,
+        "final_video_url": None,
         "api_status": {
-            "runway": "stubbed" if not RUNWAY_API_KEY else "ready",
-            "shotstack": "stubbed" if not SHOTSTACK_API_KEY else "ready"
-        }
+            "runway": "ready" if RUNWAY_API_KEY else "missing_api_key",
+            "shotstack": "ready" if SHOTSTACK_API_KEY else "missing_api_key"
+        },
+        "errors": []
     }
     
-    if RUNWAY_API_KEY:
-        print("[Execute] Runway API configured - would generate videos here")
+    tier_info = get_quality_tier_info(quality_tier)
+    print(f"[Execute] Using quality tier: {tier_info['name']} (model={tier_info['model']}, ${tier_info['price_per_30s']}/30s)")
+    
+    if not RUNWAY_API_KEY:
+        results["errors"].append("RUNWAY_API_KEY not configured - cannot generate videos")
+        print("[Execute] ERROR: RUNWAY_API_KEY missing")
     else:
-        print("[Execute] Runway API not configured (RUNWAY_API_KEY missing) - returning stub data")
+        print(f"[Execute] Starting Runway generation for {len(plan.runway_instructions)} scenes...")
+        
+        for i, instr in enumerate(plan.runway_instructions):
+            source_image = None
+            if source_images and len(source_images) > i:
+                source_image = source_images[i].get("url")
+            elif source_images and len(source_images) > 0:
+                source_image = source_images[0].get("url")
+            
+            if not source_image:
+                results["runway_tasks"].append({
+                    "scene_id": instr.scene_id,
+                    "status": "skipped",
+                    "reason": "No source image provided"
+                })
+                continue
+            
+            try:
+                runway_result = runway_generate_video(
+                    prompt_image=source_image,
+                    prompt_text=instr.prompt,
+                    quality_tier=quality_tier,
+                    duration=min(int(instr.duration), 10),
+                    ratio="9:16",
+                    wait_for_completion=wait_for_completion
+                )
+                
+                if runway_result.get("success"):
+                    results["runway_tasks"].append({
+                        "scene_id": instr.scene_id,
+                        "task_id": runway_result.get("task_id"),
+                        "status": runway_result.get("status"),
+                        "output_url": runway_result.get("output_url")
+                    })
+                    
+                    if runway_result.get("output_url"):
+                        results["runway_outputs"].append({
+                            "scene_id": instr.scene_id,
+                            "url": runway_result.get("output_url"),
+                            "duration": instr.duration,
+                            "type": "video",
+                            "source": "runway"
+                        })
+                else:
+                    results["runway_tasks"].append({
+                        "scene_id": instr.scene_id,
+                        "status": "failed",
+                        "error": runway_result.get("error"),
+                        "error_code": runway_result.get("error_code")
+                    })
+                    results["errors"].append(f"Scene {instr.scene_id}: {runway_result.get('error')}")
+                    
+            except Exception as e:
+                results["runway_tasks"].append({
+                    "scene_id": instr.scene_id,
+                    "status": "error",
+                    "error": str(e)
+                })
+                results["errors"].append(f"Scene {instr.scene_id}: {str(e)}")
     
-    for instr in plan.runway_instructions:
-        results["runway_outputs"].append({
-            "scene_id": instr.scene_id,
-            "status": "pending_api_key" if not RUNWAY_API_KEY else "queued",
-            "prompt": instr.prompt[:100],
-            "duration": instr.duration,
-            "generation_type": instr.generation_type
-        })
+    print(f"[Execute] Runway complete: {len(results['runway_outputs'])} videos generated")
     
-    print(f"[Execute] Prepared {len(results['runway_outputs'])} Runway generation instructions")
-    
-    print("[Execute] Stock fetching based on orchestration queries...")
+    print("[Execute] Fetching stock assets...")
     for query in plan.stock_queries:
+        query_str = query if isinstance(query, str) else str(query)
         results["stock_assets"].append({
-            "query": query if isinstance(query, str) else str(query),
-            "status": "pending"
+            "query": query_str,
+            "status": "pending",
+            "url": None
         })
     
-    if SHOTSTACK_API_KEY:
-        print("[Execute] Shotstack API configured - ready for assembly")
-    else:
-        print("[Execute] Shotstack API not configured (SHOTSTACK_API_KEY missing)")
+    validated_content = filter_reference_files(content_files or [])
+    has_content = bool(results["runway_outputs"] or validated_content or any(a.get("url") for a in results["stock_assets"]))
     
+    if has_content:
+        if not SHOTSTACK_API_KEY:
+            results["errors"].append("SHOTSTACK_API_KEY not configured - cannot assemble video")
+            print("[Execute] ERROR: SHOTSTACK_API_KEY missing")
+        else:
+            print("[Execute] Building Shotstack timeline...")
+            
+            clips = transform_to_shotstack_clips(
+                runway_outputs=results["runway_outputs"],
+                stock_assets=[a for a in results["stock_assets"] if a.get("url")],
+                vibe=plan.vibe_profile,
+                content_files=validated_content
+            )
+            
+            if clips:
+                shotstack_payload = build_shotstack_json(clips)
+                
+                print("[Execute] Submitting to Shotstack...")
+                shotstack_result = submit_to_shotstack(shotstack_payload)
+                results["shotstack_result"] = shotstack_result
+                
+                if shotstack_result.get("success"):
+                    print(f"[Execute] Shotstack render started: {shotstack_result.get('render_id')}")
+                    
+                    if wait_for_completion and shotstack_result.get("render_id"):
+                        final_status = shotstack_wait_for_completion(
+                            str(shotstack_result.get("render_id"))
+                        )
+                        results["shotstack_result"].update(final_status)
+                        if final_status.get("url"):
+                            results["final_video_url"] = final_status.get("url")
+                            results["status"] = "completed"
+                else:
+                    results["errors"].append(f"Shotstack error: {shotstack_result.get('error')}")
+    
+    if not results["errors"]:
+        if results["final_video_url"]:
+            results["status"] = "completed"
+        elif results["runway_tasks"] or results.get("shotstack_result", {}).get("render_id"):
+            results["status"] = "processing"
+        else:
+            results["status"] = "no_content"
+    else:
+        results["status"] = "partial_failure" if results["runway_outputs"] else "failed"
+    
+    print(f"[Execute] Final status: {results['status']}")
     return results
+
+
+def transform_to_shotstack_clips(
+    runway_outputs: List[Dict[str, Any]],
+    stock_assets: List[Dict[str, Any]],
+    vibe: VibeProfile,
+    content_files: Optional[List[Dict[str, Any]]] = None
+) -> List[ShotStackClip]:
+    """
+    Transform Runway outputs and stock assets into Shotstack timeline clips.
+    This is the surgical transformation layer that maps API outputs to timeline.
+    
+    Priority order:
+    1. Content files (user uploads) - HIGHEST
+    2. Runway outputs (AI generated)
+    3. Stock assets (gap filling)
+    
+    Args:
+        runway_outputs: List of Runway video outputs with URLs
+        stock_assets: List of stock assets with URLs
+        vibe: Vibe profile for styling decisions
+        content_files: Optional user content files
+        
+    Returns:
+        List of ShotStackClip objects for timeline
+    """
+    clips = []
+    current_time = 0.0
+    track = 0
+    
+    transition = "fade" if vibe.cut_rhythm in ["flowing", "steady"] else "none"
+    
+    if content_files:
+        for cf in filter_reference_files(content_files):
+            if cf.get("url"):
+                duration = cf.get("duration", 5.0)
+                clips.append(ShotStackClip(
+                    asset_url=cf["url"],
+                    asset_type=cf.get("type", "video"),
+                    start_time=current_time,
+                    duration=duration,
+                    track=track,
+                    position_x=0.5,
+                    position_y=0.5,
+                    scale=1.0,
+                    opacity=1.0,
+                    transition_in=transition,
+                    transition_out=transition,
+                    effects=[]
+                ))
+                current_time += duration
+    
+    for ro in runway_outputs:
+        if ro.get("url"):
+            duration = ro.get("duration", 5.0)
+            clips.append(ShotStackClip(
+                asset_url=ro["url"],
+                asset_type="video",
+                start_time=current_time,
+                duration=duration,
+                track=track,
+                position_x=0.5,
+                position_y=0.5,
+                scale=1.0,
+                opacity=1.0,
+                transition_in=transition,
+                transition_out=transition,
+                effects=[]
+            ))
+            current_time += duration
+    
+    for sa in stock_assets:
+        if sa.get("url"):
+            duration = sa.get("duration", 3.0)
+            clips.append(ShotStackClip(
+                asset_url=sa["url"],
+                asset_type=sa.get("type", "video"),
+                start_time=current_time,
+                duration=duration,
+                track=track,
+                position_x=0.5,
+                position_y=0.5,
+                scale=1.0,
+                opacity=1.0,
+                transition_in=transition,
+                transition_out=transition,
+                effects=[]
+            ))
+            current_time += duration
+    
+    print(f"[Transform] Created {len(clips)} clips, total duration: {current_time}s")
+    return clips
+
+
+def shotstack_wait_for_completion(
+    render_id: str,
+    max_wait_seconds: int = 300,
+    poll_interval: int = 5
+) -> Dict[str, Any]:
+    """
+    Poll Shotstack render until completion or timeout.
+    
+    Args:
+        render_id: The render job ID
+        max_wait_seconds: Maximum time to wait
+        poll_interval: Seconds between polls
+        
+    Returns:
+        Final status with URL if complete
+    """
+    import time
+    
+    elapsed = 0
+    while elapsed < max_wait_seconds:
+        status = check_shotstack_status(render_id)
+        
+        print(f"[Shotstack] Render {render_id[:8]}... status={status.get('status')}")
+        
+        if status.get("status") == "done":
+            return {
+                "status": "done",
+                "url": status.get("url"),
+                "render_time": status.get("render_time")
+            }
+        elif status.get("status") == "failed":
+            return {
+                "status": "failed",
+                "error": status.get("error", "Render failed")
+            }
+        elif status.get("error"):
+            return status
+        
+        time.sleep(poll_interval)
+        elapsed += poll_interval
+    
+    return {"status": "timeout", "error": f"Render timed out after {max_wait_seconds}s"}
