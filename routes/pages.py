@@ -102,9 +102,3 @@ def chat_interface():
             export_count=export_count
         )
     return render_template('landing.html')
-
-
-@pages_bp.route('/health', methods=['GET'])
-def health():
-    """Health check endpoint."""
-    return {'status': 'healthy'}

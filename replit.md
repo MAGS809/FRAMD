@@ -90,7 +90,12 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Discover Feed**: Tinder-style swipeable cards for AI-generated content, enabling user feedback and personalization.
 
 **Technical Implementations:**
-- **Backend**: Flask web application (`app.py`) for REST API endpoints.
+- **Backend**: Flask web application (`app.py`) with modular Blueprint architecture:
+  - `routes/chat.py` (chat_bp) - Chat/conversation endpoints (/api/chat)
+  - `routes/api.py` (api_bp) - Jobs API endpoints (/api/jobs, /api/projects)
+  - `routes/pages.py` (pages_bp) - Page templates (/, /pricing, /terms, /privacy, /faq, /dev, /chat)
+  - `routes/auth.py` (auth_bp) - Authentication under /v2 prefix
+  - `routes/payments.py` (payments_bp) - Stripe webhooks under /v2 prefix
 - **Core Processing**: `context_engine.py` manages AI processing pipeline and conversation memory.
 - **Unified Content Engine**: A single AI for content creation, handling text to script conversion and video/audio processing.
 - **Thesis-Driven Architecture**: Content is structured around a single core thesis with specific anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
