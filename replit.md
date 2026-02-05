@@ -115,10 +115,21 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts.
 - **Subscription Model**: Four tiers (Free, Starter, Pro, Pro Creator) with token-based pricing and varying features.
 - **NSFW Content Filter**: Blocks inappropriate images.
-- **AI Remix Mode**: Vibe-based video creation with surgical API orchestration. Reference files set direction (not integrated), Claude orchestrates Runway API + stock + user content files. Produces agency-quality videos based on extracted vibe + topic research.
+- **AI Remix Mode**: Vibe-based video creation with surgical API orchestration. Reference files provide SKELETON (motion/timing structure) and VIBE (mood/energy) - but their visuals are NEVER used. Claude orchestrates Runway API + stock + user content files to produce agency-quality videos.
+- **Skeleton Extraction System**: Analyzes reference video to extract motion/timing STRUCTURE only:
+  - When cuts happen (timing structure)
+  - How camera moves (motion patterns: push_in, pan, zoom, etc.)
+  - How subjects move (movement types: walking, gesture, still)
+  - The rhythm and pacing (energy flow across scenes)
+  - Reference video visuals are NEVER integrated into final output
 - **Vibe Extraction System**: Analyzes reference material to extract mood/energy/pacing DIRECTION only. Reference is never integrated into final video.
-- **File Type Distinction**: Reference files (vibe extraction only) vs Content files (prioritized in final video) vs Stock (gap-filling) vs Runway output (AI-generated core).
-- **Surgical Orchestration Engine**: Generates precise instructions for Runway + Shotstack to work in conjunction. Each API receives exact parameters.
+- **File Type Distinction**: Reference files (skeleton/vibe extraction only) vs Content files (prioritized in final video) vs Stock (gap-filling) vs Runway output (AI-generated core).
+- **Surgical Source Assignment**: Claude explicitly decides the visual source for each scene:
+  - Priority 1: User's content files (if available and fits motion needs)
+  - Priority 2: Runway AI-generated (for abstract, stylized, or custom scenes)
+  - Priority 3: Stock footage (for realistic b-roll and gap-filling)
+  - Each scene gets a source_type, source_reason, and motion_guidance from skeleton
+- **Surgical Orchestration Engine**: Generates precise instructions for Runway + Shotstack to work in conjunction. Each API receives exact parameters. Timeline is built from source assignments mapped to skeleton timing.
 - **Next-gen Clipper Mode**: Script-guided video creation, where AI clips and edits according to script structure and chosen template style.
 - **Custom Template System**: Users create personal templates with element-level precision using frame-by-frame element detection and interactive editing.
 - **Visual Director AI**: Pre-plans all visuals for coherence, consistency (color palette, style), and editing patterns based on content type.
