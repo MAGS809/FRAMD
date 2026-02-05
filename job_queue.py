@@ -17,7 +17,7 @@ import json
 import time
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from enum import Enum
 
 import psycopg2
@@ -89,7 +89,10 @@ class JobQueue:
                     VALUES (%s, %s, %s, %s, 'pending')
                     RETURNING id
                 """, (user_id, project_id, quality_tier, json.dumps(job_data or {})))
-                job_id = cur.fetchone()['id']
+                result = cur.fetchone()
+                if not result:
+                    raise RuntimeError("Failed to create job - no ID returned")
+                job_id: int = result['id']  # type: ignore[index]
                 conn.commit()
                 print(f"[JobQueue] Created job {job_id} for user {user_id}, quality={quality_tier}")
                 return job_id
@@ -227,7 +230,7 @@ class JobQueue:
                     )
                 """, (job_id,))
                 row = cur.fetchone()
-                return row['position'] if row else 0
+                return row['position'] if row else 0  # type: ignore[index]
     
     def get_queue_stats(self) -> Dict[str, int]:
         """Get overall queue statistics."""
@@ -239,7 +242,7 @@ class JobQueue:
                     GROUP BY status
                 """)
                 rows = cur.fetchall()
-                stats = {row['status']: row['count'] for row in rows}
+                stats = {row['status']: row['count'] for row in rows}  # type: ignore[index]
                 return {
                     'pending': stats.get('pending', 0),
                     'processing': stats.get('processing', 0),
@@ -247,7 +250,7 @@ class JobQueue:
                     'failed': stats.get('failed', 0)
                 }
     
-    def _row_to_job(self, row: Dict) -> VideoJob:
+    def _row_to_job(self, row: Any) -> VideoJob:
         """Convert a database row to a VideoJob object."""
         job_data = row.get('job_data')
         if isinstance(job_data, str):
