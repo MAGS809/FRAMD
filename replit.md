@@ -136,6 +136,21 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Pexels**: Fallback source for visual content.
 
 ## Mode Pricing (per 30 seconds)
-- **Remix**: $5.10 (Runway API + Video Editor API + AI orchestration)
+- **Remix**: $4.00 - $8.00 depending on quality tier (see below)
 - **Clipper**: $6.60 - $11.10 (AI scene detection + editing complexity)
 - **Simple Stock**: $0.99 (Stock + DALL-E + FFmpeg only)
+
+## Quality Tiers (Remix Mode)
+- **Good** ($4/30s): Gen-3 Turbo model - fast generation, solid quality for most content
+- **Better** ($6/30s): Gen-4 Turbo model - enhanced detail and motion consistency
+- **Best** ($8/30s): Gen-4 Aleph model - cinema-grade output with maximum fidelity
+
+Quality disclaimer: "Quality tier affects visual generation only. It won't change your video's direction, pacing, or message — just how sharp and polished the final output looks."
+
+## Generation Queue System
+- Sequential request processing with 2-second delay between Runway API calls
+- Automatic retry with exponential backoff (5s → 10s → 20s) for rate limits
+- User-friendly error messages replace technical errors
+- Progress tracking: "Generating scene X of Y... ~N min remaining"
+- Toast notifications when video is ready
+- Loading spinner in sidebar during generation
