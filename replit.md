@@ -110,7 +110,10 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts.
 - **Subscription Model**: Four tiers (Free, Starter, Pro, Pro Creator) with token-based pricing and varying features.
 - **NSFW Content Filter**: Blocks inappropriate images.
-- **AI Remix Mode**: Intelligent video transformation using Runway API, stock sources, and user files, orchestrated by Claude. Produces agency-quality videos based on trend-driven templates.
+- **AI Remix Mode**: Vibe-based video creation with surgical API orchestration. Reference files set direction (not integrated), Claude orchestrates Runway API + stock + user content files. Produces agency-quality videos based on extracted vibe + topic research.
+- **Vibe Extraction System**: Analyzes reference material to extract mood/energy/pacing DIRECTION only. Reference is never integrated into final video.
+- **File Type Distinction**: Reference files (vibe extraction only) vs Content files (prioritized in final video) vs Stock (gap-filling) vs Runway output (AI-generated core).
+- **Surgical Orchestration Engine**: Generates precise instructions for Runway + Shotstack to work in conjunction. Each API receives exact parameters.
 - **Next-gen Clipper Mode**: Script-guided video creation, where AI clips and edits according to script structure and chosen template style.
 - **Custom Template System**: Users create personal templates with element-level precision using frame-by-frame element detection and interactive editing.
 - **Visual Director AI**: Pre-plans all visuals for coherence, consistency (color palette, style), and editing patterns based on content type.
