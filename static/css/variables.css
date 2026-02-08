@@ -1,0 +1,42 @@
+:root {
+    --bg: #0d0d0d;
+    --sidebar-bg: #111111;
+    --text: #ffd60a;
+    --text-dim: rgba(255, 214, 10, 0.5);
+    --text-faint: rgba(255, 214, 10, 0.25);
+    --border: rgba(255, 214, 10, 0.15);
+    --card-bg: #1a1a1a;
+    --gold: #ffd60a;
+    --accent: #ffd60a;
+    --dark-green: #0d0d0d;
+    --muted: rgba(255, 214, 10, 0.6);
+    --transition-fast: 150ms ease-out;
+    --transition-normal: 200ms ease-out;
+    --transition-slow: 250ms ease-out;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-faint); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+button, .btn, [onclick] {
+    transition: transform var(--transition-fast), background var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
+}
+
+button:active:not(:disabled), .btn:active:not(:disabled) {
+    transform: scale(0.97);
+}

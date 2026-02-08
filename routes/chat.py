@@ -8,10 +8,31 @@ from flask_login import current_user
 
 from extensions import db
 from models import Project, Conversation
-from context_engine import call_ai
+from context_engine import call_ai, SYSTEM_GUARDRAILS
 from routes.utils import get_user_id
 
 chat_bp = Blueprint('chat', __name__)
+
+CHAT_PROMPT_TEMPLATE = """User message: {message}
+
+Current mode: {mode}
+
+CONVERSATION CONTEXT:
+{history}
+
+Respond as a structured JSON object:
+{{
+    "response": "Your conversational response to the user",
+    "needs_clarification": true/false,
+    "ready_to_generate": true/false,
+    "suggested_mode": "remix|clipper|simple|null"
+}}
+
+RULES:
+- "needs_clarification": true ONLY if you genuinely need critical info (brand colors, tone, audience, direction)
+- "ready_to_generate": true ONLY if the user has explicitly confirmed they want to proceed with generation AND you have enough info
+- "response": natural, concise response. If asking a question, ask exactly ONE.
+- "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null"""
 
 
 @chat_bp.route('/api/chat', methods=['POST'])
@@ -52,42 +73,49 @@ def api_chat():
     db.session.add(user_conv)
     db.session.commit()
     
-    ai_role = """You are an AI video editor for Framd. Your purpose is to create videos that match the user's vision.
-
-YOUR JOB:
-1. Transform videos while preserving motion and structure (Remix mode)
-2. Extract the best moments from long content (Clipper mode)
-3. Create original content using stock and AI visuals (Simple Stock mode)
-4. Ask questions when critical information is missing
-5. Rate your own work honestly - minimum 7.5 to show user
-
-YOU MUST ASK WHEN:
-- Brand colors not specified
-- Tone/direction unclear (serious? funny? educational?)
-- Target audience unknown
-- Missing logo, assets, or brand materials
-- Vague request that could go multiple directions
-
-Be helpful, concise, and focused on delivering great video content."""
-
+    recent_convos = Conversation.query.filter_by(user_id=user_id).order_by(
+        Conversation.created_at.desc()
+    ).limit(10).all()
+    history_lines = []
+    for conv in reversed(recent_convos):
+        try:
+            c = json.loads(conv.content) if conv.content else {}
+            if c.get('project_id') == project_id:
+                history_lines.append(f"{conv.role}: {c.get('text', '')[:200]}")
+        except:
+            pass
+    history_text = "\n".join(history_lines[-6:]) if history_lines else "First message"
+    
     try:
+        prompt = CHAT_PROMPT_TEMPLATE.format(
+            message=message,
+            mode=mode or 'not selected',
+            history=history_text
+        )
+        
         response = call_ai(
-            prompt=f"User message: {message}\n\nCurrent mode: {mode or 'not selected'}\n\nRespond naturally as a video creation assistant. If you need more information to proceed, ask ONE clear question.",
-            system_prompt=ai_role,
-            json_output=False,
+            prompt=prompt,
+            system_prompt=SYSTEM_GUARDRAILS,
+            json_output=True,
             max_tokens=500
         )
         
         if isinstance(response, dict):
-            ai_response = response.get('response', response.get('text', str(response)))
+            ai_response = response.get('response', '')
+            needs_clarification = response.get('needs_clarification', False)
+            ready_to_generate = response.get('ready_to_generate', False)
+            suggested_mode = response.get('suggested_mode')
         else:
-            ai_response = str(response)
-        
-        needs_clarification = any(q in ai_response.lower() for q in ['?', 'what', 'which', 'how', 'could you', 'can you'])
+            ai_response = str(response) if response else "I'm ready to help you create your video. What would you like to make?"
+            needs_clarification = True
+            ready_to_generate = False
+            suggested_mode = None
         
     except Exception as e:
         ai_response = "I'm ready to help you create your video. What would you like to make?"
         needs_clarification = True
+        ready_to_generate = False
+        suggested_mode = None
     
     ai_conv = Conversation(
         user_id=user_id,
@@ -97,18 +125,13 @@ Be helpful, concise, and focused on delivering great video content."""
     db.session.add(ai_conv)
     db.session.commit()
     
-    generation_ready = any(phrase in message.lower() for phrase in [
-        'generate', 'create video', 'make video', 'start generation',
-        'build video', 'render', "let's go", "looks good", "that's perfect"
-    ]) and not needs_clarification
+    effective_mode = mode or suggested_mode
+    trigger_generation = ready_to_generate and effective_mode in ['remix', 'simple', 'clipper']
     
-    trigger_generation = False
     job_data = None
-    
-    if generation_ready and mode in ['remix', 'simple', 'clipper']:
-        trigger_generation = True
+    if trigger_generation:
         job_data = {
-            'mode': mode,
+            'mode': effective_mode,
             'project_name': project.name,
             'project_id': project_id,
             'user_message': message
@@ -121,7 +144,8 @@ Be helpful, concise, and focused on delivering great video content."""
         'project_name': project.name,
         'needs_clarification': needs_clarification,
         'trigger_generation': trigger_generation,
-        'job_data': job_data
+        'job_data': job_data,
+        'suggested_mode': suggested_mode
     })
 
 
