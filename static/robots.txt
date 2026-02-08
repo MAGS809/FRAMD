@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /output/
+Disallow: /static/js/
+Sitemap: https://framd.io/sitemap.xml

@@ -257,7 +257,7 @@ def render_video():
     """Render final video from selected scenes and voiceover."""
     import urllib.request
     from models import Subscription, User
-    from app import rate_limit, format_user_error
+    from routes.utils import rate_limit, format_user_error
     from context_engine import get_template_visual_fx
     from concurrent.futures import ThreadPoolExecutor, as_completed
     

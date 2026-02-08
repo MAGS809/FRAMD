@@ -1,6 +1,6 @@
 """
 Video management routes blueprint.
-Handles caption preferences, video history, feedback, and hosting.
+Handles caption preferences, video history, email preferences, feedback, and hosting.
 """
 import os
 from flask import Blueprint, request, jsonify, session
@@ -13,87 +13,165 @@ video_bp = Blueprint('video', __name__)
 
 @video_bp.route('/save-caption-preferences', methods=['POST'])
 def save_caption_preferences():
-    """Save user's caption style preferences."""
+    """Save user's caption style preferences for AI learning."""
+    from models import AILearning
+    
     user_id = get_user_id()
     if not user_id:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Authentication required'}), 401
     
     data = request.get_json() or {}
     
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        ai_learning = AILearning(user_id=user_id)
+        db.session.add(ai_learning)
     
-    user.caption_preferences = data
+    caption_prefs = {
+        'caption_position': data.get('caption_position', 'bottom'),
+        'caption_offset': data.get('caption_offset', 10),
+        'caption_size': data.get('caption_size', 22),
+        'caption_opacity': data.get('caption_opacity', 80),
+        'caption_color': data.get('caption_color', '#ffffff')
+    }
+    
+    current_styles = ai_learning.learned_styles or []
+    style_updated = False
+    for i, style in enumerate(current_styles):
+        if isinstance(style, dict) and style.get('type') == 'caption_prefs':
+            current_styles[i] = {'type': 'caption_prefs', **caption_prefs}
+            style_updated = True
+            break
+    
+    if not style_updated:
+        current_styles.append({'type': 'caption_prefs', **caption_prefs})
+    
+    ai_learning.learned_styles = current_styles
     db.session.commit()
     
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'message': 'Caption preferences saved'})
 
 
 @video_bp.route('/get-caption-preferences', methods=['GET'])
 def get_caption_preferences():
-    """Get user's saved caption preferences."""
+    """Get user's saved caption style preferences."""
+    from models import AILearning
+    
     user_id = get_user_id()
     if not user_id:
-        return jsonify({
-            'font': 'bold-center',
-            'color': '#FFFFFF',
-            'position': 'center',
-            'style': 'bold-center'
-        })
+        return jsonify({})
     
-    user = User.query.get(user_id)
-    if not user or not user.caption_preferences:
-        return jsonify({
-            'font': 'bold-center',
-            'color': '#FFFFFF',
-            'position': 'center',
-            'style': 'bold-center'
-        })
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        return jsonify({})
     
-    return jsonify(user.caption_preferences)
+    for style in (ai_learning.learned_styles or []):
+        if isinstance(style, dict) and style.get('type') == 'caption_prefs':
+            return jsonify({
+                'caption_position': style.get('caption_position', 'bottom'),
+                'caption_offset': style.get('caption_offset', 10),
+                'caption_size': style.get('caption_size', 22),
+                'caption_opacity': style.get('caption_opacity', 80),
+                'caption_color': style.get('caption_color', '#ffffff')
+            })
+    
+    return jsonify({})
 
 
 @video_bp.route('/video-history', methods=['GET'])
 def get_video_history():
-    """Get user's video generation history."""
+    """Get user's video download history."""
+    from models import VideoHistory
+    
     user_id = get_user_id()
     if not user_id:
         return jsonify({'videos': []})
     
-    projects = Project.query.filter_by(user_id=user_id).filter(
-        Project.video_path.isnot(None)
-    ).order_by(Project.updated_at.desc()).limit(20).all()
+    videos = VideoHistory.query.filter_by(user_id=user_id).order_by(VideoHistory.created_at.desc()).limit(50).all()
     
-    videos = [{
-        'id': p.id,
-        'name': p.name,
-        'video_path': p.video_path,
-        'created_at': p.updated_at.isoformat() if p.updated_at else None
-    } for p in projects]
-    
-    return jsonify({'videos': videos})
+    return jsonify({
+        'videos': [{
+            'id': v.id,
+            'project_name': v.project_name,
+            'video_path': v.video_path,
+            'thumbnail_path': v.thumbnail_path,
+            'duration_seconds': v.duration_seconds,
+            'format': v.format,
+            'created_at': v.created_at.isoformat() if v.created_at else None
+        } for v in videos]
+    })
 
 
 @video_bp.route('/save-video-history', methods=['POST'])
 def save_video_history():
-    """Save a video to user's history."""
+    """Save a generated video to download history."""
+    from models import VideoHistory
+    
     user_id = get_user_id()
     if not user_id:
-        return jsonify({'error': 'Not authenticated'}), 401
+        return jsonify({'error': 'Authentication required'}), 401
     
     data = request.get_json() or {}
-    project_id = data.get('project_id')
-    video_path = data.get('video_path')
     
-    if project_id:
-        project = Project.query.filter_by(id=project_id, user_id=user_id).first()
-        if project and video_path:
-            project.video_path = video_path
-            db.session.commit()
-            return jsonify({'success': True})
+    video_history = VideoHistory(
+        user_id=user_id,
+        project_id=data.get('project_id'),
+        project_name=data.get('project_name', 'Untitled Video'),
+        video_path=data.get('video_path', ''),
+        thumbnail_path=data.get('thumbnail_path'),
+        duration_seconds=data.get('duration_seconds'),
+        format=data.get('format', '9:16'),
+        file_size_bytes=data.get('file_size_bytes'),
+        captions_data=data.get('captions_data')
+    )
     
-    return jsonify({'error': 'Could not save video'}), 400
+    db.session.add(video_history)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'id': video_history.id})
+
+
+@video_bp.route('/email-preferences', methods=['GET'])
+def get_email_preferences():
+    """Get user's email notification preferences."""
+    from models import EmailNotification
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({})
+    
+    notifications = EmailNotification.query.filter_by(user_id=user_id).all()
+    prefs = {n.notification_type: n.enabled for n in notifications}
+    
+    return jsonify({
+        'video_ready': prefs.get('video_ready', True),
+        'low_tokens': prefs.get('low_tokens', True),
+        'weekly_digest': prefs.get('weekly_digest', False)
+    })
+
+
+@video_bp.route('/email-preferences', methods=['POST'])
+def save_email_preferences():
+    """Save user's email notification preferences."""
+    from models import EmailNotification
+    
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Authentication required'}), 401
+    
+    data = request.get_json() or {}
+    
+    for notif_type in ['video_ready', 'low_tokens', 'weekly_digest']:
+        if notif_type in data:
+            notif = EmailNotification.query.filter_by(user_id=user_id, notification_type=notif_type).first()
+            if not notif:
+                notif = EmailNotification(user_id=user_id, notification_type=notif_type)
+                db.session.add(notif)
+            notif.enabled = bool(data[notif_type])
+    
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 
 @video_bp.route('/video-feedback', methods=['POST'])

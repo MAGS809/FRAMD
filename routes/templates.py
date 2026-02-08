@@ -51,7 +51,7 @@ def validate_safe_path(file_path):
 
 def _rate_limit(limit=30, window=60):
     """Rate limiting decorator for template routes."""
-    from app import rate_limit
+    from routes.utils import rate_limit
     return rate_limit(limit, window)
 
 
@@ -747,7 +747,7 @@ def extract_creative_dna():
     import base64
     import subprocess
     from anthropic import Anthropic
-    from app import rate_limit
+    from routes.utils import rate_limit
     from visual_director import create_visual_plan, COLOR_GRADING_PROFILES
 
     data = request.get_json()
@@ -1016,7 +1016,7 @@ def reskin_video():
     import uuid
     import shutil
     from openai import OpenAI
-    from app import rate_limit
+    from routes.utils import rate_limit
 
     data = request.get_json()
     creative_dna = data.get('creative_dna', {})

@@ -691,7 +691,7 @@ def generate_video():
     """Generate a video mockup combining stock footage with voiceover."""
     import requests
     from models import Subscription, User
-    from app import rate_limit
+    from routes.utils import rate_limit
 
     user_id = None
     is_dev_mode = os.environ.get('FLASK_ENV') == 'development' or os.environ.get('DEV_MODE') == 'true'

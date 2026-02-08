@@ -2,8 +2,9 @@
 Pages routes blueprint.
 Handles template rendering for static pages.
 """
-from flask import Blueprint, render_template, session
+from flask import Blueprint, render_template, session, send_from_directory
 from flask_login import current_user
+import os
 
 from models import Subscription, AILearning
 
@@ -102,3 +103,8 @@ def chat_interface():
             export_count=export_count
         )
     return render_template('landing.html')
+
+
+@pages_bp.route('/robots.txt')
+def robots_txt():
+    return send_from_directory(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static'), 'robots.txt')

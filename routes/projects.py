@@ -4,6 +4,8 @@ Handles project CRUD, workflow steps, drafts, and AI learning.
 """
 import json
 import re
+import logging
+import random
 from datetime import date
 from flask import Blueprint, request, jsonify
 from extensions import db
@@ -361,74 +363,429 @@ def get_generated_drafts(project_id):
     })
 
 
-@projects_bp.route('/draft-settings', methods=['GET'])
-def get_draft_settings():
-    """Get draft generation settings for the current user."""
-    user_id = get_user_id()
-    if not user_id:
-        return jsonify({'daily_limit': 3, 'generated_today': 0})
-    
-    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
-    if not ai_learning:
-        return jsonify({'daily_limit': 3, 'generated_today': 0})
-    
-    if ai_learning.last_draft_reset != date.today():
-        ai_learning.drafts_generated_today = 0
-        ai_learning.last_draft_reset = date.today()
-        db.session.commit()
-    
-    return jsonify({
-        'daily_limit': ai_learning.daily_draft_limit or 3,
-        'generated_today': ai_learning.drafts_generated_today or 0
-    })
-
-
-@projects_bp.route('/draft-settings', methods=['POST'])
-def update_draft_settings():
-    """Update draft generation settings for the current user."""
+@projects_bp.route('/projects/<int:project_id>/generate-drafts', methods=['POST'])
+def generate_drafts(project_id):
+    """Generate new AI drafts for a project using trend research and learned patterns."""
     user_id = get_user_id()
     if not user_id:
         return jsonify({'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'error': 'Project not found'}), 404
+    
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    if not sub or sub.tier != 'pro':
+        return jsonify({'error': 'Pro subscription required'}), 403
     
     ai_learning = AILearning.query.filter_by(user_id=user_id).first()
     if not ai_learning:
         ai_learning = AILearning(user_id=user_id)
         db.session.add(ai_learning)
     
-    data = request.get_json() or {}
-    if 'daily_limit' in data:
-        ai_learning.daily_draft_limit = max(1, min(10, int(data['daily_limit'])))
+    if ai_learning.last_draft_reset != date.today():
+        ai_learning.drafts_generated_today = 0
+        ai_learning.last_draft_reset = date.today()
+    
+    db.session.commit()
+    
+    daily_limit = ai_learning.daily_draft_limit or 3
+    generated_today = ai_learning.drafts_generated_today or 0
+    
+    if generated_today >= daily_limit:
+        return jsonify({
+            'error': 'Daily draft limit reached',
+            'daily_limit': daily_limit,
+            'generated_today': generated_today,
+            'remaining': 0
+        }), 429
+    
+    pending_count = GeneratedDraft.query.filter_by(project_id=project_id, status='pending').count()
+    if pending_count >= 3:
+        return jsonify({'error': 'Maximum 3 pending drafts. Approve or skip existing drafts first.'}), 400
+    
+    drafts_to_generate = 3 - pending_count
+    
+    existing_drafts = GeneratedDraft.query.filter_by(project_id=project_id).all()
+    used_angles = [d.angle_used for d in existing_drafts if d.angle_used]
+    used_vibes = [d.vibe_used for d in existing_drafts if d.vibe_used]
+    used_hooks = [d.hook_type for d in existing_drafts if d.hook_type]
+    
+    learned_patterns = {
+        'hooks': ai_learning.learned_hooks if ai_learning else [],
+        'voices': ai_learning.learned_voices if ai_learning else [],
+        'styles': ai_learning.learned_styles if ai_learning else [],
+        'topics': ai_learning.learned_topics if ai_learning else []
+    }
+    
+    topic = project.description or project.name or "general content"
+    trend_data = None
+    try:
+        from context_engine import research_trends
+        trend_data = research_trends(topic)
+    except Exception as e:
+        logging.warning(f"Trend research failed: {e}")
+        trend_data = {'hooks': [], 'formats': [], 'visuals': [], 'sounds': []}
+    
+    all_angles = ['contrarian', 'evidence-first', 'story-driven', 'philosophical', 'urgent', 'reflective', 'satirical', 'educational']
+    all_vibes = ['serious', 'playful', 'urgent', 'reflective', 'provocative', 'calm', 'intense', 'witty']
+    all_hook_types = ['question', 'bold-claim', 'statistic', 'story-opener', 'controversy', 'revelation', 'challenge', 'prediction']
+    
+    available_angles = [a for a in all_angles if a not in used_angles]
+    available_vibes = [v for v in all_vibes if v not in used_vibes]
+    available_hooks = [h for h in all_hook_types if h not in used_hooks]
+    
+    if not available_angles:
+        available_angles = all_angles
+    if not available_vibes:
+        available_vibes = all_vibes
+    if not available_hooks:
+        available_hooks = all_hook_types
+    
+    generated_drafts = []
+    
+    from context_engine import get_template_guidelines
+    template_type = project.template_type or 'start_from_scratch'
+    template_dna = get_template_guidelines(template_type)
+    
+    for i in range(drafts_to_generate):
+        angle = available_angles[i % len(available_angles)]
+        vibe = available_vibes[i % len(available_vibes)]
+        hook_type = available_hooks[i % len(available_hooks)]
+        
+        prompt = f"""Generate a 35-75 second video script for the topic: "{topic}"
+
+TEMPLATE: {template_type.upper().replace('_', ' ')}
+TEMPLATE TONE: {template_dna['tone']}
+TEMPLATE VOICE: {template_dna['voice']}
+TEMPLATE HOOK STYLE: {template_dna['hook_style']}
+TEMPLATE PACING: {template_dna['pacing']}
+HOW TO APPLY TRENDS: {template_dna['trend_application']}
+ALLOWED FOR THIS TEMPLATE: {', '.join(template_dna['allowed_overrides'])}
+
+TREND RESEARCH (apply WITHIN the template tone):
+{json.dumps(trend_data, indent=2) if trend_data else 'No trend data available - lean on template defaults'}
+
+USER'S LEARNED PATTERNS (incorporate their style):
+{json.dumps(learned_patterns, indent=2)}
+
+CONSTRAINTS FOR THIS DRAFT:
+- Angle: {angle} (the perspective/approach)
+- Vibe: {vibe} (the emotional tone)
+- Hook Type: {hook_type} (how to start)
+
+IMPORTANT: Stay in the template's voice. Trends inform HOW you execute, not WHAT tone you use.
+
+UPLOADED CLIPS TO REFERENCE:
+{json.dumps(project.uploaded_clips or [], indent=2)}
+
+Generate a complete script with:
+1. A strong hook using the {hook_type} format
+2. Clear anchor points: HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER
+3. Natural, human-sounding dialogue
+4. Visual suggestions that match trending formats
+5. Sound/music suggestions based on what's working (only if it genuinely helps)
+
+Output as JSON:
+{{
+  "script": "The full script text with speaker labels if multi-character",
+  "visual_plan": [{{"scene": 1, "description": "...", "source_suggestion": "..."}}],
+  "sound_plan": {{"music_vibe": "...", "sfx_suggestions": ["..."], "reasoning": "why these sounds work for this content"}}
+}}"""
+
+        try:
+            from context_engine import call_ai
+            response = call_ai(prompt)
+            
+            try:
+                if '```json' in response:
+                    response = response.split('```json')[1].split('```')[0]
+                elif '```' in response:
+                    response = response.split('```')[1].split('```')[0]
+                draft_data = json.loads(response.strip())
+            except json.JSONDecodeError:
+                draft_data = {
+                    'script': response,
+                    'visual_plan': [],
+                    'sound_plan': {}
+                }
+            
+            draft = GeneratedDraft(
+                project_id=project_id,
+                user_id=user_id,
+                script=draft_data.get('script', ''),
+                visual_plan=draft_data.get('visual_plan'),
+                sound_plan=draft_data.get('sound_plan'),
+                angle_used=angle,
+                vibe_used=vibe,
+                hook_type=hook_type,
+                clips_used=project.uploaded_clips,
+                trend_data=trend_data
+            )
+            db.session.add(draft)
+            generated_drafts.append(draft)
+            
+        except Exception as e:
+            logging.error(f"Draft generation failed: {e}")
+            continue
+    
+    if generated_drafts:
+        ai_learning.drafts_generated_today = (ai_learning.drafts_generated_today or 0) + len(generated_drafts)
     
     db.session.commit()
     
     return jsonify({
         'success': True,
-        'daily_limit': ai_learning.daily_draft_limit
+        'drafts_generated': len(generated_drafts),
+        'daily_limit': daily_limit,
+        'generated_today': ai_learning.drafts_generated_today,
+        'remaining': max(0, daily_limit - ai_learning.drafts_generated_today),
+        'drafts': [{
+            'id': d.id,
+            'script': d.script,
+            'visual_plan': d.visual_plan,
+            'sound_plan': d.sound_plan,
+            'angle_used': d.angle_used,
+            'vibe_used': d.vibe_used,
+            'hook_type': d.hook_type
+        } for d in generated_drafts]
+    })
+
+
+@projects_bp.route('/generated-drafts/<int:draft_id>/action', methods=['POST'])
+def draft_action(draft_id):
+    """Handle draft feedback - like (approve) or dislike (skip with AI self-analysis)."""
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    draft = GeneratedDraft.query.filter_by(id=draft_id, user_id=user_id).first()
+    if not draft:
+        return jsonify({'error': 'Draft not found'}), 404
+    
+    data = request.get_json() or {}
+    action = data.get('action')
+    
+    if action not in ['approve', 'skip']:
+        return jsonify({'error': 'Invalid action. Use "approve" or "skip"'}), 400
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    
+    if action == 'approve':
+        project = Project.query.get(draft.project_id)
+        if project:
+            project.script = draft.script
+            project.visual_plan = draft.visual_plan
+        draft.status = 'approved'
+        
+        if ai_learning:
+            learned_hooks = ai_learning.learned_hooks or []
+            first_line = draft.script.split('\n')[0][:100] if draft.script else ''
+            if first_line and first_line not in learned_hooks:
+                learned_hooks.append(first_line)
+                ai_learning.learned_hooks = learned_hooks[:30]
+            
+            learned_styles = ai_learning.learned_styles or []
+            style_pattern = {
+                'angle': draft.angle_used,
+                'vibe': draft.vibe_used,
+                'hook_type': draft.hook_type,
+                'success': True
+            }
+            learned_styles.append(style_pattern)
+            ai_learning.learned_styles = learned_styles[-50:]
+    else:
+        draft.status = 'skipped'
+        
+        if ai_learning:
+            try:
+                from context_engine import call_ai
+                analysis_prompt = f"""You generated a draft that was rejected. Analyze internally why it failed based on these guidelines:
+
+CORE RULES:
+- Hooks must be direct, not clickbait
+- No filler, no buzzwords, no trend-chasing language
+- Every line logically leads to the next
+- Ending must close the loop
+- Calm, clear, grounded tone - never sarcastic, smug, or preachy
+
+THE REJECTED DRAFT:
+Angle: {draft.angle_used}
+Vibe: {draft.vibe_used}
+Hook Type: {draft.hook_type}
+Script (first 500 chars): {(draft.script or '')[:500]}
+
+Analyze in 2-3 sentences what likely went wrong. Be specific about which guideline was violated. Output JSON:
+{{"likely_issue": "...", "guideline_violated": "...", "avoid_in_future": "..."}}"""
+                
+                analysis = call_ai(analysis_prompt)
+                try:
+                    if '```json' in analysis:
+                        analysis = analysis.split('```json')[1].split('```')[0]
+                    elif '```' in analysis:
+                        analysis = analysis.split('```')[1].split('```')[0]
+                    analysis_data = json.loads(analysis.strip())
+                except:
+                    analysis_data = {'likely_issue': 'Could not parse analysis', 'raw': analysis[:200]}
+                
+                dislike_learnings = ai_learning.dislike_learnings or []
+                dislike_learnings.append({
+                    'draft_id': draft_id,
+                    'angle': draft.angle_used,
+                    'vibe': draft.vibe_used,
+                    'hook_type': draft.hook_type,
+                    'analysis': analysis_data
+                })
+                ai_learning.dislike_learnings = dislike_learnings[-20:]
+            except Exception as e:
+                logging.warning(f"AI self-analysis failed: {e}")
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'action': action,
+        'project_id': draft.project_id
+    })
+
+
+@projects_bp.route('/draft-settings', methods=['GET'])
+def get_draft_settings():
+    """Get user's draft generation settings."""
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'daily_limit': 3, 'generated_today': 0, 'remaining': 3})
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        return jsonify({'daily_limit': 3, 'generated_today': 0, 'remaining': 3})
+    
+    if ai_learning.last_draft_reset != date.today():
+        ai_learning.drafts_generated_today = 0
+        ai_learning.last_draft_reset = date.today()
+        db.session.commit()
+    
+    daily_limit = ai_learning.daily_draft_limit or 3
+    generated = ai_learning.drafts_generated_today or 0
+    
+    return jsonify({
+        'daily_limit': daily_limit,
+        'generated_today': generated,
+        'remaining': max(0, daily_limit - generated)
+    })
+
+
+@projects_bp.route('/draft-settings', methods=['POST'])
+def update_draft_settings():
+    """Update user's daily draft limit (1-10)."""
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json() or {}
+    new_limit = data.get('daily_limit')
+    
+    if not isinstance(new_limit, int) or new_limit < 1 or new_limit > 10:
+        return jsonify({'error': 'Daily limit must be between 1 and 10'}), 400
+    
+    ai_learning = AILearning.query.filter_by(user_id=user_id).first()
+    if not ai_learning:
+        ai_learning = AILearning(user_id=user_id, daily_draft_limit=new_limit)
+        db.session.add(ai_learning)
+    else:
+        ai_learning.daily_draft_limit = new_limit
+    
+    db.session.commit()
+    
+    return jsonify({
+        'success': True,
+        'daily_limit': new_limit
     })
 
 
 @projects_bp.route('/auto-generate-status', methods=['GET'])
-def auto_generate_status():
-    """Get auto-generation eligibility status for current user."""
+def get_auto_generate_status():
+    """Get user's auto-generate eligibility status."""
     user_id = get_user_id()
     if not user_id:
-        return jsonify({'eligible': False, 'reason': 'Not authenticated'})
-    
-    sub = Subscription.query.filter_by(user_id=user_id).first()
-    if not sub or sub.tier != 'pro':
-        return jsonify({'eligible': False, 'reason': 'Pro subscription required', 'has_pro': False})
-    
-    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
-    if liked_count < 5:
         return jsonify({
             'eligible': False,
-            'reason': f'Need 5 liked videos ({liked_count}/5)',
-            'has_pro': True,
-            'liked_count': liked_count
+            'reason': 'not_authenticated',
+            'liked_count': 0,
+            'required_likes': 5,
+            'has_pro': False
         })
     
+    sub = Subscription.query.filter_by(user_id=user_id).first()
+    has_pro = sub and sub.tier == 'pro'
+    
+    liked_count = Project.query.filter_by(user_id=user_id, liked=True).count()
+    
+    eligible = has_pro and liked_count >= 5
+    
+    if not has_pro:
+        reason = 'needs_pro'
+    elif liked_count < 5:
+        reason = 'needs_likes'
+    else:
+        reason = 'eligible'
+    
     return jsonify({
-        'eligible': True,
-        'has_pro': True,
-        'liked_count': liked_count
+        'eligible': eligible,
+        'reason': reason,
+        'liked_count': liked_count,
+        'required_likes': 5,
+        'has_pro': has_pro
+    })
+
+
+@projects_bp.route('/generate-project-metadata', methods=['POST'])
+def generate_project_metadata():
+    """Generate AI project name (3 words max) and description from idea/script."""
+    from context_engine import call_ai
+    
+    data = request.get_json() or {}
+    idea = data.get('idea', '')
+    script = data.get('script', '')
+    
+    content = script if script else idea
+    if not content:
+        return jsonify({'success': False, 'error': 'No content provided'})
+    
+    prompt = f"""Based on this content, generate a project name and description.
+
+Content: {content[:1500]}
+
+Rules:
+1. Project name: Maximum 3 words, punchy and memorable (like "Oslo Accord Truth" or "Power Dynamics")
+2. Description: One sentence, under 15 words, capturing the core idea
+
+Return ONLY valid JSON:
+{{"name": "Three Word Name", "description": "One sentence description here."}}"""
+
+    try:
+        logging.info(f"[ProjectMetadata] Generating title for: {content[:50]}...")
+        response = call_ai(prompt, max_tokens=100)
+        logging.info(f"[ProjectMetadata] AI response: {response}")
+        
+        json_match = re.search(r'\{[^}]+\}', response if isinstance(response, str) else json.dumps(response))
+        if json_match:
+            metadata = json.loads(json_match.group())
+            name = metadata.get('name', 'Untitled')[:50]
+            logging.info(f"[ProjectMetadata] Generated name: {name}")
+            return jsonify({
+                'success': True,
+                'name': name,
+                'description': metadata.get('description', '')[:200]
+            })
+    except Exception as e:
+        logging.warning(f"[ProjectMetadata] AI failed: {e}")
+    
+    words = content.split()[:3]
+    fallback_name = ' '.join(words)[:50]
+    logging.info(f"[ProjectMetadata] Using fallback name: {fallback_name}")
+    return jsonify({
+        'success': True,
+        'name': fallback_name,
+        'description': content[:100]
     })
