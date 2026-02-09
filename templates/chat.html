@@ -307,8 +307,38 @@
             color: var(--text-dim);
         }
         
+        .project-card {
+            position: relative;
+        }
         .project-card:hover {
             background: rgba(255, 255, 255, 0.05);
+        }
+        .project-delete-btn {
+            display: none;
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(255, 60, 60, 0.15);
+            color: #ff4444;
+            border-radius: 4px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            z-index: 2;
+            transition: background 0.15s;
+        }
+        .project-card:hover .project-delete-btn {
+            display: flex;
+        }
+        .project-delete-btn:hover {
+            background: rgba(255, 60, 60, 0.35);
         }
         
         .project-card.active {
@@ -2850,8 +2880,30 @@
                         <div class="project-name">${escapeHtml(p.name)}</div>
                         <div class="project-meta">${p.duration || '0'}s • ${p.mode || 'Draft'}</div>
                     </div>
+                    <button class="project-delete-btn" onclick="event.stopPropagation(); deleteProject(${p.id}, '${escapeHtml(p.name)}')" title="Delete project">✕</button>
                 </div>
             `).join('');
+        }
+
+        async function deleteProject(projectId, projectName) {
+            if (!confirm('Delete "' + projectName + '"? This cannot be undone.')) return;
+            try {
+                const res = await fetch('/project/' + projectId, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    if (state.currentProjectId === projectId) {
+                        state.currentProjectId = null;
+                        state.currentProjectName = null;
+                        state.messages = [];
+                        state.currentScenePlan = null;
+                        document.getElementById('project-name-text').textContent = 'New Project';
+                        renderMessages();
+                    }
+                    loadProjects();
+                }
+            } catch (err) {
+                console.error('Delete failed:', err);
+            }
         }
         
         function updateAutoGenStatus() {
