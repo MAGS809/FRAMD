@@ -561,6 +561,7 @@ def api_preview_status(project_id):
         'preview_video_url': config.get('preview_video_url'),
         'preview_error': config.get('preview_error'),
         'is_transition_preview': config.get('is_transition_preview', False),
+        'is_remix': config.get('is_remix', False),
     }
     
     return jsonify(result)

@@ -1271,19 +1271,41 @@
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
-        .preview-label {
+        .preview-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             position: absolute;
-            top: 8px;
-            left: 8px;
-            background: rgba(0, 0, 0, 0.7);
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 6px 8px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.7) 0%, transparent 100%);
+            border-radius: 10px 10px 0 0;
+            z-index: 2;
+        }
+        .preview-label {
             color: var(--gold);
             font-size: 10px;
             font-weight: 600;
-            padding: 3px 8px;
-            border-radius: 4px;
+            padding: 2px 6px;
             font-family: 'Space Grotesk', sans-serif;
             letter-spacing: 0.5px;
             text-transform: uppercase;
+        }
+        .preview-fullscreen-btn {
+            background: rgba(255,255,255,0.15);
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+        }
+        .preview-fullscreen-btn:hover {
+            background: rgba(255,255,255,0.3);
         }
         .preview-error {
             display: flex;
@@ -3622,8 +3644,13 @@
 
                     const statusText = document.getElementById('preview-status-text') || box.querySelector('.preview-loading span:first-of-type');
                     const statusMap = {
-                        'generating_preview': 'Extracting Scene 1 from source...',
+                        'generating_preview': 'Preparing preview...',
                         'extracting_scene1': 'Extracting Scene 1 from source...',
+                        'extracting_frame': 'Extracting frame from source...',
+                        'sending_to_runway': 'Sending to Runway for AI transformation...',
+                        'generating_ai_visuals': 'Generating AI visuals (this may take a minute)...',
+                        'downloading_result': 'Downloading AI-transformed clip...',
+                        'generating_scene2_ai': 'Scene 1 ready — generating Scene 2 AI visuals...',
                         'extracting_scene2': 'Scene 1 ready — extracting Scene 2...',
                         'stitching_transition': 'Both scenes ready — stitching transition...',
                     };
@@ -3634,12 +3661,20 @@
                     if (data.status === 'preview_ready' && data.preview_video_url) {
                         clearInterval(state.previewPollTimer);
                         state.previewPollTimer = null;
-                        const label = data.is_transition_preview ? 'Scene 1 → 2 Preview' : 'Scene 1 Preview';
+                        let label = data.is_transition_preview ? 'Scene 1 → 2 Preview' : 'Scene 1 Preview';
+                        if (data.is_remix) label += ' (AI Remix)';
                         box.innerHTML = `
-                            <video autoplay loop muted playsinline>
+                            <video autoplay loop muted playsinline controls>
                                 <source src="${data.preview_video_url}" type="video/mp4">
                             </video>
-                            <span class="preview-label">${label}</span>
+                            <div class="preview-bar">
+                                <span class="preview-label">${label}</span>
+                                <button class="preview-fullscreen-btn" onclick="togglePreviewFullscreen(this)" title="Fullscreen">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                                    </svg>
+                                </button>
+                            </div>
                         `;
                         scrollChatToBottom();
                     } else if (data.status === 'preview_failed') {
@@ -3655,6 +3690,19 @@
                     console.log('Preview poll error:', err);
                 }
             }, 5000);
+        }
+
+        function togglePreviewFullscreen(btn) {
+            const container = btn.closest('.scene-preview-container');
+            const video = container ? container.querySelector('video') : null;
+            if (!video) return;
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen();
+            } else if (video.webkitEnterFullScreen) {
+                video.webkitEnterFullScreen();
+            }
         }
 
         function approveScenePlan() {
