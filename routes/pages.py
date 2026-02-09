@@ -111,7 +111,7 @@ def profile():
     """User profile page."""
     user_initials, user_name, token_balance, export_count, _ = get_user_context()
     subscription = Subscription.query.filter_by(user_id=current_user.id).first()
-    tier = subscription.plan_type if subscription else 'free'
+    tier = subscription.tier if subscription else 'free'
     project_count = Project.query.filter_by(user_id=current_user.id).count()
     videos_completed = Project.query.filter_by(user_id=current_user.id, status='completed').count()
     member_since = current_user.created_at.strftime('%B %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'Unknown'
@@ -156,7 +156,7 @@ def billing():
     """User billing page."""
     user_initials, user_name, token_balance, export_count, _ = get_user_context()
     subscription = Subscription.query.filter_by(user_id=current_user.id).first()
-    tier = subscription.plan_type if subscription else 'free'
+    tier = subscription.tier if subscription else 'free'
 
     monthly_tokens_map = {'free': 50, 'creator': 300, 'pro': 1000}
     monthly_tokens = monthly_tokens_map.get(tier, 50)
