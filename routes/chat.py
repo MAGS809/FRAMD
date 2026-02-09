@@ -249,15 +249,21 @@ def build_scene_plan(project_id, user_id, mode, project):
         
         if scene_plan_data:
             first_scene = scene_plan_data[0]
+            second_scene = scene_plan_data[1] if len(scene_plan_data) > 1 else None
             first_sp = ScenePlan.query.filter_by(
                 project_id=project_id, scene_index=1
             ).first()
+            second_sp = ScenePlan.query.filter_by(
+                project_id=project_id, scene_index=2
+            ).first() if second_scene else None
             if first_sp:
                 quality = 'good'
                 generate_scene_preview_async(
                     project_id=project_id,
-                    scene_plan_id=first_sp.id,
-                    scene_data=first_scene,
+                    scene1_plan_id=first_sp.id,
+                    scene1_data=first_scene,
+                    scene2_data=second_scene,
+                    scene2_plan_id=second_sp.id if second_sp else None,
                     quality_tier=quality
                 )
                 scene_plan_data[0]['preview_status'] = 'generating'
@@ -547,9 +553,34 @@ def api_preview_status(project_id):
         'preview_video_url': config.get('preview_video_url'),
         'dalle_preview_url': config.get('dalle_preview_url'),
         'preview_error': config.get('preview_error'),
+        'is_transition_preview': config.get('is_transition_preview', False),
     }
     
     return jsonify(result)
+
+
+@chat_bp.route('/api/project/<int:project_id>/preview-video', methods=['GET'])
+def api_preview_video(project_id):
+    user_id = get_user_id()
+    if not user_id:
+        return '', 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return '', 404
+    
+    scene = ScenePlan.query.filter_by(project_id=project_id, scene_index=1).first()
+    if not scene:
+        return '', 404
+    
+    config = scene.source_config or {}
+    local_path = config.get('preview_local_path')
+    
+    if local_path and os.path.exists(local_path):
+        from flask import send_file
+        return send_file(local_path, mimetype='video/mp4')
+    
+    return '', 404
 
 
 @chat_bp.route('/api/project/<int:project_id>/chat', methods=['GET'])
