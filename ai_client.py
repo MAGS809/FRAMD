@@ -141,6 +141,23 @@ def extract_json_from_text(text: str) -> dict:
             except:
                 pass
     
+    for start_char, end_char in [('[', ']'), ('{', '}')]:
+        first = text.find(start_char)
+        if first == -1:
+            continue
+        depth = 0
+        for i in range(first, len(text)):
+            if text[i] == start_char:
+                depth += 1
+            elif text[i] == end_char:
+                depth -= 1
+            if depth == 0:
+                candidate = text[first:i+1]
+                try:
+                    return json.loads(candidate)
+                except:
+                    break
+    
     match = re.search(r'\{[\s\S]*\}', text)
     if match:
         try:

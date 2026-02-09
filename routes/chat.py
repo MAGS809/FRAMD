@@ -551,7 +551,6 @@ def api_preview_status(project_id):
         'ok': True,
         'status': scene.render_status,
         'preview_video_url': config.get('preview_video_url'),
-        'dalle_preview_url': config.get('dalle_preview_url'),
         'preview_error': config.get('preview_error'),
         'is_transition_preview': config.get('is_transition_preview', False),
     }

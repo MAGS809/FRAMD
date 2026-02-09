@@ -3402,7 +3402,7 @@
                 <div class="scene-preview-container" id="scene-preview-box">
                     <div class="preview-loading" id="preview-loading">
                         <div class="preview-spinner"></div>
-                        <span id="preview-status-text">Creating Scene 1 base frame...</span>
+                        <span id="preview-status-text">Extracting Scene 1 from source...</span>
                         <span style="font-size:10px;color:var(--text-dim);">This may take 2-3 minutes</span>
                     </div>
                     <span class="preview-label">Scene 1 → 2 Preview</span>
@@ -3502,9 +3502,9 @@
 
                     const statusText = document.getElementById('preview-status-text') || box.querySelector('.preview-loading span:first-of-type');
                     const statusMap = {
-                        'generating_preview': 'Creating Scene 1 base frame...',
-                        'generating_runway': 'Scene 1 frame ready — generating motion...',
-                        'generating_scene2': 'Scene 1 done — creating Scene 2 frame...',
+                        'generating_preview': 'Extracting Scene 1 from source...',
+                        'extracting_scene1': 'Extracting Scene 1 from source...',
+                        'extracting_scene2': 'Scene 1 ready — extracting Scene 2...',
                         'stitching_transition': 'Both scenes ready — stitching transition...',
                     };
                     if (statusMap[data.status] && statusText) {
@@ -3525,18 +3525,11 @@
                     } else if (data.status === 'preview_failed') {
                         clearInterval(state.previewPollTimer);
                         state.previewPollTimer = null;
-                        if (data.dalle_preview_url) {
-                            box.innerHTML = `
-                                <img src="${data.dalle_preview_url}" alt="Scene 1 preview frame">
-                                <span class="preview-label">Scene 1 Frame (motion unavailable)</span>
-                            `;
-                        } else {
-                            box.innerHTML = `
-                                <div class="preview-error">
-                                    <span>Preview couldn't be generated. You can still approve the plan.</span>
-                                </div>
-                            `;
-                        }
+                        box.innerHTML = `
+                            <div class="preview-error">
+                                <span>Preview couldn't be generated. You can still approve the plan.</span>
+                            </div>
+                        `;
                     }
                 } catch (err) {
                     console.log('Preview poll error:', err);
