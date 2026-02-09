@@ -2648,7 +2648,7 @@
             try {
                 addAIMessage("Uploading your file...");
                 
-                const response = await fetch('/upload-media', {
+                const response = await fetch('/upload', {
                     method: 'POST',
                     body: formData
                 });
