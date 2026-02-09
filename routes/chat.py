@@ -56,17 +56,26 @@ Respond as a structured JSON object:
     "suggested_mode": "remix|clipper|simple|null",
     "overlay_suggestions": [],
     "extracted_thesis": "The core thesis/argument if identifiable, otherwise null",
-    "suggested_approach": "clip|remix|mixed|template|null"
+    "suggested_approach": "clip|remix|mixed|template|null",
+    "quick_replies": ["Option A", "Option B"]
 }}
 
 RULES:
-- "needs_clarification": true ONLY if you genuinely need critical info (brand colors, tone, audience, direction)
+- "needs_clarification": true ONLY if you genuinely need critical info that would fundamentally change the output (e.g. the user gave zero direction). If you can make a reasonable creative decision, MAKE IT. Don't ask.
 - "ready_to_generate": true ONLY if the user has explicitly confirmed they want to proceed with generation AND you have enough info
 - "response": natural, concise response. 1-3 sentences MAX. If asking a question, ask exactly ONE. No bullet lists, no disclaimers, no policy explanations. Sound like a sharp creative director — get to the point fast.
 - "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null
 - "extracted_thesis": if the user describes a video idea, extract the core thesis or argument. null if not applicable.
 - "suggested_approach": suggest the best production approach based on available sources. null if unclear.
+- "quick_replies": 2-4 short tappable options the user can click instead of typing. ALWAYS include these when your response implies a choice or confirmation. Examples: ["Yes, build it", "Change the tone first"], ["Remix mode", "Clip mode", "Mix both"]. Keep each under 5 words. If no choices apply, use empty array.
 - "overlay_suggestions": ONLY for clipper mode. If overlays could enhance the clip, suggest them with precise descriptive language. Each suggestion is an object with "type" (caption|logo|lower_third|text|watermark|progress_bar|cta) and "reason" (why this overlay would work for their content). NEVER auto-apply overlays — only suggest. Always leave room for user input. If the user hasn't asked about overlays, set to empty array.
+
+DECISIVENESS (CRITICAL):
+- You are a creative director. Make decisions. Don't ask permission for things you can decide yourself.
+- If the user says "make it a call to action" — decide HOW. Don't ask "what kind of CTA?"
+- If the user says "however you see fit" — that means PROCEED, don't ask another question.
+- MAX 2 clarifying questions per project. After that, make your best creative call and build the scene plan.
+- When you have: thesis + source material + general direction → BUILD THE SCENE PLAN. Don't stall.
 
 ANTI-VERBOSITY (CRITICAL):
 - NEVER dump walls of bullet points at the user.
@@ -267,6 +276,7 @@ def api_chat():
         overlay_suggestions = []
         extracted_thesis = None
         suggested_approach = None
+        quick_replies = []
         if isinstance(response, dict):
             ai_response = response.get('response', '')
             needs_clarification = response.get('needs_clarification', False)
@@ -275,6 +285,7 @@ def api_chat():
             overlay_suggestions = response.get('overlay_suggestions', [])
             extracted_thesis = response.get('extracted_thesis')
             suggested_approach = response.get('suggested_approach')
+            quick_replies = response.get('quick_replies', [])
         else:
             ai_response = str(response) if response else "I'm ready to help you create your video. What would you like to make?"
             needs_clarification = True
@@ -289,6 +300,7 @@ def api_chat():
         overlay_suggestions = []
         extracted_thesis = None
         suggested_approach = None
+        quick_replies = []
     
     ai_conv = Conversation(
         user_id=user_id,
@@ -353,6 +365,7 @@ def api_chat():
         'overlay_suggestions': overlay_suggestions if mode == 'clipper' else [],
         'extracted_thesis': extracted_thesis,
         'suggested_approach': suggested_approach,
+        'quick_replies': quick_replies,
     }
     
     if scene_plan_data:
