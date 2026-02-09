@@ -1047,3 +1047,385 @@ def generate_video():
         print(f"[generate-video] Error: {e}")
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+COST_CLIP_SCENE = 0.10
+COST_STOCK_SCENE = 0.15
+COST_DALLE_SCENE = 0.30
+COST_REMIX_GOOD = 0.20
+COST_REMIX_BETTER = 0.30
+COST_REMIX_BEST = 0.40
+
+
+@pipeline_bp.route('/api/pipeline/upload-source', methods=['POST'])
+def upload_source():
+    from models import Project, ProjectSource
+    from routes.utils import get_user_id
+
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        project_id = request.form.get('project_id')
+        processing_mode = request.form.get('processing_mode', 'clip')
+
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+
+        if processing_mode not in ('clip', 'remix'):
+            return jsonify({'error': 'processing_mode must be clip or remix'}), 400
+
+        project = Project.query.filter_by(id=int(project_id), user_id=user_id).first()
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        if not file.filename:
+            return jsonify({'error': 'Empty filename'}), 400
+
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        file_type = 'video' if ext in ('mp4', 'mov', 'avi', 'webm', 'mkv') else 'audio' if ext in ('mp3', 'wav', 'm4a', 'aac') else 'other'
+
+        unique_name = f"{uuid.uuid4()}_{file.filename}"
+        save_path = os.path.join('uploads', unique_name)
+        file.save(save_path)
+
+        duration = None
+        try:
+            probe = subprocess.run(
+                ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'json', save_path],
+                capture_output=True, text=True, timeout=30
+            )
+            probe_data = json.loads(probe.stdout)
+            duration = float(probe_data.get('format', {}).get('duration', 0))
+        except Exception:
+            pass
+
+        existing_count = ProjectSource.query.filter_by(project_id=project.id).count()
+
+        source = ProjectSource(
+            project_id=project.id,
+            user_id=user_id,
+            file_path=save_path,
+            file_name=file.filename,
+            file_type=file_type,
+            duration=duration,
+            processing_mode=processing_mode,
+            processing_status='pending',
+            sort_order=existing_count,
+        )
+        db.session.add(source)
+        db.session.commit()
+
+        return jsonify({'success': True, 'source': source.to_dict()})
+
+    except Exception as e:
+        logging.error(f"[upload-source] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/api/pipeline/process-source', methods=['POST'])
+def process_source():
+    from models import ProjectSource
+    from context_engine import extract_audio, transcribe_audio
+    from routes.utils import get_user_id
+
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        data = request.get_json()
+        source_id = data.get('source_id')
+        if not source_id:
+            return jsonify({'error': 'source_id is required'}), 400
+
+        source = ProjectSource.query.filter_by(id=source_id, user_id=user_id).first()
+        if not source:
+            return jsonify({'error': 'Source not found'}), 404
+
+        source.processing_status = 'processing'
+        db.session.commit()
+
+        if source.processing_mode == 'clip':
+            audio_path = source.file_path.rsplit('.', 1)[0] + '_audio.wav'
+            if source.file_type == 'audio':
+                audio_path = source.file_path
+            else:
+                if not extract_audio(source.file_path, audio_path):
+                    source.processing_status = 'error'
+                    source.processing_error = 'Failed to extract audio'
+                    db.session.commit()
+                    return jsonify({'error': 'Failed to extract audio from source'}), 500
+
+            transcript_data = transcribe_audio(audio_path)
+            source.transcript = transcript_data.get('full_text', '')
+            source.transcript_segments = transcript_data.get('segments', [])
+            source.processing_status = 'completed'
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'source': source.to_dict(),
+                'transcript': source.transcript,
+                'segments': source.transcript_segments,
+            })
+
+        elif source.processing_mode == 'remix':
+            source.skeleton_data = {
+                'status': 'placeholder',
+                'note': 'Runway integration pending — skeleton extraction will be available soon',
+                'file_path': source.file_path,
+                'duration': source.duration,
+            }
+            source.processing_status = 'completed'
+            db.session.commit()
+
+            return jsonify({
+                'success': True,
+                'source': source.to_dict(),
+                'skeleton_data': source.skeleton_data,
+            })
+
+        else:
+            return jsonify({'error': f'Unknown processing mode: {source.processing_mode}'}), 400
+
+    except Exception as e:
+        logging.error(f"[process-source] Error: {e}")
+        try:
+            source.processing_status = 'error'
+            source.processing_error = str(e)
+            db.session.commit()
+        except Exception:
+            pass
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/api/pipeline/build-scene-plan', methods=['POST'])
+def build_scene_plan():
+    from models import Project, ProjectSource, ScenePlan
+    from context_engine import call_ai, SYSTEM_GUARDRAILS
+    from routes.utils import get_user_id
+
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        data = request.get_json()
+        project_id = data.get('project_id')
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+
+        project = Project.query.filter_by(id=int(project_id), user_id=user_id).first()
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        sources = ProjectSource.query.filter_by(project_id=project.id).order_by(ProjectSource.sort_order).all()
+
+        source_descriptions = []
+        for s in sources:
+            desc = f"Source #{s.sort_order + 1}: '{s.file_name}' ({s.processing_mode} mode, {s.file_type}, {s.duration or 'unknown'}s)"
+            if s.transcript:
+                desc += f"\n  Transcript excerpt: {s.transcript[:300]}..."
+            if s.skeleton_data:
+                desc += f"\n  Skeleton data available: {s.skeleton_data.get('status', 'unknown')}"
+            source_descriptions.append(desc)
+
+        sources_text = "\n".join(source_descriptions) if source_descriptions else "No uploaded sources — use stock footage and DALL-E generated visuals."
+
+        brief_text = project.brief or project.description or project.name or "No brief provided"
+
+        prompt = f"""Analyze this video project and create a detailed scene-by-scene plan.
+
+PROJECT BRIEF:
+{brief_text}
+
+AVAILABLE SOURCES:
+{sources_text}
+
+COST REFERENCE:
+- clip scene (from uploaded video): $0.10/scene
+- stock scene (stock footage): $0.15/scene
+- dalle scene (AI generated): $0.30/scene
+- remix/runway scene: $0.20/second (good), $0.30/second (better), $0.40/second (best)
+
+Create a scene plan as a JSON array. Each scene object must have:
+- "scene_index": integer starting at 0
+- "source_type": one of "clip", "remix", "stock", "dalle"
+- "source_id": integer ID of the ProjectSource to use (null if stock/dalle)
+- "visual_container": one of "fullscreen", "split_screen", "pip", "overlay"
+- "anchor_type": one of "hook", "claim", "evidence", "transition", "cta"
+- "script_text": what the narrator/text says during this scene
+- "duration": estimated seconds for this scene
+- "transition_in": one of "cut", "fade", "slide", "zoom" or null
+- "transition_out": one of "cut", "fade", "slide", "zoom" or null
+- "estimated_cost": float cost based on the cost reference above
+- "source_config": object with any additional config (e.g. {{"quality": "good"}}, {{"start_time": 5.0, "end_time": 10.0}})
+
+Return ONLY a JSON object: {{"scenes": [...]}}"""
+
+        ai_result = call_ai(
+            prompt=prompt,
+            system_prompt=SYSTEM_GUARDRAILS,
+            json_output=True,
+            max_tokens=2000
+        )
+
+        scenes_data = []
+        if isinstance(ai_result, dict):
+            scenes_data = ai_result.get('scenes', [])
+        elif isinstance(ai_result, list):
+            scenes_data = ai_result
+
+        if not scenes_data:
+            scenes_data = [{
+                'scene_index': 0,
+                'source_type': 'stock',
+                'source_id': None,
+                'visual_container': 'fullscreen',
+                'anchor_type': 'hook',
+                'script_text': brief_text[:200],
+                'duration': 5.0,
+                'transition_in': 'fade',
+                'transition_out': 'cut',
+                'estimated_cost': COST_STOCK_SCENE,
+                'source_config': {},
+            }]
+
+        ScenePlan.query.filter_by(project_id=project.id).delete()
+
+        created_scenes = []
+        for scene_data in scenes_data:
+            source_type = scene_data.get('source_type', 'stock')
+            duration = float(scene_data.get('duration', 5.0))
+
+            if 'estimated_cost' in scene_data:
+                est_cost = float(scene_data['estimated_cost'])
+            else:
+                if source_type == 'clip':
+                    est_cost = COST_CLIP_SCENE
+                elif source_type == 'stock':
+                    est_cost = COST_STOCK_SCENE
+                elif source_type == 'dalle':
+                    est_cost = COST_DALLE_SCENE
+                elif source_type == 'remix':
+                    quality = (scene_data.get('source_config') or {}).get('quality', 'good')
+                    rate = {'good': COST_REMIX_GOOD, 'better': COST_REMIX_BETTER, 'best': COST_REMIX_BEST}.get(quality, COST_REMIX_GOOD)
+                    est_cost = round(rate * duration, 2)
+                else:
+                    est_cost = COST_STOCK_SCENE
+
+            scene = ScenePlan(
+                project_id=project.id,
+                scene_index=scene_data.get('scene_index', 0),
+                source_type=source_type,
+                source_id=scene_data.get('source_id'),
+                source_config=scene_data.get('source_config'),
+                visual_container=scene_data.get('visual_container', 'fullscreen'),
+                anchor_type=scene_data.get('anchor_type'),
+                script_text=scene_data.get('script_text'),
+                duration=duration,
+                start_time=scene_data.get('start_time', 0.0),
+                end_time=scene_data.get('end_time'),
+                transition_in=scene_data.get('transition_in'),
+                transition_out=scene_data.get('transition_out'),
+                estimated_cost=est_cost,
+                render_status='planned',
+            )
+            db.session.add(scene)
+            created_scenes.append(scene)
+
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'project_id': project.id,
+            'scene_count': len(created_scenes),
+            'scenes': [s.to_dict() for s in created_scenes],
+        })
+
+    except Exception as e:
+        logging.error(f"[build-scene-plan] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/api/pipeline/scene-plan/<int:project_id>', methods=['GET'])
+def get_scene_plan(project_id):
+    from models import Project, ScenePlan
+    from routes.utils import get_user_id
+
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        scenes = ScenePlan.query.filter_by(project_id=project.id).order_by(ScenePlan.scene_index).all()
+
+        return jsonify({
+            'success': True,
+            'project_id': project.id,
+            'scene_count': len(scenes),
+            'scenes': [s.to_dict() for s in scenes],
+        })
+
+    except Exception as e:
+        logging.error(f"[get-scene-plan] Error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@pipeline_bp.route('/api/pipeline/estimate-cost', methods=['POST'])
+def estimate_cost():
+    from models import Project, ScenePlan
+    from routes.utils import get_user_id
+
+    try:
+        user_id = get_user_id()
+        if not user_id:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        data = request.get_json()
+        project_id = data.get('project_id')
+        if not project_id:
+            return jsonify({'error': 'project_id is required'}), 400
+
+        project = Project.query.filter_by(id=int(project_id), user_id=user_id).first()
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        scenes = ScenePlan.query.filter_by(project_id=project.id).order_by(ScenePlan.scene_index).all()
+
+        breakdown = {}
+        total = 0.0
+        for scene in scenes:
+            stype = scene.source_type or 'stock'
+            cost = scene.estimated_cost or 0.0
+            total += cost
+            if stype not in breakdown:
+                breakdown[stype] = {'count': 0, 'cost': 0.0}
+            breakdown[stype]['count'] += 1
+            breakdown[stype]['cost'] = round(breakdown[stype]['cost'] + cost, 2)
+
+        total = round(total, 2)
+        project.total_estimated_cost = total
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'project_id': project.id,
+            'total_estimated_cost': total,
+            'scene_count': len(scenes),
+            'breakdown': breakdown,
+        })
+
+    except Exception as e:
+        logging.error(f"[estimate-cost] Error: {e}")
+        return jsonify({'error': str(e)}), 500

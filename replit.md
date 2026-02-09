@@ -83,60 +83,41 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 
 **UI/UX Design:**
 - **Brand**: Framd (powered by Echo Engine) using Space Grotesk and Inter typography.
-- **Style**: Minimal, modern LLM-style UI with glassmorphism and Apple-inspired elements.
-- **Color Scheme**: Deep forest green (#0a1f14) with golden yellow (#ffd60a) accents.
-- **Workflow**: Guided 8-step process via an "Echo Engine" chat interface; chat-driven stage transitions.
-- **Template System**: 9 templates (e.g., Hot Take, Explainer, Meme/Funny) to guide AI content creation.
-- **Discover Feed**: Tinder-style swipeable cards for AI-generated content, enabling user feedback and personalization.
+- **Style**: Minimal, modern LLM-style UI with dark theme (#0d0d0d bg, #ffd60a gold accents).
+- **Workflow**: Brief-first chat interface — user describes idea, optionally uploads videos, AI builds scene plan.
+- **Entry Point**: "What do you want to make?" with text input + upload button. Mode cards (Remix, Clipper, Stock) are optional presets below.
+- **Scene Plan UI**: Interactive scene-by-scene display with source types, containers, costs, and approve/revise buttons.
+- **Community Templates**: Matched when no uploads provided; 3-tier system (exact → close → AI-generated).
+
+**Unified Pipeline Architecture:**
+- **Brief-First Flow**: User describes idea → optionally uploads videos (each can be clip OR remix) → AI builds scene plan → cost estimate → approve → generate.
+- **Modes became presets**: Remix, Clipper, Stock are shortcuts that pre-fill context, not rigid gates. Users never locked into one capability.
+- **Per-video processing**: Each uploaded video gets its own clip/remix toggle. Clip extracts best moments; remix extracts skeleton/vibe for AI transformation.
+- **Visual Director** (`services/visual_director.py`): AI establishes visual structure BEFORE sourcing. Determines layout_type, container_style, color_palette, motion_style, transitions, grain, contrast. Stock footage is NEVER raw — always placed INSIDE visual containers (cards, frames, split screens).
+- **Scene Composer** (`services/scene_composer.py`): Orders scenes by narrative anchor structure (HOOK → CLAIM → EVIDENCE → PIVOT → COUNTER → CLOSER). Identifies and fills timeline gaps. Builds unified timeline with consistent post-processing.
+- **Community Template System** (`routes/community.py`): 3-tier template matching (exact topic+tone → broadened → AI-generated with trend research). Watermark rules: F/Echo for AI-generated (removed with any edit), F/creatorUsername for community (requires AI-evaluated meaningful structural change).
 
 **Technical Implementations:**
 - **Backend**: Flask web application (`app.py`) with modular Blueprint architecture:
-  - `routes/chat.py` (chat_bp) - Chat/conversation endpoints (/api/chat)
+  - `routes/chat.py` (chat_bp) - Chat/conversation endpoints (/api/chat) with unified pipeline awareness
+  - `routes/pipeline.py` (pipeline_bp) - Unified pipeline endpoints (upload-source, process-source, build-scene-plan, estimate-cost)
+  - `routes/community.py` (community_bp) - Community template matching, creation, watermark removal evaluation
   - `routes/api.py` (api_bp) - Jobs API endpoints (/api/jobs, /api/projects)
   - `routes/pages.py` (pages_bp) - Page templates (/, /pricing, /terms, /privacy, /faq, /dev, /chat)
   - `routes/auth.py` (auth_bp) - Authentication under /v2 prefix
   - `routes/payments.py` (payments_bp) - Stripe webhooks under /v2 prefix
 - **Core Processing**: `context_engine.py` manages AI processing pipeline and conversation memory.
-- **Unified Content Engine**: A single AI for content creation, handling text to script conversion and video/audio processing.
-- **Thesis-Driven Architecture**: Content is structured around a single core thesis with specific anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
-- **AI Reasoning**: Utilizes a 4-question framework for content generation.
-- **Trend Intelligence**: AI researches social media platforms for current trends to inform script generation, visual curation, and output descriptions.
-- **Visual Content Sourcing**: Prioritizes AI-generated visuals (DALL-E), with stock (Wikimedia/Pexels) as fallback.
+- **Database Models**: ProjectSource (per-video with clip/remix mode), CommunityTemplate (with watermark logic), ScenePlan (per-scene with source_type, visual_container, cost). Project model extended with brief, visual_structure, pipeline fields.
+- **Thesis-Driven Architecture**: Content structured around core thesis with anchor points (HOOK, CLAIM, EVIDENCE, PIVOT, COUNTER, CLOSER).
+- **Trend Intelligence**: AI researches social media platforms for current trends.
+- **Visual Content Sourcing**: Priority: user content → AI-generated (DALL-E/Runway) → stock (Wikimedia/Pexels). Stock always inside visual containers.
 - **Voice System**: 8 distinct character personas with multi-character script support.
-- **Caption Template System**: 5 templates (Bold Pop, Clean Minimal, Boxed, Gradient Glow, Street Style) with word-by-word highlighting synced to audio. OpenAI Whisper extracts precise word-level timestamps.
+- **Caption Template System**: 5 templates with word-by-word highlighting synced to audio.
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
-- **Scene Composer**: Enables background picking and character layering.
-- **Multi-Platform Export**: Export to TikTok, Instagram Reels, YouTube Shorts, and Twitter with platform-optimized formats.
-- **Promo Pack Generator**: AI analyzes scripts to extract quotes and generate shareable content like quote cards.
-- **Token Cost System**: Token-based pricing with a per-video cost structure.
-- **AI Learning System**: Tracks successful projects and user style for auto-generation and refinement.
-- **AI Self-Critique System**: Post-export, AI analyzes its own work, identifies strengths/weaknesses, scores intent fulfillment, and stores learnings.
-- **Unified AI Philosophy**: ONE AI brain (Claude) with consistent ethos across all modes (Remix, Clipper, Simple Stock).
-- **Auto-Generator System**: AI-powered content draft generation integrated with trend research, offering multiple drafts.
-- **Subscription Model**: Four tiers (Free, Starter, Pro, Pro Creator) with token-based pricing and varying features.
-- **NSFW Content Filter**: Blocks inappropriate images.
-- **AI Remix Mode**: Vibe-based video creation with surgical API orchestration. Reference files provide SKELETON (motion/timing structure) and VIBE (mood/energy) - but their visuals are NEVER used. Claude orchestrates Runway API + stock + user content files to produce agency-quality videos.
-- **Skeleton Extraction System**: Analyzes reference video to extract motion/timing STRUCTURE only:
-  - When cuts happen (timing structure)
-  - How camera moves (motion patterns: push_in, pan, zoom, etc.)
-  - How subjects move (movement types: walking, gesture, still)
-  - The rhythm and pacing (energy flow across scenes)
-  - Reference video visuals are NEVER integrated into final output
-- **Vibe Extraction System**: Analyzes reference material to extract mood/energy/pacing DIRECTION only. Reference is never integrated into final video.
-- **File Type Distinction**: Reference files (skeleton/vibe extraction only) vs Content files (prioritized in final video) vs Stock (gap-filling) vs Runway output (AI-generated core).
-- **Surgical Source Assignment**: Claude explicitly decides the visual source for each scene:
-  - Priority 1: User's content files (if available and fits motion needs)
-  - Priority 2: Runway AI-generated (for abstract, stylized, or custom scenes)
-  - Priority 3: Stock footage (for realistic b-roll and gap-filling)
-  - Each scene gets a source_type, source_reason, and motion_guidance from skeleton
-- **Surgical Orchestration Engine**: Generates precise instructions for Runway + Shotstack to work in conjunction. Each API receives exact parameters. Timeline is built from source assignments mapped to skeleton timing.
-- **Clipper Mode**: Clip videos and add reusable overlay templates. AI-guided overlay suggestions with precise descriptive language — never auto-applies, always user-driven. Two-tier save system: Recent Overlays (auto-saved per project) and Saved Templates (permanent, cross-project). 7 overlay types: captions (AssemblyAI word-level sync), logo, lower thirds, text, watermark, progress bar, CTA. Volume cap at $29.99/month — free clips after cap reached.
-- **Custom Template System**: Users create personal templates with element-level precision using frame-by-frame element detection and interactive editing.
-- **Visual Director AI**: Pre-plans all visuals for coherence, consistency (color palette, style), and editing patterns based on content type.
-- **Preview Protection System**: Watermarked previews; "Download" accepts, "Needs Changes" triggers revisions, "Get Final Video" removes watermark (uses tokens).
-- **Intelligent Source Mixing**: AI decides optimal visual source per scene (stock for realism, DALL-E for abstract, user content prioritized).
-- **Source Merging Engine**: Unified post-processing blends all sources using color grading profiles, film grain, and transition effects via FFmpeg.
-- **Database**: PostgreSQL with 25+ tables for AI learning and system data.
+- **Overlay System**: 7 overlay types with two-tier save (Recent + Saved Templates). Volume cap at $29.99/month.
+- **Preview Protection**: Watermarked previews; approve/revise flow in chat.
+- **Source Merging Engine**: Unified post-processing with color grading, grain, transitions via FFmpeg.
+- **Database**: PostgreSQL with 28+ tables including community_templates, project_sources, scene_plans.
 
 ## External Dependencies
 - **Python 3.11**

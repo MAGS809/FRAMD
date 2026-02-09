@@ -113,6 +113,7 @@ from routes.templates import template_bp
 from routes.pipeline import pipeline_bp
 from routes.voice import voice_bp
 from routes.overlays import overlays_bp
+from routes.community import community_bp
 app.register_blueprint(auth_bp)
 app.register_blueprint(payments_bp)
 app.register_blueprint(projects_bp)
@@ -132,6 +133,7 @@ app.register_blueprint(template_bp)
 app.register_blueprint(pipeline_bp)
 app.register_blueprint(voice_bp)
 app.register_blueprint(overlays_bp)
+app.register_blueprint(community_bp)
 
 
 UPLOAD_FOLDER = 'uploads'

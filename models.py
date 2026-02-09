@@ -58,24 +58,33 @@ class Project(db.Model):
     status = db.Column(db.String(50), default='draft')
     script = db.Column(db.Text, nullable=True)
     visual_plan = db.Column(db.JSON, nullable=True)
-    sound_plan = db.Column(db.JSON, nullable=True)  # Music/FX suggestions from AI generation
+    sound_plan = db.Column(db.JSON, nullable=True)
     voice_assignments = db.Column(db.JSON, nullable=True)
     caption_settings = db.Column(db.JSON, nullable=True)
     video_path = db.Column(db.String(500), nullable=True)
-    workflow_step = db.Column(db.Integer, default=1)  # 1-8 workflow progress
+    workflow_step = db.Column(db.Integer, default=1)
     is_successful = db.Column(db.Boolean, default=False)
     success_score = db.Column(db.Integer, default=0)
-    revision_count = db.Column(db.Integer, default=0)  # Track revision attempts
-    liked = db.Column(db.Boolean, nullable=True)  # True=liked, False=disliked, None=no feedback
-    auto_generate_enabled = db.Column(db.Boolean, default=False)  # AI auto-generation toggle
-    uploaded_clips = db.Column(db.JSON, nullable=True)  # List of clip paths for AI to use
-    template_type = db.Column(db.String(50), default='start_from_scratch')  # Template used for this project
+    revision_count = db.Column(db.Integer, default=0)
+    liked = db.Column(db.Boolean, nullable=True)
+    auto_generate_enabled = db.Column(db.Boolean, default=False)
+    uploaded_clips = db.Column(db.JSON, nullable=True)
+    template_type = db.Column(db.String(50), default='start_from_scratch')
+    brief = db.Column(db.Text, nullable=True)
+    visual_structure = db.Column(db.JSON, nullable=True)
+    total_estimated_cost = db.Column(db.Float, nullable=True)
+    pipeline_mode = db.Column(db.String(20), default='unified')
+    community_template_id = db.Column(db.Integer, nullable=True)
+    watermark_type = db.Column(db.String(20), nullable=True)
+    watermark_removed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
     updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
     
     user = db.relationship('User', backref=db.backref('projects', lazy='dynamic'))
     feedbacks = db.relationship('VideoFeedback', backref='project', lazy='dynamic')
     generated_drafts = db.relationship('GeneratedDraft', backref='project', lazy='dynamic')
+    sources = db.relationship('ProjectSource', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    scene_plans = db.relationship('ScenePlan', backref='project', lazy='dynamic', cascade='all, delete-orphan')
 
 
 class VideoFeedback(db.Model):
@@ -776,3 +785,134 @@ class MonthlyUsage(db.Model):
     __table_args__ = (
         UniqueConstraint('user_id', 'month', name='uq_user_month_usage'),
     )
+
+
+class CommunityTemplate(db.Model):
+    __tablename__ = 'community_templates'
+    id = db.Column(db.Integer, primary_key=True)
+    creator_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=True, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    thumbnail_path = db.Column(db.String(500), nullable=True)
+    preview_video_path = db.Column(db.String(500), nullable=True)
+    topic_tags = db.Column(db.JSON, default=list)
+    tone_tags = db.Column(db.JSON, default=list)
+    structure_tags = db.Column(db.JSON, default=list)
+    visual_structure = db.Column(db.JSON, nullable=True)
+    scene_blueprint = db.Column(db.JSON, nullable=True)
+    color_palette = db.Column(db.JSON, nullable=True)
+    motion_style = db.Column(db.String(50), nullable=True)
+    duration_range = db.Column(db.JSON, nullable=True)
+    is_ai_generated = db.Column(db.Boolean, default=False)
+    trend_data = db.Column(db.JSON, nullable=True)
+    usage_count = db.Column(db.Integer, default=0)
+    like_count = db.Column(db.Integer, default=0)
+    is_public = db.Column(db.Boolean, default=True)
+    is_featured = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    creator = db.relationship('User', backref=db.backref('community_templates_created', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'creator_id': self.creator_id,
+            'creator_name': self.creator.first_name if self.creator else 'Echo',
+            'name': self.name,
+            'description': self.description,
+            'thumbnail_path': self.thumbnail_path,
+            'topic_tags': self.topic_tags or [],
+            'tone_tags': self.tone_tags or [],
+            'structure_tags': self.structure_tags or [],
+            'visual_structure': self.visual_structure,
+            'is_ai_generated': self.is_ai_generated,
+            'usage_count': self.usage_count,
+            'like_count': self.like_count,
+            'watermark_label': 'F/Echo' if self.is_ai_generated else f'F/{self.creator.first_name or self.creator_id}' if self.creator else 'F/Echo',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class ProjectSource(db.Model):
+    __tablename__ = 'project_sources'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    file_path = db.Column(db.String(500), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)
+    duration = db.Column(db.Float, nullable=True)
+    processing_mode = db.Column(db.String(20), nullable=False)
+    transcript = db.Column(db.Text, nullable=True)
+    transcript_segments = db.Column(db.JSON, nullable=True)
+    skeleton_data = db.Column(db.JSON, nullable=True)
+    vibe_data = db.Column(db.JSON, nullable=True)
+    selected_segments = db.Column(db.JSON, nullable=True)
+    processing_status = db.Column(db.String(30), default='pending')
+    processing_error = db.Column(db.Text, nullable=True)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = db.relationship('User', backref=db.backref('project_sources', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'file_name': self.file_name,
+            'file_type': self.file_type,
+            'duration': self.duration,
+            'processing_mode': self.processing_mode,
+            'has_transcript': bool(self.transcript),
+            'has_skeleton': bool(self.skeleton_data),
+            'selected_segments': self.selected_segments,
+            'processing_status': self.processing_status,
+            'sort_order': self.sort_order,
+        }
+
+
+class ScenePlan(db.Model):
+    __tablename__ = 'scene_plans'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    scene_index = db.Column(db.Integer, nullable=False)
+    source_type = db.Column(db.String(30), nullable=False)
+    source_id = db.Column(db.Integer, nullable=True)
+    source_config = db.Column(db.JSON, nullable=True)
+    visual_container = db.Column(db.String(30), default='fullscreen')
+    container_config = db.Column(db.JSON, nullable=True)
+    anchor_type = db.Column(db.String(30), nullable=True)
+    script_text = db.Column(db.Text, nullable=True)
+    start_time = db.Column(db.Float, default=0.0)
+    end_time = db.Column(db.Float, nullable=True)
+    duration = db.Column(db.Float, nullable=True)
+    transition_in = db.Column(db.String(30), nullable=True)
+    transition_out = db.Column(db.String(30), nullable=True)
+    color_grade = db.Column(db.JSON, nullable=True)
+    motion_guidance = db.Column(db.JSON, nullable=True)
+    overlay_ids = db.Column(db.JSON, default=list)
+    estimated_cost = db.Column(db.Float, default=0.0)
+    render_status = db.Column(db.String(30), default='planned')
+    rendered_path = db.Column(db.String(500), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'scene_index': self.scene_index,
+            'source_type': self.source_type,
+            'source_config': self.source_config,
+            'visual_container': self.visual_container,
+            'anchor_type': self.anchor_type,
+            'script_text': self.script_text,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'duration': self.duration,
+            'transition_in': self.transition_in,
+            'transition_out': self.transition_out,
+            'estimated_cost': self.estimated_cost,
+            'render_status': self.render_status,
+        }

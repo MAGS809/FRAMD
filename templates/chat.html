@@ -585,29 +585,204 @@
         .chat-welcome p {
             color: var(--text-dim);
             font-size: 15px;
-            margin-bottom: 40px;
+            margin-bottom: 12px;
         }
-        
+
+        .brief-input-section {
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .brief-input-wrapper {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 4px;
+            transition: border-color 0.2s;
+        }
+
+        .brief-input-wrapper:focus-within {
+            border-color: var(--gold);
+        }
+
+        .brief-textarea {
+            width: 100%;
+            min-height: 80px;
+            max-height: 160px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
+            padding: 14px 16px 8px;
+            resize: none;
+            outline: none;
+        }
+
+        .brief-textarea::placeholder {
+            color: var(--text-faint);
+        }
+
+        .brief-bottom-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 8px 8px 12px;
+        }
+
+        .brief-upload-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-dim);
+            font-size: 13px;
+            padding: 6px 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .brief-upload-btn:hover {
+            color: var(--gold);
+            border-color: var(--text-dim);
+        }
+
+        .brief-upload-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .brief-go-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--gold);
+            border: none;
+            color: #0d0d0d;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .brief-go-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 16px rgba(255, 214, 10, 0.3);
+        }
+
+        .brief-go-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .brief-go-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .uploaded-files-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 12px 4px;
+        }
+
+        .uploaded-file-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 214, 10, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .uploaded-file-chip .file-mode-toggle {
+            display: flex;
+            gap: 2px;
+            margin-left: 4px;
+        }
+
+        .file-mode-btn {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-faint);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .file-mode-btn.active {
+            background: var(--gold);
+            color: #0d0d0d;
+            border-color: var(--gold);
+            font-weight: 600;
+        }
+
+        .file-mode-btn:hover:not(.active) {
+            border-color: var(--text-dim);
+            color: var(--text-dim);
+        }
+
+        .file-remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-faint);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0 2px;
+            line-height: 1;
+        }
+
+        .file-remove-btn:hover {
+            color: var(--gold);
+        }
+
+        .presets-section {
+            margin-top: 8px;
+        }
+
+        .presets-label {
+            font-size: 12px;
+            color: var(--text-faint);
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
         .mode-cards {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
             margin-bottom: 40px;
         }
         
         .mode-card {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 24px 16px;
+            border-radius: 10px;
+            padding: 12px 18px;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
+            flex: 0 1 auto;
+            min-width: 120px;
         }
         
         .mode-card:hover {
             border-color: var(--text-dim);
-            transform: translateY(-2px);
+            transform: translateY(-1px);
         }
         
         .mode-card.selected {
@@ -616,41 +791,38 @@
         }
         
         .mode-icon {
-            width: 48px;
-            height: 48px;
-            margin: 0 auto 12px;
+            width: 28px;
+            height: 28px;
+            margin: 0 auto 6px;
             color: var(--gold);
         }
         
         .mode-name {
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 6px;
+            margin-bottom: 2px;
         }
         
         .mode-desc {
-            font-size: 12px;
-            color: var(--text-dim);
-            line-height: 1.4;
-            margin-bottom: 12px;
+            display: none;
         }
         
         .mode-price {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--gold);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-dim);
         }
         
         .mode-price-detail {
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 400;
-            color: var(--text-dim);
+            color: var(--text-faint);
         }
         
         .mode-price-sub {
-            font-size: 10px;
-            color: var(--text-dim);
-            margin-top: 4px;
+            font-size: 9px;
+            color: var(--text-faint);
+            margin-top: 2px;
             font-weight: 400;
         }
 
@@ -906,6 +1078,148 @@
             line-height: 1.5;
         }
         
+        .scene-plan-card {
+            background: rgba(255, 214, 10, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+        .scene-plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .scene-plan-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .scene-plan-count {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .scene-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .scene-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 214, 10, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 214, 10, 0.06);
+        }
+        .scene-index {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 214, 10, 0.12);
+            color: var(--gold);
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .scene-details {
+            flex: 1;
+            min-width: 0;
+        }
+        .scene-text {
+            font-size: 12px;
+            color: var(--text);
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+        .scene-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .scene-tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(255, 214, 10, 0.08);
+            color: var(--text-dim);
+        }
+        .scene-tag.source-clip { border-left: 2px solid #4ade80; }
+        .scene-tag.source-stock { border-left: 2px solid #60a5fa; }
+        .scene-tag.source-dalle { border-left: 2px solid #c084fc; }
+        .scene-tag.source-remix { border-left: 2px solid #fb923c; }
+        .scene-cost {
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+        }
+        .cost-summary {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .cost-total {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .cost-breakdown {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .approve-btn {
+            padding: 10px 24px;
+            background: var(--gold);
+            color: #0d0d0d;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .approve-btn:hover {
+            background: #e6c109;
+            transform: translateY(-1px);
+        }
+        .revise-btn {
+            padding: 10px 24px;
+            background: transparent;
+            color: var(--text-dim);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-right: 8px;
+        }
+        .revise-btn:hover {
+            border-color: var(--text-dim);
+            color: var(--text);
+        }
+        .watermark-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 600;
+            background: rgba(255, 214, 10, 0.1);
+            color: var(--text-dim);
+            letter-spacing: 0.3px;
+        }
         .quality-cost-estimate {
             margin-top: 12px;
             padding: 10px;
@@ -1167,7 +1481,11 @@
             }
             
             .mode-cards {
-                grid-template-columns: 1fr;
+                flex-wrap: wrap;
+            }
+            
+            .brief-input-section {
+                max-width: 100%;
             }
             
             .main-header {
@@ -1303,50 +1621,73 @@
                 </div>
                 
                 <div class="chat-welcome" id="chat-welcome">
-                    <h1>What kind of video do you want?</h1>
-                    <p>Choose a mode or just describe what you want to create</p>
+                    <h1>What do you want to make?</h1>
+                    <p>Describe your video and upload clips, or just start with an idea</p>
                     
-                    <div class="mode-cards">
-                        <div class="mode-card" onclick="selectMode('remix')">
-                            <div class="mode-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <path d="M21 12a9 9 0 11-9-9"></path>
-                                    <path d="M21 3v6h-6"></path>
-                                    <circle cx="12" cy="12" r="3"></circle>
-                                </svg>
+                    <div class="brief-input-section">
+                        <div class="brief-input-wrapper">
+                            <textarea class="brief-textarea" id="brief-textarea" placeholder="A 30-second video about... / Clip the best moments from my podcast / A hype reel for my brand..." oninput="updateBriefGoBtn()"></textarea>
+                            <div class="uploaded-files-preview" id="uploaded-files-preview" style="display:none;"></div>
+                            <div class="brief-bottom-row">
+                                <button class="brief-upload-btn" onclick="document.getElementById('brief-file-input').click()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                                        <polyline points="17 8 12 3 7 8"></polyline>
+                                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                                    </svg>
+                                    Upload videos
+                                </button>
+                                <input type="file" id="brief-file-input" accept="video/*" multiple style="display:none;" onchange="handleBriefFileUpload(event)">
+                                <button class="brief-go-btn" id="brief-go-btn" disabled onclick="submitBrief()">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    </svg>
+                                </button>
                             </div>
-                            <div class="mode-name">Remix</div>
-                            <div class="mode-desc">Transform your video with new visuals while keeping the motion</div>
-                            <div class="mode-price">$5.10 <span class="mode-price-detail">for 30s video</span></div>
                         </div>
-                        
-                        <div class="mode-card" onclick="selectMode('clipper')">
-                            <div class="mode-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <circle cx="6" cy="6" r="3"></circle>
-                                    <circle cx="6" cy="18" r="3"></circle>
-                                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-                                </svg>
+                    </div>
+
+                    <div class="presets-section">
+                        <div class="presets-label">or start with a preset</div>
+                        <div class="mode-cards">
+                            <div class="mode-card" onclick="selectMode('remix')">
+                                <div class="mode-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path d="M21 12a9 9 0 11-9-9"></path>
+                                        <path d="M21 3v6h-6"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+                                </div>
+                                <div class="mode-name">Remix</div>
+                                <div class="mode-price">from $4 <span class="mode-price-detail">/30s</span></div>
                             </div>
-                            <div class="mode-name">Clipper</div>
-                            <div class="mode-desc">Clip your videos. Add overlays, captions, and effects. Save templates for reuse.</div>
-                            <div class="mode-price">$0.49 <span class="mode-price-detail">per clip</span></div>
-                            <div class="mode-price-sub">up to $1.49 with overlays &middot; $29.99/mo cap</div>
-                        </div>
-                        
-                        <div class="mode-card" onclick="selectMode('simple')">
-                            <div class="mode-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                    <rect x="2" y="2" width="20" height="20" rx="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <path d="M21 15l-5-5L5 21"></path>
-                                </svg>
+                            
+                            <div class="mode-card" onclick="selectMode('clipper')">
+                                <div class="mode-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <circle cx="6" cy="6" r="3"></circle>
+                                        <circle cx="6" cy="18" r="3"></circle>
+                                        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                                        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                                        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                                    </svg>
+                                </div>
+                                <div class="mode-name">Clipper</div>
+                                <div class="mode-price">$0.49 <span class="mode-price-detail">/clip</span></div>
                             </div>
-                            <div class="mode-name">Simple Stock</div>
-                            <div class="mode-desc">Create videos from stock footage and AI visuals</div>
-                            <div class="mode-price">$0.99 <span class="mode-price-detail">for 30s video</span></div>
+                            
+                            <div class="mode-card" onclick="selectMode('simple')">
+                                <div class="mode-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <rect x="2" y="2" width="20" height="20" rx="2"></rect>
+                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                        <path d="M21 15l-5-5L5 21"></path>
+                                    </svg>
+                                </div>
+                                <div class="mode-name">Stock</div>
+                                <div class="mode-price">$0.99 <span class="mode-price-detail">/30s</span></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1486,6 +1827,81 @@
             document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
         }
         
+        state.briefFiles = [];
+
+        function updateBriefGoBtn() {
+            const text = document.getElementById('brief-textarea').value.trim();
+            document.getElementById('brief-go-btn').disabled = !text && state.briefFiles.length === 0;
+        }
+
+        function handleBriefFileUpload(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                state.briefFiles.push({ file, mode: 'clip', id: Date.now() + Math.random() });
+            });
+            renderBriefFiles();
+            updateBriefGoBtn();
+            event.target.value = '';
+        }
+
+        function renderBriefFiles() {
+            const container = document.getElementById('uploaded-files-preview');
+            if (state.briefFiles.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'flex';
+            container.innerHTML = state.briefFiles.map((f, i) => `
+                <div class="uploaded-file-chip">
+                    <span>${f.file.name.length > 20 ? f.file.name.substring(0, 17) + '...' : f.file.name}</span>
+                    <div class="file-mode-toggle">
+                        <button class="file-mode-btn ${f.mode === 'clip' ? 'active' : ''}" onclick="setFileMode(${i}, 'clip')">Clip</button>
+                        <button class="file-mode-btn ${f.mode === 'remix' ? 'active' : ''}" onclick="setFileMode(${i}, 'remix')">Remix</button>
+                    </div>
+                    <button class="file-remove-btn" onclick="removeBriefFile(${i})">&times;</button>
+                </div>
+            `).join('');
+        }
+
+        function setFileMode(index, mode) {
+            state.briefFiles[index].mode = mode;
+            renderBriefFiles();
+        }
+
+        function removeBriefFile(index) {
+            state.briefFiles.splice(index, 1);
+            renderBriefFiles();
+            updateBriefGoBtn();
+        }
+
+        function submitBrief() {
+            const briefText = document.getElementById('brief-textarea').value.trim();
+            if (!briefText && state.briefFiles.length === 0) return;
+
+            document.getElementById('chat-welcome').style.display = 'none';
+            document.getElementById('chat-messages').classList.add('active');
+
+            let briefMessage = briefText;
+            if (state.briefFiles.length > 0) {
+                const fileList = state.briefFiles.map(f => `${f.file.name} (${f.mode})`).join(', ');
+                briefMessage += briefText ? `\n\nUploaded: ${fileList}` : `Uploaded: ${fileList}`;
+
+                if (!state.briefFiles.some(f => f.mode)) {
+                    addAIMessage("I see you've uploaded videos. For each one, would you like me to **Clip** the best moments or **Remix** it with new visuals? You can set this per video above.");
+                    return;
+                }
+            }
+
+            if (briefText) {
+                addUserMessage(briefMessage);
+                sendMessage(briefMessage);
+            } else if (state.briefFiles.length > 0) {
+                const noUploadMsg = `I've uploaded ${state.briefFiles.length} video${state.briefFiles.length > 1 ? 's' : ''}. ${state.briefFiles.map(f => f.file.name + ' (' + f.mode + ')').join(', ')}`;
+                addUserMessage(noUploadMsg);
+                sendMessage(noUploadMsg);
+            }
+        }
+
         function selectMode(mode) {
             state.currentMode = mode;
             document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
@@ -1498,10 +1914,10 @@
                 addAIMessageWithQualitySelector();
             } else {
                 const modeDescriptions = {
-                    clipper: "You selected Clipper mode. Upload your video and I'll help you clip the best moments.\n\nWant to add overlays? I can help with captions, logos, lower thirds, text, watermarks, progress bars, or call-to-action banners. You choose what goes on — I'll just suggest if something might work well.\n\nAny overlays you create can be saved as templates for reuse across all your projects.\n\nWhat would you like to clip?",
-                    simple: "You selected Simple Stock mode. Tell me your topic or script and I'll create a video using stock footage and AI-generated visuals."
+                    clipper: "You want to clip videos. Upload your video and I'll pull the best moments from the transcript.\n\nYou can also add overlays — captions, logos, lower thirds, or any of the 7 element types. I'll suggest what might work, but you always decide.\n\nWhat would you like to clip?",
+                    simple: "You want to create from scratch using stock footage and AI visuals. Just describe what you're going for and I'll build it.\n\nWhat's your idea?"
                 };
-                addAIMessage(modeDescriptions[mode] + "\n\nWhat would you like to create?");
+                addAIMessage(modeDescriptions[mode]);
             }
         }
         
@@ -1929,6 +2345,10 @@
                         document.getElementById('current-project-title').textContent = state.currentProjectName;
                         document.getElementById('project-name-text').textContent = state.currentProjectName;
                         loadProjects();
+                        
+                        if (state.briefFiles.length > 0) {
+                            uploadBriefFiles();
+                        }
                     }
                     
                     if (data.response) {
@@ -1937,6 +2357,10 @@
                     
                     if (data.needs_clarification) {
                         addAIMessage(data.clarification_question);
+                    }
+                    
+                    if (data.scene_plan && data.scene_plan.length > 0) {
+                        renderScenePlan(data.scene_plan, data.total_cost, data.cost_breakdown);
                     }
                     
                     if (data.trigger_generation && data.job_data) {
@@ -2426,6 +2850,105 @@
                     loadUsageData();
                 }
             } catch (e) { console.error('Failed to apply overlays:', e); }
+        }
+
+        function renderScenePlan(scenes, totalCost, breakdown) {
+            const container = document.getElementById('chat-messages');
+            const msgEl = document.createElement('div');
+            msgEl.className = 'message message-ai';
+
+            const sourceColors = { clip: '#4ade80', stock: '#60a5fa', dalle: '#c084fc', remix: '#fb923c' };
+            const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+            const scenesHtml = scenes.map((s, i) => `
+                <div class="scene-item">
+                    <div class="scene-index">${i + 1}</div>
+                    <div class="scene-details">
+                        <div class="scene-text">${escapeHtml(s.script_text || s.content_description || 'Scene ' + (i + 1))}</div>
+                        <div class="scene-meta">
+                            <span class="scene-tag source-${s.source_type}">${s.source_type}</span>
+                            <span class="scene-tag">${s.visual_container || 'fullscreen'}</span>
+                            <span class="scene-tag">${(s.duration || 0).toFixed(1)}s</span>
+                        </div>
+                    </div>
+                    <div class="scene-cost">$${(s.estimated_cost || 0).toFixed(2)}</div>
+                </div>
+            `).join('');
+
+            const breakdownHtml = breakdown ? Object.entries(breakdown).map(([k, v]) =>
+                `<span>${k}: $${v.toFixed(2)}</span>`
+            ).join(' · ') : '';
+
+            msgEl.innerHTML = `
+                <div class="message-ai-avatar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                    </svg>
+                </div>
+                <div class="message-ai-content">
+                    <div class="scene-plan-card">
+                        <div class="scene-plan-header">
+                            <div class="scene-plan-title">Scene Plan</div>
+                            <div class="scene-plan-count">${scenes.length} scenes · ${totalDuration.toFixed(1)}s</div>
+                        </div>
+                        <div class="scene-list">${scenesHtml}</div>
+                        <div class="cost-summary">
+                            <div>
+                                <div class="cost-total">$${(totalCost || 0).toFixed(2)}</div>
+                                <div class="cost-breakdown">${breakdownHtml}</div>
+                            </div>
+                            <div>
+                                <button class="revise-btn" onclick="requestScenePlanRevision()">Needs changes</button>
+                                <button class="approve-btn" onclick="approveScenePlan()">Approve & Generate</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            container.appendChild(msgEl);
+            container.scrollTop = container.scrollHeight;
+            state.currentScenePlan = scenes;
+        }
+
+        function approveScenePlan() {
+            if (!state.currentProjectId) return;
+            addUserMessage("Approved — let's generate this.");
+            sendMessage("I approve the scene plan. Generate the video.");
+        }
+
+        function requestScenePlanRevision() {
+            addUserMessage("I'd like to change some things in the scene plan.");
+            sendMessage("I want to revise the scene plan. What would you like me to change?");
+        }
+
+        async function uploadBriefFiles() {
+            if (!state.currentProjectId || state.briefFiles.length === 0) return;
+
+            for (const bf of state.briefFiles) {
+                const formData = new FormData();
+                formData.append('file', bf.file);
+                formData.append('project_id', state.currentProjectId);
+                formData.append('processing_mode', bf.mode);
+
+                try {
+                    const res = await fetch('/api/pipeline/upload-source', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.ok && data.source && data.source.id) {
+                        await fetch('/api/pipeline/process-source', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ source_id: data.source.id })
+                        });
+                    }
+                } catch (err) {
+                    console.error('Failed to upload source:', err);
+                }
+            }
+            state.briefFiles = [];
         }
 
         function showOverlayPanelForClipper() {

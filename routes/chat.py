@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user
 
 from extensions import db
-from models import Project, Conversation, OverlayTemplate, ProjectOverlay, MonthlyUsage
+from models import Project, ProjectSource, ScenePlan, CommunityTemplate, Conversation, OverlayTemplate, ProjectOverlay, MonthlyUsage
 from context_engine import call_ai, SYSTEM_GUARDRAILS
 from routes.utils import get_user_id
 from routes.overlays import get_or_create_monthly_usage, CLIPPER_MONTHLY_CAP
@@ -21,7 +21,30 @@ Current mode: {mode}
 CONVERSATION CONTEXT:
 {history}
 
+{brief_context}
+
 {overlay_context}
+
+UNIFIED PIPELINE FLOW:
+You are Framd's AI director helping users create videos through a brief-first architecture.
+
+BRIEF-FIRST APPROACH:
+1. When a user describes their idea with NO mode selected, extract the core thesis and suggest a production approach.
+   - Identify the main argument or story the user wants to tell.
+   - Suggest whether they should use clip mode (repurpose existing footage), remix mode (AI-transform footage), or a combination.
+2. When files have been uploaded, acknowledge them and help the user decide between clip vs remix for EACH file.
+   - Clip mode: extracts the best moments from the original footage (transcript-driven).
+   - Remix mode: uses the footage as a motion skeleton for AI-generated visuals (Runway-powered).
+3. When NO files are uploaded, mention that community templates can be used as a starting point.
+   - Community templates are free but include a small Framd watermark.
+   - The watermark can be removed by upgrading or purchasing the template.
+4. Once the brief and source decisions are clear, the pipeline will build a scene plan with cost estimates.
+
+COST AWARENESS:
+- Clip scene: $0.10/scene
+- Stock footage scene: $0.15/scene
+- DALL-E generated scene: $0.30/scene
+- Remix/Runway scene: $0.20-0.40/second depending on quality tier
 
 Respond as a structured JSON object:
 {{
@@ -29,7 +52,9 @@ Respond as a structured JSON object:
     "needs_clarification": true/false,
     "ready_to_generate": true/false,
     "suggested_mode": "remix|clipper|simple|null",
-    "overlay_suggestions": []
+    "overlay_suggestions": [],
+    "extracted_thesis": "The core thesis/argument if identifiable, otherwise null",
+    "suggested_approach": "clip|remix|mixed|template|null"
 }}
 
 RULES:
@@ -37,6 +62,8 @@ RULES:
 - "ready_to_generate": true ONLY if the user has explicitly confirmed they want to proceed with generation AND you have enough info
 - "response": natural, concise response. If asking a question, ask exactly ONE.
 - "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null
+- "extracted_thesis": if the user describes a video idea, extract the core thesis or argument. null if not applicable.
+- "suggested_approach": suggest the best production approach based on available sources. null if unclear.
 - "overlay_suggestions": ONLY for clipper mode. If overlays could enhance the clip, suggest them with precise descriptive language. Each suggestion is an object with "type" (caption|logo|lower_third|text|watermark|progress_bar|cta) and "reason" (why this overlay would work for their content). NEVER auto-apply overlays — only suggest. Always leave room for user input. If the user hasn't asked about overlays, set to empty array."""
 
 CLIPPER_OVERLAY_CONTEXT = """CLIPPER OVERLAY SYSTEM:
@@ -113,6 +140,27 @@ def api_chat():
             pass
     history_text = "\n".join(history_lines[-6:]) if history_lines else "First message"
     
+    brief_context = ""
+    try:
+        sources = ProjectSource.query.filter_by(project_id=project_id).order_by(ProjectSource.sort_order).all()
+        if sources:
+            source_lines = []
+            for s in sources:
+                status_label = s.processing_status or 'pending'
+                mode_label = s.processing_mode or 'clip'
+                source_lines.append(f"- {s.file_name} ({s.file_type}, {mode_label} mode, {status_label})")
+                if s.transcript:
+                    source_lines.append(f"  Transcript preview: {s.transcript[:150]}...")
+            brief_context = "UPLOADED SOURCES:\n" + "\n".join(source_lines)
+        else:
+            template_count = CommunityTemplate.query.filter_by(is_public=True).count()
+            brief_context = f"NO FILES UPLOADED. {template_count} community templates are available (free with watermark)."
+
+        if project.brief:
+            brief_context += f"\n\nPROJECT BRIEF:\n{project.brief}"
+    except Exception:
+        pass
+
     overlay_context = ""
     if mode == 'clipper':
         recent_overlay_text = ""
@@ -153,6 +201,7 @@ def api_chat():
             message=message,
             mode=mode or 'not selected',
             history=history_text,
+            brief_context=brief_context,
             overlay_context=overlay_context,
         )
         
@@ -164,12 +213,16 @@ def api_chat():
         )
         
         overlay_suggestions = []
+        extracted_thesis = None
+        suggested_approach = None
         if isinstance(response, dict):
             ai_response = response.get('response', '')
             needs_clarification = response.get('needs_clarification', False)
             ready_to_generate = response.get('ready_to_generate', False)
             suggested_mode = response.get('suggested_mode')
             overlay_suggestions = response.get('overlay_suggestions', [])
+            extracted_thesis = response.get('extracted_thesis')
+            suggested_approach = response.get('suggested_approach')
         else:
             ai_response = str(response) if response else "I'm ready to help you create your video. What would you like to make?"
             needs_clarification = True
@@ -182,6 +235,8 @@ def api_chat():
         ready_to_generate = False
         suggested_mode = None
         overlay_suggestions = []
+        extracted_thesis = None
+        suggested_approach = None
     
     ai_conv = Conversation(
         user_id=user_id,
@@ -194,6 +249,37 @@ def api_chat():
     effective_mode = mode or suggested_mode
     trigger_generation = ready_to_generate and effective_mode in ['remix', 'simple', 'clipper']
     
+    if extracted_thesis and project:
+        try:
+            project.brief = extracted_thesis
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    scene_plan_data = []
+    total_cost = 0
+    cost_breakdown = {}
+    
+    if ready_to_generate and not trigger_generation:
+        try:
+            existing_scenes = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).all()
+            if existing_scenes:
+                scene_plan_data = [{
+                    'scene_index': s.scene_index,
+                    'source_type': s.source_type,
+                    'script_text': s.script_text or '',
+                    'visual_container': s.visual_container or 'fullscreen',
+                    'duration': s.duration or 0,
+                    'estimated_cost': s.estimated_cost or 0,
+                    'anchor_type': s.anchor_type
+                } for s in existing_scenes]
+                total_cost = sum(s.estimated_cost or 0 for s in existing_scenes)
+                for s in existing_scenes:
+                    st = s.source_type or 'other'
+                    cost_breakdown[st] = cost_breakdown.get(st, 0) + (s.estimated_cost or 0)
+        except Exception:
+            pass
+
     job_data = None
     if trigger_generation:
         job_data = {
@@ -203,7 +289,7 @@ def api_chat():
             'user_message': message
         }
     
-    return jsonify({
+    result = {
         'ok': True,
         'response': ai_response,
         'project_id': project_id,
@@ -213,7 +299,16 @@ def api_chat():
         'job_data': job_data,
         'suggested_mode': suggested_mode,
         'overlay_suggestions': overlay_suggestions if mode == 'clipper' else [],
-    })
+        'extracted_thesis': extracted_thesis,
+        'suggested_approach': suggested_approach,
+    }
+    
+    if scene_plan_data:
+        result['scene_plan'] = scene_plan_data
+        result['total_cost'] = total_cost
+        result['cost_breakdown'] = cost_breakdown
+    
+    return jsonify(result)
 
 
 @chat_bp.route('/api/project/<int:project_id>/chat', methods=['GET'])
