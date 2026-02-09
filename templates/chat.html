@@ -1657,6 +1657,42 @@
             color: var(--text-faint);
         }
         
+        .chat-attach-btn {
+            width: 40px;
+            height: 40px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            transition: all 0.15s;
+        }
+        .chat-attach-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+        .chat-pending-file {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(255,214,10,0.1);
+            border: 1px solid rgba(255,214,10,0.25);
+            border-radius: 16px;
+            font-size: 11px;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .chat-pending-file .remove-file {
+            cursor: pointer;
+            opacity: 0.6;
+            font-size: 13px;
+        }
+        .chat-pending-file .remove-file:hover { opacity: 1; }
         .chat-send-btn {
             width: 48px;
             height: 48px;
@@ -2034,7 +2070,14 @@
             </div>
 
             <div class="chat-input-area" id="chat-input-area" style="display: none;">
+                <div id="chat-pending-file-bar" style="display:none;"></div>
                 <div class="chat-input-container">
+                    <button class="chat-attach-btn" onclick="document.getElementById('chat-file-input').click()" title="Attach video">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"></path>
+                        </svg>
+                    </button>
+                    <input type="file" id="chat-file-input" accept="video/*,audio/*" multiple style="display:none;" onchange="handleChatFileAttach(event)">
                     <textarea 
                         class="chat-input" 
                         id="chat-input"
@@ -2779,15 +2822,57 @@
         async function sendMessage(messageOverride, uploadedFiles) {
             const input = document.getElementById('chat-input');
             let text;
+            const hasPendingFiles = state.pendingChatFiles && state.pendingChatFiles.length > 0;
             if (messageOverride) {
                 text = messageOverride;
             } else {
                 text = input.value.trim();
-                if (!text) return;
+                if (!text && !hasPendingFiles) return;
                 input.value = '';
                 autoResize(input);
-                addUserMessage(text);
+                let displayText = text || '';
+                if (hasPendingFiles) {
+                    const fileNames = state.pendingChatFiles.map(f => f.name).join(', ');
+                    displayText = displayText ? `${displayText}\n[Attached: ${fileNames}]` : `[Attached: ${fileNames}]`;
+                }
+                addUserMessage(displayText);
             }
+
+            if (hasPendingFiles && !uploadedFiles) {
+                uploadedFiles = [];
+                let failCount = 0;
+                for (const file of state.pendingChatFiles) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        const res = await fetch('/upload', { method: 'POST', body: formData });
+                        if (res.ok) {
+                            const data = await res.json();
+                            uploadedFiles.push({
+                                job_id: data.job_id,
+                                file_name: data.filename || file.name,
+                                processing_mode: 'clip'
+                            });
+                        } else {
+                            failCount++;
+                        }
+                    } catch (err) {
+                        console.error('Chat file upload error:', err);
+                        failCount++;
+                    }
+                }
+                state.pendingChatFiles = [];
+                renderPendingFiles();
+                if (failCount > 0 && !uploadedFiles.length) {
+                    hideThinking();
+                    addAIMessage("File upload failed. Please try again.");
+                    return;
+                }
+                if (!uploadedFiles.length) uploadedFiles = null;
+            }
+
+            if (!text && !uploadedFiles) return;
+            text = text || 'Process this video';
             
             if (!state.currentMode && !state.currentProjectId) {
                 state.currentMode = 'auto';
@@ -3106,57 +3191,57 @@
             });
         }
         
+        state.pendingChatFiles = [];
+
+        function handleChatFileAttach(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+            for (const file of files) {
+                const validTypes = ['video/', 'audio/'];
+                if (!validTypes.some(t => file.type.startsWith(t))) continue;
+                state.pendingChatFiles.push(file);
+            }
+            renderPendingFiles();
+            event.target.value = '';
+        }
+
+        function renderPendingFiles() {
+            const bar = document.getElementById('chat-pending-file-bar');
+            if (!state.pendingChatFiles.length) {
+                bar.style.display = 'none';
+                bar.innerHTML = '';
+                return;
+            }
+            bar.style.display = 'flex';
+            bar.style.flexWrap = 'wrap';
+            bar.style.gap = '4px';
+            bar.style.padding = '4px 8px';
+            bar.innerHTML = state.pendingChatFiles.map((f, i) => `
+                <div class="chat-pending-file">
+                    <span>${f.name.length > 25 ? f.name.slice(0, 22) + '...' : f.name}</span>
+                    <span class="remove-file" onclick="removePendingFile(${i})">✕</span>
+                </div>
+            `).join('');
+        }
+
+        function removePendingFile(index) {
+            state.pendingChatFiles.splice(index, 1);
+            renderPendingFiles();
+        }
+
         async function handleDroppedFile(file) {
-            const validTypes = ['video/', 'audio/', 'image/'];
+            const validTypes = ['video/', 'audio/'];
             const isValid = validTypes.some(type => file.type.startsWith(type));
             
             if (!isValid) {
-                addAIMessage("I can only accept video, audio, or image files. Please try a different file.");
+                addAIMessage("I can only accept video or audio files. Please try a different file.");
                 return;
             }
             
-            // Show the chat area if not visible
             transitionToChat();
-            
-            // Add user message about the file
-            const fileType = file.type.split('/')[0];
-            addUserMessage(`[Uploaded ${fileType}: ${file.name}]`);
-            
-            // Upload the file
-            const formData = new FormData();
-            formData.append('file', file);
-            
-            try {
-                addAIMessage("Uploading your file...");
-                
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    // Remove the "uploading" message
-                    const messages = document.getElementById('chat-messages');
-                    if (messages.lastChild) {
-                        messages.removeChild(messages.lastChild);
-                    }
-                    
-                    if (data.transcript) {
-                        addAIMessage(`Got it! I've analyzed your ${fileType}. What would you like me to create from this?`);
-                    } else {
-                        addAIMessage(`I've received your ${fileType}. What would you like me to do with it?`);
-                    }
-                    
-                    // Store the file info in state
-                    state.uploadedFile = data;
-                } else {
-                    addAIMessage("There was an issue uploading your file. Please try again.");
-                }
-            } catch (err) {
-                console.error('Upload error:', err);
-                addAIMessage("Upload failed. Please check your connection and try again.");
-            }
+            state.pendingChatFiles.push(file);
+            renderPendingFiles();
+            document.getElementById('chat-input').focus();
         }
 
         const OVERLAY_ELEMENT_TYPES = [
