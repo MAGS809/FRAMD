@@ -624,6 +624,7 @@
             flex: 1;
             min-height: 0;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: 24px;
         }
         
@@ -1308,8 +1309,10 @@
         
         .chat-messages {
             max-width: 720px;
+            width: 100%;
             margin: 0 auto;
             display: none;
+            overflow-x: hidden;
         }
         
         .chat-messages.active {
@@ -1318,6 +1321,8 @@
         
         .message {
             margin-bottom: 24px;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
         
         .message-user {
@@ -1330,6 +1335,8 @@
             border-radius: 16px 16px 4px 16px;
             padding: 12px 16px;
             max-width: 80%;
+            overflow-wrap: break-word;
+            word-break: break-word;
         }
         
         .message-ai {
