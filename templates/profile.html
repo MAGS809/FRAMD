@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile — Framd</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --text: #ffd60a;
+            --text-dim: rgba(255, 214, 10, 0.6);
+            --text-faint: rgba(255, 214, 10, 0.2);
+            --card-bg: #1a1a1a;
+            --border: rgba(255, 214, 10, 0.12);
+            --gold: #ffd60a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 600px; margin: 0 auto; padding: 0 1.5rem; }
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--gold);
+            text-decoration: none;
+        }
+        .back-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.15s;
+        }
+        .back-link:hover { color: var(--gold); }
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 2rem 0 1.5rem;
+        }
+        .profile-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        .profile-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--bg);
+            margin-bottom: 16px;
+        }
+        .profile-field {
+            margin-bottom: 16px;
+        }
+        .profile-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-faint);
+            margin-bottom: 4px;
+        }
+        .profile-value {
+            font-size: 15px;
+            color: var(--text);
+        }
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .plan-free { background: rgba(255,255,255,0.1); color: var(--text-dim); }
+        .plan-creator { background: rgba(255, 214, 10, 0.15); color: var(--gold); }
+        .plan-pro { background: var(--gold); color: var(--bg); }
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .stat-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+        }
+        .stat-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/chat" class="logo">Framd</a>
+            <a href="/chat" class="back-link">Back to studio</a>
+        </header>
+        <h1>Profile</h1>
+        <div class="profile-card">
+            <div class="profile-avatar">{{ user_initials }}</div>
+            <div class="profile-field">
+                <div class="profile-label">Name</div>
+                <div class="profile-value">{{ user_name }}</div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-label">Email</div>
+                <div class="profile-value">{{ user_email }}</div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-label">Plan</div>
+                <div class="profile-value">
+                    <span class="plan-badge plan-{{ tier }}">{{ tier }}</span>
+                </div>
+            </div>
+            <div class="profile-field">
+                <div class="profile-label">Member since</div>
+                <div class="profile-value">{{ member_since }}</div>
+            </div>
+        </div>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="stat-value">{{ project_count }}</div>
+                <div class="stat-label">Projects</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ token_balance }}</div>
+                <div class="stat-label">Tokens</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value">{{ videos_completed }}</div>
+                <div class="stat-label">Videos</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

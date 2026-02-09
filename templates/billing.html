@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Billing — Framd</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --text: #ffd60a;
+            --text-dim: rgba(255, 214, 10, 0.6);
+            --text-faint: rgba(255, 214, 10, 0.2);
+            --card-bg: #1a1a1a;
+            --border: rgba(255, 214, 10, 0.12);
+            --gold: #ffd60a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 600px; margin: 0 auto; padding: 0 1.5rem; }
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--gold);
+            text-decoration: none;
+        }
+        .back-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.15s;
+        }
+        .back-link:hover { color: var(--gold); }
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 2rem 0 1.5rem;
+        }
+        .current-plan {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .plan-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .plan-free { background: rgba(255,255,255,0.1); color: var(--text-dim); }
+        .plan-creator { background: rgba(255, 214, 10, 0.15); color: var(--gold); }
+        .plan-pro { background: var(--gold); color: var(--bg); }
+        .token-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .token-count {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .token-label {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .token-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .token-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .token-info {
+            font-size: 12px;
+            color: var(--text-faint);
+        }
+        .plan-period {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+        .plans-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .plan-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 16px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .plan-card.active {
+            border-color: var(--gold);
+        }
+        .plan-card-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .plan-card-price {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 4px;
+        }
+        .plan-card-period {
+            font-size: 11px;
+            color: var(--text-faint);
+            margin-bottom: 12px;
+        }
+        .plan-card-tokens {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+        }
+        .plan-card-btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            text-align: center;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-family: inherit;
+        }
+        .plan-card-btn:hover {
+            border-color: var(--gold);
+        }
+        .plan-card-btn.current {
+            background: rgba(255, 214, 10, 0.1);
+            border-color: var(--gold);
+            cursor: default;
+        }
+        .plan-card-btn.upgrade {
+            background: var(--gold);
+            color: var(--bg);
+            border-color: var(--gold);
+        }
+        .plan-card-btn.upgrade:hover {
+            background: #e6c109;
+        }
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/chat" class="logo">Framd</a>
+            <a href="/chat" class="back-link">Back to studio</a>
+        </header>
+        <h1>Billing</h1>
+
+        <div class="current-plan">
+            <div class="plan-header">
+                <span class="plan-name">Current Plan</span>
+                <span class="plan-badge plan-{{ tier }}">{{ tier }}</span>
+            </div>
+            <div class="token-display">
+                <span class="token-count">{{ token_balance }}</span>
+                <div>
+                    <div class="token-label">tokens remaining</div>
+                </div>
+            </div>
+            <div class="token-bar">
+                <div class="token-fill" style="width: {{ token_pct }}%"></div>
+            </div>
+            <div class="token-info">{{ token_balance }} of {{ monthly_tokens }} monthly tokens used</div>
+            {% if period_end %}
+            <div class="plan-period">Renews {{ period_end }}</div>
+            {% endif %}
+        </div>
+
+        <div class="section-title">Plans</div>
+        <div class="plans-grid">
+            <div class="plan-card {{ 'active' if tier == 'free' else '' }}">
+                <div class="plan-card-name">Free</div>
+                <div class="plan-card-price">$0</div>
+                <div class="plan-card-period">forever</div>
+                <div class="plan-card-tokens">50 tokens/mo</div>
+                {% if tier == 'free' %}
+                <span class="plan-card-btn current">Current</span>
+                {% else %}
+                <span class="plan-card-btn">Downgrade</span>
+                {% endif %}
+            </div>
+            <div class="plan-card {{ 'active' if tier == 'creator' else '' }}">
+                <div class="plan-card-name">Creator</div>
+                <div class="plan-card-price">$19</div>
+                <div class="plan-card-period">per month</div>
+                <div class="plan-card-tokens">300 tokens/mo</div>
+                {% if tier == 'creator' %}
+                <span class="plan-card-btn current">Current</span>
+                {% elif tier == 'free' %}
+                <a href="/pricing" class="plan-card-btn upgrade">Upgrade</a>
+                {% else %}
+                <span class="plan-card-btn">Downgrade</span>
+                {% endif %}
+            </div>
+            <div class="plan-card {{ 'active' if tier == 'pro' else '' }}">
+                <div class="plan-card-name">Pro</div>
+                <div class="plan-card-price">$49</div>
+                <div class="plan-card-period">per month</div>
+                <div class="plan-card-tokens">1000 tokens/mo</div>
+                {% if tier == 'pro' %}
+                <span class="plan-card-btn current">Current</span>
+                {% else %}
+                <a href="/pricing" class="plan-card-btn upgrade">Upgrade</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

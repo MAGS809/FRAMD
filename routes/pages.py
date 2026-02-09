@@ -2,11 +2,11 @@
 Pages routes blueprint.
 Handles template rendering for static pages.
 """
-from flask import Blueprint, render_template, session, send_from_directory
-from flask_login import current_user
+from flask import Blueprint, render_template, session, send_from_directory, redirect, url_for
+from flask_login import current_user, login_required
 import os
 
-from models import Subscription, AILearning
+from models import Subscription, AILearning, Project, ScenePlan
 
 pages_bp = Blueprint('pages', __name__)
 
@@ -103,6 +103,73 @@ def chat_interface():
             export_count=export_count
         )
     return render_template('landing.html')
+
+
+@pages_bp.route('/profile')
+@login_required
+def profile():
+    """User profile page."""
+    user_initials, user_name, token_balance, export_count, _ = get_user_context()
+    subscription = Subscription.query.filter_by(user_id=current_user.id).first()
+    tier = subscription.plan_type if subscription else 'free'
+    project_count = Project.query.filter_by(user_id=current_user.id).count()
+    videos_completed = Project.query.filter_by(user_id=current_user.id, status='completed').count()
+    member_since = current_user.created_at.strftime('%B %Y') if hasattr(current_user, 'created_at') and current_user.created_at else 'Unknown'
+    return render_template('profile.html',
+        user_initials=user_initials,
+        user_name=user_name,
+        user_email=current_user.email or '',
+        tier=tier,
+        member_since=member_since,
+        project_count=project_count,
+        token_balance=token_balance,
+        videos_completed=videos_completed
+    )
+
+
+@pages_bp.route('/history')
+@login_required
+def history():
+    """User video history page."""
+    projects = Project.query.filter_by(user_id=current_user.id).order_by(Project.created_at.desc()).all()
+    total_spent = sum(p.total_estimated_cost or 0 for p in projects)
+
+    for p in projects:
+        scenes = ScenePlan.query.filter_by(project_id=p.id).all()
+        if scenes:
+            p.scene_costs = {}
+            for s in scenes:
+                label = f"Scene {s.scene_index}: {s.source_type or 'unknown'}"
+                p.scene_costs[label] = s.estimated_cost or 0
+        else:
+            p.scene_costs = None
+
+    return render_template('history.html',
+        projects=projects,
+        total_spent=total_spent
+    )
+
+
+@pages_bp.route('/billing')
+@login_required
+def billing():
+    """User billing page."""
+    user_initials, user_name, token_balance, export_count, _ = get_user_context()
+    subscription = Subscription.query.filter_by(user_id=current_user.id).first()
+    tier = subscription.plan_type if subscription else 'free'
+
+    monthly_tokens_map = {'free': 50, 'creator': 300, 'pro': 1000}
+    monthly_tokens = monthly_tokens_map.get(tier, 50)
+    token_pct = min(100, (token_balance / monthly_tokens * 100)) if monthly_tokens > 0 else 0
+    period_end = subscription.current_period_end.strftime('%b %d, %Y') if subscription and subscription.current_period_end else None
+
+    return render_template('billing.html',
+        tier=tier,
+        token_balance=token_balance,
+        monthly_tokens=monthly_tokens,
+        token_pct=token_pct,
+        period_end=period_end
+    )
 
 
 @pages_bp.route('/robots.txt')

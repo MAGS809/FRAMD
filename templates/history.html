@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History — Framd</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0d0d;
+            --text: #ffd60a;
+            --text-dim: rgba(255, 214, 10, 0.6);
+            --text-faint: rgba(255, 214, 10, 0.2);
+            --card-bg: #1a1a1a;
+            --border: rgba(255, 214, 10, 0.12);
+            --gold: #ffd60a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .container { max-width: 700px; margin: 0 auto; padding: 0 1.5rem; }
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--gold);
+            text-decoration: none;
+        }
+        .back-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.15s;
+        }
+        .back-link:hover { color: var(--gold); }
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin: 2rem 0 0.5rem;
+        }
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+            margin-bottom: 1.5rem;
+        }
+        .total-spent {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .total-label {
+            font-size: 14px;
+            color: var(--text-dim);
+        }
+        .total-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .history-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            cursor: pointer;
+            transition: background 0.12s;
+        }
+        .history-header:hover {
+            background: rgba(255, 214, 10, 0.04);
+        }
+        .history-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+        .history-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(255, 214, 10, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .history-icon svg {
+            width: 18px;
+            height: 18px;
+            color: var(--gold);
+        }
+        .history-info { flex: 1; min-width: 0; }
+        .history-name {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .history-meta {
+            font-size: 12px;
+            color: var(--text-faint);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .history-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .history-cost {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .history-toggle {
+            color: var(--text-faint);
+            transition: transform 0.2s;
+        }
+        .history-toggle.open {
+            transform: rotate(180deg);
+        }
+        .history-breakdown {
+            display: none;
+            padding: 0 20px 16px;
+            border-top: 1px solid var(--border);
+        }
+        .history-breakdown.open {
+            display: block;
+        }
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+        }
+        .breakdown-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 214, 10, 0.06);
+        }
+        .breakdown-label { color: var(--text-dim); }
+        .breakdown-value { color: var(--text); font-weight: 500; }
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .status-completed { background: rgba(76, 175, 80, 0.15); color: #66bb6a; }
+        .status-draft { background: rgba(255, 214, 10, 0.1); color: var(--text-dim); }
+        .status-failed { background: rgba(244, 67, 54, 0.15); color: #ef5350; }
+        .status-processing { background: rgba(33, 150, 243, 0.15); color: #42a5f5; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-dim);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-faint);
+            margin-bottom: 16px;
+        }
+        .empty-state p {
+            font-size: 15px;
+            margin-bottom: 16px;
+        }
+        .empty-state a {
+            color: var(--gold);
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <a href="/chat" class="logo">Framd</a>
+            <a href="/chat" class="back-link">Back to studio</a>
+        </header>
+        <h1>History</h1>
+        <p class="subtitle">Your saved videos and their costs</p>
+
+        {% if total_spent > 0 %}
+        <div class="total-spent">
+            <span class="total-label">Total spent</span>
+            <span class="total-value">${{ '%.2f' % total_spent }}</span>
+        </div>
+        {% endif %}
+
+        {% if projects|length == 0 %}
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <p>No videos yet. Start creating to see your history here.</p>
+            <a href="/chat">Go to studio</a>
+        </div>
+        {% else %}
+        {% for p in projects %}
+        <div class="history-item">
+            <div class="history-header" onclick="toggleBreakdown(this)">
+                <div class="history-left">
+                    <div class="history-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </div>
+                    <div class="history-info">
+                        <div class="history-name">{{ p.name }}</div>
+                        <div class="history-meta">
+                            <span>{{ p.created_at.strftime('%b %d, %Y') if p.created_at else 'Unknown' }}</span>
+                            <span class="status-badge status-{{ p.status }}">{{ p.status }}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="history-right">
+                    <span class="history-cost">${{ '%.2f' % (p.total_estimated_cost or 0) }}</span>
+                    <svg class="history-toggle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div class="history-breakdown">
+                {% if p.scene_costs %}
+                {% for label, cost in p.scene_costs.items() %}
+                <div class="breakdown-row">
+                    <span class="breakdown-label">{{ label }}</span>
+                    <span class="breakdown-value">${{ '%.2f' % cost }}</span>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="breakdown-row">
+                    <span class="breakdown-label">Total</span>
+                    <span class="breakdown-value">${{ '%.2f' % (p.total_estimated_cost or 0) }}</span>
+                </div>
+                {% endif %}
+                {% if p.template_type %}
+                <div class="breakdown-row">
+                    <span class="breakdown-label">Mode</span>
+                    <span class="breakdown-value">{{ p.template_type }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    <script>
+        function toggleBreakdown(header) {
+            const breakdown = header.nextElementSibling;
+            const toggle = header.querySelector('.history-toggle');
+            breakdown.classList.toggle('open');
+            toggle.classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
