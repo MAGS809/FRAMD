@@ -68,7 +68,7 @@ RULES:
 - "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null
 - "extracted_thesis": if the user describes a video idea, extract the core thesis or argument. null if not applicable.
 - "suggested_approach": suggest the best production approach based on available sources. null if unclear.
-- "quick_replies": 2-4 short tappable options the user can click instead of typing. ALWAYS include these when your response implies a choice or confirmation. Examples: ["Yes, build it", "Change the tone first"], ["Remix mode", "Clip mode", "Mix both"]. Keep each under 5 words. If no choices apply, use empty array.
+- "quick_replies": 2-4 short tappable options the user can click instead of typing. MANDATORY: if your response contains ANY question, choice, or "or" between options, you MUST populate quick_replies with the options. NEVER embed choices only in the text — they must ALSO appear as quick_replies so users can tap to choose. Examples: ["Transform with AI", "Keep original footage"], ["Yes, build it", "Change the tone"], ["Remix mode", "Clip mode", "Mix both"]. Keep each under 6 words. If no choices apply, use empty array.
 - "overlay_suggestions": ONLY for clipper mode. If overlays could enhance the clip, suggest them with precise descriptive language. Each suggestion is an object with "type" (caption|logo|lower_third|text|watermark|progress_bar|cta) and "reason" (why this overlay would work for their content). NEVER auto-apply overlays — only suggest. Always leave room for user input. If the user hasn't asked about overlays, set to empty array.
 
 DECISIVENESS (CRITICAL):
@@ -454,6 +454,14 @@ def api_chat():
             extracted_thesis = response.get('extracted_thesis')
             suggested_approach = response.get('suggested_approach')
             quick_replies = response.get('quick_replies', [])
+            if not quick_replies and ' or ' in ai_response and '?' in ai_response:
+                import re
+                or_match = re.search(r'(.{5,40})\s+or\s+(.{5,40})\?', ai_response)
+                if or_match:
+                    opt1 = re.sub(r'^to\s+', '', or_match.group(1).strip(), flags=re.IGNORECASE).strip()
+                    opt2 = re.sub(r'[?.!]+$', '', or_match.group(2).strip()).strip()
+                    if opt1 and opt2 and len(opt1) <= 40 and len(opt2) <= 40:
+                        quick_replies = [opt1[0].upper() + opt1[1:], opt2[0].upper() + opt2[1:]]
         else:
             ai_response = str(response) if response else "I'm ready to help you create your video. What would you like to make?"
             needs_clarification = True

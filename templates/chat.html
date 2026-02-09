@@ -2703,6 +2703,38 @@
         function formatAIMessage(text) {
             return escapeHtml(text).replace(/\n/g, '<br>');
         }
+
+        function extractOptionsFromText(text) {
+            if (!text) return [];
+
+            function cleanOption(s) {
+                s = s.replace(/^(to\s+)/i, '').replace(/[?.!]+$/, '').trim();
+                if (!s) return '';
+                s = s.charAt(0).toUpperCase() + s.slice(1);
+                if (s.length > 35) s = s.substring(0, 32) + '...';
+                return s;
+            }
+
+            const threeWay = text.match(/(.{5,40}),\s+(.{5,40}),\s+or\s+(.{5,40})[?.!]?$/im);
+            if (threeWay) {
+                const opts = [cleanOption(threeWay[1]), cleanOption(threeWay[2]), cleanOption(threeWay[3])].filter(Boolean);
+                if (opts.length >= 2) return opts;
+            }
+
+            const patterns = [
+                /(?:should I |would you (?:like|prefer|want) (?:me to )?|do you want (?:me to )?)(.+?),?\s+or\s+(.+?)[?.!]?\s*$/im,
+                /(?:would you rather |prefer )(.+?)\s+or\s+(.+?)[?.!]?\s*$/im,
+                /(.{5,40})\s+or\s+(.{5,40})[?.!]?\s*$/im,
+            ];
+            for (const pattern of patterns) {
+                const m = text.match(pattern);
+                if (m) {
+                    const opts = [cleanOption(m[1]), cleanOption(m[2])].filter(Boolean);
+                    if (opts.length === 2 && opts[0] !== opts[1]) return opts;
+                }
+            }
+            return [];
+        }
         
         function addUserMessage(text) {
             state.messages.push({ role: 'user', content: text });
@@ -2921,7 +2953,10 @@
                     }
                     
                     if (data.response) {
-                        const quickReplies = data.quick_replies || [];
+                        let quickReplies = data.quick_replies || [];
+                        if (quickReplies.length === 0) {
+                            quickReplies = extractOptionsFromText(data.response);
+                        }
                         addAIMessageWithReplies(data.response, quickReplies);
                     }
                     
