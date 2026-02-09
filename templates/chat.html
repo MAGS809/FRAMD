@@ -571,8 +571,13 @@
         .chat-welcome {
             max-width: 680px;
             margin: 0 auto;
-            padding: 60px 20px;
+            padding: 20px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: calc(100vh - 120px);
         }
         
         .chat-welcome h1 {
@@ -585,11 +590,12 @@
         .chat-welcome p {
             color: var(--text-dim);
             font-size: 15px;
-            margin-bottom: 12px;
+            margin-bottom: 24px;
         }
 
         .brief-input-section {
             max-width: 600px;
+            width: 100%;
             margin: 0 auto 32px;
         }
 
@@ -1648,48 +1654,6 @@
                         </div>
                     </div>
 
-                    <div class="presets-section">
-                        <div class="presets-label">or start with a preset</div>
-                        <div class="mode-cards">
-                            <div class="mode-card" onclick="selectMode('remix')">
-                                <div class="mode-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <path d="M21 12a9 9 0 11-9-9"></path>
-                                        <path d="M21 3v6h-6"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                </div>
-                                <div class="mode-name">Remix</div>
-                                <div class="mode-price">from $4 <span class="mode-price-detail">/30s</span></div>
-                            </div>
-                            
-                            <div class="mode-card" onclick="selectMode('clipper')">
-                                <div class="mode-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <circle cx="6" cy="6" r="3"></circle>
-                                        <circle cx="6" cy="18" r="3"></circle>
-                                        <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
-                                        <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
-                                        <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
-                                    </svg>
-                                </div>
-                                <div class="mode-name">Clipper</div>
-                                <div class="mode-price">$0.49 <span class="mode-price-detail">/clip</span></div>
-                            </div>
-                            
-                            <div class="mode-card" onclick="selectMode('simple')">
-                                <div class="mode-icon">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                                        <rect x="2" y="2" width="20" height="20" rx="2"></rect>
-                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                        <path d="M21 15l-5-5L5 21"></path>
-                                    </svg>
-                                </div>
-                                <div class="mode-name">Stock</div>
-                                <div class="mode-price">$0.99 <span class="mode-price-detail">/30s</span></div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <div class="chat-messages" id="chat-messages"></div>
@@ -1726,7 +1690,7 @@
                 </div>
             </div>
 
-            <div class="chat-input-area">
+            <div class="chat-input-area" id="chat-input-area" style="display: none;">
                 <div class="chat-input-container">
                     <textarea 
                         class="chat-input" 
@@ -1819,11 +1783,17 @@
             state.currentProjectName = null;
             state.currentMode = null;
             state.messages = [];
+            state.briefFiles = [];
             document.getElementById('current-project-title').textContent = '';
             document.getElementById('project-name-text').textContent = 'Untitled Project';
-            document.getElementById('chat-welcome').style.display = 'block';
+            document.getElementById('chat-welcome').style.display = 'flex';
             document.getElementById('chat-messages').classList.remove('active');
             document.getElementById('chat-messages').innerHTML = '';
+            document.getElementById('chat-input-area').style.display = 'none';
+            document.getElementById('brief-textarea').value = '';
+            document.getElementById('uploaded-files-preview').style.display = 'none';
+            document.getElementById('uploaded-files-preview').innerHTML = '';
+            updateBriefGoBtn();
             document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
         }
         
@@ -1874,12 +1844,20 @@
             updateBriefGoBtn();
         }
 
+        function transitionToChat() {
+            document.getElementById('chat-welcome').style.display = 'none';
+            document.getElementById('chat-messages').classList.add('active');
+            document.getElementById('chat-input-area').style.display = 'block';
+            setTimeout(() => {
+                document.getElementById('chat-input').focus();
+            }, 100);
+        }
+
         function submitBrief() {
             const briefText = document.getElementById('brief-textarea').value.trim();
             if (!briefText && state.briefFiles.length === 0) return;
 
-            document.getElementById('chat-welcome').style.display = 'none';
-            document.getElementById('chat-messages').classList.add('active');
+            transitionToChat();
 
             let briefMessage = briefText;
             if (state.briefFiles.length > 0) {
@@ -1904,11 +1882,8 @@
 
         function selectMode(mode) {
             state.currentMode = mode;
-            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
             
-            document.getElementById('chat-welcome').style.display = 'none';
-            document.getElementById('chat-messages').classList.add('active');
+            transitionToChat();
             
             if (mode === 'remix') {
                 addAIMessageWithQualitySelector();
@@ -2199,8 +2174,7 @@
                     state.currentProjectName = data.name || 'Untitled Project';
                     document.getElementById('current-project-title').textContent = data.name;
                     document.getElementById('project-name-text').textContent = state.currentProjectName;
-                    document.getElementById('chat-welcome').style.display = 'none';
-                    document.getElementById('chat-messages').classList.add('active');
+                    transitionToChat();
                     renderMessages();
                 }
             } catch (err) {
@@ -2309,19 +2283,20 @@
             renderMessages();
         }
         
-        async function sendMessage() {
+        async function sendMessage(messageOverride) {
             const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (!text) return;
-            
-            input.value = '';
-            autoResize(input);
-            
-            addUserMessage(text);
+            let text;
+            if (messageOverride) {
+                text = messageOverride;
+            } else {
+                text = input.value.trim();
+                if (!text) return;
+                input.value = '';
+                autoResize(input);
+                addUserMessage(text);
+            }
             
             if (!state.currentMode && !state.currentProjectId) {
-                document.getElementById('chat-welcome').style.display = 'none';
-                document.getElementById('chat-messages').classList.add('active');
                 state.currentMode = 'auto';
             }
             
