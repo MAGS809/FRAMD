@@ -5,6 +5,7 @@ description = "Add your description here"
 requires-python = ">=3.11"
 dependencies = [
     "anthropic>=0.77.0",
+    "assemblyai>=0.50.0",
     "beautifulsoup4>=4.14.3",
     "duckduckgo-search>=8.1.1",
     "elevenlabs>=2.33.1",

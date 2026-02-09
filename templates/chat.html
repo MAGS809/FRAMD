@@ -647,6 +647,183 @@
             color: var(--text-dim);
         }
         
+        .mode-price-sub {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            font-weight: 400;
+        }
+
+        .overlay-panel {
+            display: none;
+            padding: 16px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin: 12px 16px;
+        }
+        .overlay-panel.active { display: block; }
+        .overlay-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+        .overlay-panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .overlay-panel-close {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px;
+        }
+        .overlay-elements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .overlay-element-card {
+            padding: 12px 10px;
+            background: rgba(255, 214, 10, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all var(--transition-fast);
+        }
+        .overlay-element-card:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.08);
+        }
+        .overlay-element-card.selected {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.12);
+        }
+        .overlay-element-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            color: var(--gold);
+        }
+        .overlay-element-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .overlay-element-cost {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+        .overlay-templates-section {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .overlay-templates-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .overlay-template-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .overlay-template-chip {
+            padding: 5px 12px;
+            background: rgba(255, 214, 10, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            font-size: 11px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        .overlay-template-chip:hover {
+            border-color: var(--gold);
+            background: rgba(255, 214, 10, 0.12);
+        }
+        .overlay-template-chip .chip-count {
+            color: var(--text-dim);
+            margin-left: 4px;
+            font-size: 10px;
+        }
+        .overlay-price-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 14px;
+            padding: 10px 12px;
+            background: rgba(255, 214, 10, 0.06);
+            border-radius: 8px;
+        }
+        .overlay-price-label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .overlay-price-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .overlay-price-value.free {
+            color: #4ade80;
+        }
+        .overlay-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .overlay-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            transition: all var(--transition-fast);
+        }
+        .overlay-btn:hover { border-color: var(--gold); }
+        .overlay-btn-primary {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+        }
+        .overlay-btn-primary:hover { opacity: 0.9; }
+        .usage-bar {
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 214, 10, 0.04);
+            border-radius: 8px;
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        .usage-progress {
+            height: 3px;
+            background: rgba(255, 214, 10, 0.15);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .usage-progress-fill {
+            height: 100%;
+            background: var(--gold);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
         .quality-selector {
             margin-top: 16px;
             padding: 16px;
@@ -1154,8 +1331,9 @@
                                 </svg>
                             </div>
                             <div class="mode-name">Clipper</div>
-                            <div class="mode-desc">Extract the best moments from long videos into short clips</div>
-                            <div class="mode-price">$6.60 - $11.10 <span class="mode-price-detail">for 30s clip</span></div>
+                            <div class="mode-desc">Clip your videos. Add overlays, captions, and effects. Save templates for reuse.</div>
+                            <div class="mode-price">$0.49 <span class="mode-price-detail">per clip</span></div>
+                            <div class="mode-price-sub">up to $1.49 with overlays &middot; $29.99/mo cap</div>
                         </div>
                         
                         <div class="mode-card" onclick="selectMode('simple')">
@@ -1175,7 +1353,38 @@
                 
                 <div class="chat-messages" id="chat-messages"></div>
             </div>
-            
+
+            <div class="overlay-panel" id="overlay-panel">
+                <div class="overlay-panel-header">
+                    <div class="overlay-panel-title">Add Overlays</div>
+                    <button class="overlay-panel-close" onclick="toggleOverlayPanel()">&times;</button>
+                </div>
+                <div class="overlay-elements-grid" id="overlay-elements-grid"></div>
+                <div class="overlay-templates-section" id="overlay-templates-section" style="display:none;">
+                    <div class="overlay-templates-label">Saved Templates</div>
+                    <div class="overlay-template-chips" id="saved-template-chips"></div>
+                </div>
+                <div class="overlay-templates-section" id="overlay-recent-section" style="display:none;">
+                    <div class="overlay-templates-label">Recent Overlays</div>
+                    <div class="overlay-template-chips" id="recent-template-chips"></div>
+                </div>
+                <div class="overlay-price-bar">
+                    <span class="overlay-price-label">Estimated cost</span>
+                    <span class="overlay-price-value" id="overlay-price">$0.49</span>
+                </div>
+                <div class="usage-bar" id="usage-bar" style="display:none;">
+                    <span id="usage-text"></span>
+                    <div class="usage-progress">
+                        <div class="usage-progress-fill" id="usage-progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="overlay-actions">
+                    <button class="overlay-btn" onclick="saveOverlayTemplate()">Save as Template</button>
+                    <button class="overlay-btn" onclick="promoteOverlayTemplate()">Save Permanently</button>
+                    <button class="overlay-btn overlay-btn-primary" onclick="applyOverlays()">Apply Overlays</button>
+                </div>
+            </div>
+
             <div class="chat-input-area">
                 <div class="chat-input-container">
                     <textarea 
@@ -1228,6 +1437,10 @@
             qualityTier: 'good',
             videoDuration: 30,
             messages: [],
+            selectedOverlays: [],
+            overlayTemplates: { saved: [], recent: [] },
+            currentOverlayTemplateId: null,
+            usageData: null,
             projects: [],
             exportCount: {{ export_count }},
             isProcessing: false,
@@ -1285,7 +1498,7 @@
                 addAIMessageWithQualitySelector();
             } else {
                 const modeDescriptions = {
-                    clipper: "You selected Clipper mode. Share a long video or transcript and I'll extract the best moments to create professional clips.",
+                    clipper: "You selected Clipper mode. Upload your video and I'll help you clip the best moments.\n\nWant to add overlays? I can help with captions, logos, lower thirds, text, watermarks, progress bars, or call-to-action banners. You choose what goes on — I'll just suggest if something might work well.\n\nAny overlays you create can be saved as templates for reuse across all your projects.\n\nWhat would you like to clip?",
                     simple: "You selected Simple Stock mode. Tell me your topic or script and I'll create a video using stock footage and AI-generated visuals."
                 };
                 addAIMessage(modeDescriptions[mode] + "\n\nWhat would you like to create?");
@@ -1985,6 +2198,245 @@
                 addAIMessage("Upload failed. Please check your connection and try again.");
             }
         }
+
+        const OVERLAY_ELEMENT_TYPES = [
+            { type: 'caption', label: 'Captions', icon: '💬', cost: 0.20, description: 'Word-synced captions from audio' },
+            { type: 'logo', label: 'Logo', icon: '🏷️', cost: 0.10, description: 'Upload and position your logo' },
+            { type: 'lower_third', label: 'Lower Third', icon: '📋', cost: 0.15, description: 'Name/title bar that slides in' },
+            { type: 'text', label: 'Text', icon: '✏️', cost: 0.05, description: 'Custom styled text overlay' },
+            { type: 'watermark', label: 'Watermark', icon: '💧', cost: 0.05, description: 'Semi-transparent branding' },
+            { type: 'progress_bar', label: 'Progress', icon: '📊', cost: 0.10, description: 'Video progress indicator' },
+            { type: 'cta', label: 'CTA', icon: '📢', cost: 0.10, description: 'Call-to-action banner' },
+        ];
+
+        function initOverlayPanel() {
+            const grid = document.getElementById('overlay-elements-grid');
+            if (!grid) return;
+            grid.innerHTML = OVERLAY_ELEMENT_TYPES.map(el => `
+                <div class="overlay-element-card" data-type="${el.type}" onclick="toggleOverlayElement('${el.type}')">
+                    <div class="overlay-element-icon">${el.icon}</div>
+                    <div class="overlay-element-label">${el.label}</div>
+                    <div class="overlay-element-cost">+$${el.cost.toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+
+        function toggleOverlayPanel() {
+            const panel = document.getElementById('overlay-panel');
+            if (!panel) return;
+            panel.classList.toggle('active');
+            if (panel.classList.contains('active')) {
+                initOverlayPanel();
+                loadOverlayTemplates();
+                loadUsageData();
+            }
+        }
+
+        function toggleOverlayElement(type) {
+            const idx = state.selectedOverlays.indexOf(type);
+            if (idx > -1) {
+                state.selectedOverlays.splice(idx, 1);
+            } else {
+                state.selectedOverlays.push(type);
+            }
+            document.querySelectorAll('.overlay-element-card').forEach(card => {
+                card.classList.toggle('selected', state.selectedOverlays.includes(card.dataset.type));
+            });
+            updateOverlayPrice();
+        }
+
+        function updateOverlayPrice() {
+            let price = 0.49;
+            state.selectedOverlays.forEach(type => {
+                const el = OVERLAY_ELEMENT_TYPES.find(e => e.type === type);
+                if (el) price += el.cost;
+            });
+            price = Math.min(price, 1.49);
+
+            const priceEl = document.getElementById('overlay-price');
+            if (priceEl) {
+                if (state.usageData && state.usageData.cap_reached) {
+                    priceEl.textContent = 'FREE';
+                    priceEl.classList.add('free');
+                } else {
+                    priceEl.textContent = `$${price.toFixed(2)}`;
+                    priceEl.classList.remove('free');
+                }
+            }
+        }
+
+        async function loadOverlayTemplates() {
+            try {
+                const res = await fetch('/api/overlays/templates');
+                const data = await res.json();
+                if (data.ok) {
+                    state.overlayTemplates = { saved: data.saved, recent: data.recent };
+                    renderOverlayTemplates();
+                }
+            } catch (e) { console.error('Failed to load overlay templates:', e); }
+        }
+
+        function renderOverlayTemplates() {
+            const savedSection = document.getElementById('overlay-templates-section');
+            const recentSection = document.getElementById('overlay-recent-section');
+            const savedChips = document.getElementById('saved-template-chips');
+            const recentChips = document.getElementById('recent-template-chips');
+
+            if (state.overlayTemplates.saved.length > 0) {
+                savedSection.style.display = 'block';
+                savedChips.innerHTML = state.overlayTemplates.saved.map(t => `
+                    <div class="overlay-template-chip" onclick="applyTemplate(${t.id})">
+                        ${t.name}<span class="chip-count">${t.elements.length} elements</span>
+                    </div>
+                `).join('');
+            } else {
+                savedSection.style.display = 'none';
+            }
+
+            if (state.overlayTemplates.recent.length > 0) {
+                recentSection.style.display = 'block';
+                recentChips.innerHTML = state.overlayTemplates.recent.map(t => `
+                    <div class="overlay-template-chip" onclick="applyTemplate(${t.id})">
+                        ${t.name}<span class="chip-count">${t.elements.length} elements</span>
+                    </div>
+                `).join('');
+            } else {
+                recentSection.style.display = 'none';
+            }
+        }
+
+        async function loadUsageData() {
+            try {
+                const res = await fetch('/api/overlays/usage');
+                const data = await res.json();
+                if (data.ok) {
+                    state.usageData = data;
+                    const bar = document.getElementById('usage-bar');
+                    const text = document.getElementById('usage-text');
+                    const fill = document.getElementById('usage-progress-fill');
+                    if (bar && text && fill) {
+                        bar.style.display = 'block';
+                        if (data.cap_reached) {
+                            text.textContent = `Monthly cap reached — all clips are FREE this month (${data.clip_count} clips made)`;
+                        } else {
+                            text.textContent = `$${data.spent.toFixed(2)} / $${data.cap.toFixed(2)} this month (${data.clip_count} clips)`;
+                        }
+                        fill.style.width = `${data.cap_progress}%`;
+                    }
+                    updateOverlayPrice();
+                }
+            } catch (e) { console.error('Failed to load usage data:', e); }
+        }
+
+        async function applyTemplate(templateId) {
+            try {
+                const res = await fetch(`/api/overlays/templates/${templateId}`);
+                const data = await res.json();
+                if (data.ok && data.template) {
+                    state.selectedOverlays = data.template.elements.map(e => e.element_type);
+                    state.currentOverlayTemplateId = templateId;
+                    document.querySelectorAll('.overlay-element-card').forEach(card => {
+                        card.classList.toggle('selected', state.selectedOverlays.includes(card.dataset.type));
+                    });
+                    updateOverlayPrice();
+                    addAIMessage(`Applied "${data.template.name}" template with ${data.template.elements.length} overlay elements. You can adjust any of them before applying.`);
+                }
+            } catch (e) { console.error('Failed to apply template:', e); }
+        }
+
+        async function saveOverlayTemplate() {
+            if (state.selectedOverlays.length === 0) {
+                addAIMessage("Select at least one overlay element to save as a template.");
+                return;
+            }
+            const name = prompt('Name your overlay template:');
+            if (!name) return;
+
+            try {
+                const res = await fetch('/api/overlays/templates', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        is_permanent: false,
+                        elements: state.selectedOverlays.map((type, i) => ({
+                            element_type: type,
+                            layer_order: i,
+                            position: {},
+                            style: {},
+                            content: {},
+                        })),
+                    }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    state.currentOverlayTemplateId = data.template.id;
+                    addAIMessage(`Saved "${name}" as a recent overlay template. You can promote it to a permanent template to use across all projects.`);
+                    loadOverlayTemplates();
+                }
+            } catch (e) { console.error('Failed to save template:', e); }
+        }
+
+        async function promoteOverlayTemplate() {
+            if (!state.currentOverlayTemplateId) {
+                addAIMessage("Save an overlay template first, then you can make it permanent.");
+                return;
+            }
+            try {
+                const res = await fetch(`/api/overlays/templates/${state.currentOverlayTemplateId}/promote`, { method: 'POST' });
+                const data = await res.json();
+                if (data.ok) {
+                    addAIMessage(`"${data.template.name}" is now a permanent template — it'll be available across all your projects.`);
+                    loadOverlayTemplates();
+                }
+            } catch (e) { console.error('Failed to promote template:', e); }
+        }
+
+        async function applyOverlays() {
+            if (!state.currentProjectId) {
+                addAIMessage("Start a project first, then you can apply overlays.");
+                return;
+            }
+            if (state.selectedOverlays.length === 0) {
+                toggleOverlayPanel();
+                return;
+            }
+            try {
+                const res = await fetch(`/api/projects/${state.currentProjectId}/overlays`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        template_id: state.currentOverlayTemplateId,
+                        overlay_config: {
+                            elements: state.selectedOverlays.map((type, i) => ({
+                                element_type: type,
+                                layer_order: i,
+                            })),
+                        },
+                    }),
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    const overlayNames = state.selectedOverlays.map(t => {
+                        const el = OVERLAY_ELEMENT_TYPES.find(e => e.type === t);
+                        return el ? el.label : t;
+                    }).join(', ');
+                    addAIMessage(`Applied overlays: ${overlayNames}. These will be saved with this project for next time.`);
+                    toggleOverlayPanel();
+                    loadUsageData();
+                }
+            } catch (e) { console.error('Failed to apply overlays:', e); }
+        }
+
+        function showOverlayPanelForClipper() {
+            if (state.currentMode === 'clipper') {
+                const panel = document.getElementById('overlay-panel');
+                if (panel && !panel.classList.contains('active')) {
+                    toggleOverlayPanel();
+                }
+            }
+        }
+
     </script>
 </body>
 </html>

@@ -7,9 +7,10 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user
 
 from extensions import db
-from models import Project, Conversation
+from models import Project, Conversation, OverlayTemplate, ProjectOverlay, MonthlyUsage
 from context_engine import call_ai, SYSTEM_GUARDRAILS
 from routes.utils import get_user_id
+from routes.overlays import get_or_create_monthly_usage, CLIPPER_MONTHLY_CAP
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -20,19 +21,45 @@ Current mode: {mode}
 CONVERSATION CONTEXT:
 {history}
 
+{overlay_context}
+
 Respond as a structured JSON object:
 {{
     "response": "Your conversational response to the user",
     "needs_clarification": true/false,
     "ready_to_generate": true/false,
-    "suggested_mode": "remix|clipper|simple|null"
+    "suggested_mode": "remix|clipper|simple|null",
+    "overlay_suggestions": []
 }}
 
 RULES:
 - "needs_clarification": true ONLY if you genuinely need critical info (brand colors, tone, audience, direction)
 - "ready_to_generate": true ONLY if the user has explicitly confirmed they want to proceed with generation AND you have enough info
 - "response": natural, concise response. If asking a question, ask exactly ONE.
-- "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null"""
+- "suggested_mode": suggest a mode if the user hasn't chosen one and their intent is clear, otherwise null
+- "overlay_suggestions": ONLY for clipper mode. If overlays could enhance the clip, suggest them with precise descriptive language. Each suggestion is an object with "type" (caption|logo|lower_third|text|watermark|progress_bar|cta) and "reason" (why this overlay would work for their content). NEVER auto-apply overlays — only suggest. Always leave room for user input. If the user hasn't asked about overlays, set to empty array."""
+
+CLIPPER_OVERLAY_CONTEXT = """CLIPPER OVERLAY SYSTEM:
+You are helping the user clip their video and optionally add overlays. Available overlay types:
+- caption: Word-by-word synced captions from audio ($0.20)
+- logo: Upload and position a logo ($0.10)
+- lower_third: Name/title bar that slides in ($0.15)
+- text: Custom text with font, color, animation ($0.05)
+- watermark: Semi-transparent branding ($0.05)
+- progress_bar: Engagement hook showing video progress ($0.10)
+- cta: Call-to-action banner like "Follow", "Link in bio" ($0.10)
+
+OVERLAY BEHAVIOR RULES:
+1. Overlays are ALWAYS at the user's discretion. Never add anything without asking.
+2. When suggesting, use precise descriptive language: "This clip has dialogue — would you like word-synced captions? I'd suggest positioning them at the bottom center with a bold style, but you pick what feels right."
+3. For each overlay element, ask specific questions about position, style, and content. Don't guess.
+4. If the user has saved overlay templates, mention they can apply one with a single click.
+5. After the user confirms their overlay choices, offer to save the configuration as a template for reuse.
+
+{recent_overlays}
+{saved_templates}
+Pricing: $0.49 base per clip, up to $1.49 with overlays. Monthly cap: $29.99 (free clips after cap).
+{usage_info}"""
 
 
 @chat_bp.route('/api/chat', methods=['POST'])
@@ -86,11 +113,47 @@ def api_chat():
             pass
     history_text = "\n".join(history_lines[-6:]) if history_lines else "First message"
     
+    overlay_context = ""
+    if mode == 'clipper':
+        recent_overlay_text = ""
+        saved_template_text = ""
+        usage_text = ""
+        try:
+            recent_overlays = ProjectOverlay.query.filter_by(
+                user_id=user_id
+            ).order_by(ProjectOverlay.applied_at.desc()).limit(3).all()
+            if recent_overlays:
+                recent_names = [o.template.name if o.template else 'Custom overlay' for o in recent_overlays]
+                recent_overlay_text = f"User's recent overlays: {', '.join(recent_names)}. Mention they can reapply these."
+
+            saved_templates = OverlayTemplate.query.filter_by(
+                user_id=user_id, is_permanent=True
+            ).order_by(OverlayTemplate.usage_count.desc()).limit(5).all()
+            if saved_templates:
+                saved_names = [t.name for t in saved_templates]
+                saved_template_text = f"User's saved overlay templates: {', '.join(saved_names)}. They can apply any of these with one click."
+
+            usage = get_or_create_monthly_usage(user_id)
+            remaining = max(0, CLIPPER_MONTHLY_CAP - usage.clipper_spend)
+            if usage.cap_reached:
+                usage_text = "User has reached the $29.99 monthly cap — all clips are FREE for the rest of the month."
+            else:
+                usage_text = f"Monthly spend so far: ${usage.clipper_spend:.2f} of $29.99 cap ({usage.clip_count} clips). ${remaining:.2f} remaining before unlimited."
+        except Exception:
+            pass
+
+        overlay_context = CLIPPER_OVERLAY_CONTEXT.format(
+            recent_overlays=recent_overlay_text,
+            saved_templates=saved_template_text,
+            usage_info=usage_text,
+        )
+
     try:
         prompt = CHAT_PROMPT_TEMPLATE.format(
             message=message,
             mode=mode or 'not selected',
-            history=history_text
+            history=history_text,
+            overlay_context=overlay_context,
         )
         
         response = call_ai(
@@ -100,11 +163,13 @@ def api_chat():
             max_tokens=500
         )
         
+        overlay_suggestions = []
         if isinstance(response, dict):
             ai_response = response.get('response', '')
             needs_clarification = response.get('needs_clarification', False)
             ready_to_generate = response.get('ready_to_generate', False)
             suggested_mode = response.get('suggested_mode')
+            overlay_suggestions = response.get('overlay_suggestions', [])
         else:
             ai_response = str(response) if response else "I'm ready to help you create your video. What would you like to make?"
             needs_clarification = True
@@ -116,6 +181,7 @@ def api_chat():
         needs_clarification = True
         ready_to_generate = False
         suggested_mode = None
+        overlay_suggestions = []
     
     ai_conv = Conversation(
         user_id=user_id,
@@ -145,7 +211,8 @@ def api_chat():
         'needs_clarification': needs_clarification,
         'trigger_generation': trigger_generation,
         'job_data': job_data,
-        'suggested_mode': suggested_mode
+        'suggested_mode': suggested_mode,
+        'overlay_suggestions': overlay_suggestions if mode == 'clipper' else [],
     })
 
 

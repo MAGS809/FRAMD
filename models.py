@@ -683,3 +683,96 @@ class GeneratedAsset(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now)
     
     user = db.relationship('User', backref=db.backref('generated_assets', lazy='dynamic'))
+
+
+class OverlayTemplate(db.Model):
+    __tablename__ = 'overlay_templates'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    is_permanent = db.Column(db.Boolean, default=False)
+    usage_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = db.relationship('User', backref=db.backref('overlay_templates', lazy='dynamic'))
+    elements = db.relationship('OverlayElement', backref='template', lazy='dynamic', cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'is_permanent': self.is_permanent,
+            'usage_count': self.usage_count,
+            'elements': [e.to_dict() for e in self.elements],
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class OverlayElement(db.Model):
+    __tablename__ = 'overlay_elements'
+    id = db.Column(db.Integer, primary_key=True)
+    template_id = db.Column(db.Integer, db.ForeignKey('overlay_templates.id'), nullable=False, index=True)
+    element_type = db.Column(db.String(50), nullable=False)
+    position = db.Column(db.JSON, default={})
+    style = db.Column(db.JSON, default={})
+    content = db.Column(db.JSON, default={})
+    layer_order = db.Column(db.Integer, default=0)
+    is_visible = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'element_type': self.element_type,
+            'position': self.position,
+            'style': self.style,
+            'content': self.content,
+            'layer_order': self.layer_order,
+            'is_visible': self.is_visible,
+        }
+
+
+class ProjectOverlay(db.Model):
+    __tablename__ = 'project_overlays'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    template_id = db.Column(db.Integer, db.ForeignKey('overlay_templates.id'), nullable=True)
+    overlay_config = db.Column(db.JSON, default={})
+    applied_at = db.Column(db.DateTime, default=datetime.now)
+    is_active = db.Column(db.Boolean, default=True)
+
+    project = db.relationship('Project', backref=db.backref('overlays', lazy='dynamic'))
+    user = db.relationship('User', backref=db.backref('project_overlays', lazy='dynamic'))
+    template = db.relationship('OverlayTemplate', backref=db.backref('project_usages', lazy='dynamic'))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'project_id': self.project_id,
+            'template_id': self.template_id,
+            'template_name': self.template.name if self.template else None,
+            'overlay_config': self.overlay_config,
+            'applied_at': self.applied_at.isoformat() if self.applied_at else None,
+            'is_active': self.is_active,
+        }
+
+
+class MonthlyUsage(db.Model):
+    __tablename__ = 'monthly_usage'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False, index=True)
+    month = db.Column(db.String(7), nullable=False)
+    clipper_spend = db.Column(db.Float, default=0.0)
+    clip_count = db.Column(db.Integer, default=0)
+    cap_reached = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
+
+    user = db.relationship('User', backref=db.backref('monthly_usage', lazy='dynamic'))
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'month', name='uq_user_month_usage'),
+    )

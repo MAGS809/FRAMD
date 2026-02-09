@@ -130,7 +130,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
   - Priority 3: Stock footage (for realistic b-roll and gap-filling)
   - Each scene gets a source_type, source_reason, and motion_guidance from skeleton
 - **Surgical Orchestration Engine**: Generates precise instructions for Runway + Shotstack to work in conjunction. Each API receives exact parameters. Timeline is built from source assignments mapped to skeleton timing.
-- **Next-gen Clipper Mode**: Script-guided video creation, where AI clips and edits according to script structure and chosen template style.
+- **Clipper Mode**: Clip videos and add reusable overlay templates. AI-guided overlay suggestions with precise descriptive language — never auto-applies, always user-driven. Two-tier save system: Recent Overlays (auto-saved per project) and Saved Templates (permanent, cross-project). 7 overlay types: captions (AssemblyAI word-level sync), logo, lower thirds, text, watermark, progress bar, CTA. Volume cap at $29.99/month — free clips after cap reached.
 - **Custom Template System**: Users create personal templates with element-level precision using frame-by-frame element detection and interactive editing.
 - **Visual Director AI**: Pre-plans all visuals for coherence, consistency (color palette, style), and editing patterns based on content type.
 - **Preview Protection System**: Watermarked previews; "Download" accepts, "Needs Changes" triggers revisions, "Get Final Video" removes watermark (uses tokens).
@@ -144,6 +144,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **xAI (grok-3)**: Fallback AI.
 - **ElevenLabs**: Primary Text-to-Speech (TTS) engine.
 - **OpenAI**: For audio transcription (Whisper), voiceover generation, and DALL-E character images.
+- **AssemblyAI**: Top-tier word-level captioning for Clipper overlay system (5.9% WER, $0.15/hr).
 - **Runway API**: AI video generation for Remix mode. Uses image learning to build templates, generates video transformations.
 - **Video Editor API** (Shotstack recommended): JSON-based video editing API that follows AI instructions to merge Runway + stock + user files. Chosen for: developer-first architecture, built-in AI features, enterprise-grade infrastructure, consistent per-minute pricing ($0.25-0.40/min). Cost integrated into per-video pricing.
 - **FFmpeg**: For video/audio processing and caption rendering.
@@ -153,7 +154,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 
 ## Mode Pricing (per 30 seconds)
 - **Remix**: $4.00 - $8.00 depending on quality tier (see below)
-- **Clipper**: $6.60 - $11.10 (AI scene detection + editing complexity)
+- **Clipper**: $0.49 per clip base, up to $1.49 with overlays. $29.99/month cap (free clips after cap)
 - **Simple Stock**: $0.99 (Stock + DALL-E + FFmpeg only)
 
 ## Quality Tiers (Remix Mode)

@@ -19,5 +19,6 @@ from routes.files import files_bp
 from routes.templates import template_bp
 from routes.pipeline import pipeline_bp
 from routes.voice import voice_bp
+from routes.overlays import overlays_bp
 
-__all__ = ['auth_bp', 'payments_bp', 'projects_bp', 'video_bp', 'chat_bp', 'api_bp', 'pages_bp', 'visual_bp', 'feed_bp', 'feedback_bp', 'generator_bp', 'content_bp', 'render_bp', 'stripe_bp', 'files_bp', 'template_bp', 'pipeline_bp', 'voice_bp']
+__all__ = ['auth_bp', 'payments_bp', 'projects_bp', 'video_bp', 'chat_bp', 'api_bp', 'pages_bp', 'visual_bp', 'feed_bp', 'feedback_bp', 'generator_bp', 'content_bp', 'render_bp', 'stripe_bp', 'files_bp', 'template_bp', 'pipeline_bp', 'voice_bp', 'overlays_bp']
