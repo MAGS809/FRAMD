@@ -3117,7 +3117,37 @@
         function approveScenePlan() {
             if (!state.currentProjectId) return;
             addUserMessage("Approved — let's generate this.");
-            sendMessage("I approve the scene plan. Generate the video.");
+            sendApproval();
+        }
+
+        async function sendApproval() {
+            showThinking();
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: "I approve the scene plan. Generate the video.",
+                        project_id: state.currentProjectId,
+                        mode: state.currentMode,
+                        approve_scene_plan: true
+                    })
+                });
+                hideThinking();
+                const data = await response.json();
+                if (data.ok) {
+                    if (data.response) addAIMessage(data.response);
+                    if (data.trigger_generation && data.job_data) {
+                        const selectedTier = state.selectedQualityTier || 'good';
+                        createVideoJob(state.currentProjectId, selectedTier, data.job_data);
+                    }
+                } else {
+                    addAIMessage("Something went wrong. " + (data.error || "Please try again."));
+                }
+            } catch (err) {
+                hideThinking();
+                addAIMessage("Connection error. Please try again.");
+            }
         }
 
         function requestScenePlanRevision() {

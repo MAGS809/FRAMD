@@ -109,6 +109,150 @@ Pricing: $0.49 base per clip, up to $1.49 with overlays. Monthly cap: $29.99 (fr
 {usage_info}"""
 
 
+SCENE_PLAN_PROMPT = """You are building a scene-by-scene plan for a short-form video.
+
+PROJECT BRIEF: {brief}
+MODE: {mode}
+UPLOADED SOURCES: {sources}
+
+Create a scene plan for a {target_duration}-second video. Each scene follows the narrative anchor structure.
+
+Return a JSON array of scenes:
+[
+  {{
+    "scene_index": 1,
+    "anchor_type": "HOOK|CLAIM|EVIDENCE|PIVOT|COUNTER|CLOSER",
+    "script_text": "The voiceover line for this scene",
+    "source_type": "{source_type}",
+    "visual_description": "What the viewer sees",
+    "visual_container": "fullscreen|split_screen|card|frame",
+    "duration": 5.0,
+    "transition_in": "cut|fade|slide",
+    "transition_out": "cut|fade|slide"
+  }}
+]
+
+RULES:
+- Total duration must be close to {target_duration} seconds
+- Use the anchor structure: HOOK (3s) → CLAIM → EVIDENCE → PIVOT → COUNTER (optional) → CLOSER
+- Each script_text line must be punchy, no filler
+- For remix mode: source_type is "remix" for all scenes
+- For clipper mode: source_type is "clip" for all scenes
+- For simple mode: source_type can be "stock", "dalle", or "remix"
+- Visual descriptions should be specific and cinematic
+- End with a clear closing beat (CTA if specified)
+- Return ONLY the JSON array, nothing else"""
+
+
+def build_scene_plan(project_id, user_id, mode, project):
+    sources = ProjectSource.query.filter_by(project_id=project_id).all()
+    source_list = ', '.join([f"{s.file_name} ({s.processing_mode})" for s in sources]) if sources else 'None'
+    
+    brief = project.brief or 'No brief provided'
+    
+    source_type_map = {'remix': 'remix', 'clipper': 'clip', 'simple': 'stock'}
+    primary_source_type = source_type_map.get(mode, 'stock')
+    
+    total_duration = 60
+    if sources:
+        for s in sources:
+            if s.duration and s.duration > 0:
+                total_duration = min(s.duration, 60)
+                break
+    
+    prompt = SCENE_PLAN_PROMPT.format(
+        brief=brief,
+        mode=mode,
+        sources=source_list,
+        target_duration=int(total_duration),
+        source_type=primary_source_type
+    )
+    
+    try:
+        result = call_ai(
+            prompt=prompt,
+            system_prompt="You are a video scene planner. Return only valid JSON arrays.",
+            json_output=True,
+            max_tokens=1500
+        )
+        
+        scenes_data = result if isinstance(result, list) else result.get('scenes', result.get('scene_plan', []))
+        if isinstance(scenes_data, dict):
+            for key in scenes_data:
+                if isinstance(scenes_data[key], list):
+                    scenes_data = scenes_data[key]
+                    break
+            else:
+                scenes_data = []
+        
+        if not scenes_data or not isinstance(scenes_data, list):
+            print(f"[Scene Plan] No valid scenes from AI. Raw result type: {type(result)}")
+            return [], 0, {}
+        
+        ScenePlan.query.filter_by(project_id=project_id).delete()
+        
+        per_scene_rates = {
+            'clip': 0.10,
+            'stock': 0.15,
+            'dalle': 0.30
+        }
+        per_second_rate_remix = 0.25
+        
+        scene_plan_data = []
+        total_cost = 0
+        cost_breakdown = {}
+        
+        for i, scene in enumerate(scenes_data):
+            s_type = scene.get('source_type', primary_source_type)
+            duration = float(scene.get('duration', 5.0))
+            if s_type == 'remix':
+                estimated_cost = round(duration * per_second_rate_remix, 2)
+            else:
+                estimated_cost = per_scene_rates.get(s_type, 0.15)
+            
+            sp = ScenePlan(
+                project_id=project_id,
+                scene_index=i + 1,
+                source_type=s_type,
+                anchor_type=scene.get('anchor_type', 'CLAIM'),
+                script_text=scene.get('script_text', ''),
+                visual_container=scene.get('visual_container', 'fullscreen'),
+                duration=duration,
+                start_time=sum(float(s.get('duration', 5.0)) for s in scenes_data[:i]),
+                end_time=sum(float(s.get('duration', 5.0)) for s in scenes_data[:i+1]),
+                transition_in=scene.get('transition_in', 'cut'),
+                transition_out=scene.get('transition_out', 'cut'),
+                estimated_cost=estimated_cost,
+                source_config={'visual_description': scene.get('visual_description', '')},
+                render_status='planned'
+            )
+            db.session.add(sp)
+            
+            scene_plan_data.append({
+                'scene_index': i + 1,
+                'source_type': s_type,
+                'script_text': scene.get('script_text', ''),
+                'visual_container': scene.get('visual_container', 'fullscreen'),
+                'visual_description': scene.get('visual_description', ''),
+                'duration': duration,
+                'estimated_cost': estimated_cost,
+                'anchor_type': scene.get('anchor_type', 'CLAIM'),
+                'transition_in': scene.get('transition_in', 'cut'),
+                'transition_out': scene.get('transition_out', 'cut')
+            })
+            
+            total_cost += estimated_cost
+            cost_breakdown[s_type] = cost_breakdown.get(s_type, 0) + estimated_cost
+        
+        db.session.commit()
+        return scene_plan_data, round(total_cost, 2), cost_breakdown
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"[Scene Plan Error] {e}")
+        return [], 0, {}
+
+
 @chat_bp.route('/api/chat', methods=['POST'])
 def api_chat():
     user_id = get_user_id()
@@ -120,6 +264,7 @@ def api_chat():
     project_id = data.get('project_id')
     mode = data.get('mode')
     uploaded_files = data.get('uploaded_files', [])
+    approve_scene_plan = data.get('approve_scene_plan', False)
     
     if not message:
         return jsonify({'ok': False, 'error': 'No message provided'}), 400
@@ -310,8 +455,8 @@ def api_chat():
     db.session.add(ai_conv)
     db.session.commit()
     
-    effective_mode = mode or suggested_mode
-    trigger_generation = ready_to_generate and effective_mode in ['remix', 'simple', 'clipper']
+    resolved_mode = mode if mode and mode != 'auto' else suggested_mode
+    effective_mode = resolved_mode or 'auto'
     
     if extracted_thesis and project:
         try:
@@ -324,25 +469,12 @@ def api_chat():
     total_cost = 0
     cost_breakdown = {}
     
-    if ready_to_generate and not trigger_generation:
-        try:
-            existing_scenes = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).all()
-            if existing_scenes:
-                scene_plan_data = [{
-                    'scene_index': s.scene_index,
-                    'source_type': s.source_type,
-                    'script_text': s.script_text or '',
-                    'visual_container': s.visual_container or 'fullscreen',
-                    'duration': s.duration or 0,
-                    'estimated_cost': s.estimated_cost or 0,
-                    'anchor_type': s.anchor_type
-                } for s in existing_scenes]
-                total_cost = sum(s.estimated_cost or 0 for s in existing_scenes)
-                for s in existing_scenes:
-                    st = s.source_type or 'other'
-                    cost_breakdown[st] = cost_breakdown.get(st, 0) + (s.estimated_cost or 0)
-        except Exception:
-            pass
+    if ready_to_generate and effective_mode in ['remix', 'simple', 'clipper']:
+        scene_plan_data, total_cost, cost_breakdown = build_scene_plan(
+            project_id, user_id, effective_mode, project
+        )
+
+    trigger_generation = approve_scene_plan and effective_mode in ['remix', 'simple', 'clipper']
 
     job_data = None
     if trigger_generation:
