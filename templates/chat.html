@@ -1941,7 +1941,7 @@
             }, 100);
         }
 
-        function submitBrief() {
+        async function submitBrief() {
             const briefText = document.getElementById('brief-textarea').value.trim();
             if (!briefText && state.briefFiles.length === 0) return;
 
@@ -1958,14 +1958,36 @@
                 }
             }
 
-            if (briefText) {
-                addUserMessage(briefMessage);
-                sendMessage(briefMessage);
-            } else if (state.briefFiles.length > 0) {
-                const noUploadMsg = `I've uploaded ${state.briefFiles.length} video${state.briefFiles.length > 1 ? 's' : ''}. ${state.briefFiles.map(f => f.file.name + ' (' + f.mode + ')').join(', ')}`;
-                addUserMessage(noUploadMsg);
-                sendMessage(noUploadMsg);
+            const displayMsg = briefMessage || `I've uploaded ${state.briefFiles.length} video${state.briefFiles.length > 1 ? 's' : ''}. ${state.briefFiles.map(f => f.file.name + ' (' + f.mode + ')').join(', ')}`;
+            addUserMessage(displayMsg);
+
+            let uploadedFiles = [];
+            if (state.briefFiles.length > 0) {
+                addAIMessage("Uploading your files...");
+                for (const bf of state.briefFiles) {
+                    try {
+                        const formData = new FormData();
+                        formData.append('file', bf.file);
+                        const res = await fetch('/upload', { method: 'POST', body: formData });
+                        if (res.ok) {
+                            const data = await res.json();
+                            uploadedFiles.push({
+                                job_id: data.job_id,
+                                file_name: bf.file.name,
+                                processing_mode: bf.mode
+                            });
+                        }
+                    } catch (err) {
+                        console.error('Brief file upload error:', err);
+                    }
+                }
+                const messages = document.getElementById('chat-messages');
+                if (messages.lastChild) messages.removeChild(messages.lastChild);
             }
+
+            sendMessage(displayMsg, uploadedFiles.length > 0 ? uploadedFiles : null);
+            state.briefFiles = [];
+            renderBriefFiles();
         }
 
         function selectMode(mode) {
@@ -2368,7 +2390,7 @@
             renderMessages();
         }
         
-        async function sendMessage(messageOverride) {
+        async function sendMessage(messageOverride, uploadedFiles) {
             const input = document.getElementById('chat-input');
             let text;
             if (messageOverride) {
@@ -2384,16 +2406,30 @@
             if (!state.currentMode && !state.currentProjectId) {
                 state.currentMode = 'auto';
             }
+
+            const chatBody = {
+                message: text,
+                project_id: state.currentProjectId,
+                mode: state.currentMode
+            };
+            if (uploadedFiles && uploadedFiles.length > 0) {
+                chatBody.uploaded_files = uploadedFiles;
+            }
+            if (state.uploadedFile && state.uploadedFile.job_id) {
+                chatBody.uploaded_files = chatBody.uploaded_files || [];
+                chatBody.uploaded_files.push({
+                    job_id: state.uploadedFile.job_id,
+                    file_name: state.uploadedFile.filename,
+                    processing_mode: 'clip'
+                });
+                state.uploadedFile = null;
+            }
             
             try {
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: text,
-                        project_id: state.currentProjectId,
-                        mode: state.currentMode
-                    })
+                    body: JSON.stringify(chatBody)
                 });
                 
                 const data = await response.json();
@@ -2404,10 +2440,6 @@
                         state.currentProjectName = data.project_name || 'New Project';
                         document.getElementById('project-name-text').textContent = state.currentProjectName;
                         loadProjects();
-                        
-                        if (state.briefFiles.length > 0) {
-                            uploadBriefFiles();
-                        }
                     }
                     
                     if (data.response) {

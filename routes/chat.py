@@ -3,6 +3,8 @@ Chat routes blueprint.
 Handles chat/conversation endpoints.
 """
 import json
+import os
+import subprocess
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
 
@@ -108,6 +110,7 @@ def api_chat():
     message = data.get('message', '').strip()
     project_id = data.get('project_id')
     mode = data.get('mode')
+    uploaded_files = data.get('uploaded_files', [])
     
     if not message:
         return jsonify({'ok': False, 'error': 'No message provided'}), 400
@@ -127,6 +130,46 @@ def api_chat():
         db.session.add(project)
         db.session.commit()
         project_id = project.id
+
+    if uploaded_files:
+        import glob as glob_mod
+        upload_dir = 'uploads'
+        existing_count = ProjectSource.query.filter_by(project_id=project_id).count()
+        for i, uf in enumerate(uploaded_files):
+            job_id = uf.get('job_id', '')
+            file_name = uf.get('file_name', 'unknown')
+            processing_mode = uf.get('processing_mode', 'clip')
+            if not job_id:
+                continue
+            matches = glob_mod.glob(os.path.join(upload_dir, f"{job_id}_*"))
+            if not matches:
+                continue
+            file_path = matches[0]
+            ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
+            file_type = 'video' if ext in ('mp4', 'mov', 'avi', 'webm', 'mkv') else 'audio' if ext in ('mp3', 'wav', 'm4a', 'aac') else 'other'
+            duration = None
+            try:
+                probe = subprocess.run(
+                    ['ffprobe', '-v', 'quiet', '-show_entries', 'format=duration', '-of', 'json', file_path],
+                    capture_output=True, text=True, timeout=30
+                )
+                probe_data = json.loads(probe.stdout)
+                duration = float(probe_data.get('format', {}).get('duration', 0))
+            except Exception:
+                pass
+            source = ProjectSource(
+                project_id=project_id,
+                user_id=user_id,
+                file_path=file_path,
+                file_name=file_name,
+                file_type=file_type,
+                duration=duration,
+                processing_mode=processing_mode,
+                processing_status='uploaded',
+                sort_order=existing_count + i,
+            )
+            db.session.add(source)
+        db.session.commit()
     
     user_conv = Conversation(
         user_id=user_id,
