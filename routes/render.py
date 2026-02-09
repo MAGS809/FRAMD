@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, session, current_app
 from flask_login import current_user
 from extensions import db
 from audio_engine import parse_sfx_from_directions, mix_sfx_into_audio
-from video_renderer import create_whisper_synced_captions
+from services.caption_service import generate_captions as assemblyai_generate_captions, transcribe_audio as assemblyai_transcribe, words_to_phrases
 import os
 import re
 import uuid
@@ -627,112 +627,56 @@ def render_video():
         
         if captions_enabled and audio_path and os.path.exists(audio_path):
             try:
-                from openai import OpenAI
-                whisper_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-                
-                with open(audio_path, 'rb') as audio_file:
-                    transcription = whisper_client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=audio_file,
-                        response_format="verbose_json",
-                        timestamp_granularities=["word"]
-                    )
-                
-                words = []
-                if hasattr(transcription, 'words') and transcription.words:
-                    words = transcription.words
-                elif hasattr(transcription, 'segments'):
-                    for segment in transcription.segments:
-                        if hasattr(segment, 'words'):
-                            words.extend(segment.words)
-                
-                print(f"Whisper returned {len(words)} word timestamps")
-                
-                if words:
+                transcription = assemblyai_transcribe(audio_path)
+
+                if transcription and transcription.get('words'):
+                    provider = transcription.get('provider', 'unknown')
+                    print(f"[CaptionService] {provider} returned {len(transcription['words'])} word timestamps")
+
                     from visual_director import apply_caption_template
                     caption_settings = apply_caption_template(caption_settings)
-                    
+
                     caption_color = caption_settings.get('textColor', caption_settings.get('color', '#FFFFFF')).lstrip('#')
                     caption_position = caption_settings.get('position', 'bottom')
                     caption_uppercase = caption_settings.get('uppercase', False)
                     caption_outline = caption_settings.get('outline', True)
                     caption_shadow = caption_settings.get('shadow', True)
-                    
+
                     if caption_position == 'top':
                         y_pos = 'h*0.12'
                     elif caption_position == 'bottom':
                         y_pos = 'h*0.82'
                     else:
                         y_pos = '(h-text_h)/2'
-                    
+
                     fontsize = 24 if not preview_mode else 14
-                    
-                    phrases = []
-                    current_phrase = []
-                    current_start = None
-                    current_end = 0
-                    
-                    for word_data in words:
-                        if isinstance(word_data, dict):
-                            word = word_data.get('word', '')
-                            start = word_data.get('start', 0)
-                            end = word_data.get('end', 0)
-                        else:
-                            word = getattr(word_data, 'word', '')
-                            start = getattr(word_data, 'start', 0)
-                            end = getattr(word_data, 'end', 0)
-                        
-                        word = word.strip()
-                        if not word:
-                            continue
-                        
-                        if current_start is None:
-                            current_start = start
-                        
-                        current_phrase.append(word)
-                        current_end = end
-                        
-                        word_stripped = word.rstrip()
-                        if len(current_phrase) >= 4 or (len(current_phrase) >= 2 and word_stripped.endswith(('.', '!', '?', ','))):
-                            phrases.append({
-                                'text': ' '.join(current_phrase),
-                                'start': current_start,
-                                'end': current_end
-                            })
-                            current_phrase = []
-                            current_start = None
-                    
-                    if current_phrase:
-                        phrases.append({
-                            'text': ' '.join(current_phrase),
-                            'start': current_start,
-                            'end': current_end
-                        })
-                    
+
+                    phrases = words_to_phrases(
+                        transcription['words'],
+                        max_words_per_phrase=4,
+                        uppercase=caption_uppercase
+                    )
+
                     if phrases and audio_duration:
                         phrases[-1]['end'] = audio_duration
-                    
+
                     def format_srt_time(seconds):
-                        """Convert seconds to SRT timestamp format (HH:MM:SS,mmm)"""
                         hours = int(seconds // 3600)
                         minutes = int((seconds % 3600) // 60)
                         secs = int(seconds % 60)
                         millis = int((seconds % 1) * 1000)
                         return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-                    
+
                     srt_content = []
                     for i, phrase in enumerate(phrases, 1):
-                        text = phrase['text']
-                        if caption_uppercase:
-                            text = text.upper()
                         start_srt = format_srt_time(phrase['start'])
                         end_srt = format_srt_time(phrase['end'])
-                        srt_content.append(f"{i}\n{start_srt} --> {end_srt}\n{text}\n")
-                    
+                        srt_content.append(f"{i}\n{start_srt} --> {end_srt}\n{phrase['text']}\n")
+
                     srt_path = f"output/captions_{uuid.uuid4().hex[:8]}.srt"
                     with open(srt_path, 'w', encoding='utf-8') as f:
                         f.write('\n'.join(srt_content))
-                    
+
                     caption_srt_path = srt_path
                     caption_style_settings = {
                         'fontsize': fontsize,
@@ -741,13 +685,13 @@ def render_video():
                         'shadow': caption_shadow,
                         'y_pos': y_pos
                     }
-                    
-                    print(f"Generated SRT with {len(phrases)} caption phrases: {srt_path}")
+
+                    print(f"[CaptionService] Generated SRT with {len(phrases)} phrases via {provider}")
                 else:
-                    print("No word timestamps returned from Whisper")
-                    
+                    print("[CaptionService] No word timestamps returned")
+
             except Exception as e:
-                print(f"Whisper transcription failed, skipping captions: {e}")
+                print(f"[CaptionService] Caption generation failed, skipping: {e}")
         
         if caption_srt_path and os.path.exists(caption_srt_path) and os.path.exists(temp_combined):
             print(f"Pass 2: Adding captions from SRT file...")
@@ -1276,14 +1220,15 @@ def render_with_visual_plan():
         
         if audio_path and os.path.exists(audio_path):
             ass_path = f'output/plan_captions_{output_id}.ass'
-            _, whisper_success = create_whisper_synced_captions(
+            _, caption_success = assemblyai_generate_captions(
                 audio_path, ass_path,
                 template=caption_template,
                 position=caption_position,
-                video_width=width, video_height=height
+                video_width=width, video_height=height,
+                export_format='ass'
             )
-            
-            if whisper_success:
+
+            if caption_success:
                 caption_output = f'output/captioned_{output_id}.mp4'
                 caption_cmd = [
                     'ffmpeg', '-y',

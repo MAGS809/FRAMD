@@ -337,6 +337,87 @@ def generate_captions_endpoint():
         return jsonify({'error': str(e)}), 500
 
 
+@pipeline_bp.route('/transcribe-captions', methods=['POST'])
+def transcribe_captions():
+    """Transcribe audio/video and return word-level timed captions.
+    Accepts either a file upload or a file path.
+    Returns JSON with words, phrases, and optional SRT/VTT export."""
+    from services.caption_service import generate_captions_json, generate_captions as gen_caps
+    import uuid as uid
+
+    audio_path = None
+    cleanup_audio = False
+    export_format = 'json'
+
+    if request.content_type and 'multipart/form-data' in request.content_type:
+        file = request.files.get('file')
+        if not file:
+            return jsonify({'error': 'No file uploaded'}), 400
+        os.makedirs('output', exist_ok=True)
+        audio_path = f"output/caption_input_{uid.uuid4().hex[:8]}{os.path.splitext(file.filename)[1]}"
+        file.save(audio_path)
+        cleanup_audio = True
+        export_format = request.form.get('format', 'json')
+    else:
+        data = request.get_json() or {}
+        audio_path = data.get('audio_path') or data.get('file_path')
+        export_format = data.get('format', 'json')
+
+    if not audio_path or not os.path.exists(audio_path):
+        return jsonify({'error': 'Audio file not found'}), 400
+
+    uppercase = request.form.get('uppercase', request.args.get('uppercase', 'false')).lower() == 'true'
+
+    try:
+        if export_format == 'json':
+            result = generate_captions_json(audio_path, uppercase=uppercase)
+            if not result:
+                return jsonify({'error': 'Transcription failed'}), 500
+            return jsonify({'success': True, **result})
+        else:
+            os.makedirs('output', exist_ok=True)
+            ext = {'srt': '.srt', 'vtt': '.vtt', 'ass': '.ass'}.get(export_format, '.srt')
+            out_path = f"output/captions_{uid.uuid4().hex[:8]}{ext}"
+
+            template = request.form.get('template', 'bold_pop') if request.content_type and 'multipart' in request.content_type else (request.get_json() or {}).get('template', 'bold_pop')
+            position = request.form.get('position', 'bottom') if request.content_type and 'multipart' in request.content_type else (request.get_json() or {}).get('position', 'bottom')
+
+            result_path, success = gen_caps(
+                audio_path, out_path,
+                template=template,
+                position=position,
+                uppercase=uppercase,
+                export_format=export_format
+            )
+
+            if not success:
+                return jsonify({'error': 'Caption generation failed'}), 500
+
+            with open(result_path, 'r') as f:
+                content = f.read()
+
+            try:
+                os.remove(result_path)
+            except:
+                pass
+
+            return jsonify({
+                'success': True,
+                'format': export_format,
+                'content': content,
+            })
+
+    except Exception as e:
+        logging.error(f"Caption transcription error: {e}")
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cleanup_audio and audio_path and os.path.exists(audio_path):
+            try:
+                os.remove(audio_path)
+            except:
+                pass
+
+
 @pipeline_bp.route('/refine-script', methods=['POST'])
 def refine_script():
     """Conversational script refinement - asks clarifying questions."""

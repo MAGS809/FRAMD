@@ -112,7 +112,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Trend Intelligence**: AI researches social media platforms for current trends.
 - **Visual Content Sourcing**: Priority: user content → AI-generated (DALL-E/Runway) → stock (Wikimedia/Pexels). Stock always inside visual containers.
 - **Voice System**: 8 distinct character personas with multi-character script support.
-- **Caption Template System**: 5 templates with word-by-word highlighting synced to audio.
+- **Caption Template System**: 5 templates (Bold Pop, Clean Minimal, Gradient Glow, Street Style, Boxed) with word-by-word highlighting synced to audio via AssemblyAI. Captions are bundled free with every video. Centralized in `services/caption_service.py`.
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
 - **Overlay System**: 7 overlay types with two-tier save (Recent + Saved Templates). Volume cap at $29.99/month.
 - **Preview Protection**: Watermarked previews; approve/revise flow in chat.
@@ -125,7 +125,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **xAI (grok-3)**: Fallback AI.
 - **ElevenLabs**: Primary Text-to-Speech (TTS) engine.
 - **OpenAI**: For audio transcription (Whisper), voiceover generation, and DALL-E character images.
-- **AssemblyAI**: Top-tier word-level captioning for Clipper overlay system (5.9% WER, $0.15/hr).
+- **AssemblyAI**: Primary caption engine for all video captions ($0.15/hr, best-in-class accuracy). Integrated via `services/caption_service.py` with OpenAI Whisper as automatic fallback. Supports SRT, VTT, and ASS export formats. API endpoint: `/transcribe-captions`.
 - **Runway API**: AI video generation for Remix mode. Uses image learning to build templates, generates video transformations.
 - **Video Editor API** (Shotstack recommended): JSON-based video editing API that follows AI instructions to merge Runway + stock + user files. Chosen for: developer-first architecture, built-in AI features, enterprise-grade infrastructure, consistent per-minute pricing ($0.25-0.40/min). Cost integrated into per-video pricing.
 - **FFmpeg**: For video/audio processing and caption rendering.
