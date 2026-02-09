@@ -50,6 +50,40 @@
             display: flex;
             flex-direction: column;
             flex-shrink: 0;
+            transition: transform 0.3s ease, width 0.3s ease;
+            z-index: 100;
+        }
+        
+        .sidebar-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(255, 214, 10, 0.08);
+            border-color: var(--text-dim);
+        }
+        
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 99;
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
         }
         
         .sidebar-header {
@@ -440,6 +474,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
         }
         
         .project-title-display {
@@ -943,11 +978,36 @@
         
         @media (max-width: 768px) {
             .sidebar {
-                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
             }
             
             .mode-cards {
                 grid-template-columns: 1fr;
+            }
+            
+            .main-header {
+                padding-left: 12px;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .sidebar.collapsed {
+                width: 0;
+                overflow: hidden;
+                border-right: none;
+            }
+            
+            .sidebar.collapsed * {
+                opacity: 0;
+                pointer-events: none;
             }
         }
     </style>
@@ -968,7 +1028,8 @@
     </div>
 
     <div class="app-container">
-        <aside class="sidebar">
+        <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="brand">Framd</div>
                 <button class="new-video-btn" onclick="startNewProject()">
@@ -1023,6 +1084,13 @@
         
         <main class="main-content">
             <header class="main-header">
+                <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
                 <div class="project-title-display" id="current-project-title"></div>
                 <div class="header-actions">
                     <div class="project-name-edit" id="project-name-edit" onclick="startProjectRename()">
@@ -1129,6 +1197,30 @@
     </div>
     
     <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            const isMobile = window.innerWidth <= 768;
+            
+            if (isMobile) {
+                sidebar.classList.toggle('open');
+                overlay.classList.toggle('active', sidebar.classList.contains('open'));
+            } else {
+                sidebar.classList.toggle('collapsed');
+            }
+        }
+        
+        window.addEventListener('resize', function() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('active');
+            } else {
+                sidebar.classList.remove('collapsed');
+            }
+        });
+        
         const state = {
             currentProjectId: null,
             currentProjectName: null,
