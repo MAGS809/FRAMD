@@ -524,6 +524,7 @@
             display: flex;
             flex-direction: column;
             min-width: 0;
+            overflow: hidden;
         }
         
         .main-header {
@@ -1358,6 +1359,7 @@
         
         .chat-input-area {
             padding: 12px 20px 20px;
+            flex-shrink: 0;
         }
         
         .chat-input-container {
@@ -2634,8 +2636,7 @@
             }
             
             // Show the chat area if not visible
-            document.getElementById('chat-welcome').style.display = 'none';
-            document.getElementById('chat-messages').classList.add('active');
+            transitionToChat();
             
             // Add user message about the file
             const fileType = file.type.split('/')[0];
