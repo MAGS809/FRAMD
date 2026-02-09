@@ -340,6 +340,64 @@
         .project-delete-btn:hover {
             background: rgba(255, 60, 60, 0.35);
         }
+        .delete-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .delete-modal-overlay.visible {
+            display: flex;
+        }
+        .delete-modal {
+            background: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 24px;
+            width: 340px;
+            max-width: 90vw;
+            text-align: center;
+        }
+        .delete-modal h3 {
+            color: var(--text-main, #fff);
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+        .delete-modal p {
+            color: var(--text-dim, #888);
+            font-size: 13px;
+            margin: 0 0 20px;
+            line-height: 1.4;
+        }
+        .delete-modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .delete-modal-actions button {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 8px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+        .delete-modal-cancel {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-main, #fff);
+        }
+        .delete-modal-cancel:hover { opacity: 0.8; }
+        .delete-modal-confirm {
+            background: #dc3545;
+            color: #fff;
+        }
+        .delete-modal-confirm:hover { opacity: 0.85; }
         
         .project-card.active {
             background: rgba(255, 214, 10, 0.1);
@@ -2885,25 +2943,48 @@
             `).join('');
         }
 
-        async function deleteProject(projectId, projectName) {
-            if (!confirm('Delete "' + projectName + '"? This cannot be undone.')) return;
-            try {
-                const res = await fetch('/project/' + projectId, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success) {
-                    if (state.currentProjectId === projectId) {
-                        state.currentProjectId = null;
-                        state.currentProjectName = null;
-                        state.messages = [];
-                        state.currentScenePlan = null;
-                        document.getElementById('project-name-text').textContent = 'New Project';
-                        renderMessages();
-                    }
+        function deleteProject(projectId, projectName) {
+            const overlay = document.getElementById('delete-modal-overlay');
+            const nameEl = document.getElementById('delete-modal-name');
+            const confirmBtn = document.getElementById('delete-modal-confirm');
+            nameEl.textContent = '"' + projectName + '" will be permanently deleted.';
+            overlay.classList.add('visible');
+
+            const handler = async () => {
+                confirmBtn.removeEventListener('click', handler);
+                overlay.classList.remove('visible');
+
+                const card = document.querySelector(`.project-card[data-project-id="${projectId}"]`);
+                if (card) {
+                    card.style.transition = 'opacity 0.15s, transform 0.15s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(-10px)';
+                    setTimeout(() => card.remove(), 150);
+                }
+
+                state.projects = state.projects.filter(p => p.id !== projectId);
+
+                if (state.currentProjectId === projectId) {
+                    state.currentProjectId = null;
+                    state.currentProjectName = null;
+                    state.messages = [];
+                    state.currentScenePlan = null;
+                    document.getElementById('project-name-text').textContent = 'New Project';
+                    renderMessages();
+                }
+
+                try {
+                    await fetch('/project/' + projectId, { method: 'DELETE' });
+                } catch (err) {
+                    console.error('Delete failed:', err);
                     loadProjects();
                 }
-            } catch (err) {
-                console.error('Delete failed:', err);
-            }
+            };
+            confirmBtn.addEventListener('click', handler);
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal-overlay').classList.remove('visible');
         }
         
         function updateAutoGenStatus() {
@@ -3543,5 +3624,15 @@
         }
 
     </script>
+<div class="delete-modal-overlay" id="delete-modal-overlay" onclick="closeDeleteModal()">
+    <div class="delete-modal" onclick="event.stopPropagation()">
+        <h3>Delete this project?</h3>
+        <p id="delete-modal-name"></p>
+        <div class="delete-modal-actions">
+            <button class="delete-modal-cancel" onclick="closeDeleteModal()">Cancel</button>
+            <button class="delete-modal-confirm" id="delete-modal-confirm">Delete</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
