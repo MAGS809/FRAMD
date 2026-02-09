@@ -471,8 +471,8 @@
         .main-header {
             padding: 12px 24px;
             border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
             align-items: center;
             gap: 12px;
         }
@@ -481,6 +481,12 @@
             font-size: 14px;
             color: var(--text-dim);
             font-weight: 500;
+        }
+        
+        .header-center {
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .header-actions {
@@ -500,66 +506,59 @@
             font-size: 12px;
             font-weight: 500;
             color: var(--gold);
+            text-decoration: none;
         }
         
-        .token-add {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            background: var(--gold);
-            color: var(--bg);
-            border-radius: 50%;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            margin-left: 4px;
-            transition: transform 0.15s;
-        }
-        
-        .token-add:hover {
-            transform: scale(1.1);
+        .token-pill:hover {
+            background: rgba(255, 214, 10, 0.15);
+            border-color: var(--text-dim);
         }
         
         .project-name-edit {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 6px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: all 0.15s;
         }
         
         .project-name-edit:hover {
-            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border);
+        }
+
+        .project-name-edit:hover .project-name-icon {
+            opacity: 1;
         }
         
         .project-name-text {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text);
-            max-width: 200px;
+            max-width: 240px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            font-weight: 500;
         }
         
         .project-name-icon {
             color: var(--text-dim);
-            opacity: 0.6;
+            opacity: 0;
+            transition: opacity 0.15s;
         }
         
         .project-name-input {
             background: transparent;
             border: none;
             outline: none;
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text);
             font-family: inherit;
-            width: 180px;
+            font-weight: 500;
+            width: 200px;
         }
         
         .chat-area {
@@ -1592,8 +1591,7 @@
                         <line x1="3" y1="18" x2="21" y2="18"></line>
                     </svg>
                 </button>
-                <div class="project-title-display" id="current-project-title"></div>
-                <div class="header-actions">
+                <div class="header-center">
                     <div class="project-name-edit" id="project-name-edit" onclick="startProjectRename()">
                         <span class="project-name-text" id="project-name-text">Untitled Project</span>
                         <svg class="project-name-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1601,13 +1599,14 @@
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                     </div>
-                    <div class="token-pill">
+                </div>
+                <div class="header-actions">
+                    <a href="/billing" class="token-pill" title="Get more tokens">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                             <circle cx="12" cy="12" r="10"/>
                         </svg>
                         <span id="token-balance">{{ token_balance }}</span>
-                        <a href="/billing" class="token-add" title="Get more tokens">+</a>
-                    </div>
+                    </a>
                 </div>
             </header>
             
@@ -1784,7 +1783,6 @@
             state.currentMode = null;
             state.messages = [];
             state.briefFiles = [];
-            document.getElementById('current-project-title').textContent = '';
             document.getElementById('project-name-text').textContent = 'Untitled Project';
             document.getElementById('chat-welcome').style.display = 'flex';
             document.getElementById('chat-messages').classList.remove('active');
@@ -2172,7 +2170,6 @@
                     state.messages = data.messages || [];
                     state.currentMode = data.mode;
                     state.currentProjectName = data.name || 'Untitled Project';
-                    document.getElementById('current-project-title').textContent = data.name;
                     document.getElementById('project-name-text').textContent = state.currentProjectName;
                     transitionToChat();
                     renderMessages();
@@ -2317,7 +2314,6 @@
                     if (data.project_id && !state.currentProjectId) {
                         state.currentProjectId = data.project_id;
                         state.currentProjectName = data.project_name || 'New Project';
-                        document.getElementById('current-project-title').textContent = state.currentProjectName;
                         document.getElementById('project-name-text').textContent = state.currentProjectName;
                         loadProjects();
                         
