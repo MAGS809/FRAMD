@@ -13,6 +13,7 @@ from models import Project, ProjectSource, ScenePlan, CommunityTemplate, Convers
 from context_engine import call_ai, SYSTEM_GUARDRAILS
 from routes.utils import get_user_id
 from routes.overlays import get_or_create_monthly_usage, CLIPPER_MONTHLY_CAP
+from services.preview_service import generate_scene_preview_async
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -245,6 +246,22 @@ def build_scene_plan(project_id, user_id, mode, project):
             cost_breakdown[s_type] = cost_breakdown.get(s_type, 0) + estimated_cost
         
         db.session.commit()
+        
+        if scene_plan_data:
+            first_scene = scene_plan_data[0]
+            first_sp = ScenePlan.query.filter_by(
+                project_id=project_id, scene_index=1
+            ).first()
+            if first_sp:
+                quality = 'good'
+                generate_scene_preview_async(
+                    project_id=project_id,
+                    scene_plan_id=first_sp.id,
+                    scene_data=first_scene,
+                    quality_tier=quality
+                )
+                scene_plan_data[0]['preview_status'] = 'generating'
+        
         return scene_plan_data, round(total_cost, 2), cost_breakdown
         
     except Exception as e:
@@ -504,6 +521,33 @@ def api_chat():
         result['scene_plan'] = scene_plan_data
         result['total_cost'] = total_cost
         result['cost_breakdown'] = cost_breakdown
+    
+    return jsonify(result)
+
+
+@chat_bp.route('/api/project/<int:project_id>/preview-status', methods=['GET'])
+def api_preview_status(project_id):
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'ok': False, 'error': 'Project not found'}), 404
+    
+    scene = ScenePlan.query.filter_by(project_id=project_id, scene_index=1).first()
+    if not scene:
+        return jsonify({'ok': False, 'error': 'No scene plan found'}), 404
+    
+    config = scene.source_config or {}
+    
+    result = {
+        'ok': True,
+        'status': scene.render_status,
+        'preview_video_url': config.get('preview_video_url'),
+        'dalle_preview_url': config.get('dalle_preview_url'),
+        'preview_error': config.get('preview_error'),
+    }
     
     return jsonify(result)
 

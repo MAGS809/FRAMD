@@ -115,6 +115,7 @@ If slipping into generic unity language or equal-blame framing, stop and rewrite
 - **Caption Template System**: 5 templates (Bold Pop, Clean Minimal, Gradient Glow, Street Style, Boxed) with word-by-word highlighting synced to audio via AssemblyAI. Captions are bundled free with every video. Centralized in `services/caption_service.py`.
 - **Output Formats**: Supports 9:16, 1:1, 4:5, 16:9 aspect ratios.
 - **Overlay System**: 7 overlay types with two-tier save (Recent + Saved Templates). Volume cap at $29.99/month.
+- **Scene 1 Preview System** (`services/preview_service.py`): When a scene plan is built, automatically generates a real Runway video preview for Scene 1. Flow: DALL-E creates base image from visual description → Runway generates 5-second video from that image. Runs asynchronously (threaded) so scene plan displays immediately. Frontend polls every 5 seconds and displays video inline when ready. Graceful fallbacks: shows DALL-E frame if Runway fails, error message if both fail.
 - **Preview Protection**: Watermarked previews; approve/revise flow in chat.
 - **Source Merging Engine**: Unified post-processing with color grading, grain, transitions via FFmpeg.
 - **Database**: PostgreSQL with 28+ tables including community_templates, project_sources, scene_plans.
