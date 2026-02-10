@@ -1432,6 +1432,132 @@
             background: #e6c109;
             transform: translateY(-1px);
         }
+        .scene-render-progress {
+            background: rgba(255, 214, 10, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 12px;
+        }
+        .render-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--gold);
+        }
+        .render-scenes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+        .render-scene-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+        .render-scene-row .scene-num {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 214, 10, 0.12);
+            color: var(--gold);
+            font-size: 10px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .render-scene-row .scene-type-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(255, 214, 10, 0.08);
+        }
+        .scene-render-indicator {
+            margin-left: auto;
+        }
+        .scene-render-indicator .mini-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--text-faint);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .scene-render-indicator .check {
+            color: #4ade80;
+            font-size: 14px;
+        }
+        .scene-render-indicator .fail {
+            color: #ff4444;
+            font-size: 14px;
+        }
+        .scene-preview-thumb {
+            width: 60px;
+            height: 80px;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.03);
+        }
+        .scene-preview-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .scene-edit-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+            align-items: flex-start;
+        }
+        .scene-desc-edit {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 11px;
+            padding: 6px 8px;
+            resize: none;
+            height: 40px;
+            font-family: 'Inter', sans-serif;
+            transition: border-color 0.15s;
+        }
+        .scene-desc-edit:focus {
+            outline: none;
+            border-color: var(--gold);
+        }
+        .scene-rerender-btn {
+            padding: 4px 10px;
+            background: rgba(255, 214, 10, 0.12);
+            color: var(--gold);
+            border: 1px solid rgba(255, 214, 10, 0.25);
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.15s;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .scene-rerender-btn:hover {
+            background: rgba(255, 214, 10, 0.2);
+        }
+        .scene-rerender-btn.rendering {
+            opacity: 0.5;
+            pointer-events: none;
+        }
         .revise-btn {
             padding: 10px 24px;
             background: transparent;
@@ -2160,7 +2286,10 @@
             isGenerating: false,
             previewPollTimer: null,
             planBuildTimer: null,
-            selectedQualityTier: 'good'
+            selectedQualityTier: 'good',
+            generatingProjects: new Set(),
+            currentSceneCost: 0,
+            currentSceneBreakdown: {}
         };
         
         const QUALITY_TIERS = {
@@ -2457,22 +2586,26 @@
             state.isGenerating = isGenerating;
             if (projectId) {
                 if (isGenerating) {
+                    state.generatingProjects.add(projectId);
                     showGeneratingSpinner(projectId);
                 } else {
+                    state.generatingProjects.delete(projectId);
                     hideGeneratingSpinner(projectId);
                 }
+                renderProjects();
             }
         }
         
         function onVideoGenerationComplete(projectId, videoUrl) {
             setGeneratingState(false, projectId);
             showToast(
-                'Video Ready!',
-                'Your video has been generated successfully.',
+                '🎬 Video Ready!',
+                'Your video has been generated and is ready to view.',
                 `function() { window.location.href = '/project/${projectId}'; }`,
-                'View',
+                'Watch Now',
                 false
             );
+            addAIMessage('Your video is ready! Click the notification or go to your project to watch it.');
         }
         
         function showProgressMessage(sceneNum, totalScenes, estimatedMinutes) {
@@ -2499,7 +2632,7 @@
                 if (data.ok) {
                     setGeneratingState(true, projectId);
                     startJobPolling(data.job.id, projectId);
-                    addAIMessage(`Video generation started! You can continue working while it processes. Quality: ${QUALITY_TIERS[qualityTier].name}`);
+                    addAIMessage(`Your video is being generated! You can wait here or come back later — I'll let you know when it's ready. Quality: ${QUALITY_TIERS[qualityTier].name}`);
                     return data.job;
                 } else {
                     addAIMessage(`Failed to start generation: ${data.error}`);
@@ -3069,7 +3202,9 @@
         }
         
         function renderProjectList(projects) {
-            return projects.map(p => `
+            return projects.map(p => {
+                const isGenerating = state.generatingProjects && state.generatingProjects.has(p.id);
+                return `
                 <div class="project-card ${state.currentProjectId === p.id ? 'active' : ''}" 
                      data-project-id="${p.id}"
                      onclick="selectProject(${p.id})">
@@ -3080,9 +3215,11 @@
                         <div class="project-name">${escapeHtml(p.name)}</div>
                         <div class="project-meta">${p.duration || '0'}s • ${p.mode || 'Draft'}</div>
                     </div>
+                    ${isGenerating ? '<div class="project-generating-spinner"></div>' : ''}
                     <button class="project-delete-btn" onclick="event.stopPropagation(); deleteProject(${p.id}, '${escapeHtml(p.name)}')" title="Delete project">✕</button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function deleteProject(projectId, projectName) {
@@ -3534,41 +3671,19 @@
             const container = document.getElementById('chat-messages');
             const msgEl = document.createElement('div');
             msgEl.className = 'message message-ai';
+            msgEl.id = 'scene-plan-message';
 
-            const sourceColors = { clip: '#4ade80', stock: '#60a5fa', dalle: '#c084fc', remix: '#fb923c' };
-            const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 0), 0);
+            state.currentScenePlan = scenes;
+            state.currentSceneCost = totalCost;
+            state.currentSceneBreakdown = breakdown;
 
-            const hasPreview = scenes[0] && scenes[0].preview_status === 'generating';
-
-            const previewHtml = hasPreview ? `
-                <div class="scene-preview-container" id="scene-preview-box">
-                    <div class="preview-loading" id="preview-loading">
-                        <div class="preview-spinner"></div>
-                        <span id="preview-status-text">Extracting Scene 1 from source...</span>
-                        <span style="font-size:10px;color:var(--text-dim);">This may take 2-3 minutes</span>
-                    </div>
-                    <span class="preview-label">Scene 1 → 2 Preview</span>
-                </div>
-            ` : '';
-
-            const scenesHtml = scenes.map((s, i) => `
-                <div class="scene-item">
-                    <div class="scene-index">${i + 1}</div>
-                    <div class="scene-details">
-                        <div class="scene-text">${escapeHtml(s.script_text || s.content_description || 'Scene ' + (i + 1))}</div>
-                        <div class="scene-meta">
-                            <span class="scene-tag source-${s.source_type}">${s.source_type}</span>
-                            <span class="scene-tag">${s.visual_container || 'fullscreen'}</span>
-                            <span class="scene-tag">${(s.duration || 0).toFixed(1)}s</span>
-                        </div>
-                    </div>
-                    <div class="scene-cost">$${(s.estimated_cost || 0).toFixed(2)}</div>
+            const scenesRowsHtml = scenes.map((s, i) => `
+                <div class="render-scene-row" data-scene-index="${i + 1}">
+                    <span class="scene-num">${i + 1}</span>
+                    <span class="scene-type-badge source-${s.source_type}">${s.source_type}</span>
+                    <span class="scene-render-indicator"><div class="mini-spinner"></div></span>
                 </div>
             `).join('');
-
-            const breakdownHtml = breakdown ? Object.entries(breakdown).map(([k, v]) =>
-                `<span>${k}: $${v.toFixed(2)}</span>`
-            ).join(' · ') : '';
 
             msgEl.innerHTML = `
                 <div class="message-ai-avatar">
@@ -3577,34 +3692,23 @@
                     </svg>
                 </div>
                 <div class="message-ai-content">
-                    ${previewHtml}
-                    <div class="scene-plan-card">
-                        <div class="scene-plan-header">
-                            <div class="scene-plan-title">Scene Plan</div>
-                            <div class="scene-plan-count">${scenes.length} scenes · ${totalDuration.toFixed(1)}s</div>
+                    <div class="scene-render-progress" id="scene-render-progress">
+                        <div class="render-header">
+                            <div class="preview-spinner"></div>
+                            <span>Rendering your scenes...</span>
                         </div>
-                        <div class="scene-list">${scenesHtml}</div>
-                        <div class="cost-summary">
-                            <div>
-                                <div class="cost-total">$${(totalCost || 0).toFixed(2)}</div>
-                                <div class="cost-breakdown">${breakdownHtml}</div>
-                            </div>
-                            <div>
-                                <button class="revise-btn" onclick="requestScenePlanRevision()">Needs changes</button>
-                                <button class="approve-btn" onclick="approveScenePlan()">Approve & Generate</button>
-                            </div>
+                        <div class="render-scenes-list" id="render-scenes-list">
+                            ${scenesRowsHtml}
                         </div>
+                        <span id="render-progress-text" style="font-size:10px;color:var(--text-dim);">Scene 1 of ${scenes.length} • This may take a few minutes</span>
                     </div>
                 </div>
             `;
 
             container.appendChild(msgEl);
             scrollChatToBottom();
-            state.currentScenePlan = scenes;
 
-            if (hasPreview) {
-                startPreviewPolling(state.currentProjectId);
-            }
+            startPreviewPolling(state.currentProjectId);
         }
 
         function stopPreviewPolling() {
@@ -3618,15 +3722,16 @@
             stopPreviewPolling();
             
             let pollCount = 0;
-            const maxPolls = 60;
+            const maxPolls = 120;
 
             state.previewPollTimer = setInterval(async () => {
                 pollCount++;
                 if (pollCount > maxPolls || state.currentProjectId !== projectId) {
                     stopPreviewPolling();
-                    const loadingEl = document.getElementById('preview-loading');
-                    if (loadingEl) {
-                        loadingEl.innerHTML = '<span>Preview generation timed out</span>';
+                    const progressEl = document.getElementById('scene-render-progress');
+                    if (progressEl) {
+                        const header = progressEl.querySelector('.render-header span');
+                        if (header) header.textContent = 'Preview generation timed out';
                     }
                     return;
                 }
@@ -3636,60 +3741,224 @@
                     const data = await res.json();
                     if (!data.ok) return;
 
-                    const box = document.getElementById('scene-preview-box');
-                    if (!box) {
-                        clearInterval(state.previewPollTimer);
+                    const progressEl = document.getElementById('scene-render-progress');
+                    if (!progressEl) {
+                        stopPreviewPolling();
                         return;
                     }
 
-                    const statusText = document.getElementById('preview-status-text') || box.querySelector('.preview-loading span:first-of-type');
-                    const statusMap = {
-                        'generating_preview': 'Preparing preview...',
-                        'extracting_scene1': 'Extracting Scene 1 from source...',
-                        'extracting_frame': 'Extracting frame from source...',
-                        'sending_to_runway': 'Sending to Runway for AI transformation...',
-                        'generating_ai_visuals': 'Generating AI visuals (this may take a minute)...',
-                        'downloading_result': 'Downloading AI-transformed clip...',
-                        'generating_scene2_ai': 'Scene 1 ready — generating Scene 2 AI visuals...',
-                        'extracting_scene2': 'Scene 1 ready — extracting Scene 2...',
-                        'stitching_transition': 'Both scenes ready — stitching transition...',
-                    };
-                    if (statusMap[data.status] && statusText) {
-                        statusText.textContent = statusMap[data.status];
+                    if (data.scenes && data.scenes.length > 0) {
+                        data.scenes.forEach(scene => {
+                            const row = progressEl.querySelector(`.render-scene-row[data-scene-index="${scene.scene_index}"]`);
+                            if (!row) return;
+                            const indicator = row.querySelector('.scene-render-indicator');
+                            if (!indicator) return;
+                            if (scene.render_status === 'rendered') {
+                                indicator.innerHTML = '<span class="check">✓</span>';
+                            } else if (scene.render_status === 'failed') {
+                                indicator.innerHTML = '<span class="fail">✕</span>';
+                            } else {
+                                indicator.innerHTML = '<div class="mini-spinner"></div>';
+                            }
+                        });
                     }
 
-                    if (data.status === 'preview_ready' && data.preview_video_url) {
-                        clearInterval(state.previewPollTimer);
-                        state.previewPollTimer = null;
-                        let label = data.is_transition_preview ? 'Scene 1 → 2 Preview' : 'Scene 1 Preview';
-                        if (data.is_remix) label += ' (AI Remix)';
-                        box.innerHTML = `
-                            <video autoplay loop muted playsinline controls>
-                                <source src="${data.preview_video_url}" type="video/mp4">
-                            </video>
-                            <div class="preview-bar">
-                                <span class="preview-label">${label}</span>
-                                <button class="preview-fullscreen-btn" onclick="togglePreviewFullscreen(this)" title="Fullscreen">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        `;
-                        scrollChatToBottom();
-                    } else if (data.status === 'preview_failed') {
-                        clearInterval(state.previewPollTimer);
-                        state.previewPollTimer = null;
-                        box.innerHTML = `
-                            <div class="preview-error">
-                                <span>Preview couldn't be generated. You can still approve the plan.</span>
-                            </div>
-                        `;
+                    const progressText = document.getElementById('render-progress-text');
+                    if (progressText && data.current_scene && data.total_scenes) {
+                        progressText.textContent = `Scene ${data.current_scene} of ${data.total_scenes} • This may take a few minutes`;
+                    }
+
+                    if (data.all_rendered === true) {
+                        stopPreviewPolling();
+                        showEditableScenePlan(data);
                     }
                 } catch (err) {
                     console.log('Preview poll error:', err);
                 }
             }, 5000);
+        }
+
+        function extractSceneIdFromUrl(url) {
+            if (!url) return null;
+            const match = url.match(/\/scene\/(\d+)\//);
+            return match ? parseInt(match[1]) : null;
+        }
+
+        function showEditableScenePlan(previewData) {
+            const progressEl = document.getElementById('scene-render-progress');
+            if (!progressEl) return;
+
+            const scenes = state.currentScenePlan || [];
+            const totalCost = state.currentSceneCost || 0;
+            const breakdown = state.currentSceneBreakdown || {};
+            const previewScenes = previewData.scenes || [];
+            const totalDuration = scenes.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+            const transitionPreviewHtml = previewData.preview_video_url ? `
+                <div class="scene-preview-container" id="scene-preview-box">
+                    <video autoplay loop muted playsinline controls>
+                        <source src="${previewData.preview_video_url}" type="video/mp4">
+                    </video>
+                    <div class="preview-bar">
+                        <span class="preview-label">Scene 1 → 2 Preview</span>
+                        <button class="preview-fullscreen-btn" onclick="togglePreviewFullscreen(this)" title="Fullscreen">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            ` : '';
+
+            const scenesHtml = scenes.map((s, i) => {
+                const ps = previewScenes.find(p => p.scene_index === s.scene_index) || {};
+                const sceneId = extractSceneIdFromUrl(ps.preview_video_url);
+                const visualDesc = ps.visual_description || s.visual_description || '';
+                const videoUrl = ps.preview_video_url || '';
+                const renderStatus = ps.render_status || 'pending';
+                const projectId = state.currentProjectId;
+
+                let statusIndicator = '<div class="mini-spinner"></div>';
+                if (renderStatus === 'rendered') statusIndicator = '<span class="check" style="color:#4ade80;font-size:14px;">✓</span>';
+                else if (renderStatus === 'failed') statusIndicator = '<span class="fail" style="color:#ff4444;font-size:14px;">✕</span>';
+
+                const videoThumb = videoUrl ? `
+                    <div class="scene-preview-thumb">
+                        <video autoplay loop muted playsinline src="${videoUrl}"></video>
+                    </div>
+                ` : '<div class="scene-preview-thumb"></div>';
+
+                return `
+                    <div class="scene-item" data-scene-id="${sceneId || ''}" data-scene-index="${s.scene_index}">
+                        <div class="scene-index">${i + 1}</div>
+                        ${videoThumb}
+                        <div class="scene-details">
+                            <div class="scene-text">${escapeHtml(s.script_text || 'Scene ' + (i + 1))}</div>
+                            <div class="scene-meta">
+                                <span class="scene-tag source-${s.source_type}">${s.source_type}</span>
+                                <span class="scene-tag">${(s.duration || 0).toFixed(1)}s</span>
+                            </div>
+                            <div class="scene-edit-row">
+                                <textarea class="scene-desc-edit" data-original="${escapeHtml(visualDesc)}" placeholder="Describe the visual...">${escapeHtml(visualDesc)}</textarea>
+                                <button class="scene-rerender-btn" style="display:none" onclick="rerenderScene(${projectId}, ${sceneId}, this)">Re-render</button>
+                            </div>
+                        </div>
+                        <div class="scene-cost">$${(s.estimated_cost || 0).toFixed(2)}</div>
+                        <div class="scene-status-indicator scene-render-indicator">${statusIndicator}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const breakdownHtml = breakdown ? Object.entries(breakdown).map(([k, v]) =>
+                `<span>${k}: $${v.toFixed(2)}</span>`
+            ).join(' · ') : '';
+
+            const parentContent = progressEl.parentElement;
+            progressEl.remove();
+
+            const planHtml = `
+                ${transitionPreviewHtml}
+                <div class="scene-plan-card">
+                    <div class="scene-plan-header">
+                        <div class="scene-plan-title">Scene Plan</div>
+                        <div class="scene-plan-count">${scenes.length} scenes · ${totalDuration.toFixed(1)}s</div>
+                    </div>
+                    <div class="scene-list">${scenesHtml}</div>
+                    <div class="cost-summary">
+                        <div>
+                            <div class="cost-total">$${(totalCost || 0).toFixed(2)}</div>
+                            <div class="cost-breakdown">${breakdownHtml}</div>
+                        </div>
+                        <div>
+                            <button class="revise-btn" onclick="requestScenePlanRevision()">Needs changes</button>
+                            <button class="approve-btn" onclick="approveScenePlan()">Approve & Generate</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            parentContent.insertAdjacentHTML('beforeend', planHtml);
+
+            document.querySelectorAll('.scene-desc-edit').forEach(textarea => {
+                textarea.addEventListener('input', function() {
+                    const btn = this.closest('.scene-edit-row').querySelector('.scene-rerender-btn');
+                    if (btn) {
+                        btn.style.display = this.value !== this.dataset.original ? 'block' : 'none';
+                    }
+                });
+            });
+
+            scrollChatToBottom();
+        }
+
+        async function rerenderScene(projectId, sceneId, btn) {
+            if (!sceneId || !projectId) return;
+            const sceneItem = btn.closest('.scene-item');
+            if (!sceneItem) return;
+
+            const textarea = sceneItem.querySelector('.scene-desc-edit');
+            const newDesc = textarea ? textarea.value.trim() : '';
+            if (!newDesc) return;
+
+            btn.classList.add('rendering');
+            btn.textContent = 'Rendering...';
+
+            const statusIndicator = sceneItem.querySelector('.scene-status-indicator');
+            if (statusIndicator) statusIndicator.innerHTML = '<div class="mini-spinner"></div>';
+
+            try {
+                const res = await fetch(`/api/project/${projectId}/scene/${sceneId}/re-render`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ visual_description: newDesc })
+                });
+                const data = await res.json();
+                if (!data.ok) {
+                    btn.classList.remove('rendering');
+                    btn.textContent = 'Re-render';
+                    if (statusIndicator) statusIndicator.innerHTML = '<span class="fail" style="color:#ff4444;font-size:14px;">✕</span>';
+                    return;
+                }
+
+                const pollSceneStatus = setInterval(async () => {
+                    try {
+                        const statusRes = await fetch(`/api/project/${projectId}/preview-status`);
+                        const statusData = await statusRes.json();
+                        if (!statusData.ok) return;
+
+                        const scene = (statusData.scenes || []).find(s => {
+                            const sid = extractSceneIdFromUrl(s.preview_video_url);
+                            return sid === sceneId;
+                        });
+                        if (!scene) return;
+
+                        if (scene.render_status === 'rendered') {
+                            clearInterval(pollSceneStatus);
+                            btn.classList.remove('rendering');
+                            btn.textContent = 'Re-render';
+                            btn.style.display = 'none';
+                            textarea.dataset.original = newDesc;
+                            if (statusIndicator) statusIndicator.innerHTML = '<span class="check" style="color:#4ade80;font-size:14px;">✓</span>';
+                            const video = sceneItem.querySelector('.scene-preview-thumb video');
+                            if (video && scene.preview_video_url) {
+                                video.src = scene.preview_video_url;
+                                video.load();
+                            }
+                        } else if (scene.render_status === 'failed') {
+                            clearInterval(pollSceneStatus);
+                            btn.classList.remove('rendering');
+                            btn.textContent = 'Re-render';
+                            if (statusIndicator) statusIndicator.innerHTML = '<span class="fail" style="color:#ff4444;font-size:14px;">✕</span>';
+                        }
+                    } catch (e) {
+                        console.log('Scene re-render poll error:', e);
+                    }
+                }, 5000);
+            } catch (err) {
+                console.error('Re-render failed:', err);
+                btn.classList.remove('rendering');
+                btn.textContent = 'Re-render';
+            }
         }
 
         function togglePreviewFullscreen(btn) {

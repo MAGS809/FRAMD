@@ -240,6 +240,428 @@ def _stitch_with_transition(clip1_path: str, clip2_path: str, transition: str, o
         return False
 
 
+def _find_source_video(project_id: int) -> Optional[str]:
+    from models import ProjectSource
+    sources = ProjectSource.query.filter_by(project_id=project_id).all()
+    for source in sources:
+        if source.file_path and os.path.exists(source.file_path):
+            return source.file_path
+    return None
+
+
+def _is_remix_mode(scene_data: dict) -> bool:
+    return (scene_data or {}).get("source_type", "").lower() == "remix"
+
+
+def _generate_stock_clip(visual_description: str, duration: float, output_path: str, db_update_fn=None) -> dict:
+    from remix_engine import search_pexels_videos
+
+    try:
+        if db_update_fn:
+            db_update_fn("searching_stock")
+
+        query = visual_description or "cinematic background"
+        if len(query) > 200:
+            query = query[:200]
+
+        print(f"[Preview] Searching Pexels for stock video: '{query[:80]}...'")
+        videos = search_pexels_videos(query=query, per_page=3, orientation="portrait")
+
+        if not videos:
+            return {"success": False, "error": f"No stock videos found for: {query[:100]}"}
+
+        best_video = videos[0]
+        video_url = best_video.get("video_url") or best_video.get("url")
+        if not video_url:
+            return {"success": False, "error": "Stock video result has no download URL"}
+
+        if db_update_fn:
+            db_update_fn("downloading_stock")
+
+        print(f"[Preview] Downloading stock video: {video_url[:100]}...")
+        ts = int(time.time())
+        raw_path = os.path.join(PREVIEW_DIR, f"stock_raw_{ts}.mp4")
+
+        if not _download_video(video_url, raw_path):
+            return {"success": False, "error": "Failed to download stock video"}
+
+        raw_duration = _get_clip_duration(raw_path)
+        if raw_duration > duration + 0.5:
+            print(f"[Preview] Trimming stock video from {raw_duration:.1f}s to {duration:.1f}s")
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", raw_path,
+                "-t", str(duration),
+                "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+                "-pix_fmt", "yuv420p",
+                "-an",
+                output_path
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            try:
+                os.remove(raw_path)
+            except OSError:
+                pass
+            if result.returncode == 0 and os.path.exists(output_path):
+                print(f"[Preview] Stock clip trimmed -> {output_path}")
+                return {"success": True}
+            else:
+                print(f"[Preview] Stock trim failed: {result.stderr[:300]}")
+                return {"success": False, "error": "Failed to trim stock video"}
+        else:
+            os.rename(raw_path, output_path)
+            print(f"[Preview] Stock clip ready -> {output_path}")
+            return {"success": True}
+
+    except Exception as e:
+        print(f"[Preview] Stock clip error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": f"Stock clip generation failed: {str(e)}"}
+
+
+def _generate_dalle_clip(visual_description: str, duration: float, output_path: str, db_update_fn=None) -> dict:
+    try:
+        if db_update_fn:
+            db_update_fn("generating_dalle_image")
+
+        prompt = visual_description or "Abstract cinematic visual, dramatic lighting"
+        if len(prompt) > 4000:
+            prompt = prompt[:3997] + "..."
+
+        print(f"[Preview] Generating DALL-E image: '{prompt[:80]}...'")
+
+        from openai import OpenAI
+        client = OpenAI()
+        response = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            size="1024x1792",
+            quality="standard",
+            n=1
+        )
+
+        image_url = response.data[0].url
+        if not image_url:
+            return {"success": False, "error": "DALL-E returned no image URL"}
+
+        ts = int(time.time())
+        image_path = os.path.join(PREVIEW_DIR, f"dalle_img_{ts}.png")
+
+        print(f"[Preview] Downloading DALL-E image...")
+        img_resp = requests.get(image_url, timeout=60)
+        if img_resp.status_code != 200:
+            return {"success": False, "error": f"Failed to download DALL-E image: HTTP {img_resp.status_code}"}
+
+        with open(image_path, "wb") as f:
+            f.write(img_resp.content)
+
+        if db_update_fn:
+            db_update_fn("converting_to_video")
+
+        print(f"[Preview] Converting DALL-E image to {duration}s video...")
+        cmd = [
+            "ffmpeg", "-y",
+            "-loop", "1",
+            "-i", image_path,
+            "-c:v", "libx264",
+            "-t", str(duration),
+            "-pix_fmt", "yuv420p",
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
+            output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+        try:
+            os.remove(image_path)
+        except OSError:
+            pass
+
+        if result.returncode == 0 and os.path.exists(output_path):
+            print(f"[Preview] DALL-E clip ready -> {output_path}")
+            return {"success": True}
+        else:
+            print(f"[Preview] DALL-E video conversion failed: {result.stderr[:300]}")
+            return {"success": False, "error": "Failed to convert DALL-E image to video"}
+
+    except Exception as e:
+        print(f"[Preview] DALL-E clip error: {e}")
+        traceback.print_exc()
+        return {"success": False, "error": f"DALL-E clip generation failed: {str(e)}"}
+
+
+def _render_single_scene(scene_data: dict, scene_plan_id: int, project_id: int,
+                         source_video: Optional[str], quality_tier: str) -> dict:
+    from models import db, ScenePlan
+
+    source_type = (scene_data.get("source_type") or "clip").lower()
+    visual_description = scene_data.get("visual_description", "")
+
+    try:
+        duration = float(scene_data.get("duration", 5.0) or 5.0)
+    except (TypeError, ValueError):
+        duration = 5.0
+
+    try:
+        start_time = float(scene_data.get("start_time", 0) or 0)
+    except (TypeError, ValueError):
+        start_time = 0.0
+
+    output_path = os.path.join(PREVIEW_DIR, f"scene_{project_id}_{scene_plan_id}_{int(time.time())}.mp4")
+
+    def db_update_fn(status):
+        try:
+            s = ScenePlan.query.get(scene_plan_id)
+            if s:
+                s.render_status = status
+                db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    print(f"[Preview] Rendering scene {scene_data.get('scene_index', '?')} type={source_type} duration={duration}s")
+
+    render_result = None
+
+    if source_type == "clip":
+        if not source_video:
+            render_result = {"success": False, "error": "No source video available for clip extraction"}
+        else:
+            if start_time + duration > _get_clip_duration(source_video):
+                start_time = 0
+                duration = min(duration, _get_clip_duration(source_video))
+            db_update_fn("extracting_clip")
+            success = _extract_segment(source_video, start_time, duration, output_path)
+            render_result = {"success": success} if success else {"success": False, "error": "Failed to extract clip segment"}
+
+    elif source_type == "remix":
+        if not source_video:
+            render_result = {"success": False, "error": "No source video available for remix"}
+        else:
+            render_result = _generate_remix_clip(
+                source_path=source_video,
+                start_time=start_time,
+                visual_description=visual_description,
+                quality_tier=quality_tier,
+                output_path=output_path,
+                db_update_fn=db_update_fn
+            )
+
+    elif source_type == "stock":
+        render_result = _generate_stock_clip(
+            visual_description=visual_description,
+            duration=duration,
+            output_path=output_path,
+            db_update_fn=db_update_fn
+        )
+
+    elif source_type == "dalle":
+        render_result = _generate_dalle_clip(
+            visual_description=visual_description,
+            duration=duration,
+            output_path=output_path,
+            db_update_fn=db_update_fn
+        )
+
+    else:
+        render_result = {"success": False, "error": f"Unknown source type: {source_type}"}
+
+    try:
+        scene_plan = ScenePlan.query.get(scene_plan_id)
+        if scene_plan:
+            if render_result.get("success"):
+                scene_plan.rendered_path = output_path
+                scene_plan.render_status = "rendered"
+                scene_plan.source_config = {
+                    **(scene_plan.source_config or {}),
+                    "preview_local_path": output_path,
+                    "preview_video_url": f"/api/project/{project_id}/scene/{scene_plan_id}/preview-video"
+                }
+                print(f"[Preview] Scene {scene_data.get('scene_index', '?')} rendered successfully")
+            else:
+                scene_plan.render_status = "render_failed"
+                scene_plan.source_config = {
+                    **(scene_plan.source_config or {}),
+                    "render_error": render_result.get("error", "Unknown error")
+                }
+                print(f"[Preview] Scene {scene_data.get('scene_index', '?')} render failed: {render_result.get('error')}")
+            db.session.commit()
+    except Exception as e:
+        print(f"[Preview] DB update error for scene {scene_plan_id}: {e}")
+        db.session.rollback()
+
+    return {
+        "success": render_result.get("success", False),
+        "output_path": output_path if render_result.get("success") else None,
+        "error": render_result.get("error")
+    }
+
+
+def generate_all_scenes_async(project_id: int, scene_plan_data: list, quality_tier: str = "good"):
+    thread = threading.Thread(
+        target=_run_all_scenes_generation,
+        args=(project_id, scene_plan_data, quality_tier),
+        daemon=True
+    )
+    thread.start()
+    return thread
+
+
+def _run_all_scenes_generation(project_id: int, scene_plan_data: list, quality_tier: str):
+    from app import app
+
+    with app.app_context():
+        from models import db, ScenePlan
+
+        try:
+            scene_plans = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).all()
+            if not scene_plans:
+                print(f"[Preview] No scene plans found for project {project_id}")
+                return
+
+            source_video = _find_source_video(project_id)
+            print(f"[Preview] Starting all-scenes render for project {project_id}: {len(scene_plans)} scenes, source_video={'found' if source_video else 'None'}")
+
+            rendered_paths = []
+            total_scenes = len(scene_plans)
+
+            for i, scene_plan in enumerate(scene_plans):
+                try:
+                    first_sp = ScenePlan.query.get(scene_plans[0].id)
+                    if first_sp:
+                        first_sp.source_config = {
+                            **(first_sp.source_config or {}),
+                            "all_scenes_status": "rendering",
+                            "current_scene": i + 1,
+                            "total_scenes": total_scenes
+                        }
+                        db.session.commit()
+                except Exception:
+                    db.session.rollback()
+
+                matching_data = None
+                for sd in scene_plan_data:
+                    if sd.get("scene_index") == scene_plan.scene_index:
+                        matching_data = sd
+                        break
+
+                if not matching_data:
+                    if i < len(scene_plan_data):
+                        matching_data = scene_plan_data[i]
+                    else:
+                        matching_data = {
+                            "scene_index": scene_plan.scene_index,
+                            "source_type": scene_plan.source_type or "clip",
+                            "visual_description": (scene_plan.source_config or {}).get("visual_description", ""),
+                            "duration": scene_plan.duration or 5.0,
+                            "start_time": scene_plan.start_time or 0,
+                            "transition_out": scene_plan.transition_out or "cut"
+                        }
+
+                result = _render_single_scene(
+                    scene_data=matching_data,
+                    scene_plan_id=scene_plan.id,
+                    project_id=project_id,
+                    source_video=source_video,
+                    quality_tier=quality_tier
+                )
+
+                if not result.get("success") and matching_data.get("source_type", "").lower() in ("clip", "remix") and source_video:
+                    print(f"[Preview] Scene {i+1} failed ({matching_data.get('source_type')}), falling back to clip extraction")
+                    try:
+                        start_time = float(matching_data.get("start_time", 0) or 0)
+                    except (TypeError, ValueError):
+                        start_time = 0.0
+                    try:
+                        duration = float(matching_data.get("duration", 5.0) or 5.0)
+                    except (TypeError, ValueError):
+                        duration = 5.0
+
+                    fallback_path = os.path.join(PREVIEW_DIR, f"scene_fallback_{project_id}_{scene_plan.id}_{int(time.time())}.mp4")
+                    if _extract_segment(source_video, start_time, duration, fallback_path):
+                        try:
+                            sp = ScenePlan.query.get(scene_plan.id)
+                            if sp:
+                                sp.rendered_path = fallback_path
+                                sp.render_status = "rendered"
+                                sp.source_config = {
+                                    **(sp.source_config or {}),
+                                    "preview_local_path": fallback_path,
+                                    "preview_video_url": f"/api/project/{project_id}/scene/{scene_plan.id}/preview-video",
+                                    "fallback_used": True
+                                }
+                                db.session.commit()
+                        except Exception:
+                            db.session.rollback()
+                        result = {"success": True, "output_path": fallback_path}
+
+                rendered_paths.append(result)
+
+            successful_paths = [r["output_path"] for r in rendered_paths if r.get("success") and r.get("output_path")]
+
+            if len(successful_paths) >= 2:
+                ts = int(time.time())
+                transition_output = os.path.join(PREVIEW_DIR, f"preview_{project_id}_{ts}_transition.mp4")
+
+                scene1_data_for_transition = scene_plan_data[0] if scene_plan_data else {}
+                transition_type = scene1_data_for_transition.get("transition_out", "cut")
+
+                print(f"[Preview] Stitching Scene 1→2 transition preview...")
+                stitched = _stitch_with_transition(
+                    successful_paths[0],
+                    successful_paths[1],
+                    transition_type,
+                    transition_output
+                )
+
+                if stitched and os.path.exists(transition_output):
+                    try:
+                        first_sp = ScenePlan.query.get(scene_plans[0].id)
+                        if first_sp:
+                            first_sp.rendered_path = transition_output
+                            first_sp.source_config = {
+                                **(first_sp.source_config or {}),
+                                "preview_local_path": transition_output,
+                                "preview_video_url": f"/api/project/{project_id}/preview-video",
+                                "is_transition_preview": True
+                            }
+                            db.session.commit()
+                        print(f"[Preview] Scene 1→2 transition preview stitched")
+                    except Exception:
+                        db.session.rollback()
+
+            try:
+                first_sp = ScenePlan.query.get(scene_plans[0].id)
+                if first_sp:
+                    first_sp.source_config = {
+                        **(first_sp.source_config or {}),
+                        "all_scenes_status": "ready",
+                        "all_scenes_rendered": True,
+                        "preview_video_url": f"/api/project/{project_id}/preview-video"
+                    }
+                    first_sp.render_status = "preview_ready"
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+            success_count = sum(1 for r in rendered_paths if r.get("success"))
+            print(f"[Preview] All scenes complete: {success_count}/{total_scenes} rendered successfully")
+
+        except Exception as e:
+            print(f"[Preview] Error in all-scenes generation: {e}")
+            traceback.print_exc()
+            try:
+                first_sp = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).first()
+                if first_sp:
+                    first_sp.render_status = "preview_failed"
+                    first_sp.source_config = {
+                        **(first_sp.source_config or {}),
+                        "all_scenes_status": "failed",
+                        "preview_error": str(e)
+                    }
+                    db.session.commit()
+            except Exception:
+                db.session.rollback()
+
+
 def generate_scene_preview_async(
     project_id: int,
     scene1_plan_id: int,
@@ -257,17 +679,7 @@ def generate_scene_preview_async(
     return thread
 
 
-def _find_source_video(project_id: int) -> Optional[str]:
-    from models import ProjectSource
-    sources = ProjectSource.query.filter_by(project_id=project_id).all()
-    for source in sources:
-        if source.file_path and os.path.exists(source.file_path):
-            return source.file_path
-    return None
-
-
-def _is_remix_mode(scene_data: dict) -> bool:
-    return (scene_data or {}).get("source_type", "").lower() == "remix"
+generate_scene_preview_async_legacy = generate_scene_preview_async
 
 
 def _run_preview_generation(
@@ -543,3 +955,6 @@ def _run_preview_generation(
                     db.session.commit()
             except Exception:
                 db.session.rollback()
+
+
+_run_preview_generation_legacy = _run_preview_generation

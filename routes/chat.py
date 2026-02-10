@@ -13,7 +13,7 @@ from models import Project, ProjectSource, ScenePlan, CommunityTemplate, Convers
 from context_engine import call_ai, SYSTEM_GUARDRAILS
 from routes.utils import get_user_id
 from routes.overlays import get_or_create_monthly_usage, CLIPPER_MONTHLY_CAP
-from services.preview_service import generate_scene_preview_async
+from services.preview_service import generate_scene_preview_async, generate_all_scenes_async
 
 chat_bp = Blueprint('chat', __name__)
 
@@ -248,25 +248,14 @@ def build_scene_plan(project_id, user_id, mode, project):
         db.session.commit()
         
         if scene_plan_data:
-            first_scene = scene_plan_data[0]
-            second_scene = scene_plan_data[1] if len(scene_plan_data) > 1 else None
-            first_sp = ScenePlan.query.filter_by(
-                project_id=project_id, scene_index=1
-            ).first()
-            second_sp = ScenePlan.query.filter_by(
-                project_id=project_id, scene_index=2
-            ).first() if second_scene else None
-            if first_sp:
-                quality = 'good'
-                generate_scene_preview_async(
-                    project_id=project_id,
-                    scene1_plan_id=first_sp.id,
-                    scene1_data=first_scene,
-                    scene2_data=second_scene,
-                    scene2_plan_id=second_sp.id if second_sp else None,
-                    quality_tier=quality
-                )
-                scene_plan_data[0]['preview_status'] = 'generating'
+            quality = 'good'
+            generate_all_scenes_async(
+                project_id=project_id,
+                scene_plan_data=scene_plan_data,
+                quality_tier=quality
+            )
+            for sd in scene_plan_data:
+                sd['preview_status'] = 'generating'
         
         return scene_plan_data, round(total_cost, 2), cost_breakdown
         
@@ -509,12 +498,37 @@ def api_chat():
 
     job_data = None
     if trigger_generation:
-        job_data = {
-            'mode': effective_mode,
-            'project_name': project.name,
-            'project_id': project_id,
-            'user_message': message
-        }
+        rendered_scenes = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).all()
+        
+        all_ready = all(
+            sp.render_status in ('rendered', 'preview_ready') and sp.rendered_path
+            for sp in rendered_scenes
+        ) if rendered_scenes else False
+        
+        if not all_ready:
+            trigger_generation = False
+            ai_response = "Some scenes are still rendering. Please wait until all scenes are ready before approving."
+        else:
+            scene_clips = []
+            for sp in rendered_scenes:
+                scene_clips.append({
+                    'scene_index': sp.scene_index,
+                    'rendered_path': sp.rendered_path,
+                    'source_type': sp.source_type,
+                    'duration': sp.duration,
+                    'transition_out': sp.transition_out or 'cut',
+                    'script_text': sp.script_text or '',
+                    'visual_description': (sp.source_config or {}).get('visual_description', ''),
+                })
+            
+            job_data = {
+                'mode': effective_mode,
+                'project_name': project.name,
+                'project_id': project_id,
+                'user_message': message,
+                'pre_rendered_scenes': scene_clips,
+                'use_pre_rendered': True,
+            }
     
     result = {
         'ok': True,
@@ -549,19 +563,54 @@ def api_preview_status(project_id):
     if not project:
         return jsonify({'ok': False, 'error': 'Project not found'}), 404
     
-    scene = ScenePlan.query.filter_by(project_id=project_id, scene_index=1).first()
-    if not scene:
+    scenes = ScenePlan.query.filter_by(project_id=project_id).order_by(ScenePlan.scene_index).all()
+    if not scenes:
         return jsonify({'ok': False, 'error': 'No scene plan found'}), 404
     
-    config = scene.source_config or {}
+    first_config = scenes[0].source_config or {}
+    total_scenes = len(scenes)
+    
+    per_scene = []
+    rendered_count = 0
+    for s in scenes:
+        sc = s.source_config or {}
+        is_done = s.render_status in ('rendered', 'preview_ready')
+        if is_done:
+            rendered_count += 1
+        per_scene.append({
+            'id': s.id,
+            'scene_index': s.scene_index,
+            'source_type': s.source_type,
+            'render_status': s.render_status,
+            'has_preview': bool(s.rendered_path),
+            'preview_video_url': f"/api/project/{project_id}/scene/{s.id}/preview-video" if s.rendered_path else None,
+            'preview_error': sc.get('preview_error'),
+            'visual_description': sc.get('visual_description', ''),
+        })
+    
+    all_rendered = rendered_count == total_scenes
+    any_failed = any(s.render_status == 'render_failed' for s in scenes)
+    current_scene = rendered_count + 1 if not all_rendered else total_scenes
+    
+    if all_rendered:
+        all_scenes_status = 'ready'
+    elif any_failed and rendered_count + sum(1 for s in scenes if s.render_status == 'render_failed') == total_scenes:
+        all_scenes_status = 'ready'
+    else:
+        all_scenes_status = 'rendering'
     
     result = {
         'ok': True,
-        'status': scene.render_status,
-        'preview_video_url': config.get('preview_video_url'),
-        'preview_error': config.get('preview_error'),
-        'is_transition_preview': config.get('is_transition_preview', False),
-        'is_remix': config.get('is_remix', False),
+        'status': scenes[0].render_status,
+        'all_scenes_status': all_scenes_status,
+        'current_scene': current_scene,
+        'total_scenes': total_scenes,
+        'scenes': per_scene,
+        'preview_video_url': first_config.get('preview_video_url'),
+        'preview_error': first_config.get('preview_error'),
+        'is_transition_preview': first_config.get('is_transition_preview', False),
+        'is_remix': first_config.get('is_remix', False),
+        'all_rendered': all_rendered,
     }
     
     return jsonify(result)
@@ -589,6 +638,89 @@ def api_preview_video(project_id):
         return send_file(local_path, mimetype='video/mp4')
     
     return '', 404
+
+
+@chat_bp.route('/api/project/<int:project_id>/scene/<int:scene_id>/preview-video', methods=['GET'])
+def api_scene_preview_video(project_id, scene_id):
+    user_id = get_user_id()
+    if not user_id:
+        return '', 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return '', 404
+    
+    scene = ScenePlan.query.filter_by(id=scene_id, project_id=project_id).first()
+    if not scene or not scene.rendered_path:
+        return '', 404
+    
+    if os.path.exists(scene.rendered_path):
+        from flask import send_file
+        return send_file(scene.rendered_path, mimetype='video/mp4')
+    
+    return '', 404
+
+
+@chat_bp.route('/api/project/<int:project_id>/scene/<int:scene_id>/re-render', methods=['POST'])
+def api_scene_rerender(project_id, scene_id):
+    user_id = get_user_id()
+    if not user_id:
+        return jsonify({'ok': False, 'error': 'Not authenticated'}), 401
+    
+    project = Project.query.filter_by(id=project_id, user_id=user_id).first()
+    if not project:
+        return jsonify({'ok': False, 'error': 'Project not found'}), 404
+    
+    scene = ScenePlan.query.filter_by(id=scene_id, project_id=project_id).first()
+    if not scene:
+        return jsonify({'ok': False, 'error': 'Scene not found'}), 404
+    
+    data = request.get_json() or {}
+    new_description = data.get('visual_description', '').strip()
+    
+    if not new_description:
+        return jsonify({'ok': False, 'error': 'Visual description required'}), 400
+    
+    scene.source_config = {
+        **(scene.source_config or {}),
+        'visual_description': new_description
+    }
+    scene.render_status = 'rendering'
+    scene.rendered_path = None
+    db.session.commit()
+    
+    scene_data = {
+        'scene_index': scene.scene_index,
+        'source_type': scene.source_type,
+        'visual_description': new_description,
+        'duration': scene.duration or 5.0,
+        'start_time': scene.start_time or 0,
+        'script_text': scene.script_text or '',
+    }
+    
+    import threading
+    from services.preview_service import _render_single_scene, _find_source_video
+    
+    def _rerender_scene():
+        from app import app
+        with app.app_context():
+            source_video = _find_source_video(project_id)
+            _render_single_scene(
+                scene_data=scene_data,
+                scene_plan_id=scene.id,
+                project_id=project_id,
+                source_video=source_video,
+                quality_tier='good'
+            )
+    
+    thread = threading.Thread(target=_rerender_scene, daemon=True)
+    thread.start()
+    
+    return jsonify({
+        'ok': True,
+        'message': 'Scene re-render started',
+        'scene_id': scene.id
+    })
 
 
 @chat_bp.route('/api/project/<int:project_id>/chat', methods=['GET'])
