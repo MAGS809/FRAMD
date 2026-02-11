@@ -53,9 +53,10 @@ import models
 with app.app_context():
     db.create_all()
 
-from replit_auth import make_replit_blueprint
-
-app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+# Only load Replit auth when running on Replit (REPL_ID is set)
+if os.environ.get('REPL_ID'):
+    from replit_auth import make_replit_blueprint
+    app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
 
 @app.before_request
 def make_session_permanent():
