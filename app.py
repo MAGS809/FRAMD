@@ -110,6 +110,12 @@ with app.app_context():
                         )
                     """))
                     conn.commit()
+
+                                        # Add password_hash to users table for email/password auth
+                                                            result = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash'"))
+                                                                                if not result.fetchone():
+                                                                                                        conn.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR"))
+                                                                                                                                conn.commit()
     except Exception as e:
         logging.warning(f"Schema migration check: {e}")
     
