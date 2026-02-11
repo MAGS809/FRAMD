@@ -53,7 +53,17 @@ import models
 with app.app_context():
     db.create_all()
 
-# Only load Replit auth when running on Replit (REPL_ID is set)
+# Always initialize Flask-Login for user session management
+from flask_login import LoginManager
+login_manager = LoginManager(app)
+
+from models import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+# Only load Replit OAuth blueprint when running on Replit
 if os.environ.get('REPL_ID'):
     from replit_auth import make_replit_blueprint
     app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
