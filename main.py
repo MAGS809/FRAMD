@@ -63,10 +63,26 @@ from models import User
 def load_user(user_id):
     return User.query.get(user_id)
 
-# Only load Replit OAuth blueprint when running on Replit
+# Load auth blueprint based on environment
 if os.environ.get('REPL_ID'):
     from replit_auth import make_replit_blueprint
     app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
+else:
+    # Create a stub auth blueprint so url_for('replit_auth.login') works
+    from flask import Blueprint, redirect, url_for as flask_url_for
+    replit_auth_stub = Blueprint('replit_auth', __name__)
+
+    @replit_auth_stub.route('/login')
+    def login():
+        return redirect('/')
+
+    @replit_auth_stub.route('/logout')
+    def logout():
+        from flask_login import logout_user
+        logout_user()
+        return redirect('/')
+
+    app.register_blueprint(replit_auth_stub, url_prefix="/auth")
 
 @app.before_request
 def make_session_permanent():
