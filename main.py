@@ -70,14 +70,166 @@ with app.app_context():
         from replit_auth import make_replit_blueprint
         app.register_blueprint(make_replit_blueprint(), url_prefix="/auth")
     else:
-        # Email/password auth for non-Replit deployments (Railway, etc.)
+        # Email/password auth + OAuth for non-Replit deployments (Railway, etc.)
         import uuid
         from flask import Blueprint, redirect, url_for as flask_url_for, request, render_template, flash
         from flask_login import login_user, logout_user
         from werkzeug.security import generate_password_hash, check_password_hash
+        from authlib.integrations.flask_client import OAuth
 
         replit_auth_stub = Blueprint('replit_auth', __name__)
 
+        # --- OAuth setup ---
+        oauth = OAuth(app)
+
+        # Google OAuth
+        if os.environ.get('GOOGLE_CLIENT_ID'):
+            oauth.register(
+                name='google',
+                client_id=os.environ.get('GOOGLE_CLIENT_ID'),
+                client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
+                server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+                client_kwargs={'scope': 'openid email profile'},
+            )
+
+        # Facebook OAuth
+        if os.environ.get('FACEBOOK_CLIENT_ID'):
+            oauth.register(
+                name='facebook',
+                client_id=os.environ.get('FACEBOOK_CLIENT_ID'),
+                client_secret=os.environ.get('FACEBOOK_CLIENT_SECRET'),
+                access_token_url='https://graph.facebook.com/v18.0/oauth/access_token',
+                authorize_url='https://www.facebook.com/v18.0/dialog/oauth',
+                api_base_url='https://graph.facebook.com/v18.0/',
+                client_kwargs={'scope': 'email public_profile'},
+            )
+
+        # Apple OAuth
+        if os.environ.get('APPLE_CLIENT_ID'):
+            oauth.register(
+                name='apple',
+                client_id=os.environ.get('APPLE_CLIENT_ID'),
+                client_secret=os.environ.get('APPLE_CLIENT_SECRET'),
+                authorize_url='https://appleid.apple.com/auth/authorize',
+                access_token_url='https://appleid.apple.com/auth/token',
+                client_kwargs={'scope': 'name email', 'response_mode': 'form_post'},
+                server_metadata_url=None,
+                jwks_uri='https://appleid.apple.com/auth/keys',
+            )
+
+        def _get_or_create_oauth_user(email, first_name=None, last_name=None, provider=None):
+            """Find existing user by email or create a new one from OAuth login."""
+            user = User.query.filter_by(email=email).first()
+            if not user:
+                user = User()
+                user.id = str(uuid.uuid4())
+                user.email = email
+                user.first_name = first_name
+                user.last_name = last_name
+                user.tokens = 120
+                db.session.add(user)
+                db.session.commit()
+            return user
+
+        # --- OAuth routes ---
+        @replit_auth_stub.route('/google')
+        def google_login():
+            if not os.environ.get('GOOGLE_CLIENT_ID'):
+                return render_template('login.html', error='Google login is not configured.')
+            redirect_uri = flask_url_for('replit_auth.google_callback', _external=True)
+            return oauth.google.authorize_redirect(redirect_uri)
+
+        @replit_auth_stub.route('/google/callback')
+        def google_callback():
+            try:
+                token = oauth.google.authorize_access_token()
+                userinfo = token.get('userinfo')
+                if not userinfo:
+                    userinfo = oauth.google.get('https://openidconnect.googleapis.com/v1/userinfo').json()
+                email = userinfo.get('email')
+                if not email:
+                    return render_template('login.html', error='Could not get email from Google.')
+                user = _get_or_create_oauth_user(
+                    email=email,
+                    first_name=userinfo.get('given_name'),
+                    last_name=userinfo.get('family_name'),
+                    provider='google'
+                )
+                login_user(user)
+                return redirect('/')
+            except Exception as e:
+                print(f"Google OAuth error: {e}")
+                return render_template('login.html', error='Google login failed. Please try again.')
+
+        @replit_auth_stub.route('/facebook')
+        def facebook_login():
+            if not os.environ.get('FACEBOOK_CLIENT_ID'):
+                return render_template('login.html', error='Facebook login is not configured.')
+            redirect_uri = flask_url_for('replit_auth.facebook_callback', _external=True)
+            return oauth.facebook.authorize_redirect(redirect_uri)
+
+        @replit_auth_stub.route('/facebook/callback')
+        def facebook_callback():
+            try:
+                token = oauth.facebook.authorize_access_token()
+                resp = oauth.facebook.get('me?fields=id,name,email,first_name,last_name')
+                profile = resp.json()
+                email = profile.get('email')
+                if not email:
+                    return render_template('login.html', error='Could not get email from Facebook. Make sure email permissions are granted.')
+                user = _get_or_create_oauth_user(
+                    email=email,
+                    first_name=profile.get('first_name'),
+                    last_name=profile.get('last_name'),
+                    provider='facebook'
+                )
+                login_user(user)
+                return redirect('/')
+            except Exception as e:
+                print(f"Facebook OAuth error: {e}")
+                return render_template('login.html', error='Facebook login failed. Please try again.')
+
+        @replit_auth_stub.route('/apple')
+        def apple_login():
+            if not os.environ.get('APPLE_CLIENT_ID'):
+                return render_template('login.html', error='Apple login is not configured.')
+            redirect_uri = flask_url_for('replit_auth.apple_callback', _external=True)
+            return oauth.apple.authorize_redirect(redirect_uri)
+
+        @replit_auth_stub.route('/apple/callback', methods=['GET', 'POST'])
+        def apple_callback():
+            try:
+                token = oauth.apple.authorize_access_token()
+                # Apple sends user info as a JWT id_token
+                import jwt
+                id_token = token.get('id_token')
+                claims = jwt.decode(id_token, options={"verify_signature": False})
+                email = claims.get('email')
+                if not email:
+                    return render_template('login.html', error='Could not get email from Apple.')
+                # Apple only sends name on first auth
+                user_data = request.form.get('user')
+                first_name = None
+                last_name = None
+                if user_data:
+                    import json
+                    user_info = json.loads(user_data)
+                    name = user_info.get('name', {})
+                    first_name = name.get('firstName')
+                    last_name = name.get('lastName')
+                user = _get_or_create_oauth_user(
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    provider='apple'
+                )
+                login_user(user)
+                return redirect('/')
+            except Exception as e:
+                print(f"Apple OAuth error: {e}")
+                return render_template('login.html', error='Apple login failed. Please try again.')
+
+        # --- Email/password routes ---
         @replit_auth_stub.route('/login', methods=['GET', 'POST'])
         def login():
             if request.method == 'POST':
