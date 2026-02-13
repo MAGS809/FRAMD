@@ -2159,7 +2159,7 @@
                     
                     <div class="brief-input-section">
                         <div class="brief-input-wrapper">
-                            <textarea class="brief-textarea" id="brief-textarea" placeholder="A 30-second video about... / Clip the best moments from my podcast / A hype reel for my brand..." oninput="updateBriefGoBtn()"></textarea>
+                            <textarea class="brief-textarea" id="brief-textarea" placeholder="A 30-second video about... / Clip the best moments from my podcast / A hype reel for my brand..." onkeydown="handleBriefKeydown(event)" oninput="updateBriefGoBtn()"></textarea>
                             <div class="uploaded-files-preview" id="uploaded-files-preview" style="display:none;"></div>
                             <div class="brief-bottom-row">
                                 <button class="brief-upload-btn" onclick="document.getElementById('brief-file-input').click()">
@@ -2338,6 +2338,13 @@
         
         state.briefFiles = [];
 
+    function handleBriefKeydown(event) {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                                        event.preventDefault();
+                                        submitBrief();
+                    }
+    }
+        
         function updateBriefGoBtn() {
             const text = document.getElementById('brief-textarea').value.trim();
             document.getElementById('brief-go-btn').disabled = !text && state.briefFiles.length === 0;
