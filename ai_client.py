@@ -6,10 +6,13 @@ import anthropic
 
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
 
-claude_client = anthropic.Anthropic(
-    api_key=os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY"),
-    base_url=os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
-)
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
+ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
+
+_claude_kwargs = {"api_key": ANTHROPIC_API_KEY}
+if ANTHROPIC_BASE_URL:
+    _claude_kwargs["base_url"] = ANTHROPIC_BASE_URL
+claude_client = anthropic.Anthropic(**_claude_kwargs)
 
 xai_client = OpenAI(
     api_key=XAI_API_KEY,
