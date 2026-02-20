@@ -5,17 +5,18 @@ from openai import OpenAI
 import anthropic
 
 XAI_API_KEY = os.environ.get("XAI_API_KEY")
+
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
 ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
 
 _claude_kwargs = {"api_key": ANTHROPIC_API_KEY}
 if ANTHROPIC_BASE_URL:
-        _claude_kwargs["base_url"] = ANTHROPIC_BASE_URL
-    claude_client = anthropic.Anthropic(**_claude_kwargs)
+    _claude_kwargs["base_url"] = ANTHROPIC_BASE_URL
+claude_client = anthropic.Anthropic(**_claude_kwargs)
 
 xai_client = OpenAI(
-        api_key=XAI_API_KEY,
-        base_url="https://api.x.ai/v1"
+    api_key=XAI_API_KEY,
+    base_url="https://api.x.ai/v1"
 )
 
 # Accept either OPENAI_API_KEY (Railway standard) or AI_INTEGRATIONS_OPENAI_API_KEY (Replit)
@@ -23,8 +24,8 @@ _openai_api_key = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY") or os.environ
 _openai_base_url = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
 
 openai_client = OpenAI(
-        api_key=_openai_api_key,
-        base_url=_openai_base_url
+    api_key=_openai_api_key,
+    base_url=_openai_base_url
 )
 
 client = xai_client
@@ -50,7 +51,7 @@ COMMUNICATION STYLE (NON-NEGOTIABLE):
 - No disclaimers about what you will or won't do. Just ask what you need.
 - No unsolicited explanations of your visual sourcing rules or content policies.
 - Get to the point. If you need to know the audience, just ask: "Who's this for?"
-- If you need the tone, just ask: "What tone - serious, funny, provocative?"
+- If you need the tone, just ask: "What tone — serious, funny, provocative?"
 - NEVER front-load responses with caveats, warnings, or "transparency" statements.
 - Sound like a sharp creative director, not a compliance officer.
 
@@ -62,7 +63,7 @@ YOU MUST ASK WHEN (one at a time):
 - Vague request that could go multiple directions
 
 CORE OPERATING PRINCIPLE:
-Intent -> Script -> Visual -> Edit -> Deliver
+Intent → Script → Visual → Edit → Deliver
 - NEVER select visuals before understanding the message
 - EVERY visual choice must serve the script
 - EVERY cut must have a purpose
@@ -121,101 +122,113 @@ VISUAL SOURCING:
 - Generic search queries only. No celebrities, no brands.
 
 POLITICAL/SOCIAL:
-- No ragebait, slogans, or demonization.
+- No ragebait, slogans, or demonization. 
 - Expose contradictions calmly; let conclusions emerge naturally.
 
 FORMATTING RULES:
 - NEVER use hyphens or dashes in any generated content. Use colons, commas, or restructure sentences instead.
 - Keep punctuation clean and simple.
-"Clarity over noise. Meaning over metrics. Thought before output."
-"""
+
+"Clarity over noise. Meaning over metrics. Thought before output." """
 
 
 def extract_json_from_text(text: str) -> dict:
-        text = text.strip()
-        try:
-                    return json.loads(text)
-                except:
+    text = text.strip()
+    
+    try:
+        return json.loads(text)
+    except:
         pass
-        if "```" in text:
-                    match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
-                    if match:
-                                    try:
-                                                        return json.loads(match.group(1).strip())
-                                                    except:
+    
+    if "```" in text:
+        match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+        if match:
+            try:
+                return json.loads(match.group(1).strip())
+            except:
                 pass
-                            for start_char, end_char in [('[', ']'), ('{', '}')]:
-                                        first = text.find(start_char)
-                                        if first == -1:
-                                                        continue
-                                                    depth = 0
-                                        for i in range(first, len(text)):
-                                                        if text[i] == start_char:
-                                                                            depth += 1
-        elif text[i] == end_char:
-                            depth -= 1
-                            if depth == 0:
-                                                    candidate = text[first:i+1]
-                                                    try:
-                                                                                return json.loads(candidate)
-                                                                            except:
-                        break
-                                    match = re.search(r'\{[\s\S]*\}', text)
-                                    if match:
-                                                try:
-                                                                return json.loads(match.group())
-                                                            except:
+    
+    for start_char, end_char in [('[', ']'), ('{', '}')]:
+        first = text.find(start_char)
+        if first == -1:
+            continue
+        depth = 0
+        for i in range(first, len(text)):
+            if text[i] == start_char:
+                depth += 1
+            elif text[i] == end_char:
+                depth -= 1
+            if depth == 0:
+                candidate = text[first:i+1]
+                try:
+                    return json.loads(candidate)
+                except:
+                    break
+    
+    match = re.search(r'\{[\s\S]*\}', text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except:
             pass
-                                            match = re.search(r'\[[\s\S]*\]', text)
-                                            if match:
-                                                        try:
-                                                                        return json.loads(match.group())
-                                                                    except:
+    
+    match = re.search(r'\[[\s\S]*\]', text)
+    if match:
+        try:
+            return json.loads(match.group())
+        except:
             pass
-                                                    return {}
+    
+    return {}
 
 
 def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, max_tokens: int = 2048) -> dict:
-        system = system_prompt or SYSTEM_GUARDRAILS
-        final_prompt = prompt
-        if json_output:
-                    final_prompt = prompt + "\n\nIMPORTANT: Respond with valid JSON only. No additional text."
-                try:
-                            response = claude_client.messages.create(
-                                            model="claude-sonnet-4-5",
-                                            max_tokens=max_tokens,
-                                            system=system,
-                                            messages=[{"role": "user", "content": final_prompt}]
-                            )
-                            content = response.content[0].text if response.content else ""
-                            print(f"[Claude] Success, response length: {len(content)}")
-                            if json_output:
-                                            result = extract_json_from_text(content)
-                                            if result:
-                                                                return result
-                                                            print(f"[Claude] JSON extraction failed, falling back to xAI...")
-                else:
-            return {"text": content}
-                except Exception as e:
-        print(f"[Claude Error] {e}, falling back to xAI...")
+    system = system_prompt or SYSTEM_GUARDRAILS
+    
+    final_prompt = prompt
+    if json_output:
+        final_prompt = prompt + "\n\nIMPORTANT: Respond with valid JSON only. No additional text."
+    
     try:
-                kwargs = {
-                                "model": "grok-3",
-                                "messages": [
-                                                    {"role": "system", "content": system},
-                                                    {"role": "user", "content": prompt}
-                                ],
-                                "max_completion_tokens": max_tokens
-                }
-                if json_output:
-                                kwargs["response_format"] = {"type": "json_object"}
-                            response = xai_client.chat.completions.create(**kwargs)
+        response = claude_client.messages.create(
+            model="claude-sonnet-4-5",
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": final_prompt}]
+        )
+        content = response.content[0].text if response.content else ""
+        print(f"[Claude] Success, response length: {len(content)}")
+        
+        if json_output:
+            result = extract_json_from_text(content)
+            if result:
+                return result
+            print(f"[Claude] JSON extraction failed, falling back to xAI...")
+        else:
+            return {"text": content}
+    except Exception as e:
+        print(f"[Claude Error] {e}, falling back to xAI...")
+    
+    try:
+        kwargs = {
+            "model": "grok-3",
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "max_completion_tokens": max_tokens
+        }
+        if json_output:
+            kwargs["response_format"] = {"type": "json_object"}
+        
+        response = xai_client.chat.completions.create(**kwargs)
         content = response.choices[0].message.content or ""
         print(f"[xAI] Success, response length: {len(content)}")
+        
         if json_output:
-                        result = extract_json_from_text(content)
-                        return result if result else {}
-                    return {"text": content}
-except Exception as e:
+            result = extract_json_from_text(content)
+            return result if result else {}
+        return {"text": content}
+    except Exception as e:
         print(f"[xAI Error] {e}")
         return {}
