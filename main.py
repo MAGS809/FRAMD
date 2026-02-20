@@ -18,14 +18,14 @@ def _get_env_value(var_name):
         """Get env var value, accepting alternate names for known vars."""
         val = os.environ.get(var_name)
         if val:
-                    return val
-                # Accept ANTHROPIC_API_KEY as alias for AI_INTEGRATIONS_ANTHROPIC_API_KEY
-                if var_name == "AI_INTEGRATIONS_ANTHROPIC_API_KEY":
-                            return os.environ.get("ANTHROPIC_API_KEY")
-                        # Accept AI_INTEGRATIONS_OPENAI_API_KEY as alias for OPENAI_API_KEY
-                        if var_name == "OPENAI_API_KEY":
-                                    return os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
-                                return None
+            return val
+        # Accept ANTHROPIC_API_KEY as alias for AI_INTEGRATIONS_ANTHROPIC_API_KEY
+        if var_name == "AI_INTEGRATIONS_ANTHROPIC_API_KEY":
+            return os.environ.get("ANTHROPIC_API_KEY")
+        # Accept AI_INTEGRATIONS_OPENAI_API_KEY as alias for OPENAI_API_KEY
+        if var_name == "OPENAI_API_KEY":
+            return os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY")
+        return None
 
 def validate_environment():
         """Check required environment variables and warn about optional ones."""
