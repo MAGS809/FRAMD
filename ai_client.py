@@ -1,457 +1,263 @@
-160
-iexcept Exception as e:
-    print(f"[Claude Error]165
-    mport os
-import json
-import re
-from openai import OpenAI
-import anthropic
+import streamlit as st
+import yfinance as yf
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+from textblob import TextBlob
+import datetime
+import nltk
 
-XAI_API_KEY = os.environ.get("XAI_API_KEY")
-
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
-ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
-
-_claude_kwargs = {"api_key": ANTHROPIC_API_KEY}
-if ANTHROPIC_BASE_URL:
-    _claude_kwargs["base_url"] = ANTHROPIC_BASE_URL
-import os
-import json
-import re
-from openai import OpenAI
-import anthropic
-
-XAI_API_KEY = os.environ.get("XAI_API_KEY")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("AI_INTEGRATIONS_ANTHROPIC_API_KEY")
-ANTHROPIC_BASE_URL = os.environ.get("AI_INTEGRATIONS_ANTHROPIC_BASE_URL")
-
-_claude_kwargs = {"api_key": ANTHROPIC_API_KEY}
-if ANTHROPIC_BASE_URL:
-    _claude_kwargs["base_url"] = ANTHROPIC_BASE_URL
-        claude_client = anthropic.Anthropic(**_claude_kwargs)
-        
-        xai_client = OpenAI(
-            api_key=XAI_API_KEY,
-                base_url="https://api.x.ai/v1"
-                )
-                
-                # Accept either OPENAI_API_KEY (Railway standard) or AI_INTEGRATIONS_OPENAI_API_KEY (Replit)
-                _openai_api_key = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-                _openai_base_url = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
-                
-                openai_client = OpenAI(
-                    api_key=_openai_api_key,
-                        base_url=_openai_base_url
-                        )
-                        
-                        client = xai_client
-                        
-                        SYSTEM_GUARDRAILS = """You are the Framd AI - a video editing brain, not a content factory. Your purpose is to create videos that match the user's vision with precision and care.
-                        
-                        IDENTITY (ALL MODES - REMIX, CLIPPER, SIMPLE STOCK):
-                        You are ONE unified intelligence. The same philosophy applies whether you're:
-                        - REMIX: Transforming existing video while preserving motion/structure
-                        - CLIPPER: Extracting the best moments from long content
-                        - SIMPLE STOCK: Creating original content from stock and AI visuals
-                        
-                        YOUR JOB:
-                        1. Understand what the user actually wants (not what you think they want)
-                        2. Ask ONE short question at a time when critical info is missing
-                        3. Create content that serves their specific goal
-                        4. Be critical of your own work - learn from every output
-                        
-                        COMMUNICATION STYLE (NON-NEGOTIABLE):
-                        - ONE question at a time. Never stack multiple questions.
-                        - Be concise. 1-3 sentences max per response when clarifying.
-                        - No bullet-point walls. No numbered lists of concerns. No policy dumps.
-                        - No disclaimers about what you will or won't do. Just ask what you need.
-                        - No unsolicited explanations of your visual sourcing rules or content policies.
-                        - Get to the point. If you need to know the audience, just ask: "Who's this for?"
-                        - If you need the tone, just ask: "What tone - serious, funny, provocative?"
-                        - NEVER front-load responses with caveats, warnings, or "transparency" statements.
-                        - Sound like a sharp creative director, not a compliance officer.
-                        
-                        YOU MUST ASK WHEN (one at a time):
-                        - Brand colors not specified (don't guess)
-                        - Tone/direction unclear (serious? funny? educational?)
-                        - Target audience unknown (who is this for?)
-                        - Missing logo, assets, or brand materials
-                        - Vague request that could go multiple directions
-                        
-                        CORE OPERATING PRINCIPLE:
-                        Intent -> Script -> Visual -> Edit -> Deliver
-                        - NEVER select visuals before understanding the message
-                        - EVERY visual choice must serve the script
-                        - EVERY cut must have a purpose
-                        
-                        SHORT-FORM CONTENT MASTERY:
-                        You understand that short-form video (TikTok, Reels, Shorts) is about MESSAGE COMPRESSION, not content compression.
-                        
-                        THE 3-SECOND RULE:
-                        - The viewer decides to stay or scroll in 3 seconds
-                        - Front-load the value: lead with the insight, not the setup
-                        - First line must create a knowledge gap or emotional hook
-                        
-                        ONE IDEA PER VIDEO:
-                        - Each video = ONE clear message, ONE takeaway
-                        - If you can't state the point in one sentence, the script is bloated
-                        - Cut everything that doesn't serve the core message
-                        
-                        PUNCHY DELIVERY PRINCIPLES:
-                        - 60 seconds MAX for most content (30-45 is ideal)
-                        - Every sentence earns its place or gets cut
-                        - No throat-clearing ("So basically...", "Let me explain...")
-                        - No filler words or phrases
-                        - End on the punchline or revelation, not a summary
-                        
-                        HOOK FORMULAS THAT WORK:
-                        - Counterintuitive truth: "The thing nobody tells you about X..."
-                        - Direct challenge: "Stop doing X. Here's why."
-                        - Curiosity gap: "This changed how I think about X..."
-                        - Pattern interrupt: Start mid-thought, mid-action
-                        
-                        RHYTHM & PACING:
-                        - Short sentences hit harder
-                        - Vary sentence length for rhythm
-                        - Strategic pauses > constant talking
-                        - Match visual cuts to voice rhythm
-                        
-                        WHAT KILLS SHORT-FORM:
-                        - Slow builds without payoff
-                        - Explaining what you're about to explain
-                        - Multiple tangents or side points
-                        - Asking viewers to wait for the good part
-                        - Generic intros that could apply to any video
-                        
-                        TONE & VOICE:
-                        - Calm, confident, clear, restrained, and thoughtful.
-                        - Intelligent Humor: Subtle, observational, timing-based. Never loud, never childish.
-                        - Rule: If the humor can be removed and the message still works, it's correct.
-                        
-                        HARD BOUNDARIES:
-                        - NO juvenile or cheap humor (bathroom, sexual, or shock value).
-                        - SEXUAL/GRAPHIC CONTENT: Do not reference or describe. Use neutral phrasing like "We'll skip ahead" or "Moving on" if acknowledgment is unavoidable. Silence is preferred.
-                        - VISUAL BAN: Strictly NO sexualized or thirst-driven content (bikinis, lingerie, erotic poses, etc.).
-                        
-                        VISUAL SOURCING:
-                        - Unsplash, Pixabay, Wikimedia Commons ONLY.
-                        - Generic search queries only. No celebrities, no brands.
-                        
-                        POLITICAL/SOCIAL:
-                        - No ragebait, slogans, or demonization.
-                        - Expose contradictions calmly; let conclusions emerge naturally.
-                        
-                        FORMATTING RULES:
-                        - NEVER use hyphens or dashes in any generated content. Use colons, commas, or restructure sentences instead.
-                        - Keep punctuation clean and simple.
-                        "Clarity over noise. Meaning over metrics. Thought before output."
-                        """
-                        
-                        
-                        def extract_json_from_text(text: str) -> dict:
-                            text = text.strip()
-                                try:
-                                        return json.loads(text)
-                                            except:
-                                                    pass
-                                                        if "```" in text:
-                                                                match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
-                                                                        if match:
-                                                                                    try:
-                                                                                                    return json.loads(match.group(1).strip())
-                                                                                                                except:
-                                                                                                                                pass
-                                                                                                                                    for start_char, end_char in [('[', ']'), ('{', '}')]:
-                                                                                                                                            first = text.find(start_char)
-                                                                                                                                                    if first == -1:
-                                                                                                                                                                continue
-                                                                                                                                                                        depth = 0
-                                                                                                                                                                                for i in range(first, len(text)):
-                                                                                                                                                                                            if text[i] == start_char:
-                                                                                                                                                                                                            depth += 1
-                                                                                                                                                                                                                        elif text[i] == end_char:
-                                                                                                                                                                                                                                        depth -= 1
-                                                                                                                                                                                                                                                    if depth == 0:
-                                                                                                                                                                                                                                                                    candidate = text[first:i+1]
-                                                                                                                                                                                                                                                                                    try:
-                                                                                                                                                                                                                                                                                                        return json.loads(candidate)
-                                                                                                                                                                                                                                                                                                                        except:
-                                                                                                                                                                                                                                                                                                                                            break
-                                                                                                                                                                                                                                                                                                                                                match = re.search(r'\{[\s\S]*\}', text)
-                                                                                                                                                                                                                                                                                                                                                    if match:
-                                                                                                                                                                                                                                                                                                                                                            try:
-                                                                                                                                                                                                                                                                                                                                                                        return json.loads(match.group())
-                                                                                                                                                                                                                                                                                                                                                                                except:
-                                                                                                                                                                                                                                                                                                                                                                                            pass
-                                                                                                                                                                                                                                                                                                                                                                                                match = re.search(r'\[[\s\S]*\]', text)
-                                                                                                                                                                                                                                                                                                                                                                                                    if match:
-                                                                                                                                                                                                                                                                                                                                                                                                            try:
-                                                                                                                                                                                                                                                                                                                                                                                                                        return json.loads(match.group())
-                                                                                                                                                                                                                                                                                                                                                                                                                                except:
-                                                                                                                                                                                                                                                                                                                                                                                                                                            pass
-                                                                                                                                                                                                                                                                                                                                                                                                                                                return {}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                                                                                                                def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, max_tokens: int = 2048) -> dict:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                    system = system_prompt or SYSTEM_GUARDRAILS
-                                                                                                                                                                                                                                                                                                                                                                                                                                                        final_prompt = prompt
-                                                                                                                                                                                                                                                                                                                                                                                                                                                            if json_output:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                    final_prompt = prompt + "\n\nIMPORTANT: Respond with valid JSON only. No additional text."
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                        try:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                response = claude_client.messages.create(
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            model="claude-sonnet-4-5",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        max_tokens=max_tokens,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    system=system,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                messages=[{"role": "user", "content": final_prompt}]
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        )
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                content = response.content[0].text if response.content else ""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        print(f"[Claude] Success, response length: {len(content)}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                if json_output:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            result = extract_json_from_text(content)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if result:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        return result
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    print(f"[Claude] JSON extraction failed, falling back to xAI...")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            else:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        return {"text": content}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            except Exception as e:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    print(f"[Claude Error] {e}, falling back to xAI...")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            try:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        kwargs = {
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "model": "grok-3",
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        "messages": [
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            {"role": "system", "content": system},
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                {"role": "user", "content": prompt}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ],
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                "max_completion_tokens": max_tokens
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if json_output:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        kwargs["response_format"] = {"type": "json_object"}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    response = xai_client.chat.completions.create(**kwargs)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                content = response.choices[0].message.content or ""
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            print(f"[xAI] Success, response length: {len(content)}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        if json_output:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        result = extract_json_from_text(content)
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        return result if result else {}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    return {"text": content}
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            except Exception as e:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        print(f"[xAI Error] {e}")
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    return {}claude_client = anthropic.Anthropic(**_claude_kwargs)
-
-xai_client = OpenAI(
-    api_key=XAI_API_KEY,
-    base_url="https://api.x.ai/v1"
-)
-
-# Accept either OPENAI_API_KEY (Railway standard) or AI_INTEGRATIONS_OPENAI_API_KEY (Replit)
-_openai_api_key = os.environ.get("AI_INTEGRATIONS_OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-_openai_base_url = os.environ.get("AI_INTEGRATIONS_OPENAI_BASE_URL")
-
-openai_client = OpenAI(
-    api_key=_openai_api_key,
-    base_url=_openai_base_url
-)
-
-client = xai_client
-
-SYSTEM_GUARDRAILS = """You are the Framd AI - a video editing brain, not a content factory. Your purpose is to create videos that match the user's vision with precision and care.
-
-IDENTITY (ALL MODES - REMIX, CLIPPER, SIMPLE STOCK):
-You are ONE unified intelligence. The same philosophy applies whether you're:
-- REMIX: Transforming existing video while preserving motion/structure
-- CLIPPER: Extracting the best moments from long content
-- SIMPLE STOCK: Creating original content from stock and AI visuals
-
-YOUR JOB:
-1. Understand what the user actually wants (not what you think they want)
-2. Ask ONE short question at a time when critical info is missing
-3. Create content that serves their specific goal
-4. Be critical of your own work - learn from every output
-
-COMMUNICATION STYLE (NON-NEGOTIABLE):
-- ONE question at a time. Never stack multiple questions.
-- Be concise. 1-3 sentences max per response when clarifying.
-- No bullet-point walls. No numbered lists of concerns. No policy dumps.
-- No disclaimers about what you will or won't do. Just ask what you need.
-- No unsolicited explanations of your visual sourcing rules or content policies.
-- Get to the point. If you need to know the audience, just ask: "Who's this for?"
-- If you need the tone, just ask: "What tone — serious, funny, provocative?"
-- NEVER front-load responses with caveats, warnings, or "transparency" statements.
-- Sound like a sharp creative director, not a compliance officer.
-
-YOU MUST ASK WHEN (one at a time):
-- Brand colors not specified (don't guess)
-- Tone/direction unclear (serious? funny? educational?)
-- Target audience unknown (who is this for?)
-- Missing logo, assets, or brand materials
-- Vague request that could go multiple directions
-
-CORE OPERATING PRINCIPLE:
-Intent → Script → Visual → Edit → Deliver
-- NEVER select visuals before understanding the message
-- EVERY visual choice must serve the script
-- EVERY cut must have a purpose
-
-SHORT-FORM CONTENT MASTERY:
-You understand that short-form video (TikTok, Reels, Shorts) is about MESSAGE COMPRESSION, not content compression.
-
-THE 3-SECOND RULE:
-- The viewer decides to stay or scroll in 3 seconds
-- Front-load the value: lead with the insight, not the setup
-- First line must create a knowledge gap or emotional hook
-
-ONE IDEA PER VIDEO:
-- Each video = ONE clear message, ONE takeaway
-- If you can't state the point in one sentence, the script is bloated
-- Cut everything that doesn't serve the core message
-
-PUNCHY DELIVERY PRINCIPLES:
-- 60 seconds MAX for most content (30-45 is ideal)
-- Every sentence earns its place or gets cut
-- No throat-clearing ("So basically...", "Let me explain...")
-- No filler words or phrases
-- End on the punchline or revelation, not a summary
-
-HOOK FORMULAS THAT WORK:
-- Counterintuitive truth: "The thing nobody tells you about X..."
-- Direct challenge: "Stop doing X. Here's why."
-- Curiosity gap: "This changed how I think about X..."
-- Pattern interrupt: Start mid-thought, mid-action
-
-RHYTHM & PACING:
-- Short sentences hit harder
-- Vary sentence length for rhythm
-- Strategic pauses > constant talking
-- Match visual cuts to voice rhythm
-
-WHAT KILLS SHORT-FORM:
-- Slow builds without payoff
-- Explaining what you're about to explain
-- Multiple tangents or side points
-- Asking viewers to wait for the good part
-- Generic intros that could apply to any video
-
-TONE & VOICE:
-- Calm, confident, clear, restrained, and thoughtful.
-- Intelligent Humor: Subtle, observational, timing-based. Never loud, never childish.
-- Rule: If the humor can be removed and the message still works, it's correct.
-
-HARD BOUNDARIES:
-- NO juvenile or cheap humor (bathroom, sexual, or shock value).
-- SEXUAL/GRAPHIC CONTENT: Do not reference or describe. Use neutral phrasing like "We'll skip ahead" or "Moving on" if acknowledgment is unavoidable. Silence is preferred.
-- VISUAL BAN: Strictly NO sexualized or thirst-driven content (bikinis, lingerie, erotic poses, etc.).
-
-VISUAL SOURCING:
-- Unsplash, Pixabay, Wikimedia Commons ONLY.
-- Generic search queries only. No celebrities, no brands.
-
-POLITICAL/SOCIAL:
-- No ragebait, slogans, or demonization. 
-- Expose contradictions calmly; let conclusions emerge naturally.
-
-FORMATTING RULES:
-- NEVER use hyphens or dashes in any generated content. Use colons, commas, or restructure sentences instead.
-- Keep punctuation clean and simple.
-
-"Clarity over noise. Meaning over metrics. Thought before output." """
-
-
-def extract_json_from_text(text: str) -> dict:
-    text = text.strip()
-    
+# --- SERVER CACHE SETUP FOR NLP ---
+@st.cache_resource
+def download_nltk_data():
     try:
-        return json.loads(text)
-    except:
+        nltk.download('punkt', quiet=True)
+        nltk.download('punkt_tab', quiet=True)
+    except Exception:
         pass
-    
-    if "```" in text:
-        match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
-        if match:
-            try:
-                return json.loads(match.group(1).strip())
-            except:
-                pass
-    
-    for start_char, end_char in [('[', ']'), ('{', '}')]:
-        first = text.find(start_char)
-        if first == -1:
-            continue
-        depth = 0
-        for i in range(first, len(text)):
-            if text[i] == start_char:
-                depth += 1
-            elif text[i] == end_char:
-                depth -= 1
-            if depth == 0:
-                candidate = text[first:i+1]
-                try:
-                    return json.loads(candidate)
-                except:
-                    break
-    
-    match = re.search(r'\{[\s\S]*\}', text)
-    if match:
-        try:
-            return json.loads(match.group())
-        except:
-            pass
-    
-    match = re.search(r'\[[\s\S]*\]', text)
-    if match:
-        try:
-            return json.loads(match.group())
-        except:
-            pass
-    
-    return {}
+download_nltk_data()
 
+from alpaca.trading.client import TradingClient
+from alpaca.trading.requests import MarketOrderRequest
+from alpaca.trading.enums import OrderSide, TimeInForce
+from alpaca.data.historical import NewsClient
+from alpaca.data.requests import NewsRequest
 
-def call_ai(prompt: str, system_prompt: str = None, json_output: bool = True, max_tokens: int = 2048) -> dict:
-    system = system_prompt or SYSTEM_GUARDRAILS
+# --- PAGE CONFIGURATION ---
+st.set_page_config(page_title="Quant Day Trader", layout="wide", initial_sidebar_state="collapsed")
+
+# --- INITIALIZE ALPACA ---
+try:
+    API_KEY = st.secrets["ALPACA_API_KEY"]
+    SECRET_KEY = st.secrets["ALPACA_SECRET_KEY"]
+    trading_client = TradingClient(API_KEY, SECRET_KEY, paper=True)
+    news_client = NewsClient(API_KEY, SECRET_KEY)
+except Exception:
+    st.error("Alpaca API keys not found in Streamlit Secrets. Cannot initialize terminal.")
+    st.stop()
+
+# --- SESSION STATE (ROUTER) ---
+if "selected_ticker" not in st.session_state:
+    st.session_state.selected_ticker = None
+
+def go_back():
+    st.session_state.selected_ticker = None
+
+# --- DATA & MATH ENGINES ---
+def fetch_1min_data(ticker: str) -> pd.DataFrame:
+    """Fetches the latest 1-minute candles for the day trading view."""
+    df = yf.download(ticker, period="1d", interval="1m", progress=False)
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+    return df
+
+def calculate_technicals(df: pd.DataFrame):
+    """Calculates RSI, MACD, and ATR on the 1-minute chart."""
+    close = df["Close"].squeeze()
     
-    final_prompt = prompt
-    if json_output:
-        final_prompt = prompt + "\n\nIMPORTANT: Respond with valid JSON only. No additional text."
+    # RSI (14)
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(14).mean()
+    loss = (-delta.clip(upper=0)).rolling(14).mean()
+    rs = gain / loss
+    df["RSI"] = 100 - (100 / (1 + rs))
+
+    # MACD (12, 26, 9)
+    ema12 = close.ewm(span=12, adjust=False).mean()
+    ema26 = close.ewm(span=26, adjust=False).mean()
+    df["MACD"] = ema12 - ema26
+    df["Signal"] = df["MACD"].ewm(span=9, adjust=False).mean()
+
+    # ATR (14)
+    high, low, prev_close = df["High"].squeeze(), df["Low"].squeeze(), close.shift(1)
+    tr = pd.concat([high - low, (high - prev_close).abs(), (low - prev_close).abs()], axis=1).max(axis=1)
+    df["ATR"] = tr.rolling(14).mean()
     
+    return df
+
+def fetch_alpaca_news(ticker: str):
+    """Pulls the latest 3 headlines from Alpaca and scores the sentiment."""
     try:
-        response = claude_client.messages.create(
-            model="claude-sonnet-4-5",
-            max_tokens=max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": final_prompt}]
+        req = NewsRequest(symbols=ticker, limit=3)
+        news = news_client.get_news(req)
+        
+        articles = []
+        for article in news.news:
+            polarity = TextBlob(article.headline).sentiment.polarity
+            articles.append({
+                "Headline": article.headline,
+                "Sentiment": "Positive" if polarity > 0.05 else "Negative" if polarity < -0.05 else "Neutral"
+            })
+        return pd.DataFrame(articles)
+    except Exception:
+        return pd.DataFrame()
+
+# --- VISUAL ENGINES ---
+def generate_coach_translation(rsi, macd, signal, atr):
+    """Translates the math into actionable Day Trading English."""
+    insights = []
+    
+    # RSI Logic
+    if rsi >= 70:
+        insights.append(f"🔥 **RSI ({rsi:.1f}):** Running incredibly hot. Buyers are exhausted. Don't buy the top; watch for a pullback.")
+    elif rsi <= 30:
+        insights.append(f"🧊 **RSI ({rsi:.1f}):** Heavily oversold. Panic selling might be ending. Watch for a bounce.")
+    else:
+        insights.append(f"⚖️ **RSI ({rsi:.1f}):** Neutral territory. Market is deciding the next move.")
+
+    # MACD Logic
+    if macd > signal:
+        insights.append("📈 **MACD:** Momentum is Bullish. Buyers control the 1-minute trend.")
+    else:
+        insights.append("📉 **MACD:** Momentum is Bearish. Sellers control the 1-minute trend.")
+
+    # ATR Logic
+    insights.append(f"📏 **ATR:** Moving ${atr:.2f} per minute. Keep stops wider than this to avoid getting chopped out.")
+
+    return "\n\n".join(insights)
+
+def draw_annotated_chart(df, ticker):
+    """Draws the live dark-mode chart with visual tripwires."""
+    current_price = float(df["Close"].iloc[-1])
+    current_atr = float(df["ATR"].iloc[-1])
+    stop_level = current_price - (current_atr * 1.5)
+
+    fig = go.Figure(data=[go.Candlestick(
+        x=df.index, open=df["Open"], high=df["High"], low=df["Low"], close=df["Close"], name="Price"
+    )])
+
+    # Draw ATR Stop Loss Line
+    fig.add_hline(
+        y=stop_level, line_dash="dot", line_color="red", 
+        annotation_text=f"ATR Stop (${stop_level:.2f})", annotation_position="bottom right"
+    )
+
+    # Highlight Oversold RSI Bounces visually
+    if len(df) >= 3 and df["RSI"].iloc[-3] < 30 and df["RSI"].iloc[-1] >= 30:
+        fig.add_annotation(
+            x=df.index[-1], y=df["Low"].iloc[-1],
+            text="Oversold Bounce", showarrow=True, arrowhead=1, arrowcolor="green", ax=0, ay=40
         )
-        content = response.content[0].text if response.content else ""
-        print(f"[Claude] Success, response length: {len(content)}")
-        
-        if json_output:
-            result = extract_json_from_text(content)
-            if result:
-                return result
-            print(f"[Claude] JSON extraction failed, falling back to xAI...")
-        else:
-            return {"text": content}
-    except Exception as e:
-        print(f"[Claude Error] {e}, falling back to xAI...")
+
+    fig.update_layout(
+        title=f"{ticker} Live 1-Minute Action",
+        xaxis_rangeslider_visible=False, height=450, template="plotly_dark",
+        margin=dict(l=0, r=0, t=40, b=0)
+    )
+    return fig
+
+# ==========================================
+# SCREEN 1: THE RADAR SCANNER
+# ==========================================
+def render_scanner_screen():
+    st.title("📡 Tactical Market Scanner")
+    st.caption("Active anomalies detected. Click a ticker to enter the Control Center.")
+    st.markdown("---")
+
+    # Dynamic candle countdown timer
+    seconds_to_close = 60 - datetime.datetime.now().second
+
+    # Mock Scanner Results (In a full build, this loops through the S&P 500 automatically)
+    opportunities = [
+        {"ticker": "NVDA", "reason": "RSI dropped below 30. Extreme oversold bounce setup."},
+        {"ticker": "AAPL", "reason": "MACD crossed the signal line. Bullish intraday shift."},
+        {"ticker": "TSLA", "reason": "Price compressing at the bottom of the ATR channel."},
+    ]
+
+    for opp in opportunities:
+        c1, c2, c3, c4 = st.columns([1, 3, 1, 1])
+        with c1: st.subheader(opp["ticker"])
+        with c2: st.markdown(f"**Why to look:** {opp['reason']}")
+        with c3: st.error(f"⏱ {seconds_to_close}s to close")
+        with c4:
+            if st.button(f"Analyze {opp['ticker']}", key=opp["ticker"], use_container_width=True):
+                st.session_state.selected_ticker = opp["ticker"]
+                st.rerun()
+        st.markdown("---")
+
+# ==========================================
+# SCREEN 2: THE DAY TRADER COCKPIT
+# ==========================================
+def render_tactical_screen(ticker):
+    st.button("⬅ Back to Radar", on_click=go_back)
     
-    try:
-        kwargs = {
-            "model": "grok-3",
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": prompt}
-            ],
-            "max_completion_tokens": max_tokens
-        }
-        if json_output:
-            kwargs["response_format"] = {"type": "json_object"}
+    with st.spinner(f"Connecting to {ticker} Live Feed..."):
+        df = fetch_1min_data(ticker)
+        if df.empty:
+            st.error("Market data unavailable. (Is the market open?)")
+            st.stop()
+            
+        df = calculate_technicals(df)
+        news_df = fetch_alpaca_news(ticker)
         
-        response = xai_client.chat.completions.create(**kwargs)
-        content = response.choices[0].message.content or ""
-        print(f"[xAI] Success, response length: {len(content)}")
+        # Extract current live values
+        latest = df.iloc[-1]
+        price = float(latest["Close"])
+        rsi = float(latest["RSI"])
+        macd = float(latest["MACD"])
+        signal = float(latest["Signal"])
+        atr = float(latest["ATR"])
+
+    # Top Metrics Bar
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Live Price", f"${price:,.2f}")
+    m2.metric("1m RSI", f"{rsi:.1f}")
+    m3.metric("Minute Volatility (ATR)", f"${atr:.2f}")
+
+    # Main Dashboard Split
+    col_chart, col_data = st.columns([2, 1])
+
+    with col_chart:
+        st.plotly_chart(draw_annotated_chart(df, ticker), use_container_width=True)
+
+    with col_data:
+        st.subheader("🤖 The Coach's Read")
+        st.info(generate_coach_translation(rsi, macd, signal, atr))
         
-        if json_output:
-            result = extract_json_from_text(content)
-            return result if result else {}
-        return {"text": content}
-    except Exception as e:
-        print(f"[xAI Error] {e}")
-        return {}
+        st.subheader("📰 Alpaca Live News")
+        if not news_df.empty:
+            def color_sentiment(val):
+                return 'color: #22c55e' if val == "Positive" else 'color: #ef4444' if val == "Negative" else 'color: #a3a3a3'
+            styled = news_df.style.map(color_sentiment, subset=["Sentiment"])
+            st.dataframe(styled, use_container_width=True, hide_index=True)
+        else:
+            st.caption("No breaking news in the last hour.")
+
+    # Execution Deck
+    st.markdown("---")
+    st.subheader("⚡ Execution Deck")
+    
+    # Risk calculation
+    account_size = 10000.0  # Assumed paper balance
+    risk_pct = 0.01
+    stop_distance = atr * 1.5
+    shares = int((account_size * risk_pct) // stop_distance) if stop_distance > 0 else 0
+    
+    st.caption(f"Calculated optimal sizing: **{shares} shares** (Based on $10k account & 1% risk)")
+    
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button(f"🟢 MARKET BUY {shares} SHARES", use_container_width=True, type="primary"):
+            try:
+                req = MarketOrderRequest(symbol=ticker, qty=shares, side=OrderSide.BUY, time_in_force=TimeInForce.GTC)
+                trading_client.submit_order(order_data=req)
+                st.success("Order Routed to Alpaca successfully.")
+            except Exception as e:
+                st.error(f"Execution Failed: {e}")
+                
+    with c2:
+        if st.button(f"🔴 MARKET SELL {shares} SHARES", use_container_width=True):
+            try:
+                req = MarketOrderRequest(symbol=ticker, qty=shares, side=OrderSide.SELL, time_in_force=TimeInForce.GTC)
+                trading_client.submit_order(order_data=req)
+                st.success("Order Routed to Alpaca successfully.")
+            except Exception as e:
+                st.error(f"Execution Failed: {e}")
+
+# ==========================================
+# MAIN ROUTER
+# ==========================================
+if st.session_state.selected_ticker is None:
+    render_scanner_screen()
+else:
+    render_tactical_screen(st.session_state.selected_ticker)
